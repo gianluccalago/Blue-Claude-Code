@@ -19,9 +19,25 @@ export function EmptyState({ label }: { label: string }) {
   );
 }
 
+function extrairMensagemErro(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const e = error as { message?: unknown; error_description?: unknown; details?: unknown };
+    if (typeof e.message === "string" && e.message) return e.message;
+    if (typeof e.error_description === "string" && e.error_description) return e.error_description;
+    if (typeof e.details === "string" && e.details) return e.details;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      /* objeto não serializável — cai no fallback abaixo */
+    }
+  }
+  return "Erro ao carregar os dados.";
+}
+
 export function ErrorState({ error }: { error: unknown }) {
-  const msg = error instanceof Error ? error.message : "Erro ao carregar os dados.";
-  const semTabela = /schema cache|does not exist|PGRST205/i.test(msg);
+  const msg = extrairMensagemErro(error);
+  const semTabela = /schema cache|does not exist|PGRST205|relation .* does not exist/i.test(msg);
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-6">
       <div className="flex items-start gap-3">
