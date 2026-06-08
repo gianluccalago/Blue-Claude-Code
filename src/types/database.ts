@@ -10,10 +10,14 @@ export type PerfilUsuario =
   | "medico"
   | "coordenacao"
   | "cuidador"
+  | "enfermagem"
   | "multidisciplinar"
   | "farmacia"
   | "administracao"
   | "familia";
+
+export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";
+export type VinculoProfissional = "CLT" | "PJ";
 
 export type GrauDependencia = "I" | "II" | "III";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
@@ -68,6 +72,10 @@ export interface Database {
           email: string | null;
           perfil: PerfilUsuario;
           ativo: boolean;
+          funcao: string | null;
+          vinculo: string | null;
+          registro_profissional: string | null;
+          isento_ponto_app: boolean;
         };
         Insert: {
           id?: string;
@@ -75,6 +83,10 @@ export interface Database {
           email?: string | null;
           perfil: PerfilUsuario;
           ativo?: boolean;
+          funcao?: string | null;
+          vinculo?: string | null;
+          registro_profissional?: string | null;
+          isento_ponto_app?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];

@@ -51,8 +51,13 @@ create table usuarios (
   nome text not null,
   email text,
   perfil text not null check (perfil in
-    ('master','medico','coordenacao','cuidador','multidisciplinar','farmacia','administracao','familia')),
-  ativo boolean not null default true
+    ('master','medico','coordenacao','cuidador','enfermagem','multidisciplinar','farmacia','administracao','familia')),
+  ativo boolean not null default true,
+  -- Campos do módulo de Escalas (profissionais são os próprios usuarios).
+  funcao text,                 -- Cuidadora | Técnica de Enfermagem | Enfermeira
+  vinculo text,                -- CLT | PJ
+  registro_profissional text,  -- COREN p/ enfermagem
+  isento_ponto_app boolean not null default true
 );
 
 create table cuidador_residente (
@@ -246,6 +251,19 @@ insert into usuarios (id, nome, email, perfil, ativo) values
 ('b0000000-0000-0000-0000-000000000006','Farm. Lucas Farmácia','farmacia@blueseniorliving.com.br','farmacia',true),
 ('b0000000-0000-0000-0000-000000000007','Cláudia Administração','admin@blueseniorliving.com.br','administracao',true),
 ('b0000000-0000-0000-0000-000000000008','Família Bittencourt','familia@blueseniorliving.com.br','familia',true);
+
+-- ---------- PROFISSIONAIS DE ESCALA (módulo de Escalas) ----------
+-- Ana Paula (já criada acima) recebe os atributos de escala.
+update usuarios
+  set funcao = 'Cuidadora', vinculo = 'CLT', isento_ponto_app = true
+  where id = 'b0000000-0000-0000-0000-000000000004';
+
+insert into usuarios (id, nome, email, perfil, ativo, funcao, vinculo, registro_profissional, isento_ponto_app) values
+('b0000000-0000-0000-0000-000000000009','Mariana Souza','mariana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
+('b0000000-0000-0000-0000-000000000010','Joana Ribeiro','joana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
+('b0000000-0000-0000-0000-000000000011','Beatriz Lima','beatriz@blueseniorliving.com.br','cuidador',true,'Cuidadora','PJ',null,false),
+('b0000000-0000-0000-0000-000000000012','Enf. Carla Mendes','carla@blueseniorliving.com.br','enfermagem',true,'Enfermeira','CLT','COREN-SP 123456',true),
+('b0000000-0000-0000-0000-000000000013','Téc. Patrícia Gomes','patricia.tec@blueseniorliving.com.br','enfermagem',true,'Técnica de Enfermagem','CLT','COREN-SP 654321',true);
 
 -- ---------- VÍNCULOS cuidador_residente (Ana Paula -> Alzira, Otávio) ----------
 insert into cuidador_residente (cuidador_id, residente_id) values

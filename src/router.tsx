@@ -19,6 +19,7 @@ import { ModelosRotina } from "@/routes/coordenacao/ModelosRotina";
 import { PainelCoordenacao } from "@/routes/coordenacao/Painel";
 import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
+import { Profissionais } from "@/routes/equipe/Profissionais";
 import { getPerfil } from "@/data/profiles";
 
 const rootRoute = createRootRoute({
@@ -101,6 +102,11 @@ const intercorrenciasCoordRoute = createRoute({
   path: "intercorrencias",
   component: IntercorrenciasCoord,
 });
+const profissionaisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "profissionais",
+  component: Profissionais,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -122,6 +128,7 @@ const routeTree = rootRoute.addChildren([
     modelosRoute,
     medicacaoEnfRoute,
     intercorrenciasCoordRoute,
+    profissionaisRoute,
     placeholderRoute,
   ]),
 ]);

@@ -43,6 +43,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Visão geral", to: "/app/master" },
       { label: "Residentes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
+      { label: "Profissionais", to: "/app/master/profissionais" },
     ],
     emConstrucao: true,
   },
@@ -73,6 +74,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },
+      { label: "Profissionais", to: "/app/coordenacao/profissionais" },
     ],
     emConstrucao: false,
   },
@@ -128,6 +130,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Visão geral", to: "/app/administracao" },
       { label: "Financeiro", to: "/app/administracao/financeiro" },
+      { label: "Profissionais", to: "/app/administracao/profissionais" },
     ],
     emConstrucao: true,
   },
