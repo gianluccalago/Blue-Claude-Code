@@ -101,6 +101,10 @@ create table administracao (
   itens_faltantes text,
   administrado_por text,
   administrado_em timestamptz not null default now(),
+  -- Referência opcional à prescrição administrada (usada pela tela de
+  -- Medicação da enfermagem, que registra item a item). O Cuidadores não
+  -- preenche este campo (fica null).
+  prescricao_id uuid references prescricao(id),
   -- Integração futura com o módulo Farmácia: indica se a baixa de estoque já
   -- foi dada. Nenhuma lógica/tela usa este campo ainda (apenas preparado).
   baixa_farmacia boolean not null default false

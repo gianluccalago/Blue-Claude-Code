@@ -172,6 +172,7 @@ export interface Database {
           itens_faltantes: string | null;
           administrado_por: string | null;
           administrado_em: string;
+          prescricao_id: string | null;
           // Integração futura com o módulo Farmácia: indica se a baixa de
           // estoque já foi dada. Ainda não há lógica/tela usando este campo.
           baixa_farmacia: boolean;
@@ -184,6 +185,7 @@ export interface Database {
           itens_faltantes?: string | null;
           administrado_por?: string | null;
           administrado_em?: string;
+          prescricao_id?: string | null;
           baixa_farmacia?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["administracao"]["Insert"]>;
