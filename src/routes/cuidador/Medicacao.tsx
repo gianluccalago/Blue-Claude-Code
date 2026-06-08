@@ -1,16 +1,34 @@
 import { useMemo, useState } from "react";
-import { Check, AlertTriangle, Ban, ShieldAlert, Pill } from "lucide-react";
+import {
+  Check,
+  AlertTriangle,
+  Ban,
+  ShieldAlert,
+  Pill,
+  CheckCircle2,
+  XCircle,
+  CircleDashed,
+} from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
-import { usePrescricoes, useRegistrarAdministracao } from "@/hooks/useMedicacao";
+import {
+  usePrescricoes,
+  useAdministracoesHoje,
+  useRegistrarAdministracao,
+} from "@/hooks/useMedicacao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, ouNaoInformado } from "@/lib/utils";
-import type { PeriodoMedicacao, Prescricao } from "@/types/database";
+import { cn, ouNaoInformado, formatarDataHoraBR } from "@/lib/utils";
+import type {
+  Administracao,
+  PeriodoMedicacao,
+  Prescricao,
+  StatusAdministracao,
+} from "@/types/database";
 
 const PERIODOS: { key: PeriodoMedicacao; label: string }[] = [
   { key: "noite", label: "Noite / jejum" },
@@ -38,17 +56,29 @@ export function Medicacao() {
 }
 
 function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
-  const { data, isLoading, isError, error } = usePrescricoes(residenteId);
+  const prescricoes = usePrescricoes(residenteId);
+  const administracoes = useAdministracoesHoje(residenteId);
 
-  if (isLoading) return <LoadingState />;
-  if (isError) return <ErrorState error={error} />;
+  // Registro mais recente de hoje por período (a query já vem ordenada desc).
+  const registroPorPeriodo = useMemo(() => {
+    const mapa: Partial<Record<PeriodoMedicacao, Administracao>> = {};
+    for (const reg of administracoes.data ?? []) {
+      const p = reg.periodo as PeriodoMedicacao;
+      if (!mapa[p]) mapa[p] = reg;
+    }
+    return mapa;
+  }, [administracoes.data]);
+
+  if (prescricoes.isLoading) return <LoadingState />;
+  if (prescricoes.isError) return <ErrorState error={prescricoes.error} />;
 
   return (
     <Tabs defaultValue="manha">
       <TabsList className="w-full justify-start">
         {PERIODOS.map((p) => (
-          <TabsTrigger key={p.key} value={p.key}>
+          <TabsTrigger key={p.key} value={p.key} className="gap-2">
             {p.label}
+            <StatusDot status={registroPorPeriodo[p.key]?.status} />
           </TabsTrigger>
         ))}
       </TabsList>
@@ -57,7 +87,8 @@ function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
           <PeriodoMedicacaoView
             residenteId={residenteId}
             periodo={p.key}
-            prescricoes={(data ?? []).filter((m) => m.periodo === p.key)}
+            prescricoes={(prescricoes.data ?? []).filter((m) => m.periodo === p.key)}
+            registro={registroPorPeriodo[p.key]}
           />
         </TabsContent>
       ))}
@@ -69,15 +100,16 @@ function PeriodoMedicacaoView({
   residenteId,
   periodo,
   prescricoes,
+  registro,
 }: {
   residenteId: string;
   periodo: PeriodoMedicacao;
   prescricoes: Prescricao[];
+  registro: Administracao | undefined;
 }) {
   const registrar = useRegistrarAdministracao(residenteId);
   const [modoParcial, setModoParcial] = useState(false);
   const [faltantes, setFaltantes] = useState<Set<string>>(new Set());
-  const [feedback, setFeedback] = useState<{ tipo: "ok" | "alerta"; msg: string } | null>(null);
 
   const orais = useMemo(() => prescricoes.filter((m) => m.via === "oral"), [prescricoes]);
   const enfermagem = useMemo(() => prescricoes.filter((m) => m.via !== "oral"), [prescricoes]);
@@ -97,7 +129,6 @@ function PeriodoMedicacaoView({
 
   async function confirmarTodas() {
     await registrar.mutateAsync({ periodo, status: "sim" });
-    setFeedback({ tipo: "ok", msg: `Confirmado: ${orais.length} medicamento(s) oral(is).` });
   }
   async function confirmarParcial() {
     const nomes = orais
@@ -107,15 +138,18 @@ function PeriodoMedicacaoView({
     await registrar.mutateAsync({ periodo, status: "parcial", itensFaltantes: nomes });
     setModoParcial(false);
     setFaltantes(new Set());
-    setFeedback({ tipo: "alerta", msg: `Parcial registrado. Coordenação avisada. Faltou: ${nomes}.` });
   }
   async function confirmarNao() {
     await registrar.mutateAsync({ periodo, status: "nao" });
-    setFeedback({ tipo: "alerta", msg: "Registrado NÃO administrado. Coordenação avisada imediatamente." });
   }
+
+  const jaRegistrado = !!registro;
 
   return (
     <div className="space-y-5">
+      {/* STATUS PERSISTENTE do período */}
+      <StatusBanner registro={registro} salvando={registrar.isPending} />
+
       {/* Lista de medicamentos */}
       <Card>
         <CardContent className="space-y-2 p-4">
@@ -130,7 +164,7 @@ function PeriodoMedicacaoView({
                   marcarFalta && faltantes.has(m.id) && "border-warning/50 bg-warning/5",
                 )}
               >
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-primary">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
                   <Pill className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -173,25 +207,6 @@ function PeriodoMedicacaoView({
         </p>
       )}
 
-      {/* Feedback */}
-      {feedback && (
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg border p-3 text-sm font-medium",
-            feedback.tipo === "ok"
-              ? "border-success/30 bg-success/5 text-success"
-              : "border-warning/40 bg-warning/5 text-warning-foreground",
-          )}
-        >
-          {feedback.tipo === "ok" ? (
-            <Check className="size-4" />
-          ) : (
-            <AlertTriangle className="size-4" />
-          )}
-          {feedback.msg}
-        </div>
-      )}
-
       {/* Ações */}
       {modoParcial ? (
         <div className="flex flex-wrap gap-3">
@@ -215,31 +230,116 @@ function PeriodoMedicacaoView({
           </Button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Button
-            variant="success"
-            size="lg"
-            disabled={orais.length === 0 || registrar.isPending}
-            onClick={confirmarTodas}
-          >
-            <Check className="size-5" /> Sim, todas ({orais.length} orais)
-          </Button>
-          <Button
-            variant="warning"
-            size="lg"
-            disabled={orais.length === 0 || registrar.isPending}
-            onClick={() => {
-              setFeedback(null);
-              setModoParcial(true);
-            }}
-          >
-            <AlertTriangle className="size-5" /> Parcialmente
-          </Button>
-          <Button variant="destructive" size="lg" disabled={registrar.isPending} onClick={confirmarNao}>
-            <Ban className="size-5" /> Não
-          </Button>
+        <div className="space-y-2">
+          {jaRegistrado && (
+            <p className="text-center text-xs font-medium text-muted-foreground">
+              Já registrado neste período hoje. Você pode corrigir registrando novamente.
+            </p>
+          )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Button
+              variant="success"
+              size="lg"
+              disabled={orais.length === 0 || registrar.isPending}
+              onClick={confirmarTodas}
+            >
+              <Check className="size-5" /> Sim, todas ({orais.length} orais)
+            </Button>
+            <Button
+              variant="warning"
+              size="lg"
+              disabled={orais.length === 0 || registrar.isPending}
+              onClick={() => setModoParcial(true)}
+            >
+              <AlertTriangle className="size-5" /> Parcialmente
+            </Button>
+            <Button
+              variant="destructive"
+              size="lg"
+              disabled={registrar.isPending}
+              onClick={confirmarNao}
+            >
+              <Ban className="size-5" /> Não
+            </Button>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status?: StatusAdministracao }) {
+  if (!status) return null;
+  const cor =
+    status === "sim" ? "bg-success" : status === "parcial" ? "bg-warning" : "bg-destructive";
+  return <span className={cn("size-2 rounded-full", cor)} aria-hidden="true" />;
+}
+
+function StatusBanner({
+  registro,
+  salvando,
+}: {
+  registro: Administracao | undefined;
+  salvando: boolean;
+}) {
+  if (!registro) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-4">
+        <CircleDashed className="size-6 shrink-0 text-muted-foreground" />
+        <div>
+          <p className="font-bold text-secondary">Ainda não registrado neste período</p>
+          <p className="text-sm text-muted-foreground">
+            Confirme a administração nos botões abaixo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const quando = formatarDataHoraBR(registro.administrado_em);
+  const quem = ouNaoInformado(registro.administrado_por);
+
+  const cfg = {
+    sim: {
+      icon: CheckCircle2,
+      classe: "border-success/40 bg-success/10",
+      iconCor: "text-success",
+      titulo: "Medicação administrada",
+      detalhe: "Todas as orais confirmadas.",
+    },
+    parcial: {
+      icon: AlertTriangle,
+      classe: "border-warning/50 bg-warning/10",
+      iconCor: "text-warning",
+      titulo: "Administração parcial",
+      detalhe: registro.itens_faltantes
+        ? `Faltou: ${registro.itens_faltantes}`
+        : "Alguns itens faltaram.",
+    },
+    nao: {
+      icon: XCircle,
+      classe: "border-destructive/40 bg-destructive/10",
+      iconCor: "text-destructive",
+      titulo: "NÃO administrada",
+      detalhe: "Coordenação avisada.",
+    },
+  }[registro.status];
+
+  const Icon = cfg.icon;
+
+  return (
+    <div className={cn("flex items-start gap-3 rounded-lg border p-4", cfg.classe)}>
+      <Icon className={cn("mt-0.5 size-6 shrink-0", cfg.iconCor)} />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-bold text-secondary">{cfg.titulo}</p>
+          {salvando && <span className="text-xs text-muted-foreground">salvando…</span>}
+        </div>
+        <p className="text-sm text-secondary/80">{cfg.detalhe}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Registrado por {quem} · {quando}
+        </p>
+      </div>
     </div>
   );
 }

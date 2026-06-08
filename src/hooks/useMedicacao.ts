@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
-import type { PeriodoMedicacao, Prescricao, StatusAdministracao } from "@/types/database";
+import { hojeISO, inicioDoDiaISO } from "@/lib/utils";
+import type {
+  Administracao,
+  PeriodoMedicacao,
+  Prescricao,
+  StatusAdministracao,
+} from "@/types/database";
 
 export function usePrescricoes(residenteId: string | undefined) {
   return useQuery({
@@ -13,6 +19,27 @@ export function usePrescricoes(residenteId: string | undefined) {
         .select("*")
         .eq("residente_id", residenteId!)
         .eq("ativa", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Administrações registradas hoje, da mais recente para a mais antiga.
+ * Usada para mostrar o status persistente de cada período.
+ */
+export function useAdministracoesHoje(residenteId: string | undefined) {
+  return useQuery({
+    queryKey: ["administracao", residenteId, hojeISO()],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<Administracao[]> => {
+      const { data, error } = await supabase
+        .from("administracao")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .gte("administrado_em", inicioDoDiaISO())
+        .order("administrado_em", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },

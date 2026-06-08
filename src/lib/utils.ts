@@ -32,6 +32,13 @@ export function hojeISO(): string {
   return new Date(d.getTime() - offset).toISOString().slice(0, 10);
 }
 
+/** Instante (ISO/UTC) da meia-noite local de hoje — para filtrar registros do dia. */
+export function inicioDoDiaISO(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
 /** "HH:MM" -> minutos desde meia-noite. */
 export function horarioParaMinutos(horario: string | null): number | null {
   if (!horario) return null;
