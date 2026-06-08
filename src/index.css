@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fundo cinza-azulado claro #F2F8FC */
+    --background: 204 60% 97%;
+    --foreground: 206 45% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 206 45% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 206 45% 20%;
+
+    /* Azul celeste #5CBFE5 */
+    --primary: 197 72% 63%;
+    --primary-foreground: 206 60% 18%;
+
+    /* Azul-marinho #1C4A6E */
+    --secondary: 206 60% 27%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 204 35% 92%;
+    --muted-foreground: 206 20% 45%;
+
+    --accent: 197 72% 92%;
+    --accent-foreground: 206 60% 27%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 58% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 80% 15%;
+
+    --border: 204 30% 88%;
+    --input: 204 30% 88%;
+    --ring: 197 72% 63%;
+
+    /* Sidebar escura (navy) */
+    --sidebar: 206 60% 22%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-muted: 206 30% 70%;
+    --sidebar-accent: 197 72% 63%;
+
+    --radius: 1rem; /* cantos arredondados 16px */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
