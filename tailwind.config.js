@@ -11,10 +11,9 @@ export default {
     extend: {
       fontFamily: {
         sans: ["'Plus Jakarta Sans'", "system-ui", "sans-serif"],
-        display: ["'Cormorant Garamond'", "Georgia", "serif"],
       },
       letterSpacing: {
-        brand: "0.28em",
+        brand: "0.22em",
       },
       colors: {
         border: "hsl(var(--border))",

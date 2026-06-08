@@ -24,8 +24,8 @@ export function Logo({
       <div className={cn("leading-none", stacked && "text-center")}>
         <div
           className={cn(
-            "font-display font-semibold tracking-brand",
-            stacked ? "text-3xl" : "text-xl",
+            "font-extrabold tracking-brand",
+            stacked ? "text-2xl" : "text-lg",
           )}
         >
           BLUE

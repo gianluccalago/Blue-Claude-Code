@@ -4,29 +4,29 @@
 
 @layer base {
   :root {
-    /* Fundo claro, levemente frio (premium) */
-    --background: 206 40% 98%;
-    --foreground: 209 52% 17%;
+    /* Fundo claro com leve tom celeste */
+    --background: 200 60% 97%;
+    --foreground: 207 55% 24%;
 
     --card: 0 0% 100%;
-    --card-foreground: 209 52% 17%;
+    --card-foreground: 207 55% 24%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 209 52% 17%;
+    --popover-foreground: 207 55% 24%;
 
-    /* Azul celeste #5CBFE5 — acento */
+    /* Azul celeste #5CBFE5 — cor de destaque */
     --primary: 197 72% 63%;
-    --primary-foreground: 209 55% 16%;
+    --primary-foreground: 207 60% 18%;
 
-    /* Navy profundo da logo — cor dominante */
-    --secondary: 209 55% 21%;
+    /* Azul escuro (claramente azul) — cor estrutural */
+    --secondary: 206 58% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 205 35% 93%;
-    --muted-foreground: 208 22% 42%;
+    --muted: 200 45% 93%;
+    --muted-foreground: 207 24% 44%;
 
-    --accent: 197 60% 93%;
-    --accent-foreground: 209 55% 21%;
+    --accent: 197 70% 90%;
+    --accent-foreground: 206 58% 30%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -37,14 +37,14 @@
     --warning: 38 92% 50%;
     --warning-foreground: 38 80% 15%;
 
-    --border: 206 28% 89%;
-    --input: 206 28% 89%;
+    --border: 200 35% 87%;
+    --input: 200 35% 87%;
     --ring: 197 72% 63%;
 
-    /* Sidebar — navy profundo da logo */
-    --sidebar: 209 55% 16%;
+    /* Sidebar — azul escuro (não preto) */
+    --sidebar: 207 56% 26%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-muted: 205 25% 68%;
+    --sidebar-muted: 200 35% 78%;
     --sidebar-accent: 197 72% 63%;
 
     --radius: 1rem; /* cantos arredondados 16px */
