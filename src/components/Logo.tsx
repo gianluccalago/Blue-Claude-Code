@@ -1,25 +1,41 @@
 import { cn } from "@/lib/utils";
+import { BrandMark } from "./BrandMark";
 
 /**
- * Placeholder de logo — substitua por <img src="/logo.svg" /> quando tiver a
- * arte oficial. Mantém a identidade (celeste + navy) por enquanto.
+ * Lockup da marca (emblema + "BLUE / SENIOR LIVING"). A cor segue o texto:
+ * use `text-secondary` (navy) em fundo claro ou `text-white` na sidebar.
  */
-export function Logo({ className, light = false }: { className?: string; light?: boolean }) {
+export function Logo({
+  className,
+  stacked = false,
+}: {
+  className?: string;
+  stacked?: boolean;
+}) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <div
-        className={cn(
-          "grid size-10 place-items-center rounded-xl font-extrabold shadow-card",
-          light ? "bg-white text-secondary" : "bg-primary text-primary-foreground",
-        )}
-      >
-        B
-      </div>
-      <div className="leading-tight">
-        <div className={cn("font-extrabold tracking-tight", light ? "text-white" : "text-secondary")}>
-          Blue
+    <div
+      className={cn(
+        "flex select-none items-center text-secondary",
+        stacked ? "flex-col gap-3" : "gap-3",
+        className,
+      )}
+    >
+      <BrandMark className={stacked ? "h-16" : "h-9"} />
+      <div className={cn("leading-none", stacked && "text-center")}>
+        <div
+          className={cn(
+            "font-display font-semibold tracking-brand",
+            stacked ? "text-3xl" : "text-xl",
+          )}
+        >
+          BLUE
         </div>
-        <div className={cn("text-[11px] font-medium", light ? "text-sidebar-muted" : "text-muted-foreground")}>
+        <div
+          className={cn(
+            "font-medium uppercase tracking-[0.32em] opacity-70",
+            stacked ? "mt-1.5 text-[11px]" : "mt-0.5 text-[8px]",
+          )}
+        >
           Senior Living
         </div>
       </div>

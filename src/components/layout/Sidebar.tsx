@@ -11,7 +11,7 @@ export function Sidebar({ perfil }: { perfil: PerfilDef }) {
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-5 py-6">
-        <Logo light />
+        <Logo className="text-white" />
       </div>
 
       <div className="mx-4 mb-2 rounded-lg bg-white/5 p-4">
