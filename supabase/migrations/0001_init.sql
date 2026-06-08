@@ -200,8 +200,15 @@ create table turnos (
   tag text not null check (tag in ('diurno','noturno')),
   observacao_interna text,
   -- Controle de plantão (check-in/check-out) usado pelo módulo Cuidadores.
+  -- Ponto interno/gerencial (NÃO é ponto eletrônico legal — Portaria 671 MTE).
   check_in timestamptz,
   check_out timestamptz,
+  check_in_lat numeric,
+  check_in_lng numeric,
+  check_out_lat numeric,
+  check_out_lng numeric,
+  check_in_manual boolean not null default false,   -- ajuste manual da Coordenação
+  check_out_manual boolean not null default false,
   criado_em timestamptz not null default now()
 );
 

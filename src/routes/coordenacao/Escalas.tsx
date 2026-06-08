@@ -9,6 +9,7 @@ import {
   type TurnoValor,
 } from "@/hooks/useTurnos";
 import { useProfissionais } from "@/hooks/useProfissionais";
+import { useRegistrarPonto } from "@/hooks/usePonto";
 import { TurnoModal } from "@/components/escala/TurnoModal";
 import { TurnoRecorrenteModal } from "@/components/escala/TurnoRecorrenteModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -22,6 +23,7 @@ import {
   inicioDaSemana,
   somarDias,
   formatarHoraBR,
+  combinarDataHoraISO,
 } from "@/lib/utils";
 import type { CategoriaTurno, Turno } from "@/types/database";
 
@@ -41,6 +43,7 @@ export function Escalas() {
   const editar = useEditarTurno();
   const excluir = useExcluirTurno();
   const recorrentes = useCriarTurnosRecorrentes();
+  const ajustarPonto = useRegistrarPonto();
 
   const [ancora, setAncora] = useState(() => new Date());
   const [visao, setVisao] = useState<Visao>("semana");
@@ -227,6 +230,22 @@ export function Escalas() {
                 }
               : undefined
           }
+          onAjustarPonto={
+            modal.inicial?.profissional_id
+              ? ({ tipo, hora }) => {
+                  const t = modal.inicial!;
+                  // Noturno: a saída pertence ao dia seguinte.
+                  const addDias = tipo === "saida" && t.tag === "noturno" ? 1 : 0;
+                  ajustarPonto.mutate({
+                    turnoId: t.id,
+                    tipo,
+                    manual: true,
+                    quando: combinarDataHoraISO(t.data, hora, addDias),
+                  });
+                }
+              : undefined
+          }
+          ajustandoPonto={ajustarPonto.isPending}
           onFechar={() => setModal(null)}
         />
       )}
@@ -288,8 +307,19 @@ function TurnoCartao({
       >
         {vago ? "VAGO" : (nome ?? "Não informado")}
       </div>
+      {/* Ponto real registrado (controle interno), se houver. */}
+      {(turno.check_in || turno.check_out) && (
+        <div className="mt-0.5 text-[11px] tabular-nums text-primary">
+          Ent {horaPonto(turno.check_in)} · Saí {horaPonto(turno.check_out)}
+        </div>
+      )}
     </button>
   );
+}
+
+/** Hora do ponto ou "—" quando ausente. */
+function horaPonto(ts: string | null): string {
+  return ts ? formatarHoraBR(ts) : "—";
 }
 
 function VisaoSemana({
@@ -463,6 +493,12 @@ function VisaoMes({
                   >
                     <span className="w-28 shrink-0 text-sm font-bold tabular-nums text-secondary">
                       {formatarHoraBR(t.inicio)}–{formatarHoraBR(t.fim)}
+                      {/* Ponto real (controle interno) abaixo do planejado. */}
+                      {(t.check_in || t.check_out) && (
+                        <span className="block text-[11px] font-medium text-primary">
+                          Ent {horaPonto(t.check_in)} · Saí {horaPonto(t.check_out)}
+                        </span>
+                      )}
                     </span>
                     <span
                       className={cn(

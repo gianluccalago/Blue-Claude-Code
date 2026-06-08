@@ -371,6 +371,12 @@ export interface Database {
           observacao_interna: string | null;
           check_in: string | null;
           check_out: string | null;
+          check_in_lat: number | null;
+          check_in_lng: number | null;
+          check_out_lat: number | null;
+          check_out_lng: number | null;
+          check_in_manual: boolean;
+          check_out_manual: boolean;
           criado_em: string;
         };
         Insert: {
@@ -384,6 +390,12 @@ export interface Database {
           observacao_interna?: string | null;
           check_in?: string | null;
           check_out?: string | null;
+          check_in_lat?: number | null;
+          check_in_lng?: number | null;
+          check_out_lat?: number | null;
+          check_out_lng?: number | null;
+          check_in_manual?: boolean;
+          check_out_manual?: boolean;
           criado_em?: string;
         };
         Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;

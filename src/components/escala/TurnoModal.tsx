@@ -31,6 +31,8 @@ export function TurnoModal({
   salvando,
   onSalvar,
   onExcluir,
+  onAjustarPonto,
+  ajustandoPonto,
   onFechar,
 }: {
   inicial?: Turno;
@@ -39,6 +41,9 @@ export function TurnoModal({
   salvando: boolean;
   onSalvar: (valor: TurnoValor) => void;
   onExcluir?: () => void;
+  // Ajuste manual de ponto pela Coordenação (plano B p/ falha de GPS).
+  onAjustarPonto?: (args: { tipo: "entrada" | "saida"; hora: string }) => void;
+  ajustandoPonto?: boolean;
   onFechar: () => void;
 }) {
   const [categoria, setCategoria] = useState<CategoriaTurno>(inicial?.categoria ?? "cuidadoras");
@@ -53,6 +58,12 @@ export function TurnoModal({
   );
   const [profissionalId, setProfissionalId] = useState<string>(inicial?.profissional_id ?? "");
   const [obs, setObs] = useState(inicial?.observacao_interna ?? "");
+  const [entradaHora, setEntradaHora] = useState(
+    inicial?.check_in ? formatarHoraBR(inicial.check_in) : inicial ? formatarHoraBR(inicial.inicio) : "07:00",
+  );
+  const [saidaHora, setSaidaHora] = useState(
+    inicial?.check_out ? formatarHoraBR(inicial.check_out) : inicial ? formatarHoraBR(inicial.fim) : "19:00",
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -226,6 +237,59 @@ export function TurnoModal({
               className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
+
+          {/* Ponto (ajuste manual da Coordenação) — só p/ turno já existente e
+              com profissional. Lançamento manual NÃO verifica geolocalização. */}
+          {inicial && inicial.profissional_id && onAjustarPonto && (
+            <div className="space-y-3 rounded-lg border border-dashed border-border p-3">
+              <p className="text-sm font-semibold text-secondary">
+                Ponto — ajuste manual da Coordenação
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Registrado: Entrada {inicial.check_in ? formatarHoraBR(inicial.check_in) : "—"} ·
+                Saída {inicial.check_out ? formatarHoraBR(inicial.check_out) : "—"}. O lançamento
+                manual não verifica geolocalização.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-secondary">Entrada</label>
+                  <input
+                    type="time"
+                    value={entradaHora}
+                    onChange={(e) => setEntradaHora(e.target.value)}
+                    className={inputBase}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!entradaHora || ajustandoPonto}
+                    onClick={() => onAjustarPonto({ tipo: "entrada", hora: entradaHora })}
+                  >
+                    Lançar entrada
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-secondary">Saída</label>
+                  <input
+                    type="time"
+                    value={saidaHora}
+                    onChange={(e) => setSaidaHora(e.target.value)}
+                    className={inputBase}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!saidaHora || ajustandoPonto}
+                    onClick={() => onAjustarPonto({ tipo: "saida", hora: saidaHora })}
+                  >
+                    Lançar saída
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
