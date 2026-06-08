@@ -77,3 +77,19 @@ export function useRegistrarAdministracaoEnfermagem(residenteId: string) {
       qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] }),
   });
 }
+
+/**
+ * Desfaz UMA administração específica (delete pelo id). Corrige um registro
+ * feito por engano sem afetar os demais.
+ */
+export function useRemoverAdministracaoEnfermagem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("administracao").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] }),
+  });
+}
