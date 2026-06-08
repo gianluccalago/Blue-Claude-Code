@@ -66,8 +66,9 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Planos de cuidado e equipe",
     icon: ClipboardList,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/coordenacao/planos",
+    rotaInicial: "/app/coordenacao",
     menu: [
+      { label: "Visão geral", to: "/app/coordenacao" },
       { label: "Planos de cuidado", to: "/app/coordenacao/planos" },
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
     ],

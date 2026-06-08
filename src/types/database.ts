@@ -20,6 +20,8 @@ export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
 export type PeriodoMedicacao = "noite" | "manha" | "almoco" | "tarde";
 export type StatusAdministracao = "sim" | "parcial" | "nao";
 export type TipoEliminacao = "urina" | "evacuacao";
+export type TipoOrigemPendencia = "medicacao" | "intercorrencia" | "eliminacao" | "tarefa";
+export type AcaoPendencia = "resolvido" | "escalado_medico";
 
 export interface Database {
   public: {
@@ -284,6 +286,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["modelo_rotina_item"]["Insert"]>;
         Relationships: [];
       };
+      pendencia_tratamento: {
+        Row: {
+          id: string;
+          tipo_origem: TipoOrigemPendencia;
+          referencia_id: string;
+          acao: AcaoPendencia;
+          tratado_por: string | null;
+          tratado_em: string;
+          observacao: string | null;
+        };
+        Insert: {
+          id?: string;
+          tipo_origem: TipoOrigemPendencia;
+          referencia_id: string;
+          acao: AcaoPendencia;
+          tratado_por?: string | null;
+          tratado_em?: string;
+          observacao?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["pendencia_tratamento"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -304,3 +328,4 @@ export type CompromissoExterno = Database["public"]["Tables"]["compromisso_exter
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
 export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
+export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratamento"]["Row"];

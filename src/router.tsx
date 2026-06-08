@@ -16,6 +16,7 @@ import { Intercorrencia } from "@/routes/cuidador/Intercorrencia";
 import { Hospedes } from "@/routes/cuidador/Hospedes";
 import { PlanosCuidado } from "@/routes/coordenacao/PlanosCuidado";
 import { ModelosRotina } from "@/routes/coordenacao/ModelosRotina";
+import { PainelCoordenacao } from "@/routes/coordenacao/Painel";
 import { getPerfil } from "@/data/profiles";
 
 const rootRoute = createRootRoute({
@@ -38,6 +39,8 @@ const appRoute = createRoute({
 function AppIndex() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   const def = getPerfil(perfil);
+  // Coordenação: a "Visão geral" é o painel da coordenação.
+  if (perfil === "coordenacao") return <PainelCoordenacao />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.
   if (def && !def.emConstrucao && def.rotaInicial !== `/app/${perfil}`) {
     return <Navigate to={def.rotaInicial} />;

@@ -14,6 +14,7 @@
 -- ============================================================================
 
 -- ---------- LIMPEZA (idempotente) ----------
+drop table if exists pendencia_tratamento cascade;
 drop table if exists modelo_rotina_item cascade;
 drop table if exists modelo_rotina cascade;
 drop table if exists eliminacao cascade;
@@ -152,6 +153,18 @@ create table modelo_rotina_item (
   tolerancia_minutos int not null default 30
 );
 
+-- Tratamento de pendências (Coordenação): marca pendências como resolvidas ou
+-- escaladas ao médico, sem alterar as tabelas de origem.
+create table pendencia_tratamento (
+  id uuid primary key default gen_random_uuid(),
+  tipo_origem text not null check (tipo_origem in ('medicacao','intercorrencia','eliminacao','tarefa')),
+  referencia_id uuid not null,
+  acao text not null check (acao in ('resolvido','escalado_medico')),
+  tratado_por text,
+  tratado_em timestamptz not null default now(),
+  observacao text
+);
+
 -- ---------- ÍNDICES úteis ----------
 create index on cuidador_residente (cuidador_id);
 create index on plano_cuidado_item (residente_id);
@@ -160,6 +173,7 @@ create index on prescricao (residente_id, periodo);
 create index on compromisso_externo (residente_id);
 create index on eliminacao (residente_id, registrado_em);
 create index on modelo_rotina_item (modelo_id);
+create index on pendencia_tratamento (tipo_origem, referencia_id);
 
 -- ---------- RLS (demo sem login) ----------
 do $$
@@ -168,7 +182,7 @@ begin
   foreach t in array array[
     'residentes','usuarios','cuidador_residente','plano_cuidado_item',
     'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo',
-    'eliminacao','modelo_rotina','modelo_rotina_item'
+    'eliminacao','modelo_rotina','modelo_rotina_item','pendencia_tratamento'
   ] loop
     execute format('alter table %I enable row level security;', t);
     execute format('drop policy if exists demo_all on %I;', t);
