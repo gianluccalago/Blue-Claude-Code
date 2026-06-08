@@ -14,6 +14,8 @@
 -- ============================================================================
 
 -- ---------- LIMPEZA (idempotente) ----------
+drop table if exists modelo_rotina_item cascade;
+drop table if exists modelo_rotina cascade;
 drop table if exists eliminacao cascade;
 drop table if exists tarefa_registro cascade;
 drop table if exists administracao cascade;
@@ -134,6 +136,22 @@ create table eliminacao (
   registrado_em timestamptz not null default now()
 );
 
+-- Modelos de rotina (Coordenação): templates reutilizáveis de plano de cuidado.
+create table modelo_rotina (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null,
+  ativo boolean not null default true
+);
+
+create table modelo_rotina_item (
+  id uuid primary key default gen_random_uuid(),
+  modelo_id uuid not null references modelo_rotina(id) on delete cascade,
+  tarefa text not null,
+  horario text,
+  responsavel text check (responsavel in ('cuidador','enfermagem')),
+  tolerancia_minutos int not null default 30
+);
+
 -- ---------- ÍNDICES úteis ----------
 create index on cuidador_residente (cuidador_id);
 create index on plano_cuidado_item (residente_id);
@@ -141,6 +159,7 @@ create index on tarefa_registro (residente_id, data);
 create index on prescricao (residente_id, periodo);
 create index on compromisso_externo (residente_id);
 create index on eliminacao (residente_id, registrado_em);
+create index on modelo_rotina_item (modelo_id);
 
 -- ---------- RLS (demo sem login) ----------
 do $$
@@ -149,7 +168,7 @@ begin
   foreach t in array array[
     'residentes','usuarios','cuidador_residente','plano_cuidado_item',
     'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo',
-    'eliminacao'
+    'eliminacao','modelo_rotina','modelo_rotina_item'
   ] loop
     execute format('alter table %I enable row level security;', t);
     execute format('drop policy if exists demo_all on %I;', t);
@@ -230,5 +249,20 @@ insert into eliminacao (residente_id, tipo, registrado_por, registrado_em) value
 ('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '3 hours'),
 ('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '30 minutes'),
 ('a0000000-0000-0000-0000-000000000001','evacuacao','Ana Paula', now() - interval '2 days');
+
+-- ---------- MODELO DE ROTINA de teste (Coordenação) ----------
+do $$
+declare m_id uuid;
+begin
+  insert into modelo_rotina (nome) values ('Rotina padrão grau III') returning id into m_id;
+  insert into modelo_rotina_item (modelo_id, tarefa, horario, responsavel, tolerancia_minutos) values
+    (m_id,'Sinais vitais','07:00','enfermagem',30),
+    (m_id,'Medicação','07:30','cuidador',30),
+    (m_id,'Higiene oral','08:00','cuidador',30),
+    (m_id,'Banho e troca','08:00','cuidador',30),
+    (m_id,'Hidratação','08:30','cuidador',30),
+    (m_id,'Mudança de decúbito','09:00','cuidador',30),
+    (m_id,'Banho de sol','09:15','cuidador',30);
+end $$;
 
 -- Fim.

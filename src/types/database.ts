@@ -250,6 +250,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["eliminacao"]["Insert"]>;
         Relationships: [];
       };
+      modelo_rotina: {
+        Row: {
+          id: string;
+          nome: string;
+          ativo: boolean;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          ativo?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["modelo_rotina"]["Insert"]>;
+        Relationships: [];
+      };
+      modelo_rotina_item: {
+        Row: {
+          id: string;
+          modelo_id: string;
+          tarefa: string;
+          horario: string | null;
+          responsavel: string | null;
+          tolerancia_minutos: number;
+        };
+        Insert: {
+          id?: string;
+          modelo_id: string;
+          tarefa: string;
+          horario?: string | null;
+          responsavel?: string | null;
+          tolerancia_minutos?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["modelo_rotina_item"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -268,3 +302,5 @@ export type Administracao = Database["public"]["Tables"]["administracao"]["Row"]
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
+export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
+export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];

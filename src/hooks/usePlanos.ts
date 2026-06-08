@@ -1,0 +1,120 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import type { PlanoCuidadoItem, Residente } from "@/types/database";
+import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
+
+/** Todos os residentes (para o seletor da Coordenação). */
+export function useResidentes() {
+  return useQuery({
+    queryKey: ["residentes"],
+    queryFn: async (): Promise<Residente[]> => {
+      const { data, error } = await supabase.from("residentes").select("*");
+      if (error) throw error;
+      const residentes = data ?? [];
+      residentes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      return residentes;
+    },
+  });
+}
+
+/** Itens ativos do plano de cuidado de um residente, ordenados por horário. */
+export function usePlanoItens(residenteId: string | undefined) {
+  return useQuery({
+    queryKey: ["plano-itens", residenteId],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<PlanoCuidadoItem[]> => {
+      const { data, error } = await supabase
+        .from("plano_cuidado_item")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .eq("ativa", true)
+        .order("horario", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function invalidar(qc: ReturnType<typeof useQueryClient>, residenteId: string) {
+  qc.invalidateQueries({ queryKey: ["plano-itens", residenteId] });
+}
+
+/** Adiciona uma tarefa ao plano de cuidado (ativa=true). */
+export function useAdicionarPlanoItem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (valor: ItemTarefaValor) => {
+      const { error } = await supabase.from("plano_cuidado_item").insert({
+        residente_id: residenteId,
+        tarefa: valor.tarefa,
+        horario: valor.horario,
+        responsavel: valor.responsavel,
+        tolerancia_minutos: valor.tolerancia_minutos,
+        ativa: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc, residenteId),
+  });
+}
+
+/** Edita apenas horário e tolerância de um item do plano. */
+export function useEditarPlanoItem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; horario: string; tolerancia_minutos: number }) => {
+      const { error } = await supabase
+        .from("plano_cuidado_item")
+        .update({ horario: args.horario, tolerancia_minutos: args.tolerancia_minutos })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc, residenteId),
+  });
+}
+
+/** Remoção LÓGICA do item do plano (ativa=false; nunca apaga fisicamente). */
+export function useRemoverPlanoItem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("plano_cuidado_item")
+        .update({ ativa: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc, residenteId),
+  });
+}
+
+/**
+ * Aplica um modelo de rotina ao plano do hóspede: COPIA todos os itens do
+ * modelo como novos registros (ativa=true). Apenas ADICIONA — nunca apaga as
+ * tarefas existentes.
+ */
+export function useAplicarModelo(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (modeloId: string) => {
+      const { data: itens, error: errItens } = await supabase
+        .from("modelo_rotina_item")
+        .select("*")
+        .eq("modelo_id", modeloId);
+      if (errItens) throw errItens;
+      if (!itens || itens.length === 0) return;
+
+      const novos = itens.map((it) => ({
+        residente_id: residenteId,
+        tarefa: it.tarefa,
+        horario: it.horario,
+        responsavel: it.responsavel,
+        tolerancia_minutos: it.tolerancia_minutos,
+        ativa: true,
+      }));
+      const { error } = await supabase.from("plano_cuidado_item").insert(novos);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc, residenteId),
+  });
+}
