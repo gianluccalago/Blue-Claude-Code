@@ -14,6 +14,7 @@
 -- ============================================================================
 
 -- ---------- LIMPEZA (idempotente) ----------
+drop table if exists eliminacao cascade;
 drop table if exists tarefa_registro cascade;
 drop table if exists administracao cascade;
 drop table if exists intercorrencia cascade;
@@ -122,12 +123,24 @@ create table compromisso_externo (
   ciente_em timestamptz
 );
 
+-- Eliminações: cada registro é um evento pontual (urina/evacuação). A
+-- vigilância clínica (sem urina hoje / sem evacuar há 3 dias) é calculada
+-- sob demanda no app, não há processo em segundo plano.
+create table eliminacao (
+  id uuid primary key default gen_random_uuid(),
+  residente_id uuid not null references residentes(id) on delete cascade,
+  tipo text not null check (tipo in ('urina','evacuacao')),
+  registrado_por text,
+  registrado_em timestamptz not null default now()
+);
+
 -- ---------- ÍNDICES úteis ----------
 create index on cuidador_residente (cuidador_id);
 create index on plano_cuidado_item (residente_id);
 create index on tarefa_registro (residente_id, data);
 create index on prescricao (residente_id, periodo);
 create index on compromisso_externo (residente_id);
+create index on eliminacao (residente_id, registrado_em);
 
 -- ---------- RLS (demo sem login) ----------
 do $$
@@ -135,7 +148,8 @@ declare t text;
 begin
   foreach t in array array[
     'residentes','usuarios','cuidador_residente','plano_cuidado_item',
-    'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo'
+    'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo',
+    'eliminacao'
   ] loop
     execute format('alter table %I enable row level security;', t);
     execute format('drop policy if exists demo_all on %I;', t);
@@ -210,5 +224,11 @@ insert into prescricao (residente_id, medicamento, dose, via, periodo, horario, 
 insert into compromisso_externo (residente_id, titulo, data, horario, horario_transporte) values
 ('a0000000-0000-0000-0000-000000000001','Consulta oftalmológica', current_date + 1,'14:30','13:45'),
 ('a0000000-0000-0000-0000-000000000002','Sessão de hemodiálise', current_date,'09:00','08:15');
+
+-- ---------- ELIMINAÇÕES da Alzira (2 urinas hoje, 1 evacuação anteontem) ----------
+insert into eliminacao (residente_id, tipo, registrado_por, registrado_em) values
+('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '3 hours'),
+('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '30 minutes'),
+('a0000000-0000-0000-0000-000000000001','evacuacao','Ana Paula', now() - interval '2 days');
 
 -- Fim.

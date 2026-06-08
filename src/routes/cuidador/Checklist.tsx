@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Plus, X, Clock4 } from "lucide-react";
+import { Check, Plus, X, Clock4, Droplet, CircleDot, AlertTriangle } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import {
@@ -9,6 +9,12 @@ import {
   useRemoverRegistro,
   useDefinirRefeicao,
 } from "@/hooks/useChecklist";
+import {
+  useEliminacoes,
+  useRegistrarEliminacao,
+  useRemoverEliminacao,
+  calcularAlertasEliminacao,
+} from "@/hooks/useEliminacao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -234,6 +240,9 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
         </CardContent>
       </Card>
 
+      {/* ---- Eliminações ---- */}
+      <EliminacoesSection residenteId={residenteId} pedirConfirmacao={setConfirmacao} />
+
       {/* ---- Sob demanda ---- */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -338,6 +347,170 @@ function Legenda() {
           <span className="text-xs text-muted-foreground">{i.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Seção de Eliminações (urina / evacuação). Acessível o dia todo, sem horário
+ * fixo. Cada toque grava um evento. Mostra resumo de hoje, lista removível e
+ * os alertas de vigilância clínica — que são calculados AGORA, ao abrir a tela
+ * (não há notificação automática em segundo plano).
+ */
+function EliminacoesSection({
+  residenteId,
+  pedirConfirmacao,
+}: {
+  residenteId: string;
+  pedirConfirmacao: (c: Confirmacao) => void;
+}) {
+  const eliminacoes = useEliminacoes(residenteId);
+  const registrar = useRegistrarEliminacao(residenteId);
+  const remover = useRemoverEliminacao(residenteId);
+
+  const registros = eliminacoes.data ?? [];
+  // Cálculo sob demanda dos alertas (mesma função reutilizável do futuro
+  // painel da Coordenação/Enfermagem).
+  const alertas = calcularAlertasEliminacao(registros);
+
+  const inicioHoje = new Date();
+  inicioHoje.setHours(0, 0, 0, 0);
+  // registros já vêm do mais recente para o mais antigo.
+  const deHoje = registros.filter((r) => new Date(r.registrado_em) >= inicioHoje);
+  const urinaHoje = deHoje.filter((r) => r.tipo === "urina");
+  const evacHoje = deHoje.filter((r) => r.tipo === "evacuacao");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Eliminações</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Alertas de vigilância clínica */}
+        {(alertas.semEvacuacao72h || alertas.semUrinaHoje) && (
+          <div className="space-y-2">
+            {alertas.semEvacuacao72h && (
+              <AlertaFaixa
+                nivel="alto"
+                texto="Sem evacuar há 3 dias ou mais — avise a enfermagem."
+              />
+            )}
+            {alertas.semUrinaHoje && (
+              <AlertaFaixa nivel="medio" texto="Sem registro de urina hoje — fique atento(a)." />
+            )}
+          </div>
+        )}
+
+        {/* Botões grandes de registro */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="secondary"
+            className="h-20 flex-col gap-1.5 text-base"
+            disabled={registrar.isPending}
+            onClick={() => registrar.mutate("urina")}
+          >
+            <Droplet className="size-6" /> Urinou
+          </Button>
+          <Button
+            variant="secondary"
+            className="h-20 flex-col gap-1.5 text-base"
+            disabled={registrar.isPending}
+            onClick={() => registrar.mutate("evacuacao")}
+          >
+            <CircleDot className="size-6" /> Evacuou
+          </Button>
+        </div>
+
+        {/* Resumo de hoje */}
+        <div className="grid grid-cols-2 gap-3">
+          <ResumoEliminacao
+            rotulo="Urina"
+            quantidade={urinaHoje.length}
+            ultimo={urinaHoje[0]?.registrado_em ?? null}
+          />
+          <ResumoEliminacao
+            rotulo="Evacuação"
+            quantidade={evacHoje.length}
+            ultimo={evacHoje[0]?.registrado_em ?? null}
+          />
+        </div>
+
+        {/* Lista do dia (com remoção confirmada) */}
+        {eliminacoes.isError ? (
+          <ErrorState error={eliminacoes.error} />
+        ) : deHoje.length > 0 ? (
+          <div className="space-y-2">
+            {deHoje.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-2.5"
+              >
+                <div className="flex items-center gap-2">
+                  {r.tipo === "urina" ? (
+                    <Droplet className="size-4 text-primary" />
+                  ) : (
+                    <CircleDot className="size-4 text-secondary" />
+                  )}
+                  <span className="text-sm font-medium text-secondary">
+                    {r.tipo === "urina" ? "Urina" : "Evacuação"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    · {formatarHoraBR(r.registrado_em)}
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    pedirConfirmacao({
+                      titulo: "Remover este registro?",
+                      descricao: `${r.tipo === "urina" ? "Urina" : "Evacuação"} às ${formatarHoraBR(r.registrado_em)}`,
+                      acao: () => remover.mutate(r.id),
+                    })
+                  }
+                  disabled={remover.isPending}
+                  className="text-muted-foreground transition-colors hover:text-destructive"
+                  aria-label="Remover"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ResumoEliminacao({
+  rotulo,
+  quantidade,
+  ultimo,
+}: {
+  rotulo: string;
+  quantidade: number;
+  ultimo: string | null;
+}) {
+  return (
+    <div className="rounded-lg border bg-card px-4 py-3">
+      <div className="text-sm font-semibold text-secondary">
+        {rotulo}: {quantidade} vez{quantidade === 1 ? "" : "es"} hoje
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {ultimo ? `última às ${formatarHoraBR(ultimo)}` : "nenhum registro hoje"}
+      </div>
+    </div>
+  );
+}
+
+function AlertaFaixa({ nivel, texto }: { nivel: "alto" | "medio"; texto: string }) {
+  const classe =
+    nivel === "alto"
+      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      : "border-warning/50 bg-warning/10 text-warning";
+  return (
+    <div className={cn("flex items-center gap-2 rounded-lg border px-4 py-3", classe)}>
+      <AlertTriangle className="size-5 shrink-0" />
+      <span className="text-sm font-semibold">{texto}</span>
     </div>
   );
 }

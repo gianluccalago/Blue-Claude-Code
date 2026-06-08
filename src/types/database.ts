@@ -19,6 +19,7 @@ export type GrauDependencia = "I" | "II" | "III";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
 export type PeriodoMedicacao = "noite" | "manha" | "almoco" | "tarde";
 export type StatusAdministracao = "sim" | "parcial" | "nao";
+export type TipoEliminacao = "urina" | "evacuacao";
 
 export interface Database {
   public: {
@@ -231,6 +232,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["compromisso_externo"]["Insert"]>;
         Relationships: [];
       };
+      eliminacao: {
+        Row: {
+          id: string;
+          residente_id: string;
+          tipo: TipoEliminacao;
+          registrado_por: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          tipo: TipoEliminacao;
+          registrado_por?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["eliminacao"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -248,3 +267,4 @@ export type Prescricao = Database["public"]["Tables"]["prescricao"]["Row"];
 export type Administracao = Database["public"]["Tables"]["administracao"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
+export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
