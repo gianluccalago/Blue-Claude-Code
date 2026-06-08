@@ -84,6 +84,7 @@ create table prescricao (
   dose text,
   via text not null check (via in ('oral','injetavel','insulina','sonda')),
   periodo text not null check (periodo in ('noite','manha','almoco','tarde')),
+  horario text,                       -- horário sugerido da prescrição, ex "07:00" (opcional)
   ativa boolean not null default true
 );
 
@@ -94,7 +95,10 @@ create table administracao (
   status text not null check (status in ('sim','parcial','nao')),
   itens_faltantes text,
   administrado_por text,
-  administrado_em timestamptz not null default now()
+  administrado_em timestamptz not null default now(),
+  -- Integração futura com o módulo Farmácia: indica se a baixa de estoque já
+  -- foi dada. Nenhuma lógica/tela usa este campo ainda (apenas preparado).
+  baixa_farmacia boolean not null default false
 );
 
 create table intercorrencia (
@@ -194,13 +198,13 @@ insert into plano_cuidado_item (residente_id, tarefa, horario, responsavel, tole
 ('a0000000-0000-0000-0000-000000000001','Condução à fisioterapia','10:00','cuidador',30,true);
 
 -- ---------- PRESCRIÇÃO da Alzira ----------
-insert into prescricao (residente_id, medicamento, dose, via, periodo, ativa) values
-('a0000000-0000-0000-0000-000000000001','Losartana','50mg','oral','manha',true),
-('a0000000-0000-0000-0000-000000000001','Metformina','850mg','oral','manha',true),
-('a0000000-0000-0000-0000-000000000001','Insulina NPH','10UI','insulina','manha',true),
-('a0000000-0000-0000-0000-000000000001','Sinvastatina','20mg','oral','noite',true),
-('a0000000-0000-0000-0000-000000000001','AAS','100mg','oral','almoco',true),
-('a0000000-0000-0000-0000-000000000001','Enalapril','10mg','oral','tarde',true);
+insert into prescricao (residente_id, medicamento, dose, via, periodo, horario, ativa) values
+('a0000000-0000-0000-0000-000000000001','Losartana','50mg','oral','manha','07:00',true),
+('a0000000-0000-0000-0000-000000000001','Metformina','850mg','oral','manha','08:00',true),
+('a0000000-0000-0000-0000-000000000001','Insulina NPH','10UI','insulina','manha','07:00',true),
+('a0000000-0000-0000-0000-000000000001','Sinvastatina','20mg','oral','noite','21:00',true),
+('a0000000-0000-0000-0000-000000000001','AAS','100mg','oral','almoco','12:00',true),
+('a0000000-0000-0000-0000-000000000001','Enalapril','10mg','oral','tarde','16:00',true);
 
 -- ---------- COMPROMISSOS EXTERNOS (2 de teste) ----------
 insert into compromisso_externo (residente_id, titulo, data, horario, horario_transporte) values

@@ -7,19 +7,24 @@ import {
   useRegistrosHoje,
   useMarcarTarefa,
   useRemoverRegistro,
+  useDefinirRefeicao,
 } from "@/hooks/useChecklist";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, horarioParaMinutos, ouNaoInformado } from "@/lib/utils";
+import { cn, horarioParaMinutos, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
 import type { PlanoCuidadoItem, TarefaRegistro } from "@/types/database";
 
+// 5 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
 const REFEICOES = [
-  { key: "Café", label: "Café da manhã" },
-  { key: "Almoço", label: "Almoço" },
-  { key: "Lanche", label: "Lanche" },
+  "Café da manhã",
+  "Lanche da manhã",
+  "Almoço",
+  "Lanche da tarde",
+  "Jantar",
 ] as const;
 const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;
@@ -65,41 +70,57 @@ export function Checklist() {
   );
 }
 
+interface Confirmacao {
+  titulo: string;
+  descricao?: string;
+  acao: () => void;
+}
+
 function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
   const plano = usePlanoCuidado(residenteId);
   const registros = useRegistrosHoje(residenteId);
   const marcar = useMarcarTarefa(residenteId);
   const remover = useRemoverRegistro(residenteId);
+  const definirRefeicao = useDefinirRefeicao(residenteId);
 
   const registrosHoje = registros.data ?? [];
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
 
+  // Confirmação para ações destrutivas (evita toque acidental no tablet).
+  const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
+  const [outros, setOutros] = useState("");
+
   function registroDaTarefa(tarefaId: string): TarefaRegistro | undefined {
     return registrosHoje.find((r) => r.tarefa === tarefaId);
   }
 
-  async function toggleTarefa(item: PlanoCuidadoItem) {
+  function onToggleTarefa(item: PlanoCuidadoItem) {
     const existente = registroDaTarefa(item.id);
-    if (existente) await remover.mutateAsync(existente.id);
-    else await marcar.mutateAsync({ tarefa: item.id, horario: item.horario });
+    if (existente) {
+      setConfirmacao({
+        titulo: "Desfazer este registro?",
+        descricao: item.tarefa,
+        acao: () => remover.mutate(existente.id),
+      });
+    } else {
+      marcar.mutate({ tarefa: item.id, horario: item.horario });
+    }
   }
 
   // ----- Aceitação alimentar -----
   function registroRefeicao(refeicao: string): TarefaRegistro | undefined {
     return registrosHoje.find((r) => r.tarefa.startsWith(`Aceitação ${refeicao}:`));
   }
-  async function selecionarRefeicao(refeicao: string, nivel: string) {
+  function selecionarRefeicao(refeicao: string, nivel: string) {
     const existente = registroRefeicao(refeicao);
-    if (existente) await remover.mutateAsync(existente.id);
-    await marcar.mutateAsync({ tarefa: `Aceitação ${refeicao}: ${nivel}` });
+    definirRefeicao.mutate({ registroId: existente?.id, tarefa: `Aceitação ${refeicao}: ${nivel}` });
   }
 
   // ----- Sob demanda -----
   const sobDemanda = registrosHoje.filter(
     (r) => !planIds.has(r.tarefa) && !r.tarefa.startsWith("Aceitação "),
   );
-  const [outros, setOutros] = useState("");
 
   if (plano.isError) return <ErrorState error={plano.error} />;
   if (plano.isLoading || registros.isLoading) return <LoadingState />;
@@ -117,7 +138,8 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
             <EmptyState label="Este hóspede ainda não possui plano de cuidado ativo." />
           ) : (
             planoItens.map((item) => {
-              const feito = !!registroDaTarefa(item.id);
+              const registro = registroDaTarefa(item.id);
+              const feito = !!registro;
               const status = calcularStatus(item, feito);
               return (
                 <div
@@ -137,9 +159,15 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-secondary">{item.tarefa}</div>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className={cn("size-2 rounded-full", status.dot)} />
-                      <span className="text-xs text-muted-foreground">{status.label}</span>
+                      {feito ? (
+                        <span className="text-xs font-semibold text-success">
+                          Feito às {formatarHoraBR(registro!.feito_em)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{status.label}</span>
+                      )}
                       <Badge variant={item.responsavel === "enfermagem" ? "secondary" : "muted"}>
                         {ouNaoInformado(item.responsavel)}
                       </Badge>
@@ -148,7 +176,7 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                   <Button
                     size="lg"
                     variant={feito ? "outline" : "success"}
-                    onClick={() => toggleTarefa(item)}
+                    onClick={() => onToggleTarefa(item)}
                     disabled={marcar.isPending || remover.isPending}
                   >
                     {feito ? (
@@ -174,20 +202,20 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
           <CardTitle>Aceitação alimentar</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {REFEICOES.map((ref) => {
-            const reg = registroRefeicao(ref.key);
+          {REFEICOES.map((refeicao) => {
+            const reg = registroRefeicao(refeicao);
             const nivelAtual = reg?.tarefa.split(": ")[1];
             return (
-              <div key={ref.key}>
-                <div className="mb-2 text-sm font-semibold text-secondary">{ref.label}</div>
+              <div key={refeicao}>
+                <div className="mb-2 text-sm font-semibold text-secondary">{refeicao}</div>
                 <div className="grid grid-cols-5 gap-2">
                   {NIVEIS.map((nivel) => {
                     const ativo = nivelAtual === nivel;
                     return (
                       <button
                         key={nivel}
-                        onClick={() => selecionarRefeicao(ref.key, nivel)}
-                        disabled={marcar.isPending || remover.isPending}
+                        onClick={() => selecionarRefeicao(refeicao, nivel)}
+                        disabled={definirRefeicao.isPending}
                         className={cn(
                           "rounded-md border px-2 py-3 text-xs font-semibold transition-all sm:text-sm",
                           ativo
@@ -252,9 +280,20 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                   key={r.id}
                   className="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-2.5"
                 >
-                  <span className="text-sm font-medium text-secondary">{r.tarefa}</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-secondary">{r.tarefa}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      · {formatarHoraBR(r.feito_em)}
+                    </span>
+                  </div>
                   <button
-                    onClick={() => remover.mutate(r.id)}
+                    onClick={() =>
+                      setConfirmacao({
+                        titulo: "Remover este registro?",
+                        descricao: r.tarefa,
+                        acao: () => remover.mutate(r.id),
+                      })
+                    }
                     disabled={remover.isPending}
                     className="text-muted-foreground transition-colors hover:text-destructive"
                     aria-label="Remover"
@@ -267,6 +306,19 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        aberto={!!confirmacao}
+        titulo={confirmacao?.titulo ?? ""}
+        descricao={confirmacao?.descricao}
+        textoConfirmar="Sim, desfazer"
+        textoCancelar="Cancelar"
+        onConfirmar={() => {
+          confirmacao?.acao();
+          setConfirmacao(null);
+        }}
+        onCancelar={() => setConfirmacao(null)}
+      />
     </div>
   );
 }

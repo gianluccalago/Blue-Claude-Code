@@ -143,6 +143,7 @@ export interface Database {
           dose: string | null;
           via: ViaMedicacao;
           periodo: PeriodoMedicacao;
+          horario: string | null;
           ativa: boolean;
         };
         Insert: {
@@ -152,6 +153,7 @@ export interface Database {
           dose?: string | null;
           via: ViaMedicacao;
           periodo: PeriodoMedicacao;
+          horario?: string | null;
           ativa?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
@@ -166,6 +168,9 @@ export interface Database {
           itens_faltantes: string | null;
           administrado_por: string | null;
           administrado_em: string;
+          // Integração futura com o módulo Farmácia: indica se a baixa de
+          // estoque já foi dada. Ainda não há lógica/tela usando este campo.
+          baixa_farmacia: boolean;
         };
         Insert: {
           id?: string;
@@ -175,6 +180,7 @@ export interface Database {
           itens_faltantes?: string | null;
           administrado_por?: string | null;
           administrado_em?: string;
+          baixa_farmacia?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["administracao"]["Insert"]>;
         Relationships: [];

@@ -71,3 +71,35 @@ export function useRemoverRegistro(residenteId: string) {
     onSuccess: () => invalidarRegistros(qc, residenteId),
   });
 }
+
+/**
+ * Define o nível de aceitação de uma refeição em UMA operação:
+ * - se já existe registro da refeição hoje, faz UPDATE do campo `tarefa`;
+ * - caso contrário, INSERT.
+ * Evita o padrão frágil de remover-e-inserir (que pode deixar sem registro
+ * ou duplicado se algo falhar no meio).
+ */
+export function useDefinirRefeicao(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { registroId?: string; tarefa: string }) => {
+      if (args.registroId) {
+        const { error } = await supabase
+          .from("tarefa_registro")
+          .update({ tarefa: args.tarefa, feito_por: CUIDADOR_ATUAL.nome, feito_em: new Date().toISOString() })
+          .eq("id", args.registroId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tarefa_registro").insert({
+          residente_id: residenteId,
+          tarefa: args.tarefa,
+          status: "feito",
+          feito_por: CUIDADOR_ATUAL.nome,
+          data: hojeISO(),
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => invalidarRegistros(qc, residenteId),
+  });
+}

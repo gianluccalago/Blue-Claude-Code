@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, ouNaoInformado, formatarDataHoraBR } from "@/lib/utils";
+import { cn, ouNaoInformado, formatarDataHoraBR, horarioParaMinutos } from "@/lib/utils";
 import type {
   Administracao,
   PeriodoMedicacao,
@@ -82,16 +82,26 @@ function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
           </TabsTrigger>
         ))}
       </TabsList>
-      {PERIODOS.map((p) => (
-        <TabsContent key={p.key} value={p.key}>
-          <PeriodoMedicacaoView
-            residenteId={residenteId}
-            periodo={p.key}
-            prescricoes={(prescricoes.data ?? []).filter((m) => m.periodo === p.key)}
-            registro={registroPorPeriodo[p.key]}
-          />
-        </TabsContent>
-      ))}
+      {PERIODOS.map((p) => {
+        // Medicamentos do período, ordenados por horário sugerido (sem horário vão ao fim).
+        const doPeriodo = (prescricoes.data ?? [])
+          .filter((m) => m.periodo === p.key)
+          .sort(
+            (a, b) =>
+              (horarioParaMinutos(a.horario) ?? Infinity) -
+              (horarioParaMinutos(b.horario) ?? Infinity),
+          );
+        return (
+          <TabsContent key={p.key} value={p.key}>
+            <PeriodoMedicacaoView
+              residenteId={residenteId}
+              periodo={p.key}
+              prescricoes={doPeriodo}
+              registro={registroPorPeriodo[p.key]}
+            />
+          </TabsContent>
+        );
+      })}
     </Tabs>
   );
 }
@@ -170,7 +180,9 @@ function PeriodoMedicacaoView({
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-secondary">{m.medicamento}</div>
                   <div className="text-sm text-muted-foreground">
-                    {ouNaoInformado(m.dose)} · via {m.via}
+                    {[ouNaoInformado(m.dose), m.horario, `via ${m.via}`]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </div>
                 </div>
                 {enf ? (

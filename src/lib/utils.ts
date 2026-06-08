@@ -54,6 +54,14 @@ export function formatarDataBR(dataISO: string | null): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+/** Apenas a hora local "HH:MM" a partir de um timestamp. */
+export function formatarHoraBR(ts: string | null): string {
+  if (!ts) return "--:--";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "--:--";
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function formatarDataHoraBR(ts: string | null): string {
   if (!ts) return "Não informado";
   const d = new Date(ts);
