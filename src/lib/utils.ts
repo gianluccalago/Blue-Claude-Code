@@ -60,6 +60,13 @@ export function somarDias(d: Date, n: number): Date {
   return r;
 }
 
+/** Combina data (YYYY-MM-DD) + hora (HH:MM) [+ dias] num ISO local→UTC. */
+export function combinarDataHoraISO(data: string, hora: string, addDias = 0): string {
+  const [y, m, d] = data.split("-").map(Number);
+  const [hh, mm] = hora.split(":").map(Number);
+  return new Date(y, m - 1, d + addDias, hh, mm, 0, 0).toISOString();
+}
+
 /** "HH:MM" -> minutos desde meia-noite. */
 export function horarioParaMinutos(horario: string | null): number | null {
   if (!horario) return null;

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { dataISO } from "@/lib/utils";
+import { dataISO, combinarDataHoraISO } from "@/lib/utils";
 import type { CategoriaTurno, TagTurno, Turno } from "@/types/database";
 
 export interface TurnoValor {
@@ -82,6 +82,80 @@ export function useExcluirTurno() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("turnos").delete().eq("id", id);
       if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+export interface RecorrenciaArgs {
+  categoria: CategoriaTurno;
+  tag: TagTurno;
+  diasSemana: number[]; // 0 (Dom) .. 6 (Sáb)
+  dataInicial: string; // YYYY-MM-DD
+  dataFinal: string; // YYYY-MM-DD
+  inicioTime: string; // HH:MM
+  fimTime: string; // HH:MM
+  fimDiaSeguinte: boolean;
+  profissional_id: string | null;
+}
+
+export interface RecorrenciaResultado {
+  criados: number;
+  pulados: number;
+}
+
+/**
+ * Cria turnos em lote (atalho de criação). Gera um turno individual para cada
+ * dia do período que caia num dos dias da semana escolhidos. NÃO há "série
+ * vinculada": os turnos gerados são comuns e independentes.
+ *
+ * Conflito: se houver profissional definida, pula os dias em que ela já tem
+ * QUALQUER turno (evita duplicata). Se for vago, cria todos os slots.
+ */
+export function useCriarTurnosRecorrentes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: RecorrenciaArgs): Promise<RecorrenciaResultado> => {
+      // 1. Datas candidatas no período que batem com os dias da semana.
+      const candidatas: string[] = [];
+      const ini = new Date(args.dataInicial + "T00:00:00");
+      const fimD = new Date(args.dataFinal + "T00:00:00");
+      for (const d = new Date(ini); d <= fimD; d.setDate(d.getDate() + 1)) {
+        if (args.diasSemana.includes(d.getDay())) candidatas.push(dataISO(d));
+      }
+
+      // 2. Conflito (só quando há profissional): dias que ela já tem turno.
+      let diasOcupados = new Set<string>();
+      if (args.profissional_id) {
+        const { data, error } = await supabase
+          .from("turnos")
+          .select("data")
+          .eq("profissional_id", args.profissional_id)
+          .gte("data", args.dataInicial)
+          .lte("data", args.dataFinal);
+        if (error) throw error;
+        diasOcupados = new Set((data ?? []).map((t) => t.data));
+      }
+
+      // 3. Monta os turnos a inserir.
+      const novos = candidatas
+        .filter((dia) => !(args.profissional_id && diasOcupados.has(dia)))
+        .map((dia) => ({
+          profissional_id: args.profissional_id,
+          categoria: args.categoria,
+          data: dia,
+          inicio: combinarDataHoraISO(dia, args.inicioTime, 0),
+          fim: combinarDataHoraISO(dia, args.fimTime, args.fimDiaSeguinte ? 1 : 0),
+          tag: args.tag,
+          observacao_interna: null,
+        }));
+
+      const pulados = candidatas.length - novos.length;
+      if (novos.length > 0) {
+        const { error } = await supabase.from("turnos").insert(novos);
+        if (error) throw error;
+      }
+      return { criados: novos.length, pulados };
     },
     onSuccess: () => invalidar(qc),
   });

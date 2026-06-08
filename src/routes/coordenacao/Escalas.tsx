@@ -1,14 +1,16 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, AlertTriangle, CalendarRange } from "lucide-react";
 import {
   useTurnos,
   useCriarTurno,
   useEditarTurno,
   useExcluirTurno,
+  useCriarTurnosRecorrentes,
   type TurnoValor,
 } from "@/hooks/useTurnos";
 import { useProfissionais } from "@/hooks/useProfissionais";
 import { TurnoModal } from "@/components/escala/TurnoModal";
+import { TurnoRecorrenteModal } from "@/components/escala/TurnoRecorrenteModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,12 +40,14 @@ export function Escalas() {
   const criar = useCriarTurno();
   const editar = useEditarTurno();
   const excluir = useExcluirTurno();
+  const recorrentes = useCriarTurnosRecorrentes();
 
   const [ancora, setAncora] = useState(() => new Date());
   const [visao, setVisao] = useState<Visao>("semana");
   const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaFiltro>("todas");
   const [profFiltro, setProfFiltro] = useState<string>("todas");
   const [modal, setModal] = useState<ModalEstado | null>(null);
+  const [recorrenteAberto, setRecorrenteAberto] = useState(false);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [diaDetalhe, setDiaDetalhe] = useState<string | null>(null);
 
@@ -144,6 +148,9 @@ export function Escalas() {
               </button>
             ))}
           </div>
+          <Button variant="outline" onClick={() => setRecorrenteAberto(true)}>
+            <CalendarRange className="size-4" /> Criar turnos recorrentes
+          </Button>
           <Button onClick={() => setModal({ dataPadrao: hojeISO() })}>
             <Plus className="size-4" /> Novo turno
           </Button>
@@ -221,6 +228,15 @@ export function Escalas() {
               : undefined
           }
           onFechar={() => setModal(null)}
+        />
+      )}
+
+      {recorrenteAberto && (
+        <TurnoRecorrenteModal
+          profissionais={profissionais.data ?? []}
+          dataPadrao={hojeISO()}
+          onGerar={(args) => recorrentes.mutateAsync(args)}
+          onFechar={() => setRecorrenteAberto(false)}
         />
       )}
 
