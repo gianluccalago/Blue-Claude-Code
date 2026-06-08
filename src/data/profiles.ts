@@ -72,6 +72,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Planos de cuidado", to: "/app/coordenacao/planos" },
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
+      { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },
     ],
     emConstrucao: false,
   },

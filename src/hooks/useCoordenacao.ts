@@ -130,6 +130,21 @@ export function useIntercorrenciasRecentes() {
   });
 }
 
+/** Histórico COMPLETO de intercorrências (todos os residentes), recentes primeiro. */
+export function useTodasIntercorrencias() {
+  return useQuery({
+    queryKey: ["coord-intercorrencias-todas"],
+    queryFn: async (): Promise<Intercorrencia[]> => {
+      const { data, error } = await supabase
+        .from("intercorrencia")
+        .select("*")
+        .order("registrado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 /** Procedimentos exclusivos da enfermagem: prescrições injetável/insulina/sonda ativas. */
 export function useProcedimentosEnfermagem() {
   return useQuery({
