@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Sun, Moon, MapPin, LogIn, LogOut, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Sun, Moon, MapPin, LogIn, LogOut, AlertTriangle } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useMinhaEscala } from "@/hooks/useTurnos";
-import { useProfissionalAtual, useRegistrarPonto, type TipoPonto } from "@/hooks/usePonto";
+import { useRegistrarPonto, type TipoPonto } from "@/hooks/usePonto";
 import { ESTABELECIMENTO, distanciaMetros, obterPosicaoAtual, mensagemErroGeo } from "@/lib/geo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,29 +13,26 @@ import type { Turno } from "@/types/database";
 
 export function MinhaEscala() {
   // Somente consulta dos próprios turnos (+ ponto no turno de hoje).
+  // Todas as profissionais batem check-in/check-out (não há mais isenção).
   const escala = useMinhaEscala(CUIDADOR_ATUAL.id);
-  const profissional = useProfissionalAtual();
 
-  if (escala.isLoading || profissional.isLoading) return <LoadingState />;
+  if (escala.isLoading) return <LoadingState />;
   if (escala.isError) return <ErrorState error={escala.error} />;
 
   const turnos = escala.data ?? [];
   if (turnos.length === 0)
     return <EmptyState label="Você ainda não possui turnos na escala." />;
 
-  // isento_ponto_app: a maioria (CLT) bate ponto físico e não usa o ponto do app.
-  const isenta = profissional.data?.isento_ponto_app ?? true;
-
   return (
     <div className="space-y-3">
       {turnos.map((t) => (
-        <TurnoLinha key={t.id} turno={t} isenta={isenta} />
+        <TurnoLinha key={t.id} turno={t} />
       ))}
     </div>
   );
 }
 
-function TurnoLinha({ turno: t, isenta }: { turno: Turno; isenta: boolean }) {
+function TurnoLinha({ turno: t }: { turno: Turno }) {
   const ehHoje = t.data === hojeISO();
   const noturno = t.tag === "noturno";
   const Icone = noturno ? Moon : Sun;
@@ -72,17 +69,10 @@ function TurnoLinha({ turno: t, isenta }: { turno: Turno; isenta: boolean }) {
         </Badge>
       </CardContent>
 
-      {/* Ponto: só no turno de HOJE. */}
+      {/* Ponto: só no turno de HOJE (todas as profissionais batem ponto). */}
       {ehHoje && (
         <div className="border-t px-4 py-3">
-          {isenta ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ShieldCheck className="size-4" /> Ponto registrado fisicamente (isenta do ponto do
-              app).
-            </p>
-          ) : (
-            <PontoBloco turno={t} />
-          )}
+          <PontoBloco turno={t} />
         </div>
       )}
     </Card>
