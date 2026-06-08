@@ -24,13 +24,14 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, horarioParaMinutos, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
 import type { PlanoCuidadoItem, TarefaRegistro } from "@/types/database";
 
-// 5 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
+// 6 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
 const REFEICOES = [
   "Café da manhã",
   "Lanche da manhã",
   "Almoço",
   "Lanche da tarde",
   "Jantar",
+  "Ceia",
 ] as const;
 const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;

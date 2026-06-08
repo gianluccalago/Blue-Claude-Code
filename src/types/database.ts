@@ -23,7 +23,15 @@ export type TagTurno = "diurno" | "noturno";
 
 export type GrauDependencia = "I" | "II" | "III";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
-export type PeriodoMedicacao = "noite" | "manha" | "almoco" | "tarde";
+// 6 períodos de medicação, cada um com horário padrão (ver PERIODOS nas telas).
+// "jejum" (06:00) e "noite" (20:00) são separados (antes eram "noite/jejum").
+export type PeriodoMedicacao =
+  | "jejum"
+  | "manha"
+  | "almoco"
+  | "apos_almoco"
+  | "tarde"
+  | "noite";
 export type StatusAdministracao = "sim" | "parcial" | "nao";
 export type TipoEliminacao = "urina" | "evacuacao";
 export type TipoOrigemPendencia = "medicacao" | "intercorrencia" | "eliminacao" | "tarefa";
@@ -235,6 +243,9 @@ export interface Database {
           data: string | null;
           horario: string | null;
           horario_transporte: string | null;
+          // Detalhes/instruções do compromisso (ex: "Levar exame X").
+          // Alimentado por Família/Administrativo quando esses perfis existirem.
+          detalhes: string | null;
           ciente_por: string | null;
           ciente_em: string | null;
         };
@@ -245,6 +256,7 @@ export interface Database {
           data?: string | null;
           horario?: string | null;
           horario_transporte?: string | null;
+          detalhes?: string | null;
           ciente_por?: string | null;
           ciente_em?: string | null;
         };

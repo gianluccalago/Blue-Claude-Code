@@ -1,4 +1,4 @@
-import { CalendarClock, Bus, Check, AlertTriangle } from "lucide-react";
+import { CalendarClock, Bus, Check, AlertTriangle, Info } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useCompromissos, useDarCiencia } from "@/hooks/useCompromissos";
@@ -97,6 +97,13 @@ function CompromissoCard({
         <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
           <Bus className="size-3.5" /> Transporte às {c.horario_transporte ?? "--:--"}
         </div>
+        {/* Detalhes/instruções (alimentado por Família/Administrativo no futuro). */}
+        {c.detalhes && (
+          <div className="mt-2 flex items-start gap-1.5 rounded-md bg-accent/60 px-2.5 py-1.5 text-sm text-secondary">
+            <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            <span>{c.detalhes}</span>
+          </div>
+        )}
       </div>
 
       <div className="shrink-0">

@@ -30,11 +30,14 @@ import type {
   StatusAdministracao,
 } from "@/types/database";
 
-const PERIODOS: { key: PeriodoMedicacao; label: string }[] = [
-  { key: "noite", label: "Noite / jejum" },
-  { key: "manha", label: "Manhã" },
-  { key: "almoco", label: "Após almoço" },
-  { key: "tarde", label: "Tarde" },
+// 6 períodos com horário padrão, na ordem do dia.
+const PERIODOS: { key: PeriodoMedicacao; label: string; horario: string }[] = [
+  { key: "jejum", label: "Jejum", horario: "06:00" },
+  { key: "manha", label: "Manhã", horario: "08:00" },
+  { key: "almoco", label: "Almoço", horario: "12:00" },
+  { key: "apos_almoco", label: "Após almoço", horario: "13:00" },
+  { key: "tarde", label: "Tarde", horario: "16:00" },
+  { key: "noite", label: "Noite", horario: "20:00" },
 ];
 
 export function Medicacao() {
@@ -76,8 +79,10 @@ function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
     <Tabs defaultValue="manha">
       <TabsList className="w-full justify-start">
         {PERIODOS.map((p) => (
-          <TabsTrigger key={p.key} value={p.key} className="gap-2">
-            {p.label}
+          <TabsTrigger key={p.key} value={p.key} className="gap-1.5">
+            <span>
+              {p.label} <span className="font-normal opacity-70">· {p.horario}</span>
+            </span>
             <StatusDot status={registroPorPeriodo[p.key]?.status} />
           </TabsTrigger>
         ))}
@@ -118,8 +123,6 @@ function PeriodoMedicacaoView({
   registro: Administracao | undefined;
 }) {
   const registrar = useRegistrarAdministracao(residenteId);
-  const [modoParcial, setModoParcial] = useState(false);
-  const [faltantes, setFaltantes] = useState<Set<string>>(new Set());
 
   const orais = useMemo(() => prescricoes.filter((m) => m.via === "oral"), [prescricoes]);
   const enfermagem = useMemo(() => prescricoes.filter((m) => m.via !== "oral"), [prescricoes]);
@@ -128,26 +131,11 @@ function PeriodoMedicacaoView({
     return <EmptyState label="Sem prescrições ativas para este período." />;
   }
 
-  function toggleFaltante(id: string) {
-    setFaltantes((prev) => {
-      const novo = new Set(prev);
-      if (novo.has(id)) novo.delete(id);
-      else novo.add(id);
-      return novo;
-    });
-  }
-
+  // Confirmação BINÁRIA: as orais vêm em pacotes fechados preparados pela
+  // farmácia; o cuidador administra o pacote do período inteiro ou não —
+  // não existe meio-termo (por isso não há "parcial" aqui).
   async function confirmarTodas() {
     await registrar.mutateAsync({ periodo, status: "sim" });
-  }
-  async function confirmarParcial() {
-    const nomes = orais
-      .filter((m) => faltantes.has(m.id))
-      .map((m) => `${m.medicamento} ${ouNaoInformado(m.dose)}`)
-      .join(", ");
-    await registrar.mutateAsync({ periodo, status: "parcial", itensFaltantes: nomes });
-    setModoParcial(false);
-    setFaltantes(new Set());
   }
   async function confirmarNao() {
     await registrar.mutateAsync({ periodo, status: "nao" });
@@ -165,15 +153,8 @@ function PeriodoMedicacaoView({
         <CardContent className="space-y-2 p-4">
           {prescricoes.map((m) => {
             const enf = m.via !== "oral";
-            const marcarFalta = modoParcial && !enf;
             return (
-              <div
-                key={m.id}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg border p-3",
-                  marcarFalta && faltantes.has(m.id) && "border-warning/50 bg-warning/5",
-                )}
-              >
+              <div key={m.id} className="flex items-center gap-3 rounded-lg border p-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
                   <Pill className="size-4" />
                 </div>
@@ -189,18 +170,6 @@ function PeriodoMedicacaoView({
                   <Badge variant="purple">
                     <ShieldAlert className="size-3" /> Enfermagem
                   </Badge>
-                ) : marcarFalta ? (
-                  <button
-                    onClick={() => toggleFaltante(m.id)}
-                    className={cn(
-                      "rounded-md border px-3 py-2 text-xs font-semibold transition-colors",
-                      faltantes.has(m.id)
-                        ? "border-warning bg-warning text-warning-foreground"
-                        : "border-input text-muted-foreground hover:border-warning",
-                    )}
-                  >
-                    {faltantes.has(m.id) ? "Faltou" : "Marcar falta"}
-                  </button>
                 ) : (
                   <Badge variant="muted">oral</Badge>
                 )}
@@ -219,63 +188,32 @@ function PeriodoMedicacaoView({
         </p>
       )}
 
-      {/* Ações */}
-      {modoParcial ? (
-        <div className="flex flex-wrap gap-3">
+      {/* Ações (binárias: Sim, todas / Não) */}
+      <div className="space-y-2">
+        {jaRegistrado && (
+          <p className="text-center text-xs font-medium text-muted-foreground">
+            Já registrado neste período hoje. Você pode corrigir registrando novamente.
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
           <Button
-            variant="warning"
+            variant="success"
             size="lg"
-            disabled={faltantes.size === 0 || registrar.isPending}
-            onClick={confirmarParcial}
+            disabled={orais.length === 0 || registrar.isPending}
+            onClick={confirmarTodas}
           >
-            Confirmar parcial ({faltantes.size} faltando)
+            <Check className="size-5" /> Sim, todas ({orais.length} orais)
           </Button>
           <Button
-            variant="outline"
+            variant="destructive"
             size="lg"
-            onClick={() => {
-              setModoParcial(false);
-              setFaltantes(new Set());
-            }}
+            disabled={registrar.isPending}
+            onClick={confirmarNao}
           >
-            Cancelar
+            <Ban className="size-5" /> Não
           </Button>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {jaRegistrado && (
-            <p className="text-center text-xs font-medium text-muted-foreground">
-              Já registrado neste período hoje. Você pode corrigir registrando novamente.
-            </p>
-          )}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Button
-              variant="success"
-              size="lg"
-              disabled={orais.length === 0 || registrar.isPending}
-              onClick={confirmarTodas}
-            >
-              <Check className="size-5" /> Sim, todas ({orais.length} orais)
-            </Button>
-            <Button
-              variant="warning"
-              size="lg"
-              disabled={orais.length === 0 || registrar.isPending}
-              onClick={() => setModoParcial(true)}
-            >
-              <AlertTriangle className="size-5" /> Parcialmente
-            </Button>
-            <Button
-              variant="destructive"
-              size="lg"
-              disabled={registrar.isPending}
-              onClick={confirmarNao}
-            >
-              <Ban className="size-5" /> Não
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -22,11 +22,14 @@ interface Confirmacao {
   acao: () => void;
 }
 
-const PERIODOS: { key: PeriodoMedicacao; label: string }[] = [
-  { key: "noite", label: "Noite / jejum" },
-  { key: "manha", label: "Manhã" },
-  { key: "almoco", label: "Após almoço" },
-  { key: "tarde", label: "Tarde" },
+// 6 períodos com horário padrão, na ordem do dia.
+const PERIODOS: { key: PeriodoMedicacao; label: string; horario: string }[] = [
+  { key: "jejum", label: "Jejum", horario: "06:00" },
+  { key: "manha", label: "Manhã", horario: "08:00" },
+  { key: "almoco", label: "Almoço", horario: "12:00" },
+  { key: "apos_almoco", label: "Após almoço", horario: "13:00" },
+  { key: "tarde", label: "Tarde", horario: "16:00" },
+  { key: "noite", label: "Noite", horario: "20:00" },
 ];
 
 const VIA_LABEL: Record<string, string> = {
@@ -103,6 +106,7 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Syringe className="size-5 text-purple-600" /> {p.label}
+              <span className="text-sm font-normal text-muted-foreground">· {p.horario}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

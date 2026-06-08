@@ -94,7 +94,7 @@ create table prescricao (
   medicamento text not null,
   dose text,
   via text not null check (via in ('oral','injetavel','insulina','sonda')),
-  periodo text not null check (periodo in ('noite','manha','almoco','tarde')),
+  periodo text not null check (periodo in ('jejum','manha','almoco','apos_almoco','tarde','noite')),
   horario text,                       -- horário sugerido da prescrição, ex "07:00" (opcional)
   ativa boolean not null default true
 );
@@ -133,6 +133,7 @@ create table compromisso_externo (
   data date,
   horario text,
   horario_transporte text,
+  detalhes text,                      -- instruções do compromisso (ex: "Levar exame X")
   ciente_por text,
   ciente_em timestamptz
 );
@@ -297,19 +298,22 @@ insert into plano_cuidado_item (residente_id, tarefa, horario, responsavel, tole
 ('a0000000-0000-0000-0000-000000000001','Banho de sol','09:15','cuidador',30,true),
 ('a0000000-0000-0000-0000-000000000001','Condução à fisioterapia','10:00','cuidador',30,true);
 
--- ---------- PRESCRIÇÃO da Alzira ----------
+-- ---------- PRESCRIÇÃO da Alzira (6 períodos) ----------
 insert into prescricao (residente_id, medicamento, dose, via, periodo, horario, ativa) values
-('a0000000-0000-0000-0000-000000000001','Losartana','50mg','oral','manha','07:00',true),
+('a0000000-0000-0000-0000-000000000001','Insulina NPH','10UI','insulina','jejum','06:00',true),
+('a0000000-0000-0000-0000-000000000001','Losartana','50mg','oral','manha','08:00',true),
 ('a0000000-0000-0000-0000-000000000001','Metformina','850mg','oral','manha','08:00',true),
-('a0000000-0000-0000-0000-000000000001','Insulina NPH','10UI','insulina','manha','07:00',true),
-('a0000000-0000-0000-0000-000000000001','Sinvastatina','20mg','oral','noite','21:00',true),
 ('a0000000-0000-0000-0000-000000000001','AAS','100mg','oral','almoco','12:00',true),
-('a0000000-0000-0000-0000-000000000001','Enalapril','10mg','oral','tarde','16:00',true);
+('a0000000-0000-0000-0000-000000000001','Domperidona','10mg','oral','apos_almoco','13:00',true),
+('a0000000-0000-0000-0000-000000000001','Enalapril','10mg','oral','tarde','16:00',true),
+('a0000000-0000-0000-0000-000000000001','Sinvastatina','20mg','oral','noite','20:00',true);
 
--- ---------- COMPROMISSOS EXTERNOS (2 de teste) ----------
-insert into compromisso_externo (residente_id, titulo, data, horario, horario_transporte) values
-('a0000000-0000-0000-0000-000000000001','Consulta oftalmológica', current_date + 1,'14:30','13:45'),
-('a0000000-0000-0000-0000-000000000002','Sessão de hemodiálise', current_date,'09:00','08:15');
+-- ---------- COMPROMISSOS EXTERNOS (2 de teste, com detalhes) ----------
+insert into compromisso_externo (residente_id, titulo, data, horario, horario_transporte, detalhes) values
+('a0000000-0000-0000-0000-000000000001','Consulta oftalmológica', current_date + 1,'14:30','13:45',
+  'Levar exames anteriores e cartão do convênio. Vestir roupa confortável.'),
+('a0000000-0000-0000-0000-000000000002','Sessão de hemodiálise', current_date,'09:00','08:15',
+  'Jejum de 8h antes da sessão. Levar troca de roupa.');
 
 -- ---------- ELIMINAÇÕES da Alzira (2 urinas hoje, 1 evacuação anteontem) ----------
 insert into eliminacao (residente_id, tipo, registrado_por, registrado_em) values
