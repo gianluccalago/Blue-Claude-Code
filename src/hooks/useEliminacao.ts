@@ -95,3 +95,76 @@ export function calcularAlertasEliminacao(
     semEvacuacao72h: !temEvacuacaoRecente,
   };
 }
+
+const VINTE_QUATRO_HORAS_MS = 24 * 60 * 60 * 1000;
+
+export interface EstadoAlertaEliminacao {
+  /** Silenciado há menos de 24h → o alerta deve ficar oculto na lista. */
+  oculto: boolean;
+  /** Silenciado há 24h+ e a condição persiste → destacar como reincidente. */
+  reincidente: boolean;
+  /** Escalamento ao médico mais recente (selo), ou null. */
+  escaladoEm: string | null;
+  /** Conduta (silenciamento) mais recente — para "Persiste após conduta de…". */
+  condutaEm: string | null;
+  condutaPor: string | null;
+  condutaObs: string | null;
+}
+
+/**
+ * Decide COMO um alerta de eliminação (cuja condição clínica já está ATIVA)
+ * deve aparecer, a partir dos tratamentos daquele residente+tipo.
+ *
+ * Função PURA e reutilizável (cálculo sob demanda ao abrir a tela):
+ * - silenciado há < 24h  → oculto;
+ * - silenciado há ≥ 24h e condição persiste → reincidente (visível, vermelho);
+ * - só escalado / nunca tratado → visível normal;
+ * - escalar ao médico NÃO oculta, apenas adiciona o selo.
+ *
+ * `tratamentos` é a lista (de qualquer ordem) de eliminacao_tratamento do
+ * residente para um único tipo de alerta.
+ */
+export function estadoAlertaEliminacao(
+  tratamentos: EliminacaoTratamentoLike[],
+  agora: Date = new Date(),
+): EstadoAlertaEliminacao {
+  let ultimoSilenciado: EliminacaoTratamentoLike | null = null;
+  let escaladoEm: string | null = null;
+
+  for (const t of tratamentos) {
+    if (t.acao === "silenciado") {
+      if (!ultimoSilenciado || new Date(t.tratado_em) > new Date(ultimoSilenciado.tratado_em)) {
+        ultimoSilenciado = t;
+      }
+    } else if (t.acao === "escalado_medico") {
+      if (!escaladoEm || new Date(t.tratado_em) > new Date(escaladoEm)) {
+        escaladoEm = t.tratado_em;
+      }
+    }
+  }
+
+  let oculto = false;
+  let reincidente = false;
+  if (ultimoSilenciado) {
+    const diff = agora.getTime() - new Date(ultimoSilenciado.tratado_em).getTime();
+    if (diff < VINTE_QUATRO_HORAS_MS) oculto = true;
+    else reincidente = true;
+  }
+
+  return {
+    oculto,
+    reincidente,
+    escaladoEm,
+    condutaEm: ultimoSilenciado?.tratado_em ?? null,
+    condutaPor: ultimoSilenciado?.tratado_por ?? null,
+    condutaObs: ultimoSilenciado?.observacao ?? null,
+  };
+}
+
+/** Campos mínimos usados por estadoAlertaEliminacao (compatível com a Row). */
+interface EliminacaoTratamentoLike {
+  acao: string;
+  tratado_em: string;
+  tratado_por: string | null;
+  observacao: string | null;
+}

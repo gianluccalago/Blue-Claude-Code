@@ -14,6 +14,7 @@
 -- ============================================================================
 
 -- ---------- LIMPEZA (idempotente) ----------
+drop table if exists eliminacao_tratamento cascade;
 drop table if exists pendencia_tratamento cascade;
 drop table if exists modelo_rotina_item cascade;
 drop table if exists modelo_rotina cascade;
@@ -165,6 +166,18 @@ create table pendencia_tratamento (
   observacao text
 );
 
+-- Tratamento dos alertas de eliminação (condição contínua): silenciar por 24h
+-- ou escalar ao médico. Não encerra o alerta; ele reaparece se persistir.
+create table eliminacao_tratamento (
+  id uuid primary key default gen_random_uuid(),
+  residente_id uuid not null references residentes(id) on delete cascade,
+  tipo_alerta text not null check (tipo_alerta in ('urina','evacuacao')),
+  acao text not null check (acao in ('silenciado','escalado_medico')),
+  observacao text,
+  tratado_por text,
+  tratado_em timestamptz not null default now()
+);
+
 -- ---------- ÍNDICES úteis ----------
 create index on cuidador_residente (cuidador_id);
 create index on plano_cuidado_item (residente_id);
@@ -174,6 +187,7 @@ create index on compromisso_externo (residente_id);
 create index on eliminacao (residente_id, registrado_em);
 create index on modelo_rotina_item (modelo_id);
 create index on pendencia_tratamento (tipo_origem, referencia_id);
+create index on eliminacao_tratamento (residente_id, tipo_alerta, tratado_em);
 
 -- ---------- RLS (demo sem login) ----------
 do $$
@@ -182,7 +196,8 @@ begin
   foreach t in array array[
     'residentes','usuarios','cuidador_residente','plano_cuidado_item',
     'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo',
-    'eliminacao','modelo_rotina','modelo_rotina_item','pendencia_tratamento'
+    'eliminacao','modelo_rotina','modelo_rotina_item','pendencia_tratamento',
+    'eliminacao_tratamento'
   ] loop
     execute format('alter table %I enable row level security;', t);
     execute format('drop policy if exists demo_all on %I;', t);

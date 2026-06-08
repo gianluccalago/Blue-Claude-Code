@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { hojeISO, inicioDoDiaISO } from "@/lib/utils";
-import { calcularAlertasEliminacao, type AlertasEliminacao } from "@/hooks/useEliminacao";
+import { calcularAlertasEliminacao, estadoAlertaEliminacao } from "@/hooks/useEliminacao";
 import type {
   Administracao,
   Eliminacao,
+  EliminacaoTratamento,
   Intercorrencia,
   PendenciaTratamento,
   Prescricao,
+  TipoEliminacao,
   TipoOrigemPendencia,
   AcaoPendencia,
+  AcaoEliminacaoTratamento,
 } from "@/types/database";
 
 /** Quem trata as pendências neste painel (sem login ainda). */
@@ -143,47 +146,125 @@ export function useProcedimentosEnfermagem() {
   });
 }
 
-export interface ResidenteEmAlerta {
+/** Um alerta de eliminação VISÍVEL no painel (já considerada a regra de 24h). */
+export interface AlertaEliminacaoPainel {
   residenteId: string;
-  alertas: AlertasEliminacao;
+  tipo: TipoEliminacao;
+  /** Silenciado há 24h+ e a condição persiste. */
+  reincidente: boolean;
+  escaladoEm: string | null;
+  condutaEm: string | null;
+  condutaPor: string | null;
+  condutaObs: string | null;
+}
+
+/** Todos os tratamentos de alerta de eliminação registrados. */
+export function useEliminacaoTratamentos() {
+  return useQuery({
+    queryKey: ["eliminacao-tratamentos"],
+    queryFn: async (): Promise<EliminacaoTratamento[]> => {
+      const { data, error } = await supabase
+        .from("eliminacao_tratamento")
+        .select("*")
+        .order("tratado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 }
 
 /**
- * Alertas de eliminação de TODOS os residentes, calculados sob demanda ao
- * abrir o painel (reutiliza calcularAlertasEliminacao). Busca os registros das
- * últimas 72h de uma vez e agrupa por residente.
+ * Alertas de eliminação VISÍVEIS de TODOS os residentes, recalculados ao abrir
+ * o painel. Combina a condição clínica (calcularAlertasEliminacao, 72h) com o
+ * tratamento mais recente (estadoAlertaEliminacao): alertas silenciados há
+ * menos de 24h são omitidos; os que persistem após a conduta voltam como
+ * reincidentes. Busca tudo em poucas consultas e agrupa em memória.
  */
-export function useAlertasEliminacaoGlobais() {
+export function useAlertasEliminacaoPainel() {
   return useQuery({
     queryKey: ["coord-alertas-eliminacao", hojeISO()],
-    queryFn: async (): Promise<ResidenteEmAlerta[]> => {
+    queryFn: async (): Promise<AlertaEliminacaoPainel[]> => {
       const residentesResp = await supabase.from("residentes").select("id");
       if (residentesResp.error) throw residentesResp.error;
       const ids = (residentesResp.data ?? []).map((r) => r.id);
       if (ids.length === 0) return [];
 
       const limite72h = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
-      const { data: regs, error } = await supabase
+      const elimResp = await supabase
         .from("eliminacao")
         .select("*")
         .gte("registrado_em", limite72h);
-      if (error) throw error;
+      if (elimResp.error) throw elimResp.error;
 
-      const porResidente = new Map<string, Eliminacao[]>();
-      for (const r of regs ?? []) {
-        const arr = porResidente.get(r.residente_id) ?? [];
+      const tratResp = await supabase.from("eliminacao_tratamento").select("*");
+      if (tratResp.error) throw tratResp.error;
+
+      const elimPorResidente = new Map<string, Eliminacao[]>();
+      for (const r of elimResp.data ?? []) {
+        const arr = elimPorResidente.get(r.residente_id) ?? [];
         arr.push(r);
-        porResidente.set(r.residente_id, arr);
+        elimPorResidente.set(r.residente_id, arr);
+      }
+      // chave "residenteId|tipo_alerta"
+      const tratPorChave = new Map<string, EliminacaoTratamento[]>();
+      for (const t of tratResp.data ?? []) {
+        const k = `${t.residente_id}|${t.tipo_alerta}`;
+        const arr = tratPorChave.get(k) ?? [];
+        arr.push(t);
+        tratPorChave.set(k, arr);
       }
 
-      const emAlerta: ResidenteEmAlerta[] = [];
+      const agora = new Date();
+      const resultado: AlertaEliminacaoPainel[] = [];
       for (const id of ids) {
-        const alertas = calcularAlertasEliminacao(porResidente.get(id) ?? []);
-        if (alertas.semUrinaHoje || alertas.semEvacuacao72h) {
-          emAlerta.push({ residenteId: id, alertas });
+        const cond = calcularAlertasEliminacao(elimPorResidente.get(id) ?? [], agora);
+        // Evacuação primeiro (mais grave), depois urina.
+        const tipos: { tipo: TipoEliminacao; ativo: boolean }[] = [
+          { tipo: "evacuacao", ativo: cond.semEvacuacao72h },
+          { tipo: "urina", ativo: cond.semUrinaHoje },
+        ];
+        for (const { tipo, ativo } of tipos) {
+          if (!ativo) continue;
+          const estado = estadoAlertaEliminacao(tratPorChave.get(`${id}|${tipo}`) ?? [], agora);
+          if (estado.oculto) continue; // silenciado há < 24h
+          resultado.push({
+            residenteId: id,
+            tipo,
+            reincidente: estado.reincidente,
+            escaladoEm: estado.escaladoEm,
+            condutaEm: estado.condutaEm,
+            condutaPor: estado.condutaPor,
+            condutaObs: estado.condutaObs,
+          });
         }
       }
-      return emAlerta;
+      return resultado;
+    },
+  });
+}
+
+/** Registra um tratamento de alerta de eliminação (silenciar / escalar). */
+export function useRegistrarEliminacaoTratamento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      residenteId: string;
+      tipoAlerta: TipoEliminacao;
+      acao: AcaoEliminacaoTratamento;
+      observacao?: string | null;
+    }) => {
+      const { error } = await supabase.from("eliminacao_tratamento").insert({
+        residente_id: args.residenteId,
+        tipo_alerta: args.tipoAlerta,
+        acao: args.acao,
+        observacao: args.observacao ?? null,
+        tratado_por: COORDENACAO,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["coord-alertas-eliminacao"] });
+      qc.invalidateQueries({ queryKey: ["eliminacao-tratamentos"] });
     },
   });
 }
