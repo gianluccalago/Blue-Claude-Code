@@ -39,6 +39,27 @@ export function inicioDoDiaISO(): string {
   return d.toISOString();
 }
 
+/** Data (timezone local) de um Date no formato YYYY-MM-DD. */
+export function dataISO(d: Date): string {
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+}
+
+/** Domingo (00:00) da semana que contém `d`. */
+export function inicioDaSemana(d: Date): Date {
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  r.setDate(r.getDate() - r.getDay());
+  return r;
+}
+
+/** Novo Date somando `n` dias (não muta o original). */
+export function somarDias(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
 /** "HH:MM" -> minutos desde meia-noite. */
 export function horarioParaMinutos(horario: string | null): number | null {
   if (!horario) return null;

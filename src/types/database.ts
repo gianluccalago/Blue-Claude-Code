@@ -18,6 +18,8 @@ export type PerfilUsuario =
 
 export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";
 export type VinculoProfissional = "CLT" | "PJ";
+export type CategoriaTurno = "cuidadoras" | "enfermeiras";
+export type TagTurno = "diurno" | "noturno";
 
 export type GrauDependencia = "I" | "II" | "III";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
@@ -345,6 +347,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["eliminacao_tratamento"]["Insert"]>;
         Relationships: [];
       };
+      turnos: {
+        Row: {
+          id: string;
+          profissional_id: string | null;
+          categoria: CategoriaTurno;
+          data: string;
+          inicio: string;
+          fim: string;
+          tag: TagTurno;
+          observacao_interna: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          profissional_id?: string | null;
+          categoria: CategoriaTurno;
+          data: string;
+          inicio: string;
+          fim: string;
+          tag: TagTurno;
+          observacao_interna?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -367,3 +395,4 @@ export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
 export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratamento"]["Row"];
 export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_tratamento"]["Row"];
+export type Turno = Database["public"]["Tables"]["turnos"]["Row"];

@@ -14,6 +14,7 @@
 -- ============================================================================
 
 -- ---------- LIMPEZA (idempotente) ----------
+drop table if exists turnos cascade;
 drop table if exists eliminacao_tratamento cascade;
 drop table if exists pendencia_tratamento cascade;
 drop table if exists modelo_rotina_item cascade;
@@ -187,6 +188,19 @@ create table eliminacao_tratamento (
   tratado_em timestamptz not null default now()
 );
 
+-- Escalas (módulo de Escalas): quadro de turnos, sem camada financeira.
+create table turnos (
+  id uuid primary key default gen_random_uuid(),
+  profissional_id uuid references usuarios(id) on delete set null,  -- null = VAGO
+  categoria text not null check (categoria in ('cuidadoras','enfermeiras')),
+  data date not null,
+  inicio timestamptz not null,
+  fim timestamptz not null,
+  tag text not null check (tag in ('diurno','noturno')),
+  observacao_interna text,
+  criado_em timestamptz not null default now()
+);
+
 -- ---------- ÍNDICES úteis ----------
 create index on cuidador_residente (cuidador_id);
 create index on plano_cuidado_item (residente_id);
@@ -197,6 +211,8 @@ create index on eliminacao (residente_id, registrado_em);
 create index on modelo_rotina_item (modelo_id);
 create index on pendencia_tratamento (tipo_origem, referencia_id);
 create index on eliminacao_tratamento (residente_id, tipo_alerta, tratado_em);
+create index on turnos (data);
+create index on turnos (profissional_id);
 
 -- ---------- RLS (demo sem login) ----------
 do $$
@@ -206,7 +222,7 @@ begin
     'residentes','usuarios','cuidador_residente','plano_cuidado_item',
     'tarefa_registro','prescricao','administracao','intercorrencia','compromisso_externo',
     'eliminacao','modelo_rotina','modelo_rotina_item','pendencia_tratamento',
-    'eliminacao_tratamento'
+    'eliminacao_tratamento','turnos'
   ] loop
     execute format('alter table %I enable row level security;', t);
     execute format('drop policy if exists demo_all on %I;', t);
@@ -300,6 +316,20 @@ insert into eliminacao (residente_id, tipo, registrado_por, registrado_em) value
 ('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '3 hours'),
 ('a0000000-0000-0000-0000-000000000001','urina','Ana Paula', now() - interval '30 minutes'),
 ('a0000000-0000-0000-0000-000000000001','evacuacao','Ana Paula', now() - interval '2 days');
+
+-- ---------- TURNOS de teste (semana atual) ----------
+do $$
+declare d0 date := current_date - (extract(dow from current_date)::int);  -- domingo desta semana
+begin
+  insert into turnos (profissional_id, categoria, data, inicio, fim, tag, observacao_interna) values
+  ('b0000000-0000-0000-0000-000000000004','cuidadoras', d0+1, (d0+1) + time '07:00', (d0+1) + time '19:00','diurno',null),
+  ('b0000000-0000-0000-0000-000000000009','cuidadoras', d0+1, (d0+1) + time '19:00', (d0+2) + time '07:00','noturno',null),
+  ('b0000000-0000-0000-0000-000000000004','cuidadoras', d0+2, (d0+2) + time '07:00', (d0+2) + time '19:00','diurno',null),
+  ('b0000000-0000-0000-0000-000000000012','enfermeiras', d0+2, (d0+2) + time '07:00', (d0+2) + time '19:00','diurno',null),
+  ('b0000000-0000-0000-0000-000000000010','cuidadoras', d0+3, (d0+3) + time '07:00', (d0+3) + time '19:00','diurno',null),
+  (null,                                  'cuidadoras', d0+3, (d0+3) + time '19:00', (d0+4) + time '07:00','noturno','Cobrir folga — buscar profissional'),
+  ('b0000000-0000-0000-0000-000000000013','enfermeiras', d0+4, (d0+4) + time '19:00', (d0+5) + time '07:00','noturno',null);
+end $$;
 
 -- ---------- MODELO DE ROTINA de teste (Coordenação) ----------
 do $$
