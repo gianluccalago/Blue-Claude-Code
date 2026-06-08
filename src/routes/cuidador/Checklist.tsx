@@ -15,6 +15,8 @@ import {
   useRemoverEliminacao,
   calcularAlertasEliminacao,
 } from "@/hooks/useEliminacao";
+import { usePlantao } from "@/hooks/usePlantao";
+import { PlantaoBar } from "@/components/cuidador/PlantaoBar";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +58,7 @@ function calcularStatus(item: PlanoCuidadoItem, feito: boolean): {
 
 export function Checklist() {
   const { data: hospedes, isLoading, isError, error } = useHospedesDesignados(CUIDADOR_ATUAL.id);
+  const plantao = usePlantao();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
 
   const hospedeId = selecionadoId ?? hospedes?.[0]?.id;
@@ -67,12 +70,16 @@ export function Checklist() {
 
   return (
     <div className="space-y-6">
+      {/* Controle de plantão: só libera os registros após check-in no turno. */}
+      <PlantaoBar plantao={plantao} />
       <HospedeSelector
         hospedes={hospedes}
         selecionadoId={hospedeId}
         onSelect={setSelecionadoId}
       />
-      {hospedeId && <ChecklistDoHospede key={hospedeId} residenteId={hospedeId} />}
+      {hospedeId && (
+        <ChecklistDoHospede key={hospedeId} residenteId={hospedeId} liberado={plantao.liberado} />
+      )}
     </div>
   );
 }
@@ -83,7 +90,13 @@ interface Confirmacao {
   acao: () => void;
 }
 
-function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
+function ChecklistDoHospede({
+  residenteId,
+  liberado,
+}: {
+  residenteId: string;
+  liberado: boolean;
+}) {
   const plano = usePlanoCuidado(residenteId);
   const registros = useRegistrosHoje(residenteId);
   const marcar = useMarcarTarefa(residenteId);
@@ -184,7 +197,7 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                     size="lg"
                     variant={feito ? "outline" : "success"}
                     onClick={() => onToggleTarefa(item)}
-                    disabled={marcar.isPending || remover.isPending}
+                    disabled={!liberado || marcar.isPending || remover.isPending}
                   >
                     {feito ? (
                       <>
@@ -222,7 +235,7 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                       <button
                         key={nivel}
                         onClick={() => selecionarRefeicao(refeicao, nivel)}
-                        disabled={definirRefeicao.isPending}
+                        disabled={!liberado || definirRefeicao.isPending}
                         className={cn(
                           "rounded-md border px-2 py-3 text-xs font-semibold transition-all sm:text-sm",
                           ativo
@@ -242,7 +255,11 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
       </Card>
 
       {/* ---- Eliminações ---- */}
-      <EliminacoesSection residenteId={residenteId} pedirConfirmacao={setConfirmacao} />
+      <EliminacoesSection
+        residenteId={residenteId}
+        pedirConfirmacao={setConfirmacao}
+        liberado={liberado}
+      />
 
       {/* ---- Sob demanda ---- */}
       <Card>
@@ -257,7 +274,7 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                 key={label}
                 variant="outline"
                 onClick={() => marcar.mutate({ tarefa: label })}
-                disabled={marcar.isPending}
+                disabled={!liberado || marcar.isPending}
               >
                 <Plus className="size-4" /> {label}
               </Button>
@@ -269,11 +286,12 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
               value={outros}
               onChange={(e) => setOutros(e.target.value)}
               placeholder="Outros (descreva)…"
-              className="flex h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={!liberado}
+              className="flex h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             />
             <Button
               variant="secondary"
-              disabled={!outros.trim() || marcar.isPending}
+              disabled={!liberado || !outros.trim() || marcar.isPending}
               onClick={async () => {
                 await marcar.mutateAsync({ tarefa: `Outros: ${outros.trim()}` });
                 setOutros("");
@@ -304,8 +322,8 @@ function ChecklistDoHospede({ residenteId }: { residenteId: string }) {
                         acao: () => remover.mutate(r.id),
                       })
                     }
-                    disabled={remover.isPending}
-                    className="text-muted-foreground transition-colors hover:text-destructive"
+                    disabled={!liberado || remover.isPending}
+                    className="text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
                     aria-label="Remover"
                   >
                     <X className="size-4" />
@@ -361,9 +379,11 @@ function Legenda() {
 function EliminacoesSection({
   residenteId,
   pedirConfirmacao,
+  liberado,
 }: {
   residenteId: string;
   pedirConfirmacao: (c: Confirmacao) => void;
+  liberado: boolean;
 }) {
   const eliminacoes = useEliminacoes(residenteId);
   const registrar = useRegistrarEliminacao(residenteId);
@@ -407,7 +427,7 @@ function EliminacoesSection({
           <Button
             variant="secondary"
             className="h-20 flex-col gap-1.5 text-base"
-            disabled={registrar.isPending}
+            disabled={!liberado || registrar.isPending}
             onClick={() => registrar.mutate("urina")}
           >
             <Droplet className="size-6" /> Urinou
@@ -415,7 +435,7 @@ function EliminacoesSection({
           <Button
             variant="secondary"
             className="h-20 flex-col gap-1.5 text-base"
-            disabled={registrar.isPending}
+            disabled={!liberado || registrar.isPending}
             onClick={() => registrar.mutate("evacuacao")}
           >
             <CircleDot className="size-6" /> Evacuou
@@ -467,8 +487,8 @@ function EliminacoesSection({
                       acao: () => remover.mutate(r.id),
                     })
                   }
-                  disabled={remover.isPending}
-                  className="text-muted-foreground transition-colors hover:text-destructive"
+                  disabled={!liberado || remover.isPending}
+                  className="text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
                   aria-label="Remover"
                 >
                   <X className="size-4" />

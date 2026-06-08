@@ -199,6 +199,9 @@ create table turnos (
   fim timestamptz not null,
   tag text not null check (tag in ('diurno','noturno')),
   observacao_interna text,
+  -- Controle de plantão (check-in/check-out) usado pelo módulo Cuidadores.
+  check_in timestamptz,
+  check_out timestamptz,
   criado_em timestamptz not null default now()
 );
 

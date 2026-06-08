@@ -369,6 +369,8 @@ export interface Database {
           fim: string;
           tag: TagTurno;
           observacao_interna: string | null;
+          check_in: string | null;
+          check_out: string | null;
           criado_em: string;
         };
         Insert: {
@@ -380,6 +382,8 @@ export interface Database {
           fim: string;
           tag: TagTurno;
           observacao_interna?: string | null;
+          check_in?: string | null;
+          check_out?: string | null;
           criado_em?: string;
         };
         Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;

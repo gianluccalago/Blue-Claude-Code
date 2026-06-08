@@ -16,6 +16,8 @@ import {
   useAdministracoesHoje,
   useRegistrarAdministracao,
 } from "@/hooks/useMedicacao";
+import { usePlantao } from "@/hooks/usePlantao";
+import { PlantaoBar } from "@/components/cuidador/PlantaoBar";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +44,7 @@ const PERIODOS: { key: PeriodoMedicacao; label: string; horario: string }[] = [
 
 export function Medicacao() {
   const { data: hospedes, isLoading, isError, error } = useHospedesDesignados(CUIDADOR_ATUAL.id);
+  const plantao = usePlantao();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   const hospedeId = selecionadoId ?? hospedes?.[0]?.id;
 
@@ -52,13 +55,23 @@ export function Medicacao() {
 
   return (
     <div className="space-y-6">
+      {/* Controle de plantão: confirmação de medicação exige check-in no turno. */}
+      <PlantaoBar plantao={plantao} />
       <HospedeSelector hospedes={hospedes} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
-      {hospedeId && <MedicacaoDoHospede key={hospedeId} residenteId={hospedeId} />}
+      {hospedeId && (
+        <MedicacaoDoHospede key={hospedeId} residenteId={hospedeId} liberado={plantao.liberado} />
+      )}
     </div>
   );
 }
 
-function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
+function MedicacaoDoHospede({
+  residenteId,
+  liberado,
+}: {
+  residenteId: string;
+  liberado: boolean;
+}) {
   const prescricoes = usePrescricoes(residenteId);
   const administracoes = useAdministracoesHoje(residenteId);
 
@@ -103,6 +116,7 @@ function MedicacaoDoHospede({ residenteId }: { residenteId: string }) {
               periodo={p.key}
               prescricoes={doPeriodo}
               registro={registroPorPeriodo[p.key]}
+              liberado={liberado}
             />
           </TabsContent>
         );
@@ -116,11 +130,13 @@ function PeriodoMedicacaoView({
   periodo,
   prescricoes,
   registro,
+  liberado,
 }: {
   residenteId: string;
   periodo: PeriodoMedicacao;
   prescricoes: Prescricao[];
   registro: Administracao | undefined;
+  liberado: boolean;
 }) {
   const registrar = useRegistrarAdministracao(residenteId);
 
@@ -199,7 +215,7 @@ function PeriodoMedicacaoView({
           <Button
             variant="success"
             size="lg"
-            disabled={orais.length === 0 || registrar.isPending}
+            disabled={!liberado || orais.length === 0 || registrar.isPending}
             onClick={confirmarTodas}
           >
             <Check className="size-5" /> Sim, todas ({orais.length} orais)
@@ -207,7 +223,7 @@ function PeriodoMedicacaoView({
           <Button
             variant="destructive"
             size="lg"
-            disabled={registrar.isPending}
+            disabled={!liberado || registrar.isPending}
             onClick={confirmarNao}
           >
             <Ban className="size-5" /> Não
