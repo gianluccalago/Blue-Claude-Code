@@ -25,6 +25,7 @@ import { MinhaEscala } from "@/routes/cuidador/MinhaEscala";
 import { Prescricoes } from "@/routes/medico/Prescricoes";
 import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
 import { EvolucaoMedico } from "@/routes/medico/Evolucao";
+import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
@@ -141,6 +142,11 @@ const evolucaoRoute = createRoute({
   path: "evolucao",
   component: EvolucaoMedico,
 });
+const inspecaoSuitesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "inspecao-suites",
+  component: InspecaoSuites,
+});
 const painelFarmaciaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "painel",
@@ -188,6 +194,7 @@ const routeTree = rootRoute.addChildren([
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,
+    inspecaoSuitesRoute,
     painelFarmaciaRoute,
     dispensacaoRoute,
     estoqueHospedeRoute,

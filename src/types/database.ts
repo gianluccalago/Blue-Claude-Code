@@ -8,6 +8,7 @@
 export type PerfilUsuario =
   | "master"
   | "medico"
+  | "hotelaria"
   | "coordenacao"
   | "cuidador"
   | "enfermagem"
@@ -37,6 +38,8 @@ export type TipoEliminacao = "urina" | "evacuacao";
 export type TipoOrigemPendencia = "medicacao" | "intercorrencia" | "eliminacao" | "tarefa";
 export type AcaoPendencia = "resolvido" | "escalado_medico";
 export type AcaoEliminacaoTratamento = "silenciado" | "escalado_medico";
+export type TipoInspecao = "diaria" | "preventiva";
+export type StatusItemInspecao = "conforme" | "nao_conforme";
 
 export interface ItemDispensacaoJson {
   medicamento: string;
@@ -503,6 +506,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["avaliacao_ivcf"]["Insert"]>;
         Relationships: [];
       };
+      inspecao_suite: {
+        Row: {
+          id: string;
+          residente_id: string | null;
+          quarto: string | null;
+          tipo: TipoInspecao;
+          data: string;
+          inspecionado_por: string;
+          inspecionado_em: string;
+          tem_nao_conformidade: boolean;
+        };
+        Insert: {
+          id?: string;
+          residente_id?: string | null;
+          quarto?: string | null;
+          tipo: TipoInspecao;
+          data?: string;
+          inspecionado_por?: string;
+          inspecionado_em?: string;
+          tem_nao_conformidade?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["inspecao_suite"]["Insert"]>;
+        Relationships: [];
+      };
+      inspecao_item: {
+        Row: {
+          id: string;
+          inspecao_id: string;
+          item: string;
+          status: StatusItemInspecao;
+          observacao: string | null;
+        };
+        Insert: {
+          id?: string;
+          inspecao_id: string;
+          item: string;
+          status: StatusItemInspecao;
+          observacao?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["inspecao_item"]["Insert"]>;
+        Relationships: [];
+      };
       dispensacao: {
         Row: {
           id: string;
@@ -597,3 +642,5 @@ export type EstoqueHospede = Database["public"]["Tables"]["estoque_hospede"]["Ro
 export type EstoqueResgate = Database["public"]["Tables"]["estoque_resgate"]["Row"];
 export type BaixaResgate = Database["public"]["Tables"]["baixa_resgate"]["Row"];
 export type Dispensacao = Database["public"]["Tables"]["dispensacao"]["Row"];
+export type InspecaoSuite = Database["public"]["Tables"]["inspecao_suite"]["Row"];
+export type InspecaoItem = Database["public"]["Tables"]["inspecao_item"]["Row"];

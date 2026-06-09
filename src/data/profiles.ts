@@ -8,6 +8,7 @@ import {
   Pill,
   Building2,
   Users,
+  BedDouble,
   type LucideIcon,
 } from "lucide-react";
 
@@ -123,6 +124,21 @@ export const PERFIS: PerfilDef[] = [
       { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
       { label: "Estoque de resgate", to: "/app/farmacia/resgate" },
       { label: "Dispensação", to: "/app/farmacia/dispensacao" },
+    ],
+    emConstrucao: false,
+  },
+  {
+    id: "hotelaria",
+    nome: "Hotelaria",
+    descricao: "Inspeção, manutenção e rouparia",
+    icon: BedDouble,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/hotelaria/inspecao-suites",
+    menu: [
+      { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
+      { label: "Manutenção", to: "/app/hotelaria/manutencao" },
+      { label: "Rouparia", to: "/app/hotelaria/rouparia" },
+      { label: "Visão do dia", to: "/app/hotelaria/visao-dia" },
     ],
     emConstrucao: false,
   },
