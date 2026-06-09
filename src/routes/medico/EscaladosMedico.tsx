@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope } from "lucide-react";
+import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope, AlertCircle } from "lucide-react";
 import {
   useEscaladosMedico,
   useRegistrarResolucaoMedica,
@@ -48,11 +48,7 @@ export function EscaladosMedico() {
             total > 0 ? "bg-warning/15 text-warning" : "bg-success/15 text-success",
           )}
         >
-          {total > 0 ? (
-            <Stethoscope className="size-5" />
-          ) : (
-            <CheckCircle2 className="size-5" />
-          )}
+          {total > 0 ? <Stethoscope className="size-5" /> : <CheckCircle2 className="size-5" />}
         </div>
         <div className="flex-1">
           <p className="font-bold text-secondary">Escalados para mim</p>
@@ -69,9 +65,7 @@ export function EscaladosMedico() {
         )}
       </div>
 
-      {total === 0 && (
-        <EmptyState label="Nenhum item escalado pendente. Tudo em dia!" />
-      )}
+      {total === 0 && <EmptyState label="Nenhum item escalado pendente. Tudo em dia!" />}
 
       {/* ── Intercorrências ─────────────────────────────────────────────── */}
       {intercEscalados.length > 0 && (
@@ -90,9 +84,8 @@ export function EscaladosMedico() {
               <IntercorrenciaEscaladaCard
                 key={item.intercorrencia.id}
                 item={item}
-                salvando={resolver.isPending}
                 onResolver={(obs) =>
-                  resolver.mutate({
+                  resolver.mutateAsync({
                     tipoOrigem: "intercorrencia",
                     referenciaId: item.intercorrencia.id,
                     observacao: obs,
@@ -121,9 +114,8 @@ export function EscaladosMedico() {
               <EliminacaoEscaladaCard
                 key={item.escalacao.id}
                 item={item}
-                salvando={resolver.isPending}
                 onResolver={(obs) =>
-                  resolver.mutate({
+                  resolver.mutateAsync({
                     tipoOrigem: "eliminacao",
                     referenciaId: item.escalacao.id,
                     observacao: obs,
@@ -142,20 +134,31 @@ export function EscaladosMedico() {
 
 function IntercorrenciaEscaladaCard({
   item,
-  salvando,
   onResolver,
 }: {
   item: ItemEscaladoIntercorrencia;
-  salvando: boolean;
-  onResolver: (obs: string | null) => void;
+  onResolver: (obs: string | null) => Promise<void>;
 }) {
   const [resolvendo, setResolvendo] = useState(false);
   const [obs, setObs] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleConfirmar() {
+    setSalvando(true);
+    setErro(null);
+    try {
+      await onResolver(obs.trim() || null);
+      // sucesso: o item some do painel via invalidateQueries — não precisa fechar manualmente
+    } catch (e) {
+      setErro(mensagemErro(e));
+      setSalvando(false);
+    }
+  }
 
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {/* Ícone + info */}
         <div className="flex min-w-0 items-start gap-3">
           <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-warning/10 text-warning">
             <AlertTriangle className="size-4" />
@@ -178,13 +181,12 @@ function IntercorrenciaEscaladaCard({
         </div>
 
         {!resolvendo && (
-          <Button variant="success" size="sm" onClick={() => setResolvendo(true)}>
+          <Button variant="success" size="sm" onClick={() => { setErro(null); setResolvendo(true); }}>
             <Check className="size-4" /> Resolver
           </Button>
         )}
       </div>
 
-      {/* Formulário inline de resolução */}
       {resolvendo && (
         <div className="mt-3 space-y-2 border-t pt-3">
           <input
@@ -192,29 +194,25 @@ function IntercorrenciaEscaladaCard({
             type="text"
             value={obs}
             onChange={(e) => setObs(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleConfirmar(); }}
             placeholder="Conduta médica (opcional), ex: ajustada medicação"
             className={inputClass}
+            disabled={salvando}
           />
+          {erro && (
+            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="size-4 shrink-0" /> {erro}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="success"
-              size="sm"
-              onClick={() => {
-                onResolver(obs.trim() || null);
-                setResolvendo(false);
-                setObs("");
-              }}
-              disabled={salvando}
-            >
-              <Check className="size-4" /> Confirmar resolução
+            <Button variant="success" size="sm" onClick={handleConfirmar} disabled={salvando}>
+              <Check className="size-4" />
+              {salvando ? "Salvando…" : "Confirmar resolução"}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setResolvendo(false);
-                setObs("");
-              }}
+              onClick={() => { setResolvendo(false); setObs(""); setErro(null); }}
               disabled={salvando}
             >
               Cancelar
@@ -230,15 +228,26 @@ function IntercorrenciaEscaladaCard({
 
 function EliminacaoEscaladaCard({
   item,
-  salvando,
   onResolver,
 }: {
   item: ItemEscaladoEliminacao;
-  salvando: boolean;
-  onResolver: (obs: string | null) => void;
+  onResolver: (obs: string | null) => Promise<void>;
 }) {
   const [resolvendo, setResolvendo] = useState(false);
   const [obs, setObs] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleConfirmar() {
+    setSalvando(true);
+    setErro(null);
+    try {
+      await onResolver(obs.trim() || null);
+    } catch (e) {
+      setErro(mensagemErro(e));
+      setSalvando(false);
+    }
+  }
 
   const Icone = item.escalacao.tipo_alerta === "urina" ? Droplet : CircleDot;
   const textoAlerta = ELIM_LABEL[item.escalacao.tipo_alerta] ?? item.escalacao.tipo_alerta;
@@ -266,7 +275,7 @@ function EliminacaoEscaladaCard({
         </div>
 
         {!resolvendo && (
-          <Button variant="success" size="sm" onClick={() => setResolvendo(true)}>
+          <Button variant="success" size="sm" onClick={() => { setErro(null); setResolvendo(true); }}>
             <Check className="size-4" /> Resolver
           </Button>
         )}
@@ -279,29 +288,25 @@ function EliminacaoEscaladaCard({
             type="text"
             value={obs}
             onChange={(e) => setObs(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleConfirmar(); }}
             placeholder="Conduta médica (opcional), ex: iniciado laxante"
             className={inputClass}
+            disabled={salvando}
           />
+          {erro && (
+            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="size-4 shrink-0" /> {erro}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="success"
-              size="sm"
-              onClick={() => {
-                onResolver(obs.trim() || null);
-                setResolvendo(false);
-                setObs("");
-              }}
-              disabled={salvando}
-            >
-              <Check className="size-4" /> Confirmar resolução
+            <Button variant="success" size="sm" onClick={handleConfirmar} disabled={salvando}>
+              <Check className="size-4" />
+              {salvando ? "Salvando…" : "Confirmar resolução"}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setResolvendo(false);
-                setObs("");
-              }}
+              onClick={() => { setResolvendo(false); setObs(""); setErro(null); }}
               disabled={salvando}
             >
               Cancelar
@@ -311,4 +316,12 @@ function EliminacaoEscaladaCard({
       )}
     </div>
   );
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function mensagemErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object" && e !== null && "message" in e) return String((e as { message: unknown }).message);
+  return "Erro ao salvar. Verifique se a migration 0014 foi executada no Supabase.";
 }
