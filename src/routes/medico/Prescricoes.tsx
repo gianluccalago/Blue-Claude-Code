@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { Plus, Pencil, PauseCircle, Pill, X, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, FileText, ChevronDown } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   usePrescricoesAtivas,
@@ -8,14 +9,15 @@ import {
   useSuspenderPrescricao,
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
+import { exportarPrescricaoPDF, exportarPrescricaoTXT } from "@/lib/exportPrescricao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, ouNaoInformado } from "@/lib/utils";
-import type { PeriodoMedicacao, ViaMedicacao } from "@/types/database";
+import { cn } from "@/lib/utils";
+import type { PeriodoMedicacao, Residente, ViaMedicacao } from "@/types/database";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -122,6 +124,7 @@ export function Prescricoes() {
   const residentes = useResidentes();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   const hospedeId = selecionadoId ?? residentes.data?.[0]?.id;
+  const hospedeSelecionado = residentes.data?.find((r) => r.id === hospedeId);
   const [modo, setModo] = useState<Modo>({ tipo: "lista" });
 
   function abrirNova() {
@@ -153,6 +156,7 @@ export function Prescricoes() {
       {hospedeId && modo.tipo === "lista" && (
         <ListaPrescricoes
           residenteId={hospedeId}
+          hospede={hospedeSelecionado}
           onNova={abrirNova}
           onEditar={abrirEditar}
         />
@@ -184,33 +188,101 @@ export function Prescricoes() {
 
 function ListaPrescricoes({
   residenteId,
+  hospede,
   onNova,
   onEditar,
 }: {
   residenteId: string;
+  hospede: Residente | undefined;
   onNova: () => void;
   onEditar: (g: GrupoPrescricao) => void;
 }) {
   const { data, isLoading, isError, error } = usePrescricoesAtivas(residenteId);
   const suspender = useSuspenderPrescricao();
   const [confirmarSuspensao, setConfirmarSuspensao] = useState<GrupoPrescricao | null>(null);
+  const [exportMenuAberto, setExportMenuAberto] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // TODO: substituir por verificação de autenticação real quando houver login
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  const podeExportar = perfil === "medico" || perfil === "master";
+
+  // Fecha o menu de exportação ao clicar fora
+  useEffect(() => {
+    if (!exportMenuAberto) return;
+    function handleClick(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuAberto(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [exportMenuAberto]);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
 
   const grupos = data ?? [];
 
+  function handleExportPDF() {
+    if (!hospede) return;
+    exportarPrescricaoPDF(hospede, grupos);
+    setExportMenuAberto(false);
+  }
+
+  function handleExportTXT() {
+    if (!hospede) return;
+    exportarPrescricaoTXT(hospede, grupos);
+    setExportMenuAberto(false);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {grupos.length === 0
             ? "Nenhuma prescrição ativa."
             : `${grupos.length} prescrição${grupos.length !== 1 ? "ões" : ""} ativa${grupos.length !== 1 ? "s" : ""}`}
         </p>
-        <Button onClick={onNova}>
-          <Plus className="size-4" /> Nova prescrição
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Botão de exportação — visível apenas para médico e master */}
+          {podeExportar && hospede && (
+            <div ref={exportMenuRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportMenuAberto((v) => !v)}
+              >
+                <FileDown className="size-4" />
+                Exportar prescrição
+                <ChevronDown className={cn("size-3.5 transition-transform", exportMenuAberto && "rotate-180")} />
+              </Button>
+              {exportMenuAberto && (
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[168px] rounded-lg border border-border bg-card shadow-card">
+                  <div className="p-1">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-secondary hover:bg-accent"
+                    >
+                      <FileDown className="size-4 text-primary" />
+                      Baixar PDF
+                    </button>
+                    <button
+                      onClick={handleExportTXT}
+                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-secondary hover:bg-accent"
+                    >
+                      <FileText className="size-4 text-primary" />
+                      Baixar TXT
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <Button onClick={onNova}>
+            <Plus className="size-4" /> Nova prescrição
+          </Button>
+        </div>
       </div>
 
       {grupos.length === 0 && (

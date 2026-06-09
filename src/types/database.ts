@@ -50,6 +50,7 @@ export interface Database {
           modulo: number | null;
           andar: number | null;
           quarto: string | null;
+          cpf: string | null;
           responsavel_legal: string | null;
           contato: string | null;
           alergias: string | null;
@@ -65,6 +66,7 @@ export interface Database {
           modulo?: number | null;
           andar?: number | null;
           quarto?: string | null;
+          cpf?: string | null;
           responsavel_legal?: string | null;
           contato?: string | null;
           alergias?: string | null;
