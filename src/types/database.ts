@@ -171,6 +171,9 @@ export interface Database {
           periodo: PeriodoMedicacao;
           horario: string | null;
           ativa: boolean;
+          quantidade: string | null;
+          posologia: string | null;
+          grupo_prescricao: string | null;
         };
         Insert: {
           id?: string;
@@ -181,6 +184,9 @@ export interface Database {
           periodo: PeriodoMedicacao;
           horario?: string | null;
           ativa?: boolean;
+          quantidade?: string | null;
+          posologia?: string | null;
+          grupo_prescricao?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
         Relationships: [];

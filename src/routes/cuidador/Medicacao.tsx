@@ -175,7 +175,14 @@ function PeriodoMedicacaoView({
                   <Pill className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-secondary">{m.medicamento}</div>
+                  <div className="font-semibold text-secondary">
+                    {m.medicamento}
+                    {m.quantidade && (
+                      <span className="ml-1.5 font-normal text-muted-foreground">
+                        · {m.quantidade}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {[ouNaoInformado(m.dose), m.horario, `via ${m.via}`]
                       .filter(Boolean)

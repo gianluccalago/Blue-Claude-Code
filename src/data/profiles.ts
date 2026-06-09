@@ -53,13 +53,12 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Prescrições e evolução clínica",
     icon: Stethoscope,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/medico",
+    rotaInicial: "/app/medico/prescricoes",
     menu: [
-      { label: "Visão geral", to: "/app/medico" },
       { label: "Prescrições", to: "/app/medico/prescricoes" },
       { label: "Evolução", to: "/app/medico/evolucao" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "coordenacao",
