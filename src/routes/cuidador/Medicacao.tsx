@@ -151,8 +151,7 @@ function PeriodoMedicacaoView({
   // farmácia; o cuidador administra o pacote do período inteiro ou não —
   // não existe meio-termo (por isso não há "parcial" aqui).
   async function confirmarTodas() {
-    // Passa as orais para o hook disparar a baixa de estoque automaticamente (Bloco B)
-    await registrar.mutateAsync({ periodo, status: "sim", prescricoesOrais: orais });
+    await registrar.mutateAsync({ periodo, status: "sim" });
   }
   async function confirmarNao() {
     await registrar.mutateAsync({ periodo, status: "nao" });

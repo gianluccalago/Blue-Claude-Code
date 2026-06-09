@@ -38,6 +38,12 @@ export type TipoOrigemPendencia = "medicacao" | "intercorrencia" | "eliminacao" 
 export type AcaoPendencia = "resolvido" | "escalado_medico";
 export type AcaoEliminacaoTratamento = "silenciado" | "escalado_medico";
 
+export interface ItemDispensacaoJson {
+  medicamento: string;
+  quantidade: number;
+  unidade: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -497,6 +503,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["avaliacao_ivcf"]["Insert"]>;
         Relationships: [];
       };
+      dispensacao: {
+        Row: {
+          id: string;
+          residente_id: string;
+          periodo: string;
+          data: string;
+          itens: ItemDispensacaoJson[];
+          dispensado_por: string;
+          dispensado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          periodo: string;
+          data?: string;
+          itens: ItemDispensacaoJson[];
+          dispensado_por?: string;
+          dispensado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["dispensacao"]["Insert"]>;
+        Relationships: [];
+      };
       turnos: {
         Row: {
           id: string;
@@ -568,3 +596,4 @@ export type AvaliacaoIVCF = Database["public"]["Tables"]["avaliacao_ivcf"]["Row"
 export type EstoqueHospede = Database["public"]["Tables"]["estoque_hospede"]["Row"];
 export type EstoqueResgate = Database["public"]["Tables"]["estoque_resgate"]["Row"];
 export type BaixaResgate = Database["public"]["Tables"]["baixa_resgate"]["Row"];
+export type Dispensacao = Database["public"]["Tables"]["dispensacao"]["Row"];
