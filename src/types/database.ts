@@ -387,6 +387,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["resolucao_medica"]["Insert"]>;
         Relationships: [];
       };
+      estoque_hospede: {
+        Row: {
+          id: string;
+          residente_id: string;
+          medicamento: string;
+          mes_referencia: string;
+          quantidade_provisionada: number;
+          quantidade_atual: number;
+          unidade: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          medicamento: string;
+          mes_referencia: string;
+          quantidade_provisionada: number;
+          quantidade_atual: number;
+          unidade?: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["estoque_hospede"]["Insert"]>;
+        Relationships: [];
+      };
       evolucao: {
         Row: {
           id: string;
@@ -499,3 +523,4 @@ export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_trat
 export type Turno = Database["public"]["Tables"]["turnos"]["Row"];
 export type Evolucao = Database["public"]["Tables"]["evolucao"]["Row"];
 export type AvaliacaoIVCF = Database["public"]["Tables"]["avaliacao_ivcf"]["Row"];
+export type EstoqueHospede = Database["public"]["Tables"]["estoque_hospede"]["Row"];

@@ -115,12 +115,12 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Dispensação e modelo caixinha",
     icon: Pill,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/farmacia",
+    rotaInicial: "/app/farmacia/estoque",
     menu: [
-      { label: "Visão geral", to: "/app/farmacia" },
+      { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
       { label: "Dispensação", to: "/app/farmacia/dispensacao" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "administracao",
