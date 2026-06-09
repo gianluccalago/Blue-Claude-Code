@@ -40,6 +40,9 @@ export type AcaoPendencia = "resolvido" | "escalado_medico";
 export type AcaoEliminacaoTratamento = "silenciado" | "escalado_medico";
 export type TipoInspecao = "diaria" | "preventiva";
 export type StatusItemInspecao = "conforme" | "nao_conforme";
+export type UrgenciaChamado = "baixa" | "media" | "alta" | "emergencia";
+export type StatusChamado = "aberto" | "em_andamento" | "resolvido";
+export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" | "master";
 
 export interface ItemDispensacaoJson {
   medicamento: string;
@@ -548,6 +551,42 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["inspecao_item"]["Insert"]>;
         Relationships: [];
       };
+      chamado_manutencao: {
+        Row: {
+          id: string;
+          local: string;
+          residente_id: string | null;
+          problema: string;
+          urgencia: UrgenciaChamado;
+          status: StatusChamado;
+          aberto_por: string;
+          perfil_solicitante: PerfilSolicitanteChamado;
+          responsavel: string | null;
+          prazo: string | null;
+          foto_url: string | null;
+          inspecao_item_id: string | null;
+          criado_em: string;
+          resolvido_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          local: string;
+          residente_id?: string | null;
+          problema: string;
+          urgencia?: UrgenciaChamado;
+          status?: StatusChamado;
+          aberto_por: string;
+          perfil_solicitante: PerfilSolicitanteChamado;
+          responsavel?: string | null;
+          prazo?: string | null;
+          foto_url?: string | null;
+          inspecao_item_id?: string | null;
+          criado_em?: string;
+          resolvido_em?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["chamado_manutencao"]["Insert"]>;
+        Relationships: [];
+      };
       dispensacao: {
         Row: {
           id: string;
@@ -644,3 +683,4 @@ export type BaixaResgate = Database["public"]["Tables"]["baixa_resgate"]["Row"];
 export type Dispensacao = Database["public"]["Tables"]["dispensacao"]["Row"];
 export type InspecaoSuite = Database["public"]["Tables"]["inspecao_suite"]["Row"];
 export type InspecaoItem = Database["public"]["Tables"]["inspecao_item"]["Row"];
+export type ChamadoManutencao = Database["public"]["Tables"]["chamado_manutencao"]["Row"];

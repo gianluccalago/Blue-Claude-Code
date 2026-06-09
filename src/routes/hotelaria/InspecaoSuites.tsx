@@ -457,10 +457,8 @@ function FormInspecao({
 
       {naoConformes > 0 && (
         <p className="text-xs text-muted-foreground text-center">
-          {naoConformes} não conformidade{naoConformes > 1 ? "s" : ""} serão registradas.
-          {/* GANCHO H2: ao salvar, cada item não conforme deverá sugerir/criar
-              um chamado de manutenção quando o Bloco H2 for implementado. */}
-          {" "}Chamados de manutenção poderão ser gerados automaticamente no Bloco H2.
+          {naoConformes} não conformidade{naoConformes > 1 ? "s" : ""} serão registradas
+          {" "}e gerarão chamado{naoConformes > 1 ? "s" : ""} de manutenção automaticamente.
         </p>
       )}
     </div>

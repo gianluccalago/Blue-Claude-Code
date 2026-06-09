@@ -26,6 +26,8 @@ import { Prescricoes } from "@/routes/medico/Prescricoes";
 import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
 import { EvolucaoMedico } from "@/routes/medico/Evolucao";
 import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
+import { Manutencao } from "@/routes/hotelaria/Manutencao";
+import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
@@ -147,6 +149,16 @@ const inspecaoSuitesRoute = createRoute({
   path: "inspecao-suites",
   component: InspecaoSuites,
 });
+const manutencaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "manutencao",
+  component: Manutencao,
+});
+const chamadoManutencaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "chamado-manutencao",
+  component: AbrirChamado,
+});
 const painelFarmaciaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "painel",
@@ -195,6 +207,8 @@ const routeTree = rootRoute.addChildren([
     escaladosRoute,
     evolucaoRoute,
     inspecaoSuitesRoute,
+    manutencaoRoute,
+    chamadoManutencaoRoute,
     painelFarmaciaRoute,
     dispensacaoRoute,
     estoqueHospedeRoute,

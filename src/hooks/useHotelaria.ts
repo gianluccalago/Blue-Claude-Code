@@ -65,10 +65,8 @@ export type ItemInspecaoInput = {
 };
 
 /**
- * Grava uma inspeção e seus itens.
- * GANCHO PARA MANUTENÇÃO (Bloco H2): cada item com status "nao_conforme" deverá
- * gerar (ou sugerir) um chamado de manutenção. Por ora apenas registramos;
- * o Bloco H2 implementará a criação automática/sugestão de chamados.
+ * Grava uma inspeção e seus itens. Itens "nao_conforme" geram automaticamente
+ * um chamado de manutenção (Bloco H2), evitando duplicação por inspecao_item_id.
  */
 export function useSalvarInspecao() {
   const qc = useQueryClient();
@@ -93,15 +91,40 @@ export function useSalvarInspecao() {
         .single();
       if (errS) throw errS;
 
-      const { error: errI } = await supabase.from("inspecao_item").insert(
-        args.itens.map((it) => ({
-          inspecao_id: suite.id,
-          item: it.item,
-          status: it.status,
-          observacao: it.observacao || null,
-        }))
-      );
+      const { data: itensSalvos, error: errI } = await supabase
+        .from("inspecao_item")
+        .insert(
+          args.itens.map((it) => ({
+            inspecao_id: suite.id,
+            item: it.item,
+            status: it.status,
+            observacao: it.observacao || null,
+          }))
+        )
+        .select("id, item, status, observacao");
       if (errI) throw errI;
+
+      const naoConformes = (itensSalvos ?? []).filter((it) => it.status === "nao_conforme");
+      for (const item of naoConformes) {
+        const { data: existente, error: errCheck } = await supabase
+          .from("chamado_manutencao")
+          .select("id")
+          .eq("inspecao_item_id", item.id)
+          .limit(1);
+        if (errCheck) throw errCheck;
+        if (existente && existente.length > 0) continue;
+
+        const { error: errChamado } = await supabase.from("chamado_manutencao").insert({
+          local: args.quarto ? `Quarto ${args.quarto}` : "Não informado",
+          residente_id: args.residenteId,
+          problema: item.observacao ? `${item.item} — ${item.observacao}` : item.item,
+          urgencia: "media",
+          aberto_por: "Hotelaria",
+          perfil_solicitante: "hotelaria",
+          inspecao_item_id: item.id,
+        });
+        if (errChamado) throw errChamado;
+      }
 
       return suite.id as string;
     },
@@ -109,6 +132,7 @@ export function useSalvarInspecao() {
       const hoje = new Date().toISOString().slice(0, 10);
       qc.invalidateQueries({ queryKey: ["inspecoes-hoje", hoje] });
       qc.invalidateQueries({ queryKey: ["inspecoes-suite", vars.residenteId] });
+      qc.invalidateQueries({ queryKey: ["chamados-manutencao"] });
     },
   });
 }
