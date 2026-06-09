@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, FileText, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, Copy, CheckCheck } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -9,7 +9,7 @@ import {
   useSuspenderPrescricao,
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
-import { exportarPrescricaoPDF, exportarPrescricaoTXT } from "@/lib/exportPrescricao";
+import { exportarPrescricaoPDF, copiarPrescricao } from "@/lib/exportPrescricao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -200,24 +200,18 @@ function ListaPrescricoes({
   const { data, isLoading, isError, error } = usePrescricoesAtivas(residenteId);
   const suspender = useSuspenderPrescricao();
   const [confirmarSuspensao, setConfirmarSuspensao] = useState<GrupoPrescricao | null>(null);
-  const [exportMenuAberto, setExportMenuAberto] = useState(false);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [copiado, setCopiado] = useState(false);
 
   // TODO: substituir por verificação de autenticação real quando houver login
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   const podeExportar = perfil === "medico" || perfil === "master";
 
-  // Fecha o menu de exportação ao clicar fora
+  // Restaura o botão "Copiar" após o feedback de copiado.
   useEffect(() => {
-    if (!exportMenuAberto) return;
-    function handleClick(e: MouseEvent) {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
-        setExportMenuAberto(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [exportMenuAberto]);
+    if (!copiado) return;
+    const t = setTimeout(() => setCopiado(false), 2000);
+    return () => clearTimeout(t);
+  }, [copiado]);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -227,13 +221,11 @@ function ListaPrescricoes({
   function handleExportPDF() {
     if (!hospede) return;
     exportarPrescricaoPDF(hospede, grupos);
-    setExportMenuAberto(false);
   }
 
-  function handleExportTXT() {
-    if (!hospede) return;
-    exportarPrescricaoTXT(hospede, grupos);
-    setExportMenuAberto(false);
+  async function handleCopiar() {
+    const ok = await copiarPrescricao(grupos);
+    if (ok) setCopiado(true);
   }
 
   return (
@@ -244,40 +236,33 @@ function ListaPrescricoes({
             ? "Nenhuma prescrição ativa."
             : `${grupos.length} prescrição${grupos.length !== 1 ? "ões" : ""} ativa${grupos.length !== 1 ? "s" : ""}`}
         </p>
-        <div className="flex items-center gap-2">
-          {/* Botão de exportação — visível apenas para médico e master */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Exportação — visível apenas para médico e master */}
           {podeExportar && hospede && (
-            <div ref={exportMenuRef} className="relative">
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="size-4" />
+                Baixar PDF
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setExportMenuAberto((v) => !v)}
+                onClick={handleCopiar}
+                disabled={grupos.length === 0}
               >
-                <FileDown className="size-4" />
-                Exportar prescrição
-                <ChevronDown className={cn("size-3.5 transition-transform", exportMenuAberto && "rotate-180")} />
+                {copiado ? (
+                  <>
+                    <CheckCheck className="size-4 text-success" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="size-4" />
+                    Copiar prescrição
+                  </>
+                )}
               </Button>
-              {exportMenuAberto && (
-                <div className="absolute right-0 top-full z-20 mt-1 min-w-[168px] rounded-lg border border-border bg-card shadow-card">
-                  <div className="p-1">
-                    <button
-                      onClick={handleExportPDF}
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-secondary hover:bg-accent"
-                    >
-                      <FileDown className="size-4 text-primary" />
-                      Baixar PDF
-                    </button>
-                    <button
-                      onClick={handleExportTXT}
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-secondary hover:bg-accent"
-                    >
-                      <FileText className="size-4 text-primary" />
-                      Baixar TXT
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            </>
           )}
           <Button onClick={onNova}>
             <Plus className="size-4" /> Nova prescrição

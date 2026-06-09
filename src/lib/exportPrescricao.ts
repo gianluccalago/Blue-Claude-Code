@@ -7,8 +7,16 @@ import { formatarDataBR } from "@/lib/utils";
 //       (buscar usuario logado, verificar perfil "medico", usar nome + registro_profissional)
 const MEDICO_FIXO = { nome: "Dr. Gianlucca Lagomarsino", crm: "CRM-PR 54.260" };
 
+// Dados fixos da instituição (cabeçalho da receita).
+const INSTITUICAO = {
+  nome: "Blue Senior Living",
+  endereco: "R. Eduardo Sprada, 2387 - Campo Comprido",
+  cidade: "Curitiba - PR, 81210-350",
+};
+
 // ─── Constantes de exibição ───────────────────────────────────────────────────
 
+// Sem acentos: as fontes padrão do jsPDF não renderizam bem caracteres acentuados.
 const VIA_EXTENSO: Record<string, string> = {
   oral: "VO",
   injetavel: "Injetavel",
@@ -16,7 +24,7 @@ const VIA_EXTENSO: Record<string, string> = {
   sonda: "Sonda",
 };
 
-// Versão com acentos para TXT (UTF-8 perfeito)
+// Versão com acentos para o texto copiável (clipboard UTF-8).
 const VIA_EXTENSO_UTF8: Record<string, string> = {
   oral: "VO",
   injetavel: "Injetável",
@@ -135,13 +143,14 @@ export function exportarPrescricaoPDF(
   const emissao = dataHoraEmissao(agora);
   const hash = gerarHash();
 
-  const NAVY: RGB = [32, 82, 121];
-  const CELESTE: RGB = [92, 191, 229];
-  const LIGHT_BLUE: RGB = [236, 246, 251];
-  const GRAY: RGB = [107, 114, 128];
-  const DARK: RGB = [28, 50, 70];
+  // Paleta clara e profissional, pensada para impressão (sem fundos escuros).
+  const NAVY: RGB = [37, 78, 117]; // texto de destaque (azul navy)
+  const CELESTE: RGB = [92, 191, 229]; // detalhes / linhas finas
+  const LIGHT: RGB = [240, 248, 252]; // preenchimentos suaves
+  const BORDER: RGB = [205, 225, 238]; // bordas finas
+  const INK: RGB = [55, 71, 90]; // corpo de texto
+  const GRAY: RGB = [125, 138, 150]; // texto secundário
   const WHITE: RGB = [255, 255, 255];
-  const BORDER: RGB = [200, 220, 235];
 
   const W = 210;
   const L = 20;
@@ -150,37 +159,41 @@ export function exportarPrescricaoPDF(
 
   let y = 0;
 
-  // ── Cabeçalho navy ────────────────────────────────────────────────────────
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, W, 44, "F");
-
-  // Linha de destaque esquerda (celeste)
+  // ── Cabeçalho (fundo branco, faixa celeste fina no topo) ───────────────────
   doc.setFillColor(...CELESTE);
-  doc.rect(0, 0, 4, 44, "F");
+  doc.rect(0, 0, W, 2.5, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(17);
-  doc.setTextColor(...WHITE);
-  doc.text("BLUE SENIOR LIVING", L + 1, 17);
+  doc.setFontSize(18);
+  doc.setTextColor(...NAVY);
+  doc.text(INSTITUICAO.nome, L, 16);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...CELESTE);
-  doc.text("Prescricao Medica", L + 1, 27);
-
-  doc.setDrawColor(...CELESTE);
-  doc.setLineWidth(0.4);
-  doc.line(L, 32, R, 32);
-
   doc.setFontSize(8.5);
-  doc.setTextColor(180, 210, 230);
-  doc.text(`Emitida em: ${emissao}`, R, 38, { align: "right" });
+  doc.setTextColor(...GRAY);
+  doc.text(INSTITUICAO.endereco, L, 22);
+  doc.text(INSTITUICAO.cidade, L, 26.5);
 
-  y = 54;
+  // Título à direita
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...CELESTE);
+  doc.text("PRESCRICAO MEDICA", R, 16, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY);
+  doc.text(`Emitida em ${emissao}`, R, 22, { align: "right" });
+
+  // Linha separadora
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.4);
+  doc.line(L, 31, R, 31);
+
+  y = 41;
 
   // ── Dados do paciente ─────────────────────────────────────────────────────
-  doc.setFillColor(...LIGHT_BLUE);
-  doc.setDrawColor(...CELESTE);
+  doc.setFillColor(...LIGHT);
+  doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.3);
   doc.roundedRect(L, y, COL, 30, 2, 2, "FD");
 
@@ -201,7 +214,7 @@ export function exportarPrescricaoPDF(
     const ly = y + 14 + idx * 8;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setTextColor(...DARK);
+    doc.setTextColor(...INK);
     doc.text(k1, L + 5, ly);
     doc.setFont("helvetica", "normal");
     doc.text(v1, L + 26, ly);
@@ -240,24 +253,24 @@ export function exportarPrescricaoPDF(
       y = 20;
     }
 
-    // Fundo do bloco
+    // Fundo do bloco (branco com borda fina)
     doc.setFillColor(...WHITE);
     doc.setDrawColor(...BORDER);
-    doc.setLineWidth(0.2);
+    doc.setLineWidth(0.25);
     doc.roundedRect(L, y, COL, altBloco, 2, 2, "FD");
 
-    // Barra lateral colorida (celeste ou navy dependendo da via)
-    const barraColor: RGB = g.via === "oral" ? CELESTE : NAVY;
-    doc.setFillColor(...barraColor);
-    doc.roundedRect(L, y, 3, altBloco, 2, 2, "F");
+    // Barra lateral celeste fina
+    doc.setFillColor(...CELESTE);
+    doc.roundedRect(L, y, 2.5, altBloco, 2, 2, "F");
 
-    // Número do medicamento
-    doc.setFillColor(...NAVY);
-    doc.setDrawColor(...NAVY);
-    doc.roundedRect(L + 6, y + 4, 7, 6, 1, 1, "F");
+    // Número do medicamento (badge claro)
+    doc.setFillColor(...LIGHT);
+    doc.setDrawColor(...CELESTE);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(L + 6, y + 4, 7, 6, 1, 1, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.setTextColor(...WHITE);
+    doc.setTextColor(...NAVY);
     doc.text(String(i + 1), L + 9.5, y + 8.2, { align: "center" });
 
     // Nome + dose
@@ -265,7 +278,7 @@ export function exportarPrescricaoPDF(
     const nomeSplit = doc.splitTextToSize(nomeMed, COL - 28);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10.5);
-    doc.setTextColor(...DARK);
+    doc.setTextColor(...NAVY);
     doc.text(nomeSplit, L + 16, y + 8.5);
 
     // Via + posologia
@@ -287,7 +300,7 @@ export function exportarPrescricaoPDF(
       const pHora = PERIODO_HORARIO[l.periodo] ?? "";
       const qtd = l.quantidade || "—";
 
-      doc.setFillColor(...LIGHT_BLUE);
+      doc.setFillColor(...LIGHT);
       doc.roundedRect(L + 6, py - 4, 38, 5.5, 1, 1, "F");
 
       doc.setFont("helvetica", "bold");
@@ -297,7 +310,7 @@ export function exportarPrescricaoPDF(
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.setTextColor(...DARK);
+      doc.setTextColor(...INK);
       doc.text(qtd, L + 48, py);
 
       py += 6;
@@ -306,7 +319,7 @@ export function exportarPrescricaoPDF(
     // Quantidade mensal
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
-    doc.setTextColor(...CELESTE);
+    doc.setTextColor(...NAVY);
     doc.text(`Qtd. mensal (x30): ${mensal}`, R - 4, py, { align: "right" });
 
     y += altBloco + 4;
@@ -328,7 +341,7 @@ export function exportarPrescricaoPDF(
 
   y += 6;
   doc.setDrawColor(...NAVY);
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.4);
   doc.line(L, y, R, y);
   y += 7;
 
@@ -340,7 +353,7 @@ export function exportarPrescricaoPDF(
   y += 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
-  doc.setTextColor(...DARK);
+  doc.setTextColor(...INK);
   doc.text(`${MEDICO_FIXO.nome}  —  ${MEDICO_FIXO.crm}`, L, y);
 
   y += 6;
@@ -358,78 +371,60 @@ export function exportarPrescricaoPDF(
   doc.save(nomeArquivo(hospede.nome, "pdf"));
 }
 
-// ─── TXT ─────────────────────────────────────────────────────────────────────
+// ─── Texto copiável (pronto para colar no site do CFM) ─────────────────────────
 
-export function exportarPrescricaoTXT(
-  hospede: Residente,
-  grupos: GrupoPrescricao[],
-): void {
-  const agora = new Date();
-  const emissao = dataHoraEmissao(agora);
-  const hash = gerarHash();
-  const cpf = (hospede as Residente & { cpf?: string | null }).cpf;
-  const dataNasc = hospede.data_nascimento ? formatarDataBR(hospede.data_nascimento) : "Não informado";
-  const sep = "=".repeat(60);
-  const subSep = "-".repeat(60);
+/**
+ * Gera o texto corrido de todas as medicações ativas, formatado para colar
+ * na prescrição eletrônica do CFM. Uma entrada por medicamento, com via,
+ * posologia e o detalhamento dos períodos com quantidade.
+ */
+export function gerarTextoPrescricao(grupos: GrupoPrescricao[]): string {
+  if (grupos.length === 0) return "Nenhuma prescrição ativa.";
 
-  const linhas: string[] = [
-    sep,
-    "BLUE SENIOR LIVING",
-    "PRESCRIÇÃO MÉDICA",
-    sep,
-    `Paciente:    ${hospede.nome}`,
-    `CPF:         ${cpf || "Não informado"}`,
-    `Nascimento:  ${dataNasc}`,
-    `Quarto:      ${hospede.quarto || "Não informado"}`,
-    `Emissão:     ${emissao}`,
-    sep,
-    "",
-    "MEDICAMENTOS PRESCRITOS",
-    subSep,
-    "",
-  ];
+  return grupos
+    .map((g, i) => {
+      const lins = linhasOrdenadas(g);
+      const via = VIA_EXTENSO_UTF8[g.via] || g.via;
+      const cabecalho = [g.medicamento + (g.dose ? ` ${g.dose}` : ""), via, g.posologia]
+        .filter(Boolean)
+        .join(" — ");
 
-  grupos.forEach((g, i) => {
-    const lins = linhasOrdenadas(g);
-    const mensal = calcularMensal(g);
-    const via = VIA_EXTENSO_UTF8[g.via] || g.via;
+      const periodos = lins
+        .map((l) => {
+          const label = PERIODO_LABEL_UTF8[l.periodo] ?? l.periodo;
+          const qtd = l.quantidade || "—";
+          return `${label}: ${qtd}`;
+        })
+        .join(", ");
 
-    const periodos = lins
-      .map((l) => {
-        const label = PERIODO_LABEL_UTF8[l.periodo] ?? l.periodo;
-        const hora = PERIODO_HORARIO[l.periodo] ?? "";
-        const qtd = l.quantidade || "—";
-        return `${label} (${hora}): ${qtd}`;
-      })
-      .join(", ");
+      return `${i + 1}) ${cabecalho}\n   ${periodos}`;
+    })
+    .join("\n\n");
+}
 
-    linhas.push(
-      `${i + 1}. ${g.medicamento}${g.dose ? ` ${g.dose}` : ""} — ${via} — ${g.posologia || "—"}`,
-    );
-    linhas.push(`   Períodos: ${periodos}`);
-    linhas.push(`   Quantidade mensal (x30): ${mensal}`);
-    linhas.push("");
-  });
-
-  if (grupos.length === 0) {
-    linhas.push("Nenhuma prescrição ativa.");
-    linhas.push("");
+/**
+ * Copia o texto da prescrição para a área de transferência.
+ * Retorna true se a cópia foi bem-sucedida.
+ */
+export async function copiarPrescricao(grupos: GrupoPrescricao[]): Promise<boolean> {
+  const texto = gerarTextoPrescricao(grupos);
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    }
+    // Fallback para contextos sem Clipboard API (ex: http).
+    const ta = document.createElement("textarea");
+    ta.value = texto;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
   }
-
-  linhas.push(sep);
-  linhas.push("Assinatura eletrônica do médico assistente");
-  linhas.push(`${MEDICO_FIXO.nome} — ${MEDICO_FIXO.crm}`);
-  linhas.push(`Hash: ${hash}`);
-  linhas.push(`Emitida em: ${emissao}`);
-  linhas.push(sep);
-
-  const blob = new Blob([linhas.join("\n")], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nomeArquivo(hospede.nome, "txt");
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
