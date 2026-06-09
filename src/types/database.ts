@@ -387,6 +387,50 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["resolucao_medica"]["Insert"]>;
         Relationships: [];
       };
+      evolucao: {
+        Row: {
+          id: string;
+          residente_id: string;
+          texto: string;
+          registrado_por: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          texto: string;
+          registrado_por?: string;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["evolucao"]["Insert"]>;
+        Relationships: [];
+      };
+      avaliacao_ivcf: {
+        Row: {
+          id: string;
+          residente_id: string;
+          respostas: Record<string, unknown>;
+          pontuacao_total: number;
+          classificacao: "Grau I" | "Grau II" | "Grau III";
+          dominios_alterados: string[];
+          itens_indisponiveis: string[];
+          registrado_por: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          respostas: Record<string, unknown>;
+          pontuacao_total: number;
+          classificacao: "Grau I" | "Grau II" | "Grau III";
+          dominios_alterados?: string[];
+          itens_indisponiveis?: string[];
+          registrado_por?: string;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["avaliacao_ivcf"]["Insert"]>;
+        Relationships: [];
+      };
       turnos: {
         Row: {
           id: string;
@@ -453,3 +497,5 @@ export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratam
 export type ResolucaoMedica = Database["public"]["Tables"]["resolucao_medica"]["Row"];
 export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_tratamento"]["Row"];
 export type Turno = Database["public"]["Tables"]["turnos"]["Row"];
+export type Evolucao = Database["public"]["Tables"]["evolucao"]["Row"];
+export type AvaliacaoIVCF = Database["public"]["Tables"]["avaliacao_ivcf"]["Row"];

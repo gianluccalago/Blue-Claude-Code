@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type {
+  AvaliacaoIVCF,
   EliminacaoTratamento,
+  Evolucao,
+  GrauDependencia,
   Intercorrencia,
   PendenciaTratamento,
   Prescricao,
@@ -276,6 +279,94 @@ export function useEscaladosMedico() {
         .sort((a, b) => b.escalacao.tratado_em.localeCompare(a.escalacao.tratado_em));
 
       return { intercEscalados, elimEscalados: elimPendentes };
+    },
+  });
+}
+
+// ─── Evoluções clínicas ───────────────────────────────────────────────────────
+
+export function useEvolucoes(residenteId: string | null) {
+  return useQuery({
+    queryKey: ["evolucoes", residenteId],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<Evolucao[]> => {
+      const { data, error } = await supabase
+        .from("evolucao")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .order("registrado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCriarEvolucao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ residenteId, texto }: { residenteId: string; texto: string }) => {
+      const { error } = await supabase
+        .from("evolucao")
+        .insert({ residente_id: residenteId, texto });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["evolucoes", vars.residenteId] });
+    },
+  });
+}
+
+// ─── Avaliações IVCF-20 ───────────────────────────────────────────────────────
+
+export function useAvaliacoesIVCF(residenteId: string | null) {
+  return useQuery({
+    queryKey: ["avaliacoes-ivcf", residenteId],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<AvaliacaoIVCF[]> => {
+      const { data, error } = await supabase
+        .from("avaliacao_ivcf")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .order("registrado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+type CriarAvaliacaoArgs = {
+  residenteId: string;
+  respostas: Record<string, unknown>;
+  pontuacaoTotal: number;
+  classificacao: "Grau I" | "Grau II" | "Grau III";
+  dominiosAlterados: string[];
+  itensIndisponiveis: string[];
+};
+
+export function useCriarAvaliacaoIVCF() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: CriarAvaliacaoArgs) => {
+      const { error } = await supabase.from("avaliacao_ivcf").insert({
+        residente_id: args.residenteId,
+        respostas: args.respostas,
+        pontuacao_total: args.pontuacaoTotal,
+        classificacao: args.classificacao,
+        dominios_alterados: args.dominiosAlterados,
+        itens_indisponiveis: args.itensIndisponiveis,
+      });
+      if (error) throw error;
+      // Atualiza grau_dependencia do residente com o resultado da avaliação.
+      const grau = args.classificacao.replace("Grau ", "") as GrauDependencia;
+      const { error: updErr } = await supabase
+        .from("residentes")
+        .update({ grau_dependencia: grau })
+        .eq("id", args.residenteId);
+      if (updErr) throw updErr;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["avaliacoes-ivcf", vars.residenteId] });
+      qc.invalidateQueries({ queryKey: ["residentes"] });
     },
   });
 }
