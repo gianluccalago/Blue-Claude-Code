@@ -52,6 +52,17 @@ export function EstoqueResgate() {
   const [modoBaixa, setModoBaixa] = useState(false);
   const [modoNovoItem, setModoNovoItem] = useState(false);
 
+  // useMemo ANTES dos early returns — regra de hooks exige ordem constante
+  const nomeResidente = useMemo(() => {
+    const m = new Map((residentes.data ?? []).map((r) => [r.id, r.nome]));
+    return (id: string) => m.get(id) ?? "Não informado";
+  }, [residentes.data]);
+
+  const nomeMed = useMemo(() => {
+    const m = new Map((estoque.data ?? []).map((i) => [i.id, i.medicamento]));
+    return (id: string) => m.get(id) ?? "Não informado";
+  }, [estoque.data]);
+
   const isLoading = estoque.isLoading || residentes.isLoading;
   const erro = estoque.error ?? residentes.error;
 
@@ -59,16 +70,6 @@ export function EstoqueResgate() {
   if (erro) return <ErrorState error={erro} />;
 
   const itens = estoque.data ?? [];
-
-  const nomeResidente = useMemo(() => {
-    const m = new Map((residentes.data ?? []).map((r) => [r.id, r.nome]));
-    return (id: string) => m.get(id) ?? "Não informado";
-  }, [residentes.data]);
-
-  const nomeMed = useMemo(() => {
-    const m = new Map(itens.map((i) => [i.id, i.medicamento]));
-    return (id: string) => m.get(id) ?? "Não informado";
-  }, [itens]);
 
   return (
     <div className="space-y-6">
