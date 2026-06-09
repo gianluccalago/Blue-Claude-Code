@@ -56,6 +56,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/medico/prescricoes",
     menu: [
       { label: "Prescrições", to: "/app/medico/prescricoes" },
+      { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },
     ],
     emConstrucao: false,

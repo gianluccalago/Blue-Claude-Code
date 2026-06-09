@@ -9,6 +9,7 @@ import type {
   Intercorrencia,
   PendenciaTratamento,
   Prescricao,
+  ResolucaoMedica,
   TipoEliminacao,
   TipoOrigemPendencia,
   AcaoPendencia,
@@ -168,6 +169,8 @@ export interface AlertaEliminacaoPainel {
   /** Silenciado há 24h+ e a condição persiste. */
   reincidente: boolean;
   escaladoEm: string | null;
+  /** ID do registro eliminacao_tratamento do escalamento mais recente (para cruzar com resolucao_medica). */
+  escalacaoId: string | null;
   condutaEm: string | null;
   condutaPor: string | null;
   condutaObs: string | null;
@@ -247,6 +250,7 @@ export function useAlertasEliminacaoPainel() {
             tipo,
             reincidente: estado.reincidente,
             escaladoEm: estado.escaladoEm,
+            escalacaoId: estado.escalacaoId,
             condutaEm: estado.condutaEm,
             condutaPor: estado.condutaPor,
             condutaObs: estado.condutaObs,
@@ -254,6 +258,21 @@ export function useAlertasEliminacaoPainel() {
         }
       }
       return resultado;
+    },
+  });
+}
+
+/**
+ * Todas as resoluções médicas (para o reflexo nas telas da Coordenação).
+ * Falha graciosamente — se a tabela ainda não existir, retorna array vazio.
+ */
+export function useResolucoesMedicas() {
+  return useQuery({
+    queryKey: ["resolucoes-medicas"],
+    queryFn: async (): Promise<ResolucaoMedica[]> => {
+      const { data, error } = await supabase.from("resolucao_medica").select("*");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, Stethoscope, CircleDashed } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
-import { useTodasIntercorrencias, useTratamentos } from "@/hooks/useCoordenacao";
+import { useTodasIntercorrencias, useTratamentos, useResolucoesMedicas } from "@/hooks/useCoordenacao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
-import type { Intercorrencia, PendenciaTratamento, Residente } from "@/types/database";
+import type { Intercorrencia, PendenciaTratamento, Residente, ResolucaoMedica } from "@/types/database";
 
 const TIPOS = [
   "Queda",
@@ -44,6 +44,7 @@ export function IntercorrenciasCoord() {
   const residentes = useResidentes();
   const intercorrencias = useTodasIntercorrencias();
   const tratamentos = useTratamentos();
+  const resolucoes = useResolucoesMedicas();
 
   const [hospedeFiltro, setHospedeFiltro] = useState("todos");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
@@ -155,6 +156,7 @@ export function IntercorrenciasCoord() {
               intercorrencia={i}
               residente={info.get(i.residente_id)}
               tratamentos={trat}
+              resolucoes={resolucoes.data ?? []}
             />
           ))}
         </div>
@@ -167,10 +169,12 @@ function IntercorrenciaCard({
   intercorrencia: i,
   residente,
   tratamentos,
+  resolucoes,
 }: {
   intercorrencia: Intercorrencia;
   residente: Residente | undefined;
   tratamentos: PendenciaTratamento[];
+  resolucoes: ResolucaoMedica[];
 }) {
   // tratamentos já vêm ordenados do mais recente p/ o mais antigo.
   const doItem = tratamentos.filter(
@@ -178,6 +182,9 @@ function IntercorrenciaCard({
   );
   const resolvido = doItem.find((t) => t.acao === "resolvido");
   const escalado = doItem.find((t) => t.acao === "escalado_medico");
+  const resolucaoMedica = resolucoes.find(
+    (r) => r.tipo_origem === "intercorrencia" && r.referencia_id === i.id,
+  );
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
@@ -192,6 +199,11 @@ function IntercorrenciaCard({
               <Check className="size-3.5" /> Resolvido · {ouNaoInformado(resolvido.tratado_por)} ·{" "}
               {formatarDataHoraBR(resolvido.tratado_em)}
             </Badge>
+          ) : resolucaoMedica ? (
+            <Badge variant="success">
+              <Stethoscope className="size-3.5" /> Resolvido pelo médico ·{" "}
+              {formatarDataHoraBR(resolucaoMedica.resolvido_em)}
+            </Badge>
           ) : escalado ? (
             <Badge variant="warning">
               <Stethoscope className="size-3.5" /> Escalado ao médico ·{" "}
@@ -203,6 +215,11 @@ function IntercorrenciaCard({
             </Badge>
           )}
         </div>
+        {resolucaoMedica?.observacao && (
+          <div className="mt-1 text-sm text-secondary/80">
+            Conduta: "{resolucaoMedica.observacao}"
+          </div>
+        )}
         <div className="mt-1 text-sm font-semibold text-secondary">
           {ouNaoInformado(residente?.nome)} · Quarto {residente?.quarto ?? "—"}
         </div>

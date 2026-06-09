@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Prescricao, PeriodoMedicacao, ViaMedicacao } from "@/types/database";
+import type {
+  EliminacaoTratamento,
+  Intercorrencia,
+  PendenciaTratamento,
+  Prescricao,
+  PeriodoMedicacao,
+  Residente,
+  ViaMedicacao,
+} from "@/types/database";
 
 export type GrupoPrescricao = {
   grupoPrescricao: string;
@@ -144,6 +152,155 @@ export function useSuspenderPrescricao() {
       qc.invalidateQueries({ queryKey: ["prescricoes-medico", args.residenteId] });
       qc.invalidateQueries({ queryKey: ["prescricoes", args.residenteId] });
       qc.invalidateQueries({ queryKey: ["prescricoes-enfermagem", args.residenteId] });
+    },
+  });
+}
+
+// ─── Painel de escalados ──────────────────────────────────────────────────────
+
+export type ItemEscaladoIntercorrencia = {
+  intercorrencia: Intercorrencia;
+  residente: Residente;
+  /** Instante do escalamento mais recente (pendencia_tratamento.tratado_em). */
+  escaladoEm: string;
+};
+
+export type ItemEscaladoEliminacao = {
+  /** O registro eliminacao_tratamento com acao="escalado_medico" que originou o item. */
+  escalacao: EliminacaoTratamento;
+  residente: Residente;
+};
+
+/**
+ * Busca todos os itens que foram escalados ao médico e ainda não resolvidos.
+ * Para intercorrências: pendencia_tratamento acao=escalado_medico, sem resolucao_medica correspondente.
+ * Para eliminação: eliminacao_tratamento acao=escalado_medico (mais recente por residente+tipo), sem resolucao.
+ */
+export function useEscaladosMedico() {
+  return useQuery({
+    queryKey: ["medico-escalados"],
+    queryFn: async (): Promise<{
+      intercEscalados: ItemEscaladoIntercorrencia[];
+      elimEscalados: ItemEscaladoEliminacao[];
+    }> => {
+      // Busca em paralelo: escalamentos + resoluções + residentes.
+      const [pendRes, elimTratRes, resolRes, residentesRes] = await Promise.all([
+        supabase
+          .from("pendencia_tratamento")
+          .select("*")
+          .eq("acao", "escalado_medico")
+          .eq("tipo_origem", "intercorrencia")
+          .order("tratado_em", { ascending: false }),
+        supabase
+          .from("eliminacao_tratamento")
+          .select("*")
+          .eq("acao", "escalado_medico")
+          .order("tratado_em", { ascending: false }),
+        supabase.from("resolucao_medica").select("*"),
+        supabase.from("residentes").select("*"),
+      ]);
+
+      if (pendRes.error) throw pendRes.error;
+      if (elimTratRes.error) throw elimTratRes.error;
+      if (resolRes.error) throw resolRes.error;
+      if (residentesRes.error) throw residentesRes.error;
+
+      const pendencias: PendenciaTratamento[] = pendRes.data ?? [];
+      const elimEscalados: EliminacaoTratamento[] = elimTratRes.data ?? [];
+      const resolucoes = resolRes.data ?? [];
+      const residenteMap = new Map<string, Residente>(
+        (residentesRes.data ?? []).map((r) => [r.id, r]),
+      );
+
+      // IDs de intercorrências já resolvidas pelo médico.
+      const resolvidosInter = new Set(
+        resolucoes
+          .filter((r) => r.tipo_origem === "intercorrencia")
+          .map((r) => r.referencia_id),
+      );
+
+      // IDs de eliminacao_tratamento já resolvidos.
+      const resolvidosElim = new Set(
+        resolucoes
+          .filter((r) => r.tipo_origem === "eliminacao")
+          .map((r) => r.referencia_id),
+      );
+
+      // Uma pendência por intercorrência (a mais recente); filtra já resolvidos.
+      const escalacoesPorInter = new Map<string, PendenciaTratamento>();
+      for (const p of pendencias) {
+        if (!escalacoesPorInter.has(p.referencia_id)) {
+          escalacoesPorInter.set(p.referencia_id, p);
+        }
+      }
+      const intercIdsPendentes = [...escalacoesPorInter.keys()].filter(
+        (id) => !resolvidosInter.has(id),
+      );
+
+      // Busca as intercorrências pendentes.
+      let intercorrencias: Intercorrencia[] = [];
+      if (intercIdsPendentes.length > 0) {
+        const { data: iData, error: ie } = await supabase
+          .from("intercorrencia")
+          .select("*")
+          .in("id", intercIdsPendentes);
+        if (ie) throw ie;
+        intercorrencias = iData ?? [];
+      }
+
+      const intercEscalados: ItemEscaladoIntercorrencia[] = intercorrencias
+        .map((inter) => ({
+          intercorrencia: inter,
+          residente: residenteMap.get(inter.residente_id)!,
+          escaladoEm: escalacoesPorInter.get(inter.id)?.tratado_em ?? "",
+        }))
+        .filter((x) => !!x.residente)
+        .sort((a, b) => b.escaladoEm.localeCompare(a.escaladoEm));
+
+      // Eliminação: mantém o mais recente por residente+tipo; filtra resolvidos.
+      const elimMaisRecentePorChave = new Map<string, EliminacaoTratamento>();
+      for (const e of elimEscalados) {
+        const k = `${e.residente_id}|${e.tipo_alerta}`;
+        if (!elimMaisRecentePorChave.has(k)) {
+          elimMaisRecentePorChave.set(k, e);
+        }
+      }
+
+      const elimPendentes: ItemEscaladoEliminacao[] = [...elimMaisRecentePorChave.values()]
+        .filter((e) => !resolvidosElim.has(e.id))
+        .map((e) => ({
+          escalacao: e,
+          residente: residenteMap.get(e.residente_id)!,
+        }))
+        .filter((x) => !!x.residente)
+        .sort((a, b) => b.escalacao.tratado_em.localeCompare(a.escalacao.tratado_em));
+
+      return { intercEscalados, elimEscalados: elimPendentes };
+    },
+  });
+}
+
+/** Grava a resolução de um item escalado pelo médico. */
+export function useRegistrarResolucaoMedica() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      tipoOrigem: "intercorrencia" | "eliminacao";
+      referenciaId: string;
+      observacao?: string | null;
+    }) => {
+      const { error } = await supabase.from("resolucao_medica").insert({
+        tipo_origem: args.tipoOrigem,
+        referencia_id: args.referenciaId,
+        observacao: args.observacao ?? null,
+        // TODO: puxar do médico logado quando houver autenticação (auth context)
+        resolvido_por: "Médico",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["medico-escalados"] });
+      qc.invalidateQueries({ queryKey: ["resolucoes-medicas"] });
     },
   });
 }

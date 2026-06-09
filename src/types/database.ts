@@ -367,6 +367,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["eliminacao_tratamento"]["Insert"]>;
         Relationships: [];
       };
+      resolucao_medica: {
+        Row: {
+          id: string;
+          tipo_origem: "intercorrencia" | "eliminacao";
+          referencia_id: string;
+          observacao: string | null;
+          resolvido_por: string;
+          resolvido_em: string;
+        };
+        Insert: {
+          id?: string;
+          tipo_origem: "intercorrencia" | "eliminacao";
+          referencia_id: string;
+          observacao?: string | null;
+          resolvido_por?: string;
+          resolvido_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["resolucao_medica"]["Insert"]>;
+        Relationships: [];
+      };
       turnos: {
         Row: {
           id: string;
@@ -430,5 +450,6 @@ export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
 export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
 export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratamento"]["Row"];
+export type ResolucaoMedica = Database["public"]["Tables"]["resolucao_medica"]["Row"];
 export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_tratamento"]["Row"];
 export type Turno = Database["public"]["Tables"]["turnos"]["Row"];

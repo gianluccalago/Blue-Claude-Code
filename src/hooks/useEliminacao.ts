@@ -105,6 +105,8 @@ export interface EstadoAlertaEliminacao {
   reincidente: boolean;
   /** Escalamento ao médico mais recente (selo), ou null. */
   escaladoEm: string | null;
+  /** ID do registro eliminacao_tratamento do escalamento mais recente. */
+  escalacaoId: string | null;
   /** Conduta (silenciamento) mais recente — para "Persiste após conduta de…". */
   condutaEm: string | null;
   condutaPor: string | null;
@@ -130,6 +132,7 @@ export function estadoAlertaEliminacao(
 ): EstadoAlertaEliminacao {
   let ultimoSilenciado: EliminacaoTratamentoLike | null = null;
   let escaladoEm: string | null = null;
+  let escalacaoId: string | null = null;
 
   for (const t of tratamentos) {
     if (t.acao === "silenciado") {
@@ -139,6 +142,7 @@ export function estadoAlertaEliminacao(
     } else if (t.acao === "escalado_medico") {
       if (!escaladoEm || new Date(t.tratado_em) > new Date(escaladoEm)) {
         escaladoEm = t.tratado_em;
+        escalacaoId = t.id;
       }
     }
   }
@@ -155,6 +159,7 @@ export function estadoAlertaEliminacao(
     oculto,
     reincidente,
     escaladoEm,
+    escalacaoId,
     condutaEm: ultimoSilenciado?.tratado_em ?? null,
     condutaPor: ultimoSilenciado?.tratado_por ?? null,
     condutaObs: ultimoSilenciado?.observacao ?? null,
@@ -163,6 +168,7 @@ export function estadoAlertaEliminacao(
 
 /** Campos mínimos usados por estadoAlertaEliminacao (compatível com a Row). */
 interface EliminacaoTratamentoLike {
+  id: string;
   acao: string;
   tratado_em: string;
   tratado_por: string | null;
