@@ -58,6 +58,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Prescrições", to: "/app/medico/prescricoes" },
       { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },
+      { label: "Estoque de resgate", to: "/app/medico/resgate" },
     ],
     emConstrucao: false,
   },
@@ -74,6 +75,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },
+      { label: "Estoque de resgate", to: "/app/coordenacao/resgate" },
       { label: "Profissionais", to: "/app/coordenacao/profissionais" },
       { label: "Escalas", to: "/app/coordenacao/escalas" },
     ],
@@ -118,6 +120,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/farmacia/estoque",
     menu: [
       { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
+      { label: "Estoque de resgate", to: "/app/farmacia/resgate" },
       { label: "Dispensação", to: "/app/farmacia/dispensacao" },
     ],
     emConstrucao: false,

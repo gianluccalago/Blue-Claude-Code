@@ -387,6 +387,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["resolucao_medica"]["Insert"]>;
         Relationships: [];
       };
+      estoque_resgate: {
+        Row: {
+          id: string;
+          medicamento: string;
+          quantidade_atual: number;
+          unidade: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          medicamento: string;
+          quantidade_atual?: number;
+          unidade?: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["estoque_resgate"]["Insert"]>;
+        Relationships: [];
+      };
+      baixa_resgate: {
+        Row: {
+          id: string;
+          estoque_resgate_id: string;
+          residente_id: string;
+          quantidade: number;
+          motivo: string;
+          administrado_por: string;
+          perfil_responsavel: "farmacia" | "coordenacao" | "medico";
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          estoque_resgate_id: string;
+          residente_id: string;
+          quantidade: number;
+          motivo: string;
+          administrado_por: string;
+          perfil_responsavel: "farmacia" | "coordenacao" | "medico";
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["baixa_resgate"]["Insert"]>;
+        Relationships: [];
+      };
       estoque_hospede: {
         Row: {
           id: string;
@@ -524,3 +566,5 @@ export type Turno = Database["public"]["Tables"]["turnos"]["Row"];
 export type Evolucao = Database["public"]["Tables"]["evolucao"]["Row"];
 export type AvaliacaoIVCF = Database["public"]["Tables"]["avaliacao_ivcf"]["Row"];
 export type EstoqueHospede = Database["public"]["Tables"]["estoque_hospede"]["Row"];
+export type EstoqueResgate = Database["public"]["Tables"]["estoque_resgate"]["Row"];
+export type BaixaResgate = Database["public"]["Tables"]["baixa_resgate"]["Row"];
