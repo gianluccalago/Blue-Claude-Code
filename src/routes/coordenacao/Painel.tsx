@@ -116,60 +116,20 @@ export function PainelCoordenacao() {
 
   const procedimentos = enfermagem.data ?? [];
 
+  async function handleSilenciarTodos() {
+    for (const a of alertasElim) {
+      await tratarAlerta.mutateAsync({
+        residenteId: a.residenteId,
+        tipoAlerta: a.tipo,
+        acao: "silenciado",
+        observacao: null,
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* 1. ALERTAS DE ELIMINAÇÃO */}
-      <Card className="border-warning/40">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="size-5 text-warning" /> Alertas de eliminação
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {alertasElim.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-success">
-              <CheckCircle2 className="size-5" />
-              <span className="text-sm font-semibold">Sem alertas de eliminação.</span>
-            </div>
-          ) : (
-            alertasElim.map((a) => {
-              const resolucaoElim = a.escalacaoId
-                ? (resolData.find(
-                    (r) => r.tipo_origem === "eliminacao" && r.referencia_id === a.escalacaoId,
-                  ) ?? null)
-                : null;
-              return (
-                <AlertaEliminacaoCard
-                  key={`${a.residenteId}-${a.tipo}`}
-                  alerta={a}
-                  nome={nome(a.residenteId)}
-                  quarto={quarto(a.residenteId)}
-                  ocupado={tratarAlerta.isPending}
-                  resolvidoPeloMedicoEm={resolucaoElim?.resolvido_em ?? null}
-                  resolvidoPeloMedicoObs={resolucaoElim?.observacao ?? null}
-                  onEscalar={() =>
-                    tratarAlerta.mutate({
-                      residenteId: a.residenteId,
-                      tipoAlerta: a.tipo,
-                      acao: "escalado_medico",
-                    })
-                  }
-                  onSilenciar={(observacao) =>
-                    tratarAlerta.mutate({
-                      residenteId: a.residenteId,
-                      tipoAlerta: a.tipo,
-                      acao: "silenciado",
-                      observacao,
-                    })
-                  }
-                />
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 2. INDICADORES */}
+      {/* 1. INDICADORES */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Indicador
           icon={ClipboardList}
@@ -293,6 +253,73 @@ export function PainelCoordenacao() {
                 <Badge variant="purple">{VIA_LABEL[p.via] ?? p.via}</Badge>
               </div>
             ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 4. ALERTAS DE ELIMINAÇÃO */}
+      <Card className={cn(alertasElim.length > 0 ? "border-warning/40" : "")}>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-warning" />
+              Alertas de eliminação
+              {alertasElim.length > 0 && (
+                <Badge variant="warning">{alertasElim.length}</Badge>
+              )}
+            </CardTitle>
+            {alertasElim.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSilenciarTodos}
+                disabled={tratarAlerta.isPending}
+              >
+                <BellOff className="size-4" /> Silenciar todos
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {alertasElim.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-success">
+              <CheckCircle2 className="size-5" />
+              <span className="text-sm font-semibold">Sem alertas de eliminação.</span>
+            </div>
+          ) : (
+            alertasElim.map((a) => {
+              const resolucaoElim = a.escalacaoId
+                ? (resolData.find(
+                    (r) => r.tipo_origem === "eliminacao" && r.referencia_id === a.escalacaoId,
+                  ) ?? null)
+                : null;
+              return (
+                <AlertaEliminacaoCard
+                  key={`${a.residenteId}-${a.tipo}`}
+                  alerta={a}
+                  nome={nome(a.residenteId)}
+                  quarto={quarto(a.residenteId)}
+                  ocupado={tratarAlerta.isPending}
+                  resolvidoPeloMedicoEm={resolucaoElim?.resolvido_em ?? null}
+                  resolvidoPeloMedicoObs={resolucaoElim?.observacao ?? null}
+                  onEscalar={() =>
+                    tratarAlerta.mutate({
+                      residenteId: a.residenteId,
+                      tipoAlerta: a.tipo,
+                      acao: "escalado_medico",
+                    })
+                  }
+                  onSilenciar={(observacao) =>
+                    tratarAlerta.mutate({
+                      residenteId: a.residenteId,
+                      tipoAlerta: a.tipo,
+                      acao: "silenciado",
+                      observacao,
+                    })
+                  }
+                />
+              );
+            })
           )}
         </CardContent>
       </Card>

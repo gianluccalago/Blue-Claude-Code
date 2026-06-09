@@ -283,7 +283,7 @@ function FormEvolucao({
       await criar.mutateAsync({ residenteId, texto: texto.trim() });
       onClose();
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao salvar.");
+      setErro(extrairErro(e));
     }
   }
 
@@ -368,7 +368,7 @@ function FormIVCF({
       });
       setResultado(res);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao salvar.");
+      setErro(extrairErro(e));
     }
   }
 
@@ -901,6 +901,13 @@ function QuestaoOpcoes({
       </div>
     </div>
   );
+}
+
+function extrairErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object" && e !== null && "message" in e)
+    return String((e as { message: unknown }).message);
+  return "Erro desconhecido ao salvar. Verifique se a migration 0015 foi executada no Supabase.";
 }
 
 function BotaoOpcao({
