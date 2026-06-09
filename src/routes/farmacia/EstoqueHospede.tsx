@@ -288,24 +288,30 @@ function ConteudoEstoque({
 // ─── Linha de estoque ─────────────────────────────────────────────────────────
 
 function LinhaEstoque({ item }: { item: EstoqueHospede }) {
-  const pct = item.quantidade_provisionada > 0
-    ? item.quantidade_atual / item.quantidade_provisionada
-    : 0;
-  const status = item.quantidade_atual === 0 ? "zero" : pct <= 0.25 ? "baixo" : "ok";
+  const status =
+    item.quantidade_atual < 0 ? "negativo" :
+    item.quantidade_atual === 0 ? "zero" :
+    item.quantidade_atual <= 5 ? "baixo" : "ok";
 
   return (
     <tr className="text-secondary">
       <td className="py-2.5 font-medium">{item.medicamento}</td>
-      <td className="py-2.5 text-right tabular-nums">{item.quantidade_provisionada}</td>
-      <td className="py-2.5 text-right tabular-nums font-semibold">
+      <td className="py-2.5 text-right tabular-nums text-muted-foreground">{item.quantidade_provisionada}</td>
+      <td className={cn(
+        "py-2.5 text-right tabular-nums font-bold",
+        status === "negativo" ? "text-destructive" :
+        status === "baixo" ? "text-warning" : "",
+      )}>
         {item.quantidade_atual}
       </td>
       <td className="py-2.5 pl-4 text-muted-foreground">{item.unidade}</td>
       <td className="py-2.5 text-center">
-        {status === "zero" ? (
+        {status === "negativo" ? (
+          <Badge variant="destructive" className="text-xs">Negativo</Badge>
+        ) : status === "zero" ? (
           <Badge variant="destructive" className="text-xs">Esgotado</Badge>
         ) : status === "baixo" ? (
-          <Badge variant="warning" className="text-xs">Baixo</Badge>
+          <Badge variant="warning" className="text-xs">Baixo ≤5</Badge>
         ) : (
           <Badge variant="success" className="text-xs">OK</Badge>
         )}
