@@ -151,14 +151,15 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/administracao",
     menu: [
-      { label: "Visão geral", to: "/app/administracao" },
+      { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Upselling", to: "/app/administracao/upselling" },
+      { label: "Demonstrativo mensal", to: "/app/administracao/demonstrativo" },
       { label: "Financeiro", to: "/app/administracao/financeiro" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "nutricionista",

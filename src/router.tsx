@@ -38,6 +38,8 @@ import { Atividades } from "@/routes/multidisciplinar/Atividades";
 import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
 import { Mensalidades } from "@/routes/administracao/Mensalidades";
 import { Upselling } from "@/routes/administracao/Upselling";
+import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
+import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
 import { Dietas } from "@/routes/nutricionista/Dietas";
 import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
@@ -65,6 +67,8 @@ function AppIndex() {
   const def = getPerfil(perfil);
   // Coordenação: a "Visão geral" é o painel da coordenação.
   if (perfil === "coordenacao") return <PainelCoordenacao />;
+  // Administração: a "Visão geral" é o painel da administração.
+  if (perfil === "administracao") return <PainelAdministracao />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.
   if (def && !def.emConstrucao && def.rotaInicial !== `/app/${perfil}`) {
     return <Navigate to={def.rotaInicial} />;
@@ -233,6 +237,11 @@ const upsellingRoute = createRoute({
   path: "upselling",
   component: Upselling,
 });
+const demonstrativoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "demonstrativo",
+  component: Demonstrativo,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -276,6 +285,7 @@ const routeTree = rootRoute.addChildren([
     tabelaPrecosRoute,
     mensalidadesRoute,
     upsellingRoute,
+    demonstrativoRoute,
     placeholderRoute,
   ]),
 ]);
