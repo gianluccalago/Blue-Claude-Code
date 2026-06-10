@@ -49,6 +49,8 @@ export type Ocupacao = "individual" | "dupla";
 export type StatusPagamentoMensalidade = "pendente" | "pago";
 export type TipoRemuneracao = "mensal_fixo" | "por_plantao";
 export type StatusPagamentoPessoal = "pendente" | "pago";
+export type DestinoSolicitacao = "coordenacao" | "medico" | "administracao";
+export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
   | "Manicure/cabeleireiro"
@@ -914,6 +916,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["pagamento_pessoal"]["Insert"]>;
         Relationships: [];
       };
+      solicitacao_familia: {
+        Row: {
+          id: string;
+          residente_id: string;
+          destino: DestinoSolicitacao;
+          assunto: string;
+          mensagem: string;
+          status: StatusSolicitacaoFamilia;
+          resposta: string | null;
+          enviada_por: string;
+          respondida_por: string | null;
+          redirecionada_de: string | null;
+          criada_em: string;
+          respondida_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          destino: DestinoSolicitacao;
+          assunto: string;
+          mensagem: string;
+          status?: StatusSolicitacaoFamilia;
+          resposta?: string | null;
+          enviada_por?: string;
+          respondida_por?: string | null;
+          redirecionada_de?: string | null;
+          criada_em?: string;
+          respondida_em?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["solicitacao_familia"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -957,3 +991,4 @@ export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
 export type PagamentoPessoal = Database["public"]["Tables"]["pagamento_pessoal"]["Row"];
+export type SolicitacaoFamilia = Database["public"]["Tables"]["solicitacao_familia"]["Row"];

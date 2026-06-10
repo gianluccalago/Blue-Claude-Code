@@ -45,6 +45,14 @@ import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
 import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
+import { Inicio as FamiliaInicio } from "@/routes/familia/Inicio";
+import { Fotos as FamiliaFotos } from "@/routes/familia/Fotos";
+import { Compromissos as FamiliaCompromissos } from "@/routes/familia/Compromissos";
+import { Mensalidade as FamiliaMensalidade } from "@/routes/familia/Mensalidade";
+import { Solicitacoes as FamiliaSolicitacoes } from "@/routes/familia/Solicitacoes";
+import { CameraQuarto } from "@/routes/familia/CameraQuarto";
+import { SinaisVitais } from "@/routes/familia/SinaisVitais";
+import { SolicitacoesFamiliaInbox } from "@/components/solicitacoes/SolicitacoesFamiliaInbox";
 import { getPerfil } from "@/data/profiles";
 
 const rootRoute = createRootRoute({
@@ -71,6 +79,8 @@ function AppIndex() {
   if (perfil === "coordenacao") return <PainelCoordenacao />;
   // Administração: a "Visão geral" é o painel da administração.
   if (perfil === "administracao") return <PainelAdministracao />;
+  // Família: o "Início" é o resumo curado do hóspede.
+  if (perfil === "familia") return <FamiliaInicio />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.
   if (def && !def.emConstrucao && def.rotaInicial !== `/app/${perfil}`) {
     return <Navigate to={def.rotaInicial} />;
@@ -254,6 +264,42 @@ const custosPessoalRoute = createRoute({
   path: "custos-pessoal",
   component: CustosPessoal,
 });
+const fotosFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "fotos",
+  component: FamiliaFotos,
+});
+const compromissosFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "compromissos-familia",
+  component: FamiliaCompromissos,
+});
+const mensalidadeFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "mensalidade-familia",
+  component: FamiliaMensalidade,
+});
+const solicitacoesFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "solicitacoes",
+  component: FamiliaSolicitacoes,
+});
+const cameraQuartoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "camera-quarto",
+  component: CameraQuarto,
+});
+const sinaisVitaisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "sinais-vitais",
+  component: SinaisVitais,
+});
+// Caixa de "Solicitações da família" — Coordenação, Médico e Administração.
+const solicitacoesFamiliaInboxRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "solicitacoes-familia",
+  component: SolicitacoesFamiliaInbox,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -300,6 +346,13 @@ const routeTree = rootRoute.addChildren([
     demonstrativoRoute,
     remuneracaoEquipeRoute,
     custosPessoalRoute,
+    fotosFamiliaRoute,
+    compromissosFamiliaRoute,
+    mensalidadeFamiliaRoute,
+    solicitacoesFamiliaRoute,
+    cameraQuartoRoute,
+    sinaisVitaisRoute,
+    solicitacoesFamiliaInboxRoute,
     placeholderRoute,
   ]),
 ]);

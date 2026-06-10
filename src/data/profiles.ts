@@ -62,6 +62,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },
       { label: "Estoque de resgate", to: "/app/medico/resgate" },
+      { label: "Solicitações da família", to: "/app/medico/solicitacoes-familia" },
     ],
     emConstrucao: false,
   },
@@ -81,6 +82,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Estoque de resgate", to: "/app/coordenacao/resgate" },
       { label: "Profissionais", to: "/app/coordenacao/profissionais" },
       { label: "Escalas", to: "/app/coordenacao/escalas" },
+      { label: "Solicitações da família", to: "/app/coordenacao/solicitacoes-familia" },
       { label: "Abrir chamado de manutenção", to: "/app/coordenacao/chamado-manutencao" },
     ],
     emConstrucao: false,
@@ -159,6 +161,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Remuneração da equipe", to: "/app/administracao/remuneracao-equipe" },
       { label: "Custos de pessoal", to: "/app/administracao/custos-pessoal" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
+      { label: "Solicitações da família", to: "/app/administracao/solicitacoes-familia" },
     ],
     emConstrucao: false,
   },
@@ -184,10 +187,15 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/familia",
     menu: [
-      { label: "Visão geral", to: "/app/familia" },
-      { label: "Acompanhamento", to: "/app/familia/acompanhamento" },
+      { label: "Início", to: "/app/familia" },
+      { label: "Fotos", to: "/app/familia/fotos" },
+      { label: "Compromissos", to: "/app/familia/compromissos-familia" },
+      { label: "Mensalidade e extras", to: "/app/familia/mensalidade-familia" },
+      { label: "Solicitações", to: "/app/familia/solicitacoes" },
+      { label: "Câmera do quarto", to: "/app/familia/camera-quarto" },
+      { label: "Sinais vitais", to: "/app/familia/sinais-vitais" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
 ];
 
@@ -219,4 +227,21 @@ export const NUTRI_ATUAL = {
 /** Colaborador atual da Administração (placeholder até a autenticação por login). */
 export const ADMIN_ATUAL = {
   nome: "Administração",
+} as const;
+
+/**
+ * Família/hóspede atual (placeholder até a autenticação por login).
+ *
+ * SEGURANÇA — LEIA ANTES DE IR A PRODUÇÃO:
+ * Hoje o Portal da Família está fixo em UM hóspede (a Profª Alzira, abaixo)
+ * apenas para fins de demonstração. A trava real — cada conta de família
+ * enxergar SOMENTE o(s) hóspede(s) vinculados a ela — depende da
+ * autenticação por login (perfil "familia" + vínculo família↔residente no
+ * banco). NÃO HABILITAR ESTE PORTAL EM PRODUÇÃO sem essa trava: sem ela,
+ * qualquer família autenticada veria os dados de TODOS os hóspedes
+ * (proteção de dados pessoais e de saúde do idoso).
+ */
+export const FAMILIA_ATUAL = {
+  nome: "Família Bittencourt",
+  residenteId: "a0000000-0000-0000-0000-000000000001",
 } as const;
