@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { uploadFotoManutencao } from "@/lib/storage";
 import type {
   ChamadoManutencao,
   PerfilSolicitanteChamado,
@@ -35,9 +36,11 @@ export type CriarChamadoInput = {
   urgencia: UrgenciaChamado;
   abertoPor: string;
   perfilSolicitante: PerfilSolicitanteChamado;
+  /** Foto do problema (opcional) — enviada após a criação do chamado. */
+  foto?: File | null;
 };
 
-/** Abre um novo chamado de manutenção. */
+/** Abre um novo chamado de manutenção, com upload opcional de foto do problema. */
 export function useCriarChamado() {
   const qc = useQueryClient();
   return useMutation({
@@ -55,7 +58,16 @@ export function useCriarChamado() {
         .select("id")
         .single();
       if (error) throw error;
-      return data.id as string;
+      const id = data.id as string;
+
+      if (args.foto) {
+        const fotoUrl = await uploadFotoManutencao(args.foto, id);
+        if (fotoUrl) {
+          await supabase.from("chamado_manutencao").update({ foto_url: fotoUrl }).eq("id", id);
+        }
+      }
+
+      return id;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CHAMADOS_KEY });
@@ -94,7 +106,8 @@ export function useResolverChamado() {
         .update({
           status: "resolvido" as StatusChamado,
           resolvido_em: new Date().toISOString(),
-          foto_url: args.fotoUrl,
+          // Mantém a foto já anexada (na abertura) caso nenhuma seja enviada agora.
+          ...(args.fotoUrl ? { foto_url: args.fotoUrl } : {}),
         })
         .eq("id", args.id);
       if (error) throw error;

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, horarioParaMinutos, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
-import type { PlanoCuidadoItem, TarefaRegistro } from "@/types/database";
+import type { PlanoCuidadoItem, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
 const REFEICOES = [
@@ -39,6 +39,28 @@ const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;
 
 type StatusKey = "feito" | "atraso" | "em_breve" | "normal";
+
+/** Hora local (minutos desde meia-noite) de um timestamp ISO. */
+function minutosLocais(iso: string): number {
+  const d = new Date(iso);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * Uma tarefa do plano só aparece no checklist se o horário dela cair dentro
+ * da janela do turno ativo da cuidadora (cobre turnos que cruzam a meia-noite,
+ * ex: 19h-7h). Tarefas sem horário fixo (null) sempre aparecem.
+ */
+function itemNoTurno(item: PlanoCuidadoItem, turno: Turno | null): boolean {
+  if (!turno || !item.horario) return true;
+  const itemMin = horarioParaMinutos(item.horario);
+  if (itemMin === null) return true;
+  const ini = minutosLocais(turno.inicio);
+  const fim = minutosLocais(turno.fim);
+  if (ini === fim) return true;
+  if (ini < fim) return itemMin >= ini && itemMin < fim;
+  return itemMin >= ini || itemMin < fim;
+}
 
 function calcularStatus(item: PlanoCuidadoItem, feito: boolean): {
   key: StatusKey;
@@ -78,7 +100,12 @@ export function Checklist() {
         onSelect={setSelecionadoId}
       />
       {hospedeId && (
-        <ChecklistDoHospede key={hospedeId} residenteId={hospedeId} liberado={plantao.liberado} />
+        <ChecklistDoHospede
+          key={hospedeId}
+          residenteId={hospedeId}
+          liberado={plantao.liberado}
+          turno={plantao.turnoAtivo}
+        />
       )}
     </div>
   );
@@ -93,9 +120,11 @@ interface Confirmacao {
 function ChecklistDoHospede({
   residenteId,
   liberado,
+  turno,
 }: {
   residenteId: string;
   liberado: boolean;
+  turno: Turno | null;
 }) {
   const plano = usePlanoCuidado(residenteId);
   const registros = useRegistrosHoje(residenteId);
@@ -106,6 +135,10 @@ function ChecklistDoHospede({
   const registrosHoje = registros.data ?? [];
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
+  const planoItensDoTurno = useMemo(
+    () => planoItens.filter((item) => itemNoTurno(item, turno)),
+    [planoItens, turno]
+  );
 
   // Confirmação para ações destrutivas (evita toque acidental no tablet).
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
@@ -156,8 +189,10 @@ function ChecklistDoHospede({
         <CardContent className="space-y-3">
           {planoItens.length === 0 ? (
             <EmptyState label="Este hóspede ainda não possui plano de cuidado ativo." />
+          ) : planoItensDoTurno.length === 0 ? (
+            <EmptyState label="Nenhuma tarefa agendada para o seu turno." />
           ) : (
-            planoItens.map((item) => {
+            planoItensDoTurno.map((item) => {
               const registro = registroDaTarefa(item.id);
               const feito = !!registro;
               const status = calcularStatus(item, feito);

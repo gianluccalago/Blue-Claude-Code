@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wrench, AlertCircle, Check, Building2, BedDouble } from "lucide-react";
+import { Wrench, AlertCircle, Check, Building2, BedDouble, Camera } from "lucide-react";
 import { useCriarChamado } from "@/hooks/useManutencao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,7 @@ export function FormAbrirChamado({
   const [problema, setProblema] = useState("");
   const [urgencia, setUrgencia] = useState<UrgenciaChamado>("media");
   const [abertoPor, setAbertoPor] = useState(abertoPorPadrao);
+  const [foto, setFoto] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
@@ -73,11 +74,13 @@ export function FormAbrirChamado({
         urgencia,
         abertoPor: abertoPor.trim(),
         perfilSolicitante,
+        foto,
       });
       setProblema("");
       setLocalComum("");
       setResidenteId("");
       setUrgencia("media");
+      setFoto(null);
       setSucesso(true);
       setTimeout(() => setSucesso(false), 3000);
       onConcluido?.();
@@ -191,6 +194,18 @@ export function FormAbrirChamado({
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-secondary">
+            <Camera className="h-4 w-4" /> Foto do problema (opcional)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
+          />
         </div>
 
         {erro && (
