@@ -47,7 +47,6 @@ import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricioni
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
 import { Inicio as FamiliaInicio } from "@/routes/familia/Inicio";
 import { Fotos as FamiliaFotos } from "@/routes/familia/Fotos";
-import { Compromissos as FamiliaCompromissos } from "@/routes/familia/Compromissos";
 import { Mensalidade as FamiliaMensalidade } from "@/routes/familia/Mensalidade";
 import { Solicitacoes as FamiliaSolicitacoes } from "@/routes/familia/Solicitacoes";
 import { CameraQuarto } from "@/routes/familia/CameraQuarto";
@@ -269,11 +268,6 @@ const fotosFamiliaRoute = createRoute({
   path: "fotos",
   component: FamiliaFotos,
 });
-const compromissosFamiliaRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "compromissos-familia",
-  component: FamiliaCompromissos,
-});
 const mensalidadeFamiliaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "mensalidade-familia",
@@ -347,7 +341,6 @@ const routeTree = rootRoute.addChildren([
     remuneracaoEquipeRoute,
     custosPessoalRoute,
     fotosFamiliaRoute,
-    compromissosFamiliaRoute,
     mensalidadeFamiliaRoute,
     solicitacoesFamiliaRoute,
     cameraQuartoRoute,

@@ -1,25 +1,57 @@
 import { useState } from "react";
-import { Send, MessageSquare, CornerDownRight } from "lucide-react";
+import { Send, MessageSquare, CornerDownRight, CalendarClock, Bus, Save, Info, Plus } from "lucide-react";
 import {
   DESTINOS_SOLICITACAO,
   labelDestino,
   useCriarSolicitacao,
   useSolicitacoesFamilia,
 } from "@/hooks/useSolicitacoes";
+import {
+  useAtualizarDetalhesCompromisso,
+  useCompromissosResidente,
+  useCriarCompromisso,
+} from "@/hooks/useFamilia";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { formatarDataHoraBR } from "@/lib/utils";
-import type { DestinoSolicitacao, SolicitacaoFamilia } from "@/types/database";
+import { formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
+import type { CompromissoExterno, DestinoSolicitacao, SolicitacaoFamilia } from "@/types/database";
 
 const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const textareaBase =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-/** A família abre solicitações para Coordenação/Médico/Administração e acompanha as respostas. */
+/**
+ * A família abre solicitações para Coordenação/Médico/Administração e
+ * acompanha as respostas, e também gerencia os compromissos externos do
+ * hóspede (cadastra novos e edita os detalhes/instruções).
+ */
 export function Solicitacoes() {
+  return (
+    <Tabs defaultValue="solicitacoes">
+      <TabsList className="w-full justify-start">
+        <TabsTrigger value="solicitacoes" className="gap-1.5">
+          <MessageSquare className="size-4" /> Solicitações
+        </TabsTrigger>
+        <TabsTrigger value="compromissos" className="gap-1.5">
+          <CalendarClock className="size-4" /> Compromissos
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="solicitacoes">
+        <PainelSolicitacoes />
+      </TabsContent>
+      <TabsContent value="compromissos">
+        <PainelCompromissos />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function PainelSolicitacoes() {
   const solicitacoes = useSolicitacoesFamilia();
   const criar = useCriarSolicitacao();
 
@@ -143,6 +175,160 @@ function SolicitacaoCard({ solicitacao: s }: { solicitacao: SolicitacaoFamilia }
             </div>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PainelCompromissos() {
+  const compromissos = useCompromissosResidente();
+  const atualizar = useAtualizarDetalhesCompromisso();
+  const criar = useCriarCompromisso();
+
+  const [titulo, setTitulo] = useState("");
+  const [data, setData] = useState("");
+  const [horario, setHorario] = useState("");
+  const [horarioTransporte, setHorarioTransporte] = useState("");
+  const [detalhes, setDetalhes] = useState("");
+
+  function adicionar() {
+    if (!titulo.trim() || !data) return;
+    criar.mutate(
+      { titulo: titulo.trim(), data, horario, horarioTransporte, detalhes: detalhes.trim() },
+      {
+        onSuccess: () => {
+          setTitulo("");
+          setData("");
+          setHorario("");
+          setHorarioTransporte("");
+          setDetalhes("");
+        },
+      },
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="size-5 text-primary" /> Novo compromisso
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-secondary">Título</label>
+            <input
+              className={inputBase}
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Ex: Consulta com dermatologista"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-secondary">Data</label>
+              <input className={inputBase} type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-secondary">Horário</label>
+              <input className={inputBase} type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-secondary">Transporte</label>
+              <input
+                className={inputBase}
+                type="time"
+                value={horarioTransporte}
+                onChange={(e) => setHorarioTransporte(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-secondary">Detalhes / instruções</label>
+            <textarea
+              className={textareaBase}
+              rows={3}
+              placeholder='Ex: "Levar exame X", "vestir roupa social"...'
+              value={detalhes}
+              onChange={(e) => setDetalhes(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={adicionar} disabled={!titulo.trim() || !data || criar.isPending}>
+              <Plus className="size-4" /> Adicionar compromisso
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          Compromissos cadastrados
+        </h2>
+        {compromissos.isLoading ? (
+          <LoadingState />
+        ) : compromissos.isError ? (
+          <ErrorState error={compromissos.error} />
+        ) : (compromissos.data ?? []).length === 0 ? (
+          <EmptyState label="Nenhum compromisso externo cadastrado." />
+        ) : (
+          (compromissos.data ?? []).map((c) => (
+            <CompromissoCard
+              key={c.id}
+              compromisso={c}
+              onSalvar={(detalhesEditados) => atualizar.mutate({ id: c.id, detalhes: detalhesEditados })}
+              salvando={atualizar.isPending}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompromissoCard({
+  compromisso: c,
+  onSalvar,
+  salvando,
+}: {
+  compromisso: CompromissoExterno;
+  onSalvar: (detalhes: string) => void;
+  salvando: boolean;
+}) {
+  const [detalhes, setDetalhes] = useState(c.detalhes ?? "");
+  const alterado = detalhes !== (c.detalhes ?? "");
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>{c.titulo}</CardTitle>
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-secondary">
+            <CalendarClock className="size-4 text-primary" /> {formatarDataBR(c.data)} ·{" "}
+            {c.horario ?? "--:--"}
+          </div>
+        </div>
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Bus className="size-3.5" /> Transporte às {c.horario_transporte ?? "--:--"}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <label className="flex items-center gap-1.5 text-sm font-semibold text-secondary">
+          <Info className="size-4 text-primary" /> Detalhes / instruções
+        </label>
+        <textarea
+          className={textareaBase}
+          rows={3}
+          placeholder='Ex: "Levar exame X", "vestir roupa social"...'
+          value={detalhes}
+          onChange={(e) => setDetalhes(e.target.value)}
+        />
+        <div className="flex justify-end">
+          <Button size="sm" disabled={!alterado || salvando} onClick={() => onSalvar(detalhes)}>
+            <Save className="size-4" /> Salvar detalhes
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

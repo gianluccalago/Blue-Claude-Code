@@ -189,7 +189,6 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Início", to: "/app/familia" },
       { label: "Fotos", to: "/app/familia/fotos" },
-      { label: "Compromissos", to: "/app/familia/compromissos-familia" },
       { label: "Mensalidade e extras", to: "/app/familia/mensalidade-familia" },
       { label: "Solicitações", to: "/app/familia/solicitacoes" },
       { label: "Câmera do quarto", to: "/app/familia/camera-quarto" },

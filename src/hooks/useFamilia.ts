@@ -116,6 +116,33 @@ export function useAtualizarDetalhesCompromisso() {
   });
 }
 
+export type CriarCompromissoInput = {
+  titulo: string;
+  data: string;
+  horario: string;
+  horarioTransporte: string;
+  detalhes: string;
+};
+
+/** A família cadastra um novo compromisso externo do hóspede. */
+export function useCriarCompromisso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: CriarCompromissoInput) => {
+      const { error } = await supabase.from("compromisso_externo").insert({
+        residente_id: FAMILIA_ATUAL.residenteId,
+        titulo: args.titulo,
+        data: args.data || null,
+        horario: args.horario || null,
+        horario_transporte: args.horarioTransporte || null,
+        detalhes: args.detalhes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["compromissos-familia", FAMILIA_ATUAL.residenteId] }),
+  });
+}
+
 export interface ItemUpsellingFamilia {
   categoria: string;
   descricao: string | null;
