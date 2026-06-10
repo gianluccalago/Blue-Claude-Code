@@ -15,7 +15,8 @@ export type PerfilUsuario =
   | "multidisciplinar"
   | "farmacia"
   | "administracao"
-  | "familia";
+  | "familia"
+  | "nutricionista";
 
 export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";
 export type VinculoProfissional = "CLT" | "PJ";
@@ -739,6 +740,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["atividade_participacao"]["Insert"]>;
         Relationships: [];
       };
+      dieta: {
+        Row: {
+          id: string;
+          residente_id: string;
+          consistencia: string;
+          restricoes: string[] | null;
+          observacoes: string | null;
+          ativa: boolean;
+          definida_por: string;
+          definida_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          consistencia: string;
+          restricoes?: string[] | null;
+          observacoes?: string | null;
+          ativa?: boolean;
+          definida_por?: string;
+          definida_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["dieta"]["Insert"]>;
+        Relationships: [];
+      };
+      evolucao_nutricional: {
+        Row: {
+          id: string;
+          residente_id: string;
+          texto: string;
+          registrado_por: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          texto: string;
+          registrado_por?: string;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["evolucao_nutricional"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -776,3 +819,5 @@ export type RoupariaTransito = Database["public"]["Tables"]["rouparia_transito"]
 export type Atividade = Database["public"]["Tables"]["atividade"]["Row"];
 export type AtividadeExecucao = Database["public"]["Tables"]["atividade_execucao"]["Row"];
 export type AtividadeParticipacao = Database["public"]["Tables"]["atividade_participacao"]["Row"];
+export type Dieta = Database["public"]["Tables"]["dieta"]["Row"];
+export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutricional"]["Row"];

@@ -9,6 +9,7 @@ import {
   Building2,
   Users,
   BedDouble,
+  Apple,
   type LucideIcon,
 } from "lucide-react";
 
@@ -157,6 +158,20 @@ export const PERFIS: PerfilDef[] = [
     emConstrucao: true,
   },
   {
+    id: "nutricionista",
+    nome: "Nutricionista",
+    descricao: "Dietas e acompanhamento nutricional",
+    icon: Apple,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/nutricionista/dietas",
+    menu: [
+      { label: "Dietas", to: "/app/nutricionista/dietas" },
+      { label: "Acompanhamento", to: "/app/nutricionista/acompanhamento-nutricional" },
+      { label: "Evolução nutricional", to: "/app/nutricionista/evolucao-nutricional" },
+    ],
+    emConstrucao: false,
+  },
+  {
     id: "familia",
     nome: "Família / Hóspede",
     descricao: "Portal de acompanhamento",
@@ -189,4 +204,9 @@ export const CUIDADOR_ATUAL = {
  */
 export const MULTI_ATUAL = {
   nome: "Equipe Multi",
+} as const;
+
+/** Nutricionista atual (login próprio, separado da Equipe Multidisciplinar). */
+export const NUTRI_ATUAL = {
+  nome: "Nutricionista",
 } as const;

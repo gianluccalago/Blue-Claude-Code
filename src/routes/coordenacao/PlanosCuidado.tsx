@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, LayoutTemplate, ChevronRight } from "lucide-react";
+import { Plus, LayoutTemplate, ChevronRight, Salad } from "lucide-react";
 import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
 import {
   useAdicionarPlanoItem,
@@ -8,6 +8,8 @@ import {
   useAplicarModelo,
 } from "@/hooks/usePlanos";
 import { useModelos } from "@/hooks/useModelos";
+import { useDietaAtiva } from "@/hooks/useNutricao";
+import { DietaInfo } from "@/components/nutricao/DietaInfo";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemTarefaForm } from "@/components/coordenacao/ItemTarefaForm";
@@ -69,6 +71,8 @@ function PlanoDoHospede({ residenteId }: { residenteId: string }) {
 
   return (
     <div className="space-y-6">
+      <DietaDoHospede residenteId={residenteId} />
+
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>Plano de cuidado</CardTitle>
@@ -213,5 +217,27 @@ function PlanoDoHospede({ residenteId }: { residenteId: string }) {
         onCancelar={() => setConfirmacao(null)}
       />
     </div>
+  );
+}
+
+/** Dieta ativa do hóspede, somente leitura — definida pela Nutricionista. */
+function DietaDoHospede({ residenteId }: { residenteId: string }) {
+  const { data: dieta, isLoading, isError, error } = useDietaAtiva(residenteId);
+
+  if (isLoading) return null;
+  if (isError) return <ErrorState error={error} />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Salad className="size-5 text-primary" />
+          Dieta
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {dieta ? <DietaInfo dieta={dieta} compact /> : <EmptyState label="Sem dieta definida." />}
+      </CardContent>
+    </Card>
   );
 }
