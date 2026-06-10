@@ -669,6 +669,76 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["rouparia_transito"]["Insert"]>;
         Relationships: [];
       };
+      atividade: {
+        Row: {
+          id: string;
+          titulo: string;
+          descricao: string | null;
+          data: string | null;
+          horario: string;
+          recorrente: boolean;
+          dias_semana: string[] | null;
+          criada_por: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          titulo: string;
+          descricao?: string | null;
+          data?: string | null;
+          horario: string;
+          recorrente?: boolean;
+          dias_semana?: string[] | null;
+          criada_por: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["atividade"]["Insert"]>;
+        Relationships: [];
+      };
+      atividade_execucao: {
+        Row: {
+          id: string;
+          atividade_id: string;
+          data: string;
+          descricao_geral: string | null;
+          foto_url: string | null;
+          realizada_por: string;
+          realizada_em: string;
+        };
+        Insert: {
+          id?: string;
+          atividade_id: string;
+          data: string;
+          descricao_geral?: string | null;
+          foto_url?: string | null;
+          realizada_por: string;
+          realizada_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["atividade_execucao"]["Insert"]>;
+        Relationships: [];
+      };
+      atividade_participacao: {
+        Row: {
+          id: string;
+          atividade_id: string;
+          data: string;
+          residente_id: string;
+          presente: boolean;
+          registrado_por: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          atividade_id: string;
+          data: string;
+          residente_id: string;
+          presente?: boolean;
+          registrado_por: string;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["atividade_participacao"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -703,3 +773,6 @@ export type InspecaoSuite = Database["public"]["Tables"]["inspecao_suite"]["Row"
 export type InspecaoItem = Database["public"]["Tables"]["inspecao_item"]["Row"];
 export type ChamadoManutencao = Database["public"]["Tables"]["chamado_manutencao"]["Row"];
 export type RoupariaTransito = Database["public"]["Tables"]["rouparia_transito"]["Row"];
+export type Atividade = Database["public"]["Tables"]["atividade"]["Row"];
+export type AtividadeExecucao = Database["public"]["Tables"]["atividade_execucao"]["Row"];
+export type AtividadeParticipacao = Database["public"]["Tables"]["atividade_participacao"]["Row"];

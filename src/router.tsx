@@ -34,6 +34,7 @@ import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
 import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
+import { Atividades } from "@/routes/multidisciplinar/Atividades";
 import { getPerfil } from "@/data/profiles";
 
 const rootRoute = createRootRoute({
@@ -191,6 +192,11 @@ const estoqueResgateRoute = createRoute({
   path: "resgate",
   component: EstoqueResgate,
 });
+const atividadesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "atividades",
+  component: Atividades,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -227,6 +233,7 @@ const routeTree = rootRoute.addChildren([
     dispensacaoRoute,
     estoqueHospedeRoute,
     estoqueResgateRoute,
+    atividadesRoute,
     placeholderRoute,
   ]),
 ]);

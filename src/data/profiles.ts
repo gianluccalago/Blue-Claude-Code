@@ -108,12 +108,9 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Fisio, fono, nutrição e psicologia",
     icon: Activity,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/multidisciplinar",
-    menu: [
-      { label: "Visão geral", to: "/app/multidisciplinar" },
-      { label: "Atendimentos", to: "/app/multidisciplinar/atendimentos" },
-    ],
-    emConstrucao: true,
+    rotaInicial: "/app/multidisciplinar/atividades",
+    menu: [{ label: "Atividades", to: "/app/multidisciplinar/atividades" }],
+    emConstrucao: false,
   },
   {
     id: "farmacia",
@@ -182,4 +179,14 @@ export function getPerfil(id: string | undefined): PerfilDef | undefined {
 export const CUIDADOR_ATUAL = {
   id: "b0000000-0000-0000-0000-000000000004",
   nome: "Ana Paula",
+} as const;
+
+/**
+ * Colaborador atual da Equipe Multidisciplinar (placeholder até a
+ * autenticação por login). Fisioterapeuta, Educador Físico e Terapeuta
+ * Ocupacional compartilham as mesmas telas; quando a autenticação por
+ * perfil for implementada, cada login usará seu próprio nome aqui.
+ */
+export const MULTI_ATUAL = {
+  nome: "Equipe Multi",
 } as const;
