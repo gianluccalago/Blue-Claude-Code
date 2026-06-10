@@ -47,6 +47,17 @@ export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" 
 export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
 export type StatusPagamentoMensalidade = "pendente" | "pago";
+export type CategoriaUpselling =
+  | "Medicamentos"
+  | "Manicure/cabeleireiro"
+  | "Fisioterapia avulsa"
+  | "Acompanhamento externo"
+  | "Equipamentos"
+  | "Passeios"
+  | "Deslocamentos"
+  | "Lavanderia extra"
+  | "Compras pessoais"
+  | "Outros";
 
 export interface ItemDispensacaoJson {
   medicamento: string;
@@ -833,6 +844,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["evolucao_nutricional"]["Insert"]>;
         Relationships: [];
       };
+      upselling: {
+        Row: {
+          id: string;
+          residente_id: string;
+          categoria: CategoriaUpselling;
+          descricao: string | null;
+          valor: number;
+          data: string;
+          mes_referencia: string;
+          comprovante_url: string | null;
+          lancado_por: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          categoria: CategoriaUpselling;
+          descricao?: string | null;
+          valor: number;
+          data?: string;
+          mes_referencia: string;
+          comprovante_url?: string | null;
+          lancado_por?: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["upselling"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -874,3 +913,4 @@ export type Dieta = Database["public"]["Tables"]["dieta"]["Row"];
 export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutricional"]["Row"];
 export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
+export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];

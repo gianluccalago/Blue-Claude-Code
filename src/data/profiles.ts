@@ -154,6 +154,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Visão geral", to: "/app/administracao" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
+      { label: "Upselling", to: "/app/administracao/upselling" },
       { label: "Financeiro", to: "/app/administracao/financeiro" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
     ],
