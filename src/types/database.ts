@@ -651,6 +651,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;
         Relationships: [];
       };
+      rouparia_transito: {
+        Row: {
+          id: string;
+          categoria: string;
+          saldo_atual: number;
+          limite: number;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          categoria: string;
+          saldo_atual?: number;
+          limite?: number;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rouparia_transito"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -684,3 +702,4 @@ export type Dispensacao = Database["public"]["Tables"]["dispensacao"]["Row"];
 export type InspecaoSuite = Database["public"]["Tables"]["inspecao_suite"]["Row"];
 export type InspecaoItem = Database["public"]["Tables"]["inspecao_item"]["Row"];
 export type ChamadoManutencao = Database["public"]["Tables"]["chamado_manutencao"]["Row"];
+export type RoupariaTransito = Database["public"]["Tables"]["rouparia_transito"]["Row"];

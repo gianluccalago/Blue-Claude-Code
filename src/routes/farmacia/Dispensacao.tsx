@@ -73,7 +73,7 @@ export function Dispensacao() {
   const hId = hospedeId ?? residentes[0]?.id;
 
   if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState />;
+  if (error) return <ErrorState error={error} />;
   if (residentes.length === 0) return <EmptyState label="Nenhum hóspede cadastrado." />;
 
   return (
@@ -186,7 +186,7 @@ function Dispensar({
   }
 
   if (loadPx || loadDisp) return <LoadingState />;
-  if (errPx) return <ErrorState />;
+  if (errPx) return <ErrorState error={errPx} />;
 
   return (
     <div className="space-y-4">
@@ -404,7 +404,6 @@ function MapaPeriodo({
             key={res.id}
             residente={res}
             periodoKey={periodoKey}
-            data={data}
             dispensacoes={dispPorResidente[res.id] ?? []}
             confirmando={confirmandoId === res.id}
             erro={erros[res.id]}
@@ -434,7 +433,6 @@ function MapaPeriodo({
 function MapaHospede({
   residente,
   periodoKey,
-  data,
   dispensacoes,
   confirmando,
   erro,
@@ -442,7 +440,6 @@ function MapaHospede({
 }: {
   residente: { id: string; nome: string };
   periodoKey: PeriodoMedicacao;
-  data: string;
   dispensacoes: Dispensacao[];
   confirmando: boolean;
   erro: string | undefined;

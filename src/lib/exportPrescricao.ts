@@ -24,13 +24,28 @@ const VIA_EXTENSO: Record<string, string> = {
   sonda: "Sonda",
 };
 
-// Descrição da via para a linha de posologia do texto copiável (ex: "uso oral, 12/12h").
-const VIA_USO_UTF8: Record<string, string> = {
-  oral: "oral",
-  injetavel: "via injetável",
-  insulina: "insulina subcutânea",
-  sonda: "via sonda",
+const PERIODO_LABEL_UTF8: Record<string, string> = {
+  jejum: "Jejum",
+  manha: "Manhã",
+  almoco: "Almoço",
+  apos_almoco: "Após almoço",
+  tarde: "Tarde",
+  noite: "Noite",
 };
+
+// Texto da frequência para a frase de posologia do texto copiável
+// (ex: "Tomar 1 comprimido ao dia" / "Tomar 1 comprimido de 12/12h").
+const POSOLOGIA_TEXTO: Record<string, string> = {
+  "1x/dia": "ao dia",
+  "12/12h": "de 12/12h",
+  "8/8h": "de 8/8h",
+  "6/6h": "de 6/6h",
+  "1x/dia em jejum": "ao dia, em jejum",
+  "1x/dia à noite": "ao dia, à noite",
+};
+
+// Unidades que não variam no plural (abreviações de medida).
+const UNIDADES_INVARIAVEIS = new Set(["ml", "mg", "mcg", "g", "kg", "l", "ui", "meq"]);
 
 const PERIODO_LABEL: Record<string, string> = {
   jejum: "Jejum",
@@ -89,8 +104,21 @@ function parsearQuantidade(qtd: string | null | undefined): { numero: number; un
   };
 }
 
+/** Formata um número para exibição (sem casas decimais quando inteiro). */
+function formatarNumero(n: number): string {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(1).replace(".", ",");
+}
+
+/** Pluraliza a unidade quando a quantidade for diferente de 1. */
+function pluralizar(numero: number, unidade: string): string {
+  if (!unidade || numero === 1) return unidade;
+  if (UNIDADES_INVARIAVEIS.has(unidade.toLowerCase())) return unidade;
+  if (/s$/i.test(unidade)) return unidade;
+  return `${unidade}s`;
+}
+
 /** Soma, por todos os períodos ativos, (quantidade por administração x 30 dias). */
-function calcularMensalDetalhado(grupo: GrupoPrescricao): { valor: string; unidade: string } | null {
+function calcularMensalDetalhado(grupo: GrupoPrescricao): { valor: number; unidade: string } | null {
   let total = 0;
   let unidade = "";
   for (const l of grupo.linhas) {
@@ -101,14 +129,12 @@ function calcularMensalDetalhado(grupo: GrupoPrescricao): { valor: string; unida
     }
   }
   if (total === 0) return null;
-  const mensal = total * 30;
-  const valor = Number.isInteger(mensal) ? mensal.toString() : mensal.toFixed(1);
-  return { valor, unidade };
+  return { valor: total * 30, unidade };
 }
 
 function calcularMensal(grupo: GrupoPrescricao): string {
   const r = calcularMensalDetalhado(grupo);
-  return r ? `${r.valor} ${r.unidade}` : "—";
+  return r ? `${formatarNumero(r.valor)} ${pluralizar(r.valor, r.unidade)}` : "—";
 }
 
 function linhasOrdenadas(grupo: GrupoPrescricao) {
@@ -371,9 +397,37 @@ export function exportarPrescricaoPDF(
 // ─── Texto copiável (pronto para colar no site do CFM) ─────────────────────────
 
 /**
+ * Frase de posologia do medicamento (ex: "Tomar 1 comprimido ao dia" ou
+ * "Tomar 1 comprimido de 12/12h"). Quando a quantidade varia por período,
+ * detalha cada período separadamente.
+ */
+function gerarPosologiaTexto(g: GrupoPrescricao): string {
+  const lins = linhasOrdenadas(g);
+  const freq = POSOLOGIA_TEXTO[g.posologia ?? ""] ?? g.posologia ?? "";
+  const parsed = lins.map((l) => parsearQuantidade(l.quantidade));
+
+  const primeira = parsed[0];
+  const todasIguais =
+    primeira !== null &&
+    parsed.every((p) => p && p.numero === primeira.numero && p.unidade === primeira.unidade);
+
+  if (todasIguais && primeira) {
+    const partes = ["Tomar", formatarNumero(primeira.numero), pluralizar(primeira.numero, primeira.unidade)];
+    if (freq) partes.push(freq);
+    return partes.join(" ");
+  }
+
+  // Quantidades diferentes por período: detalha cada uma.
+  const detalhes = lins
+    .map((l) => `${PERIODO_LABEL_UTF8[l.periodo] ?? l.periodo}: ${l.quantidade || "—"}`)
+    .join(", ");
+  return freq ? `${detalhes} (${freq})` : detalhes;
+}
+
+/**
  * Gera o texto corrido de todas as medicações ativas, formatado para colar
  * na prescrição eletrônica do CFM. Uma linha por medicamento, no formato
- * "NOME DOSE ------------ X unidade", seguida da posologia (via + frequência).
+ * "NOME DOSE ------------ X unidade", seguida da posologia em texto.
  * X = quantidade mensal total = soma, por todos os períodos ativos, de
  * (quantidade por administração x 30 dias).
  */
@@ -384,12 +438,9 @@ export function gerarTextoPrescricao(grupos: GrupoPrescricao[]): string {
     .map((g) => {
       const nomeDose = g.medicamento + (g.dose ? ` ${g.dose}` : "");
       const mensal = calcularMensalDetalhado(g);
-      const qtdTexto = mensal ? `${mensal.valor} ${mensal.unidade}` : "—";
+      const qtdTexto = mensal ? `${formatarNumero(mensal.valor)} ${pluralizar(mensal.valor, mensal.unidade)}` : "—";
 
-      const via = VIA_USO_UTF8[g.via] || g.via;
-      const posologia = ["uso " + via, g.posologia].filter(Boolean).join(", ");
-
-      return `${nomeDose} ------------ ${qtdTexto}\n${posologia}`;
+      return `${nomeDose} ------------ ${qtdTexto}\n${gerarPosologiaTexto(g)}`;
     })
     .join("\n\n");
 }

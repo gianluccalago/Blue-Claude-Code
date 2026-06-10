@@ -150,7 +150,7 @@ export function PainelFarmacia() {
   const dia = diaAtual();
 
   if (isLoading) return <LoadingState />;
-  if (anyError) return <ErrorState />;
+  if (anyError) return <ErrorState error={anyError} />;
 
   return (
     <div className="space-y-6 pb-8">

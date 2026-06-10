@@ -2,7 +2,8 @@
  * Inspeção de Suítes — Hotelaria (BLOCO H1)
  * Fluxo: lista de suítes → formulário de inspeção / histórico.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearch } from "@tanstack/react-router";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -24,7 +25,7 @@ import {
   useSalvarInspecao,
   type ItemInspecaoInput,
 } from "@/hooks/useHotelaria";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
@@ -97,6 +98,19 @@ export function InspecaoSuites() {
     [residentes]
   );
 
+  // Vindo do Painel da Hotelaria (?residente=ID): abre direto a inspeção da suíte.
+  const search = useSearch({ strict: false }) as { residente?: string };
+  const [autoAbriu, setAutoAbriu] = useState(false);
+  useEffect(() => {
+    if (autoAbriu || !search.residente || suitesComQuarto.length === 0) return;
+    const r = suitesComQuarto.find((x) => x.id === search.residente);
+    if (r) {
+      setResidenteSelecionado(r);
+      setTela("form");
+    }
+    setAutoAbriu(true);
+  }, [search.residente, suitesComQuarto, autoAbriu]);
+
   const contadores = useMemo(() => {
     let pendentes = 0;
     let comNaoConformidade = 0;
@@ -109,7 +123,7 @@ export function InspecaoSuites() {
   }, [suitesComQuarto, inspecoesHoje]);
 
   if (loadRes || loadInsp) return <LoadingState />;
-  if (errRes) return <ErrorState />;
+  if (errRes) return <ErrorState error={errRes} />;
   if (suitesComQuarto.length === 0)
     return <EmptyState label="Nenhum hóspede com quarto cadastrado." />;
 
@@ -479,7 +493,7 @@ function HistoricoSuite({
   const { data: inspecoes = [], isLoading, error } = useInspecoesDaSuite(residente.id);
 
   if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState />;
+  if (error) return <ErrorState error={error} />;
 
   return (
     <div className="space-y-4 pb-8">
@@ -519,10 +533,6 @@ function HistoricoSuite({
 function InspecaoCard({ inspecao }: { inspecao: InspecaoSuite }) {
   const [expandido, setExpandido] = useState(false);
   const { data: itens = [], isLoading } = useItensDaInspecao(expandido ? inspecao.id : null);
-
-  const naoConformes = expandido
-    ? itens.filter((i) => i.status === "nao_conforme").length
-    : inspecao.tem_nao_conformidade ? 1 : 0; // apenas para o badge antes de expandir
 
   return (
     <Card className={cn(inspecao.tem_nao_conformidade && "border-destructive/30")}>
