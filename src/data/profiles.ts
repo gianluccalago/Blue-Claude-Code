@@ -152,6 +152,8 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/administracao",
     menu: [
       { label: "Visão geral", to: "/app/administracao" },
+      { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
+      { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Financeiro", to: "/app/administracao/financeiro" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
     ],
@@ -209,4 +211,9 @@ export const MULTI_ATUAL = {
 /** Nutricionista atual (login próprio, separado da Equipe Multidisciplinar). */
 export const NUTRI_ATUAL = {
   nome: "Nutricionista",
+} as const;
+
+/** Colaborador atual da Administração (placeholder até a autenticação por login). */
+export const ADMIN_ATUAL = {
+  nome: "Administração",
 } as const;

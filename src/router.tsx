@@ -35,6 +35,8 @@ import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
 import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
 import { Atividades } from "@/routes/multidisciplinar/Atividades";
+import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
+import { Mensalidades } from "@/routes/administracao/Mensalidades";
 import { Dietas } from "@/routes/nutricionista/Dietas";
 import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
@@ -215,6 +217,16 @@ const evolucaoNutricionalRoute = createRoute({
   path: "evolucao-nutricional",
   component: EvolucaoNutricional,
 });
+const tabelaPrecosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "tabela-precos",
+  component: TabelaPrecos,
+});
+const mensalidadesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "mensalidades",
+  component: Mensalidades,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -255,6 +267,8 @@ const routeTree = rootRoute.addChildren([
     dietasRoute,
     acompanhamentoNutricionalRoute,
     evolucaoNutricionalRoute,
+    tabelaPrecosRoute,
+    mensalidadesRoute,
     placeholderRoute,
   ]),
 ]);

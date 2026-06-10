@@ -1,0 +1,42 @@
+import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
+
+export const TIPOS_SUITE: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
+
+export const GRAUS: GrauDependencia[] = ["I", "II", "III"];
+
+export const OCUPACOES: { value: Ocupacao; label: string }[] = [
+  { value: "individual", label: "Individual" },
+  { value: "dupla", label: "Dupla" },
+];
+
+/** Formata um valor numérico como moeda BRL, ou "Não informado" se nulo. */
+export function formatarMoeda(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined) return "Não informado";
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Mês de referência atual no formato "YYYY-MM". */
+export function mesAtual(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Desloca um mês de referência "YYYY-MM" por `delta` meses. */
+export function deslocarMes(mes: string, delta: number): string {
+  const [y, m] = mes.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Formata "YYYY-MM" como "Mês/AAAA", ex: "Junho/2026". */
+export function formatarMesReferencia(mes: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1).replace(" de ", "/");
+}
+
+/** Chave para consultar a tabela de preços por tipo de suíte + grau. */
+export function chavePreco(tipoSuite: string | null, grau: string | null): string {
+  return `${tipoSuite ?? ""}|${grau ?? ""}`;
+}

@@ -1,0 +1,366 @@
+/**
+ * Mensalidades — Administração (BLOCO Adm1)
+ *
+ * Lista de hóspedes com tipo de suíte, grau, ocupação, mensalidade vigente
+ * (sugerida pela tabela de preços ou ajustada individualmente) e controle
+ * manual de pagamento por mês de referência. Sem integração de
+ * pagamento/boleto.
+ */
+import { useState } from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Wallet,
+} from "lucide-react";
+import { useResidentes } from "@/hooks/usePlanos";
+import {
+  useAjustarMensalidade,
+  useMarcarPagamento,
+  usePagamentosDoMes,
+  useTabelaPreco,
+} from "@/hooks/useMensalidades";
+import {
+  OCUPACOES,
+  TIPOS_SUITE,
+  chavePreco,
+  deslocarMes,
+  formatarMesReferencia,
+  formatarMoeda,
+  mesAtual,
+} from "@/lib/mensalidade";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { LoadingState, EmptyState, ErrorState } from "@/components/states";
+import { cn, formatarDataHoraBR } from "@/lib/utils";
+import type { Ocupacao, PagamentoMensalidade, Residente, TipoSuite } from "@/types/database";
+
+function extrairErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
+  return "Erro desconhecido ao salvar.";
+}
+
+export function Mensalidades() {
+  const [mes, setMes] = useState(mesAtual());
+  const residentes = useResidentes();
+  const tabelaPreco = useTabelaPreco();
+  const pagamentos = usePagamentosDoMes(mes);
+
+  if (residentes.isLoading || tabelaPreco.isLoading || pagamentos.isLoading) return <LoadingState />;
+  if (residentes.isError) return <ErrorState error={residentes.error} />;
+  if (tabelaPreco.isError) return <ErrorState error={tabelaPreco.error} />;
+  if (pagamentos.isError) return <ErrorState error={pagamentos.error} />;
+  if (!residentes.data || residentes.data.length === 0)
+    return <EmptyState label="Nenhum residente cadastrado." />;
+
+  const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau), p.valor]));
+  const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
+  const mesEhPassado = mes < mesAtual();
+
+  let totalPendente = 0;
+  let countInadimplentes = 0;
+  for (const r of residentes.data) {
+    const valor = r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
+    const pago = pagamentoMap.get(r.id)?.status === "pago";
+    if (!pago) {
+      totalPendente += valor;
+      if (mesEhPassado) countInadimplentes++;
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="flex items-center justify-between gap-3 py-4">
+          <Button variant="outline" size="icon" onClick={() => setMes((m) => deslocarMes(m, -1))}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="text-lg font-bold text-secondary">{formatarMesReferencia(mes)}</span>
+          <Button variant="outline" size="icon" onClick={() => setMes((m) => deslocarMes(m, 1))}>
+            <ChevronRight className="size-4" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive">
+              <AlertTriangle className="size-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-secondary">{countInadimplentes}</p>
+              <p className="text-sm text-muted-foreground">Inadimplente(s)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning-foreground">
+              <Wallet className="size-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalPendente)}</p>
+              <p className="text-sm text-muted-foreground">Total pendente no mês</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4">
+        {residentes.data.map((r) => (
+          <ResidenteMensalidade
+            key={r.id}
+            residente={r}
+            mes={mes}
+            mesEhPassado={mesEhPassado}
+            valorSugerido={precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? null}
+            pagamento={pagamentoMap.get(r.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ResidenteMensalidade({
+  residente: r,
+  mes,
+  mesEhPassado,
+  valorSugerido,
+  pagamento,
+}: {
+  residente: Residente;
+  mes: string;
+  mesEhPassado: boolean;
+  valorSugerido: number | null;
+  pagamento: PagamentoMensalidade | undefined;
+}) {
+  const [editando, setEditando] = useState(false);
+  const marcar = useMarcarPagamento();
+  const [erro, setErro] = useState<string | null>(null);
+
+  const valorVigente = r.mensalidade_valor ?? valorSugerido;
+  const pago = pagamento?.status === "pago";
+  const vencido = !pago && mesEhPassado;
+
+  async function handleTogglePagamento() {
+    setErro(null);
+    try {
+      await marcar.mutateAsync({
+        residenteId: r.id,
+        mes,
+        valor: valorVigente ?? 0,
+        pago: !pago,
+      });
+    } catch (e) {
+      setErro(extrairErro(e));
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+        <div>
+          <CardTitle>{r.nome}</CardTitle>
+          <p className="text-sm text-muted-foreground">Quarto {r.quarto ?? "—"}</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <Badge variant="secondary">{r.tipo_suite ?? "Não informado"}</Badge>
+            <Badge variant="muted">Grau {r.grau_dependencia ?? "—"}</Badge>
+            <Badge variant="outline">
+              {r.ocupacao === "dupla" ? "Dupla" : r.ocupacao === "individual" ? "Individual" : "Não informado"}
+            </Badge>
+          </div>
+        </div>
+        <Button variant={editando ? "outline" : "ghost"} size="sm" onClick={() => setEditando((v) => !v)}>
+          <Pencil className="size-4" /> {editando ? "Cancelar" : "Editar"}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {editando ? (
+          <FormAjuste
+            residente={r}
+            valorSugerido={valorSugerido}
+            onSalvo={() => setEditando(false)}
+            onCancelar={() => setEditando(false)}
+          />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(valorVigente)}</p>
+                {r.mensalidade_valor === null && valorSugerido !== null && (
+                  <p className="text-xs text-muted-foreground">Sugerido pela tabela de preços</p>
+                )}
+                {r.mensalidade_ajuste_obs && (
+                  <p className="mt-1 text-xs text-secondary/80">{r.mensalidade_ajuste_obs}</p>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                {vencido ? (
+                  <Badge variant="destructive">Vencido</Badge>
+                ) : pago ? (
+                  <Badge variant="success">Pago</Badge>
+                ) : (
+                  <Badge variant="warning">Pendente</Badge>
+                )}
+                {pago && pagamento?.pago_em && (
+                  <span className="text-xs text-muted-foreground">
+                    Pago em {formatarDataHoraBR(pagamento.pago_em)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {erro && (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="size-4 shrink-0" /> {erro}
+              </div>
+            )}
+
+            <Button
+              variant={pago ? "outline" : "default"}
+              onClick={handleTogglePagamento}
+              disabled={marcar.isPending}
+            >
+              <CheckCircle2 className="size-4" />
+              {marcar.isPending ? "Salvando…" : pago ? "Marcar como pendente" : "Marcar como pago"}
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FormAjuste({
+  residente: r,
+  valorSugerido,
+  onSalvo,
+  onCancelar,
+}: {
+  residente: Residente;
+  valorSugerido: number | null;
+  onSalvo: () => void;
+  onCancelar: () => void;
+}) {
+  const [tipoSuite, setTipoSuite] = useState<TipoSuite | "">(r.tipo_suite ?? "");
+  const [ocupacao, setOcupacao] = useState<Ocupacao | "">(r.ocupacao ?? "");
+  const [valor, setValor] = useState(String(r.mensalidade_valor ?? valorSugerido ?? ""));
+  const [ajusteObs, setAjusteObs] = useState(r.mensalidade_ajuste_obs ?? "");
+  const [erro, setErro] = useState<string | null>(null);
+  const ajustar = useAjustarMensalidade(r.id);
+
+  async function handleSalvar() {
+    setErro(null);
+    try {
+      const valorNum = valor.trim() === "" ? null : Number(valor.replace(",", "."));
+      await ajustar.mutateAsync({
+        tipoSuite: tipoSuite || null,
+        ocupacao: ocupacao || null,
+        valor: valorNum,
+        ajusteObs: ajusteObs.trim() || null,
+      });
+      onSalvo();
+    } catch (e) {
+      setErro(extrairErro(e));
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold text-secondary">Tipo de suíte</p>
+          <div className="flex flex-wrap gap-2">
+            {TIPOS_SUITE.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTipoSuite(t)}
+                className={cn(
+                  "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                  tipoSuite === t
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold text-secondary">Ocupação</p>
+          <div className="flex flex-wrap gap-2">
+            {OCUPACOES.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setOcupacao(o.value)}
+                className={cn(
+                  "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                  ocupacao === o.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
+                )}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-secondary">Mensalidade (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder={valorSugerido !== null ? String(valorSugerido) : ""}
+            className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          {valorSugerido !== null && (
+            <p className="text-xs text-muted-foreground">
+              Sugestão pela tabela de preços: {formatarMoeda(valorSugerido)}
+            </p>
+          )}
+        </div>
+        <div className="space-y-1.5 sm:col-span-1">
+          <label className="text-sm font-semibold text-secondary">Motivo do ajuste (opcional)</label>
+          <textarea
+            value={ajusteObs}
+            onChange={(e) => setAjusteObs(e.target.value)}
+            placeholder="Ex: promoção, desconto fidelidade…"
+            rows={2}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+          />
+        </div>
+      </div>
+
+      {erro && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" /> {erro}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button onClick={handleSalvar} disabled={ajustar.isPending}>
+          {ajustar.isPending ? "Salvando…" : "Salvar"}
+        </Button>
+        <Button variant="outline" onClick={onCancelar} disabled={ajustar.isPending}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}

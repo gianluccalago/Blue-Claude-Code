@@ -44,6 +44,9 @@ export type StatusItemInspecao = "conforme" | "nao_conforme";
 export type UrgenciaChamado = "baixa" | "media" | "alta" | "emergencia";
 export type StatusChamado = "aberto" | "em_andamento" | "resolvido";
 export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" | "master";
+export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
+export type Ocupacao = "individual" | "dupla";
+export type StatusPagamentoMensalidade = "pendente" | "pago";
 
 export interface ItemDispensacaoJson {
   medicamento: string;
@@ -70,6 +73,10 @@ export interface Database {
           proteses: string | null;
           historia_vida: string | null;
           data_admissao: string | null;
+          tipo_suite: TipoSuite | null;
+          ocupacao: Ocupacao | null;
+          mensalidade_valor: number | null;
+          mensalidade_ajuste_obs: string | null;
         };
         Insert: {
           id?: string;
@@ -86,6 +93,10 @@ export interface Database {
           proteses?: string | null;
           historia_vida?: string | null;
           data_admissao?: string | null;
+          tipo_suite?: TipoSuite | null;
+          ocupacao?: Ocupacao | null;
+          mensalidade_valor?: number | null;
+          mensalidade_ajuste_obs?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["residentes"]["Insert"]>;
         Relationships: [];
@@ -740,6 +751,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["atividade_participacao"]["Insert"]>;
         Relationships: [];
       };
+      tabela_preco: {
+        Row: {
+          id: string;
+          tipo_suite: TipoSuite;
+          grau: GrauDependencia;
+          valor: number;
+        };
+        Insert: {
+          id?: string;
+          tipo_suite: TipoSuite;
+          grau: GrauDependencia;
+          valor: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["tabela_preco"]["Insert"]>;
+        Relationships: [];
+      };
+      pagamento_mensalidade: {
+        Row: {
+          id: string;
+          residente_id: string;
+          mes_referencia: string;
+          valor: number;
+          status: StatusPagamentoMensalidade;
+          pago_em: string | null;
+          registrado_por: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          mes_referencia: string;
+          valor: number;
+          status?: StatusPagamentoMensalidade;
+          pago_em?: string | null;
+          registrado_por: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pagamento_mensalidade"]["Insert"]>;
+        Relationships: [];
+      };
       dieta: {
         Row: {
           id: string;
@@ -821,3 +872,5 @@ export type AtividadeExecucao = Database["public"]["Tables"]["atividade_execucao
 export type AtividadeParticipacao = Database["public"]["Tables"]["atividade_participacao"]["Row"];
 export type Dieta = Database["public"]["Tables"]["dieta"]["Row"];
 export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutricional"]["Row"];
+export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
+export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
