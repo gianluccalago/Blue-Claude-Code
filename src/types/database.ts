@@ -47,6 +47,8 @@ export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" 
 export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
 export type StatusPagamentoMensalidade = "pendente" | "pago";
+export type TipoRemuneracao = "mensal_fixo" | "por_plantao";
+export type StatusPagamentoPessoal = "pendente" | "pago";
 export type CategoriaUpselling =
   | "Medicamentos"
   | "Manicure/cabeleireiro"
@@ -123,6 +125,10 @@ export interface Database {
           vinculo: string | null;
           registro_profissional: string | null;
           isento_ponto_app: boolean;
+          tipo_remuneracao: TipoRemuneracao | null;
+          valor_mensal: number | null;
+          valor_plantao_diurno: number | null;
+          valor_plantao_noturno: number | null;
         };
         Insert: {
           id?: string;
@@ -134,6 +140,10 @@ export interface Database {
           vinculo?: string | null;
           registro_profissional?: string | null;
           isento_ponto_app?: boolean;
+          tipo_remuneracao?: TipoRemuneracao | null;
+          valor_mensal?: number | null;
+          valor_plantao_diurno?: number | null;
+          valor_plantao_noturno?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];
@@ -872,6 +882,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["upselling"]["Insert"]>;
         Relationships: [];
       };
+      pagamento_pessoal: {
+        Row: {
+          id: string;
+          profissional_id: string;
+          mes_referencia: string;
+          tipo_remuneracao: TipoRemuneracao;
+          plantoes_previstos: number | null;
+          plantoes_realizados: number | null;
+          valor_calculado: number;
+          valor_final: number;
+          status: StatusPagamentoPessoal;
+          observacao: string | null;
+          registrado_por: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          profissional_id: string;
+          mes_referencia: string;
+          tipo_remuneracao: TipoRemuneracao;
+          plantoes_previstos?: number | null;
+          plantoes_realizados?: number | null;
+          valor_calculado: number;
+          valor_final: number;
+          status?: StatusPagamentoPessoal;
+          observacao?: string | null;
+          registrado_por: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pagamento_pessoal"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -914,3 +956,4 @@ export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutrici
 export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
+export type PagamentoPessoal = Database["public"]["Tables"]["pagamento_pessoal"]["Row"];

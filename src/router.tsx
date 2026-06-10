@@ -40,6 +40,8 @@ import { Mensalidades } from "@/routes/administracao/Mensalidades";
 import { Upselling } from "@/routes/administracao/Upselling";
 import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
 import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
+import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
+import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
 import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
@@ -242,6 +244,16 @@ const demonstrativoRoute = createRoute({
   path: "demonstrativo",
   component: Demonstrativo,
 });
+const remuneracaoEquipeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "remuneracao-equipe",
+  component: RemuneracaoEquipe,
+});
+const custosPessoalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "custos-pessoal",
+  component: CustosPessoal,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -286,6 +298,8 @@ const routeTree = rootRoute.addChildren([
     mensalidadesRoute,
     upsellingRoute,
     demonstrativoRoute,
+    remuneracaoEquipeRoute,
+    custosPessoalRoute,
     placeholderRoute,
   ]),
 ]);

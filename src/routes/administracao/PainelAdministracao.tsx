@@ -11,9 +11,11 @@ import {
   CheckCircle2,
   Receipt,
   TrendingUp,
+  Users,
   Wallet,
 } from "lucide-react";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
+import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { formatarMoeda, formatarMesReferencia, mesAtual } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -21,9 +23,11 @@ import { LoadingState, ErrorState } from "@/components/states";
 export function PainelAdministracao() {
   const mes = mesAtual();
   const demo = useDemonstrativoMes(mes);
+  const custos = useCustosPessoalDoMes(mes);
 
-  if (demo.isLoading) return <LoadingState />;
+  if (demo.isLoading || custos.isLoading) return <LoadingState />;
   if (demo.isError) return <ErrorState error={demo.error} />;
+  if (custos.isError) return <ErrorState error={custos.error} />;
 
   const totalHospedes = demo.linhas.length;
   const totalMensalidades = demo.linhas.reduce((acc, l) => acc + l.mensalidade, 0);
@@ -34,6 +38,9 @@ export function PainelAdministracao() {
   const valorInadimplente = inadimplentes.reduce((acc, l) => acc + l.mensalidade, 0);
   const valorRecebido = totalMensalidades - valorInadimplente;
   const percentRecebido = totalMensalidades > 0 ? Math.round((valorRecebido / totalMensalidades) * 100) : 0;
+
+  const totalCustoPessoal = custos.linhas.reduce((acc, l) => acc + l.valorFinal, 0);
+  const resultadoMes = receitaTotalPrevista - totalCustoPessoal;
 
   return (
     <div className="space-y-6">
@@ -93,6 +100,18 @@ export function PainelAdministracao() {
 
         <Card>
           <CardContent className="flex items-center gap-3 py-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-secondary/10 text-secondary">
+              <Users className="size-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalCustoPessoal)}</p>
+              <p className="text-sm text-muted-foreground">Custo de pessoal do mês</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive">
               <AlertTriangle className="size-5" />
             </div>
@@ -143,6 +162,11 @@ export function PainelAdministracao() {
             ) : (
               "Nenhuma mensalidade pendente neste mês."
             )}
+          </p>
+          <p>
+            Custo de pessoal do mês: <span className="font-semibold">{formatarMoeda(totalCustoPessoal)}</span>.
+            Resultado previsto (receita − pessoal):{" "}
+            <span className="font-semibold">{formatarMoeda(resultadoMes)}</span>.
           </p>
         </CardContent>
       </Card>

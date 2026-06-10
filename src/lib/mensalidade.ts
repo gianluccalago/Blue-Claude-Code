@@ -36,6 +36,15 @@ export function formatarMesReferencia(mes: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1).replace(" de ", "/");
 }
 
+/** Primeiro e último dia do mês "YYYY-MM" no formato YYYY-MM-DD. */
+export function intervaloDoMes(mes: string): { inicio: string; fim: string } {
+  const [y, m] = mes.split("-").map(Number);
+  const inicio = `${mes}-01`;
+  const ultimoDia = new Date(y, m, 0).getDate();
+  const fim = `${mes}-${String(ultimoDia).padStart(2, "0")}`;
+  return { inicio, fim };
+}
+
 /** Chave para consultar a tabela de preços por tipo de suíte + grau. */
 export function chavePreco(tipoSuite: string | null, grau: string | null): string {
   return `${tipoSuite ?? ""}|${grau ?? ""}`;
