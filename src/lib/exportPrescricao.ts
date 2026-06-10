@@ -24,12 +24,12 @@ const VIA_EXTENSO: Record<string, string> = {
   sonda: "Sonda",
 };
 
-// Versão com acentos para o texto copiável (clipboard UTF-8).
-const VIA_EXTENSO_UTF8: Record<string, string> = {
-  oral: "VO",
-  injetavel: "Injetável",
-  insulina: "Insulina (SC)",
-  sonda: "Sonda",
+// Descrição da via para a linha de posologia do texto copiável (ex: "uso oral, 12/12h").
+const VIA_USO_UTF8: Record<string, string> = {
+  oral: "oral",
+  injetavel: "via injetável",
+  insulina: "insulina subcutânea",
+  sonda: "via sonda",
 };
 
 const PERIODO_LABEL: Record<string, string> = {
@@ -37,15 +37,6 @@ const PERIODO_LABEL: Record<string, string> = {
   manha: "Manha",
   almoco: "Almoco",
   apos_almoco: "Apos almoco",
-  tarde: "Tarde",
-  noite: "Noite",
-};
-
-const PERIODO_LABEL_UTF8: Record<string, string> = {
-  jejum: "Jejum",
-  manha: "Manhã",
-  almoco: "Almoço",
-  apos_almoco: "Após almoço",
   tarde: "Tarde",
   noite: "Noite",
 };
@@ -98,7 +89,8 @@ function parsearQuantidade(qtd: string | null | undefined): { numero: number; un
   };
 }
 
-function calcularMensal(grupo: GrupoPrescricao): string {
+/** Soma, por todos os períodos ativos, (quantidade por administração x 30 dias). */
+function calcularMensalDetalhado(grupo: GrupoPrescricao): { valor: string; unidade: string } | null {
   let total = 0;
   let unidade = "";
   for (const l of grupo.linhas) {
@@ -108,10 +100,15 @@ function calcularMensal(grupo: GrupoPrescricao): string {
       if (!unidade) unidade = p.unidade;
     }
   }
-  if (total === 0) return "—";
+  if (total === 0) return null;
   const mensal = total * 30;
   const valor = Number.isInteger(mensal) ? mensal.toString() : mensal.toFixed(1);
-  return `${valor} ${unidade}`;
+  return { valor, unidade };
+}
+
+function calcularMensal(grupo: GrupoPrescricao): string {
+  const r = calcularMensalDetalhado(grupo);
+  return r ? `${r.valor} ${r.unidade}` : "—";
 }
 
 function linhasOrdenadas(grupo: GrupoPrescricao) {
@@ -375,29 +372,24 @@ export function exportarPrescricaoPDF(
 
 /**
  * Gera o texto corrido de todas as medicações ativas, formatado para colar
- * na prescrição eletrônica do CFM. Uma entrada por medicamento, com via,
- * posologia e o detalhamento dos períodos com quantidade.
+ * na prescrição eletrônica do CFM. Uma linha por medicamento, no formato
+ * "NOME DOSE ------------ X unidade", seguida da posologia (via + frequência).
+ * X = quantidade mensal total = soma, por todos os períodos ativos, de
+ * (quantidade por administração x 30 dias).
  */
 export function gerarTextoPrescricao(grupos: GrupoPrescricao[]): string {
   if (grupos.length === 0) return "Nenhuma prescrição ativa.";
 
   return grupos
-    .map((g, i) => {
-      const lins = linhasOrdenadas(g);
-      const via = VIA_EXTENSO_UTF8[g.via] || g.via;
-      const cabecalho = [g.medicamento + (g.dose ? ` ${g.dose}` : ""), via, g.posologia]
-        .filter(Boolean)
-        .join(" — ");
+    .map((g) => {
+      const nomeDose = g.medicamento + (g.dose ? ` ${g.dose}` : "");
+      const mensal = calcularMensalDetalhado(g);
+      const qtdTexto = mensal ? `${mensal.valor} ${mensal.unidade}` : "—";
 
-      const periodos = lins
-        .map((l) => {
-          const label = PERIODO_LABEL_UTF8[l.periodo] ?? l.periodo;
-          const qtd = l.quantidade || "—";
-          return `${label}: ${qtd}`;
-        })
-        .join(", ");
+      const via = VIA_USO_UTF8[g.via] || g.via;
+      const posologia = ["uso " + via, g.posologia].filter(Boolean).join(", ");
 
-      return `${i + 1}) ${cabecalho}\n   ${periodos}`;
+      return `${nomeDose} ------------ ${qtdTexto}\n${posologia}`;
     })
     .join("\n\n");
 }

@@ -253,12 +253,12 @@ function ListaPrescricoes({
                 {copiado ? (
                   <>
                     <CheckCheck className="size-4 text-success" />
-                    Copiado!
+                    Prescrição copiada
                   </>
                 ) : (
                   <>
                     <Copy className="size-4" />
-                    Copiar prescrição
+                    Copiar prescrição (texto)
                   </>
                 )}
               </Button>

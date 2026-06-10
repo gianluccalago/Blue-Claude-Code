@@ -75,9 +75,10 @@ export function useCriarPrescricao() {
   return useMutation({
     mutationFn: async (args: NovaPrescricaoArgs) => {
       const grupoPrescricao = crypto.randomUUID();
+      const medicamento = args.medicamento.trim().toUpperCase();
       const linhas = args.periodos.map((p) => ({
         residente_id: args.residenteId,
-        medicamento: args.medicamento,
+        medicamento,
         dose: args.dose,
         via: args.via,
         posologia: args.posologia,
@@ -118,9 +119,10 @@ export function useEditarPrescricao() {
         .eq("grupo_prescricao", args.grupoPrescricao);
       if (suspErr) throw suspErr;
 
+      const medicamento = args.medicamento.trim().toUpperCase();
       const linhas = args.periodos.map((p) => ({
         residente_id: args.residenteId,
-        medicamento: args.medicamento,
+        medicamento,
         dose: args.dose,
         via: args.via,
         posologia: args.posologia,
