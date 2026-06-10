@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { Turno } from "@/types/database";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -73,6 +74,27 @@ export function horarioParaMinutos(horario: string | null): number | null {
   const m = horario.match(/^(\d{1,2}):(\d{2})/);
   if (!m) return null;
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+/** Minutos locais desde meia-noite de um timestamp ISO. */
+function minutosLocaisDeISO(iso: string): number {
+  const d = new Date(iso);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * Verifica se um horário "HH:MM" cai dentro da janela do turno (cobre turnos
+ * que cruzam a meia-noite, ex: 19h–7h). Sem horário ou sem turno ativo => sempre true.
+ */
+export function horarioNoTurno(horario: string | null, turno: Turno | null): boolean {
+  if (!turno || !horario) return true;
+  const alvo = horarioParaMinutos(horario);
+  if (alvo === null) return true;
+  const ini = minutosLocaisDeISO(turno.inicio);
+  const fim = minutosLocaisDeISO(turno.fim);
+  if (ini === fim) return true;
+  if (ini < fim) return alvo >= ini && alvo < fim;
+  return alvo >= ini || alvo < fim;
 }
 
 export function formatarDataBR(dataISO: string | null): string {

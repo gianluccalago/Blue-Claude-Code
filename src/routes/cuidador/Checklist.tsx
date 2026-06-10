@@ -23,44 +23,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, horarioParaMinutos, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
+import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
 import type { PlanoCuidadoItem, TarefaRegistro, Turno } from "@/types/database";
 
-// 6 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
+// 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
+// A chave (usada na gravação) é o nome da refeição.
 const REFEICOES = [
-  "Café da manhã",
-  "Lanche da manhã",
-  "Almoço",
-  "Lanche da tarde",
-  "Jantar",
-  "Ceia",
+  { nome: "Café da manhã", horario: "08:00" },
+  { nome: "Lanche da manhã", horario: "10:00" },
+  { nome: "Almoço", horario: "12:00" },
+  { nome: "Lanche da tarde", horario: "16:00" },
+  { nome: "Jantar", horario: "19:00" },
+  { nome: "Ceia", horario: "21:00" },
 ] as const;
 const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;
 
 type StatusKey = "feito" | "atraso" | "em_breve" | "normal";
-
-/** Hora local (minutos desde meia-noite) de um timestamp ISO. */
-function minutosLocais(iso: string): number {
-  const d = new Date(iso);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-/**
- * Uma tarefa do plano só aparece no checklist se o horário dela cair dentro
- * da janela do turno ativo da cuidadora (cobre turnos que cruzam a meia-noite,
- * ex: 19h-7h). Tarefas sem horário fixo (null) sempre aparecem.
- */
-function itemNoTurno(item: PlanoCuidadoItem, turno: Turno | null): boolean {
-  if (!turno || !item.horario) return true;
-  const itemMin = horarioParaMinutos(item.horario);
-  if (itemMin === null) return true;
-  const ini = minutosLocais(turno.inicio);
-  const fim = minutosLocais(turno.fim);
-  if (ini === fim) return true;
-  if (ini < fim) return itemMin >= ini && itemMin < fim;
-  return itemMin >= ini || itemMin < fim;
-}
 
 function calcularStatus(item: PlanoCuidadoItem, feito: boolean): {
   key: StatusKey;
@@ -136,8 +115,12 @@ function ChecklistDoHospede({
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
   const planoItensDoTurno = useMemo(
-    () => planoItens.filter((item) => itemNoTurno(item, turno)),
+    () => planoItens.filter((item) => horarioNoTurno(item.horario, turno)),
     [planoItens, turno]
+  );
+  const refeicoesDoTurno = useMemo(
+    () => REFEICOES.filter((r) => horarioNoTurno(r.horario, turno)),
+    [turno]
   );
 
   // Confirmação para ações destrutivas (evita toque acidental no tablet).
@@ -257,7 +240,10 @@ function ChecklistDoHospede({
           <CardTitle>Aceitação alimentar</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {REFEICOES.map((refeicao) => {
+          {refeicoesDoTurno.length === 0 ? (
+            <EmptyState label="Nenhuma refeição agendada para o seu turno." />
+          ) : (
+          refeicoesDoTurno.map(({ nome: refeicao }) => {
             const reg = registroRefeicao(refeicao);
             const nivelAtual = reg?.tarefa.split(": ")[1];
             return (
@@ -285,7 +271,8 @@ function ChecklistDoHospede({
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </CardContent>
       </Card>
 
