@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sun, Moon, MapPin, LogIn, LogOut, AlertTriangle } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useMinhaEscala } from "@/hooks/useTurnos";
-import { useRegistrarPonto, type TipoPonto } from "@/hooks/usePonto";
+import { useProfissionalAtual, useRegistrarPonto, type TipoPonto } from "@/hooks/usePonto";
 import { ESTABELECIMENTO, distanciaMetros, obterPosicaoAtual, mensagemErroGeo } from "@/lib/geo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,28 +11,38 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, hojeISO, formatarHoraBR } from "@/lib/utils";
 import type { Turno } from "@/types/database";
 
-export function MinhaEscala() {
-  // Somente consulta dos próprios turnos (+ ponto no turno de hoje).
-  // Todas as profissionais batem check-in/check-out (não há mais isenção).
-  const escala = useMinhaEscala(CUIDADOR_ATUAL.id);
+function extrairErroPonto(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return "Não foi possível registrar o ponto. Tente novamente.";
+}
 
-  if (escala.isLoading) return <LoadingState />;
+export function MinhaEscala() {
+  // Consulta dos próprios turnos (+ ponto no turno de hoje) e se a
+  // profissional é isenta do ponto por geolocalização (isento_ponto_app).
+  const escala = useMinhaEscala(CUIDADOR_ATUAL.id);
+  const profissional = useProfissionalAtual();
+
+  if (escala.isLoading || profissional.isLoading) return <LoadingState />;
   if (escala.isError) return <ErrorState error={escala.error} />;
+  if (profissional.isError) return <ErrorState error={profissional.error} />;
 
   const turnos = escala.data ?? [];
   if (turnos.length === 0)
     return <EmptyState label="Você ainda não possui turnos na escala." />;
 
+  // Default seguro (true = ponto simples) caso o cadastro não traga o campo.
+  const isento = profissional.data?.isento_ponto_app ?? true;
+
   return (
     <div className="space-y-3">
       {turnos.map((t) => (
-        <TurnoLinha key={t.id} turno={t} />
+        <TurnoLinha key={t.id} turno={t} isento={isento} />
       ))}
     </div>
   );
 }
 
-function TurnoLinha({ turno: t }: { turno: Turno }) {
+function TurnoLinha({ turno: t, isento }: { turno: Turno; isento: boolean }) {
   const ehHoje = t.data === hojeISO();
   const noturno = t.tag === "noturno";
   const Icone = noturno ? Moon : Sun;
@@ -69,18 +79,31 @@ function TurnoLinha({ turno: t }: { turno: Turno }) {
         </Badge>
       </CardContent>
 
-      {/* Ponto: só no turno de HOJE (todas as profissionais batem ponto). */}
+      {/* Ponto: só no turno de HOJE. */}
       {ehHoje && (
         <div className="border-t px-4 py-3">
-          <PontoBloco turno={t} />
+          <PontoBloco turno={t} isento={isento} />
         </div>
       )}
     </Card>
   );
 }
 
-/** Controles de ponto por geolocalização (somente para profissional NÃO isenta). */
-function PontoBloco({ turno: t }: { turno: Turno }) {
+/**
+ * Controles de ponto.
+ *
+ * Este ponto é CONTROLE INTERNO/GERENCIAL e não substitui o ponto eletrônico
+ * legal das profissionais CLT (que já fazem seu ponto oficial por fora do
+ * app — por isso são "isentas" aqui).
+ *
+ * - Isenta (isento_ponto_app=true, ex: CLT): check-in/out simples, sem
+ *   geolocalização — mantém o comportamento de hoje.
+ * - Não isenta (ex: cuidadora PJ): exige estar dentro do raio do
+ *   estabelecimento (GPS tem imprecisão; raio generoso de
+ *   ESTABELECIMENTO.raioCheckinMetros + ajuste manual da Coordenação em
+ *   Escalas cobrem falhas de localização).
+ */
+function PontoBloco({ turno: t, isento }: { turno: Turno; isento: boolean }) {
   const registrar = useRegistrarPonto();
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -90,6 +113,16 @@ function PontoBloco({ turno: t }: { turno: Turno }) {
 
   async function bater(tipo: TipoPonto) {
     setErro(null);
+
+    if (isento) {
+      try {
+        await registrar.mutateAsync({ turnoId: t.id, tipo });
+      } catch (e) {
+        setErro(extrairErroPonto(e));
+      }
+      return;
+    }
+
     setCarregando(true);
     try {
       const pos = await obterPosicaoAtual();
@@ -102,8 +135,8 @@ function PontoBloco({ turno: t }: { turno: Turno }) {
       );
       if (dist > ESTABELECIMENTO.raioCheckinMetros) {
         setErro(
-          `Você está fora do raio do estabelecimento (${Math.round(dist)} metros). ` +
-            "O registro de ponto só é permitido no local.",
+          `Você está a ${Math.round(dist)} metros do estabelecimento. ` +
+            "O ponto só pode ser registrado no local.",
         );
         return;
       }
@@ -144,7 +177,7 @@ function PontoBloco({ turno: t }: { turno: Turno }) {
         <p className="text-sm font-medium text-success">Ponto do dia concluído.</p>
       )}
 
-      {/* Mensagem de erro/fora do raio */}
+      {/* Mensagem de erro/fora do raio/permissão negada */}
       {erro && (
         <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -152,9 +185,15 @@ function PontoBloco({ turno: t }: { turno: Turno }) {
         </p>
       )}
 
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <MapPin className="size-3.5" /> Controle interno — não substitui o ponto físico oficial.
-      </p>
+      {isento ? (
+        <p className="text-xs text-muted-foreground">Controle interno — não substitui o ponto eletrônico oficial.</p>
+      ) : (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <MapPin className="size-3.5" /> Controle interno — exige localização no estabelecimento (raio de{" "}
+          {ESTABELECIMENTO.raioCheckinMetros}m).
+        </p>
+      )}
     </div>
   );
 }
+
