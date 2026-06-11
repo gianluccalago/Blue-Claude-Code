@@ -489,7 +489,24 @@ function MapaHospede({
   const jaDispensado = dispensacoes.length > 0;
 
   if (isLoading) return <div className="h-12 animate-pulse rounded-lg bg-accent" />;
-  if (itensDoZiploc.length === 0) return null;
+
+  // Sem itens orais no período: ainda mostra o hóspede (linha discreta) para a
+  // farmacêutica saber que não pulou ninguém.
+  if (itensDoZiploc.length === 0) {
+    return (
+      <Card className="opacity-60">
+        <CardContent className="flex items-center gap-3 p-3">
+          <div className="mt-0.5 shrink-0 rounded-full bg-muted p-1.5 text-muted-foreground">
+            <PackageMinus className="h-4 w-4" />
+          </div>
+          <p className="flex-1 text-sm font-medium">{residente.nome}</p>
+          <Badge variant="muted" className="text-xs">
+            sem prescrição oral
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={cn(jaDispensado && "opacity-75")}>

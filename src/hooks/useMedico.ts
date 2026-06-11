@@ -23,6 +23,58 @@ export type GrupoPrescricao = {
   linhas: Prescricao[];
 };
 
+export type MedicamentoConhecido = {
+  medicamento: string;
+  /** Via e dose mais comuns para esse medicamento na casa. */
+  via: ViaMedicacao;
+  dose: string | null;
+};
+
+/**
+ * Catálogo de medicamentos já usados na casa (distinct de `prescricao`), com a
+ * via/dose mais frequente — alimenta o autocomplete da prescrição.
+ */
+export function useMedicamentosDaCasa() {
+  return useQuery({
+    queryKey: ["medicamentos-da-casa"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<MedicamentoConhecido[]> => {
+      const { data, error } = await supabase
+        .from("prescricao")
+        .select("medicamento, via, dose");
+      if (error) throw error;
+      // Agrupa por nome do medicamento (case-insensitive) e escolhe via/dose
+      // mais frequentes.
+      const mapa = new Map<
+        string,
+        { medicamento: string; vias: Map<string, number>; doses: Map<string, number> }
+      >();
+      for (const p of data ?? []) {
+        const nome = (p.medicamento ?? "").trim();
+        if (!nome) continue;
+        const chave = nome.toUpperCase();
+        const reg = mapa.get(chave) ?? { medicamento: nome, vias: new Map(), doses: new Map() };
+        reg.vias.set(p.via, (reg.vias.get(p.via) ?? 0) + 1);
+        if (p.dose) reg.doses.set(p.dose, (reg.doses.get(p.dose) ?? 0) + 1);
+        mapa.set(chave, reg);
+      }
+      const maisFrequente = <T,>(m: Map<T, number>): T | null => {
+        let melhor: T | null = null;
+        let max = 0;
+        for (const [k, n] of m) if (n > max) { max = n; melhor = k; }
+        return melhor;
+      };
+      return [...mapa.values()]
+        .map((r) => ({
+          medicamento: r.medicamento,
+          via: (maisFrequente(r.vias) ?? "oral") as ViaMedicacao,
+          dose: maisFrequente(r.doses),
+        }))
+        .sort((a, b) => a.medicamento.localeCompare(b.medicamento, "pt-BR"));
+    },
+  });
+}
+
 /** Todas as prescrições ativas do residente, agrupadas por grupo_prescricao. */
 export function usePrescricoesAtivas(residenteId: string | undefined) {
   return useQuery({

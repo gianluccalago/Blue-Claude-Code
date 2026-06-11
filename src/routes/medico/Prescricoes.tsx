@@ -7,6 +7,7 @@ import {
   useCriarPrescricao,
   useEditarPrescricao,
   useSuspenderPrescricao,
+  useMedicamentosDaCasa,
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
 import { exportarPrescricaoPDF, copiarPrescricao } from "@/lib/exportPrescricao";
@@ -381,8 +382,26 @@ function FormPrescricao({
   const criar = useCriarPrescricao();
   const editar = useEditarPrescricao();
   const salvando = criar.isPending || editar.isPending;
+  const medicamentos = useMedicamentosDaCasa();
 
   const [form, setForm] = useState<FormValues>(inicial);
+
+  // Ao escolher um medicamento conhecido, pré-preenche via/dose mais comuns
+  // (só quando os campos ainda estão vazios — não sobrescreve o que o médico digitou).
+  function aoDigitarMedicamento(valor: string) {
+    setForm((f) => {
+      const conhecido = (medicamentos.data ?? []).find(
+        (m) => m.medicamento.toLowerCase() === valor.trim().toLowerCase(),
+      );
+      if (!conhecido) return { ...f, medicamento: valor };
+      return {
+        ...f,
+        medicamento: valor,
+        via: f.dose.trim() === "" ? conhecido.via : f.via,
+        dose: f.dose.trim() === "" && conhecido.dose ? conhecido.dose : f.dose,
+      };
+    });
+  }
 
   // Atualiza quantidade de todos os períodos marcados ao mudar o default.
   function setQuantidadeDefault(val: string) {
@@ -474,15 +493,24 @@ function FormPrescricao({
         </button>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Medicamento */}
+        {/* Medicamento (com autocomplete dos medicamentos já usados na casa) */}
         <Campo label="Medicamento *">
           <input
             type="text"
+            list="medicamentos-da-casa"
             value={form.medicamento}
-            onChange={(e) => setForm((f) => ({ ...f, medicamento: e.target.value }))}
+            onChange={(e) => aoDigitarMedicamento(e.target.value)}
             placeholder="Ex: Losartana"
             className={inputClass}
+            autoComplete="off"
           />
+          <datalist id="medicamentos-da-casa">
+            {(medicamentos.data ?? []).map((m) => (
+              <option key={m.medicamento} value={m.medicamento}>
+                {[m.dose, `via ${m.via}`].filter(Boolean).join(" · ")}
+              </option>
+            ))}
+          </datalist>
         </Campo>
 
         {/* Linha: Via + Dose */}

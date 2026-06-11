@@ -53,6 +53,27 @@ export function exportarDemonstrativoConsolidadoExcel(
         }));
       const wsDetalhe = XLSX.utils.json_to_sheet(detalhamento);
       XLSX.utils.book_append_sheet(wb, wsDetalhe, "Upselling");
+
+      // 3ª aba: subtotais por categoria (mantenedor não precisa de tabela dinâmica).
+      const porCategoria = new Map<string, { total: number; qtd: number }>();
+      for (const u of upsellingTodos) {
+        const cat = u.categoria || "Não informado";
+        const reg = porCategoria.get(cat) ?? { total: 0, qtd: 0 };
+        reg.total += u.valor;
+        reg.qtd += 1;
+        porCategoria.set(cat, reg);
+      }
+      const totalGeral = upsellingTodos.reduce((s, u) => s + u.valor, 0);
+      const subtotais = [...porCategoria.entries()]
+        .sort((a, b) => b[1].total - a[1].total)
+        .map(([categoria, { total, qtd }]) => ({
+          "Categoria": categoria,
+          "Lançamentos": qtd,
+          "Total (R$)": total,
+        }));
+      subtotais.push({ "Categoria": "TOTAL", "Lançamentos": upsellingTodos.length, "Total (R$)": totalGeral });
+      const wsCategoria = XLSX.utils.json_to_sheet(subtotais);
+      XLSX.utils.book_append_sheet(wb, wsCategoria, "Upselling por categoria");
     }
 
     XLSX.writeFile(wb, `demonstrativo_${mes}.xlsx`);
