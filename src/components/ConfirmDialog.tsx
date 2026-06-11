@@ -47,10 +47,10 @@ export function ConfirmDialog({
         aria-hidden="true"
         tabIndex={-1}
         onClick={onCancelar}
-        className="absolute inset-0 cursor-default bg-secondary/40 backdrop-blur-sm"
+        className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm"
       />
       {/* caixa */}
-      <div className="relative w-full max-w-sm rounded-lg border bg-card p-6 shadow-soft">
+      <div className="relative w-full max-w-sm animate-fade-in-up rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="text-lg font-bold text-secondary">{titulo}</h2>
         {descricao && <p className="mt-1.5 text-sm text-muted-foreground">{descricao}</p>}
         <div className="mt-6 flex gap-3">

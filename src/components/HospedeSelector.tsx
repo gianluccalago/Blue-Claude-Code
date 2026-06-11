@@ -39,10 +39,10 @@ export function HospedeSelector({
               key={h.id}
               onClick={() => onSelect(h.id)}
               className={cn(
-                "rounded-lg border px-4 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "min-h-[44px] rounded-lg border px-4 py-3 text-left transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 ativo
-                  ? "border-primary bg-primary/10 shadow-card"
-                  : "border-border bg-card hover:border-primary/50",
+                  ? "border-primary bg-primary/10 shadow-card ring-1 ring-primary/30"
+                  : "border-border bg-card shadow-xs hover:border-primary/50 hover:shadow-card",
               )}
             >
               <div className={cn("font-bold", ativo ? "text-secondary" : "text-foreground")}>
@@ -64,7 +64,7 @@ export function HospedeSelector({
       {/* Campo de seleção / busca */}
       <div
         className={cn(
-          "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-2 transition-colors",
+          "flex min-h-[48px] cursor-pointer items-center gap-2 rounded-lg border bg-card px-3.5 py-2 shadow-xs transition-all duration-200",
           aberto ? "border-primary ring-2 ring-ring" : "border-border hover:border-primary/50",
         )}
         onClick={() => setAberto(true)}
@@ -76,7 +76,7 @@ export function HospedeSelector({
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou quarto…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
@@ -92,13 +92,13 @@ export function HospedeSelector({
               e.stopPropagation();
               setBusca("");
             }}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Limpar busca"
           >
             <X className="size-4" />
           </button>
         ) : (
-          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-180")} />
+          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", aberto && "rotate-180")} />
         )}
       </div>
 
@@ -113,7 +113,7 @@ export function HospedeSelector({
               setBusca("");
             }}
           />
-          <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+          <div className="absolute z-20 mt-1.5 max-h-72 w-full animate-fade-in-up overflow-y-auto rounded-lg border border-border/70 bg-card shadow-lifted">
             {filtrados.length === 0 ? (
               <div className="px-4 py-3 text-sm text-muted-foreground">
                 Nenhum hóspede encontrado.
@@ -130,12 +130,12 @@ export function HospedeSelector({
                       setBusca("");
                     }}
                     className={cn(
-                      "flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-accent",
+                      "flex min-h-[44px] w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors duration-150 hover:bg-accent",
                       ativo && "bg-primary/5",
                     )}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className={cn("font-semibold", ativo ? "text-primary" : "text-secondary")}>
+                      <div className={cn("font-semibold", ativo ? "text-primary-strong" : "text-secondary")}>
                         {h.nome}
                       </div>
                       <div className="text-xs text-muted-foreground">
