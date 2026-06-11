@@ -254,3 +254,46 @@ export function useTurnosVagosProximos(dias = 14) {
     },
   });
 }
+
+// ===========================================================================
+// MASTER · Supervisão clínica — última avaliação IVCF de CADA residente.
+// Status: atualizado / desatualizado (>6 meses) / sem avaliação.
+// ===========================================================================
+
+export type StatusIVCF = "atualizado" | "desatualizado" | "sem";
+
+export interface UltimaIVCF {
+  pontuacao: number;
+  classificacao: "Grau I" | "Grau II" | "Grau III";
+  registradoEm: string;
+  status: StatusIVCF;
+}
+
+/** Mapa residenteId → última avaliação IVCF (com status calculado). */
+export function useUltimasAvaliacoesIVCF() {
+  return useQuery({
+    queryKey: ["master-ivcf-ultimas"],
+    queryFn: async (): Promise<Map<string, UltimaIVCF>> => {
+      const { data, error } = await supabase
+        .from("avaliacao_ivcf")
+        .select("residente_id, pontuacao_total, classificacao, registrado_em")
+        .order("registrado_em", { ascending: false });
+      if (error) throw error;
+      const seisMesesMs = 183 * 24 * 60 * 60 * 1000;
+      const agora = Date.now();
+      const mapa = new Map<string, UltimaIVCF>();
+      for (const r of data ?? []) {
+        // como vêm ordenadas (mais recente primeiro), só a primeira por residente.
+        if (mapa.has(r.residente_id)) continue;
+        const idadeMs = agora - new Date(r.registrado_em).getTime();
+        mapa.set(r.residente_id, {
+          pontuacao: r.pontuacao_total,
+          classificacao: r.classificacao,
+          registradoEm: r.registrado_em,
+          status: idadeMs > seisMesesMs ? "desatualizado" : "atualizado",
+        });
+      }
+      return mapa;
+    },
+  });
+}

@@ -18,6 +18,11 @@ import { usePrescricoes } from "@/hooks/useMedicacao";
 import { useEliminacoes, calcularAlertasEliminacao } from "@/hooks/useEliminacao";
 import { useCompromissos } from "@/hooks/useCompromissos";
 import { useTratamentos, estadoDaPendencia } from "@/hooks/useCoordenacao";
+import { useAvaliacoesIVCF, useEvolucoes } from "@/hooks/useMedico";
+import { useDietaAtiva, useEvolucaoNutricional } from "@/hooks/useNutricao";
+import { useHistoricoParticipacao } from "@/hooks/useAtividades";
+import { useLancamentosDoMes } from "@/hooks/useUpselling";
+import { formatarMoeda, mesAtual } from "@/lib/mensalidade";
 import {
   useIntercorrenciasResidente,
   useAceitacaoResidenteHoje,
@@ -104,6 +109,14 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
   const eliminacoes = useEliminacoes(residenteId);
   const aceitacao = useAceitacaoResidenteHoje(residenteId);
   const compromissos = useCompromissos([residenteId]);
+  // Dados agora reais (pós-unificação): IVCF, dieta, evoluções, atividades, financeiro.
+  const ivcf = useAvaliacoesIVCF(residenteId);
+  const dieta = useDietaAtiva(residenteId);
+  const evolMedica = useEvolucoes(residenteId);
+  const evolNutri = useEvolucaoNutricional(residenteId);
+  const atividades = useHistoricoParticipacao(residenteId);
+  const mesRef = mesAtual();
+  const upselling = useLancamentosDoMes(residenteId, mesRef);
 
   const carregando =
     plano.isLoading ||
@@ -112,7 +125,13 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
     tratamentos.isLoading ||
     eliminacoes.isLoading ||
     aceitacao.isLoading ||
-    compromissos.isLoading;
+    compromissos.isLoading ||
+    ivcf.isLoading ||
+    dieta.isLoading ||
+    evolMedica.isLoading ||
+    evolNutri.isLoading ||
+    atividades.isLoading ||
+    upselling.isLoading;
 
   const erro =
     plano.error ??
@@ -121,7 +140,13 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
     tratamentos.error ??
     eliminacoes.error ??
     aceitacao.error ??
-    compromissos.error;
+    compromissos.error ??
+    ivcf.error ??
+    dieta.error ??
+    evolMedica.error ??
+    evolNutri.error ??
+    atividades.error ??
+    upselling.error;
 
   const alertas = useMemo(
     () => calcularAlertasEliminacao(eliminacoes.data ?? []),
@@ -136,6 +161,14 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
     (c) => !c.data || c.data >= hojeISO(),
   );
   const idade = calcularIdade(hospede.data_nascimento);
+
+  // Derivados dos dados reais.
+  const ultimaIvcf = (ivcf.data ?? [])[0] ?? null;
+  const ultimaEvolMedica = (evolMedica.data ?? [])[0] ?? null;
+  const ultimaEvolNutri = (evolNutri.data ?? [])[0] ?? null;
+  const atividadesRecentes = (atividades.data ?? []).filter((a) => a.presente).slice(0, 5);
+  const upsellingMes = upselling.data ?? [];
+  const totalUpselling = upsellingMes.reduce((s, u) => s + (u.valor ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -232,25 +265,91 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
         )}
       </Secao>
 
-      {/* DIETA ATIVA — sem fonte no schema atual */}
+      {/* DIETA ATIVA (módulo de Nutrição) */}
       <Secao icon={Utensils} titulo="Dieta ativa">
-        {/* SEM DADOS: não há tabela de dieta (consistência/restrições/observações).
-            Origem futura: módulo de Nutrição. */}
-        <SemDados nota="consistência, restrições e observações — módulo de Nutrição" />
+        {!dieta.data ? (
+          <EmptyState label="Nenhuma dieta ativa cadastrada." />
+        ) : (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="default">{dieta.data.consistencia}</Badge>
+              {(dieta.data.restricoes ?? []).map((r) => (
+                <Badge key={r} variant="warning">
+                  {r}
+                </Badge>
+              ))}
+            </div>
+            {dieta.data.observacoes && (
+              <p className="text-sm text-muted-foreground">{dieta.data.observacoes}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Definida por {ouNaoInformado(dieta.data.definida_por)} ·{" "}
+              {formatarDataBR(dieta.data.definida_em)}
+            </p>
+          </div>
+        )}
       </Secao>
 
-      {/* EVOLUÇÕES MÉDICAS E NUTRICIONAIS — sem fonte no schema atual */}
+      {/* EVOLUÇÕES MÉDICAS E NUTRICIONAIS (módulos Médico e Nutrição) */}
       <Secao icon={FileText} titulo="Últimas evoluções médicas e nutricionais">
-        {/* SEM DADOS: não há tabela de evoluções. Origem futura: módulo Médico
-            (evolução clínica) e módulo de Nutrição (evolução nutricional). */}
-        <SemDados nota="evolução clínica e nutricional — módulos Médico e Nutrição" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <div className="mb-1 text-xs font-semibold text-muted-foreground">Médica</div>
+            {!ultimaEvolMedica ? (
+              <p className="text-sm text-muted-foreground">Sem evoluções médicas.</p>
+            ) : (
+              <div className="rounded-lg border bg-card p-3">
+                <p className="text-sm text-secondary">{ultimaEvolMedica.texto}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatarDataHoraBR(ultimaEvolMedica.registrado_em)} ·{" "}
+                  {ouNaoInformado(ultimaEvolMedica.registrado_por)}
+                </p>
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-semibold text-muted-foreground">Nutricional</div>
+            {!ultimaEvolNutri ? (
+              <p className="text-sm text-muted-foreground">Sem evoluções nutricionais.</p>
+            ) : (
+              <div className="rounded-lg border bg-card p-3">
+                <p className="text-sm text-secondary">{ultimaEvolNutri.texto}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatarDataHoraBR(ultimaEvolNutri.registrado_em)} ·{" "}
+                  {ouNaoInformado(ultimaEvolNutri.registrado_por)}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </Secao>
 
-      {/* IVCF — sem fonte no schema atual */}
+      {/* ÚLTIMA AVALIAÇÃO IVCF (módulo clínico) */}
       <Secao icon={Stethoscope} titulo="Última avaliação IVCF">
-        {/* SEM DADOS: não há tabela de avaliações IVCF. Origem futura: módulo
-            clínico/avaliação (pontuação, classificação e data). */}
-        <SemDados nota="pontuação, classificação e data — avaliação IVCF (módulo clínico)" />
+        {!ultimaIvcf ? (
+          <SemDados nota="nenhuma avaliação IVCF registrada para este hóspede" />
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-3xl font-extrabold tabular-nums text-secondary">
+              {ultimaIvcf.pontuacao_total}
+            </span>
+            <Badge
+              variant={
+                ultimaIvcf.classificacao === "Grau III"
+                  ? "destructive"
+                  : ultimaIvcf.classificacao === "Grau II"
+                    ? "warning"
+                    : "success"
+              }
+            >
+              {ultimaIvcf.classificacao}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {formatarDataBR(ultimaIvcf.registrado_em)} ·{" "}
+              {ouNaoInformado(ultimaIvcf.registrado_por)}
+            </span>
+          </div>
+        )}
       </Secao>
 
       {/* INTERCORRÊNCIAS RECENTES */}
@@ -343,11 +442,25 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
         )}
       </Secao>
 
-      {/* ATIVIDADES MULTIDISCIPLINARES — sem fonte no schema atual */}
+      {/* ATIVIDADES MULTIDISCIPLINARES (módulo Multidisciplinar) */}
       <Secao icon={Activity} titulo="Atividades multidisciplinares recentes">
-        {/* SEM DADOS: não há tabela de atendimentos multidisciplinares.
-            Origem futura: módulo Equipe Multidisciplinar (fisio/fono/nutri/psico). */}
-        <SemDados nota="atendimentos de fisio/fono/nutrição/psicologia — módulo Multidisciplinar" />
+        {atividadesRecentes.length === 0 ? (
+          <EmptyState label="Nenhuma participação em atividades registrada." />
+        ) : (
+          <ul className="space-y-2">
+            {atividadesRecentes.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3"
+              >
+                <span className="font-medium text-secondary">
+                  {a.atividade_titulo ?? "Atividade"}
+                </span>
+                <Badge variant="muted">{formatarDataBR(a.data)}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
       </Secao>
 
       {/* COMPROMISSOS EXTERNOS PRÓXIMOS */}
@@ -374,11 +487,36 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
         )}
       </Secao>
 
-      {/* FINANCEIRO — sem fonte no schema atual */}
+      {/* FINANCEIRO (módulo Administração) — mensalidade vigente + upselling do mês */}
       <Secao icon={Wallet} titulo="Financeiro">
-        {/* SEM DADOS: não há tabela de mensalidades/contratos nem upselling.
-            Origem futura: módulo Administração/Financeiro. */}
-        <SemDados nota="mensalidade vigente + upselling do mês — módulo Financeiro" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Campo rotulo="Mensalidade vigente" valor={formatarMoeda(hospede.mensalidade_valor)} />
+          <Campo
+            rotulo={`Upselling (${mesRef})`}
+            valor={upsellingMes.length === 0 ? "Nenhum no mês" : formatarMoeda(totalUpselling)}
+          />
+          <Campo
+            rotulo="Total previsto"
+            valor={
+              hospede.mensalidade_valor != null
+                ? formatarMoeda((hospede.mensalidade_valor ?? 0) + totalUpselling)
+                : "Não informado"
+            }
+          />
+        </div>
+        {upsellingMes.length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {upsellingMes.map((u) => (
+              <li
+                key={u.id}
+                className="flex items-center justify-between gap-2 text-sm text-muted-foreground"
+              >
+                <span>{u.categoria}</span>
+                <span className="tabular-nums">{formatarMoeda(u.valor)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Secao>
     </div>
   );

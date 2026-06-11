@@ -2,7 +2,13 @@ import { useMemo, useState } from "react";
 import { HeartPulse, AlertCircle, Filter } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useAlertasEliminacaoPainel } from "@/hooks/useCoordenacao";
-import { useAceitacaoBaixaRecente, DIAS_INTERCORRENCIAS_RECENTES } from "@/hooks/useMaster";
+import {
+  useAceitacaoBaixaRecente,
+  useUltimasAvaliacoesIVCF,
+  DIAS_INTERCORRENCIAS_RECENTES,
+  type StatusIVCF,
+} from "@/hooks/useMaster";
+import { grauNivel, formatarDataBR } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
@@ -20,16 +26,29 @@ import type { ReactNode } from "react";
 // ===========================================================================
 
 type FiltroGrau = "todos" | GrauDependencia;
-type FiltroAlerta = "todos" | "atencao" | "intercorrencia" | "eliminacao" | "nutricional";
+type FiltroAlerta =
+  | "todos"
+  | "atencao"
+  | "ivcf"
+  | "intercorrencia"
+  | "eliminacao"
+  | "nutricional";
 
 interface LinhaClinica {
   id: string;
   nome: string;
   quarto: string | null;
   grau: GrauDependencia | null;
+  grauContratual: GrauDependencia | null;
+  ivcfStatus: StatusIVCF;
+  ivcfData: string | null;
+  /** Grau atual (do IVCF) diverge do contratual em ≥1 nível. */
+  divergeGrau: boolean;
   intercorrenciasRecentes: number;
   alertasEliminacao: number;
   riscoNutricional: boolean;
+  /** IVCF vencido (>6 meses) ou sem avaliação. */
+  ivcfPendente: boolean;
   /** Precisa de atenção clínica (qualquer sinal forte). */
   atencao: boolean;
 }
@@ -39,6 +58,7 @@ export function SupervisaoClinica() {
   const intercorrencias = useTodasIntercorrencias();
   const alertasElim = useAlertasEliminacaoPainel();
   const aceitacao = useAceitacaoBaixaRecente();
+  const ivcf = useUltimasAvaliacoesIVCF();
 
   const [filtroGrau, setFiltroGrau] = useState<FiltroGrau>("todos");
   const [filtroAlerta, setFiltroAlerta] = useState<FiltroAlerta>("todos");
@@ -56,25 +76,40 @@ export function SupervisaoClinica() {
       elimPorResidente.set(a.residenteId, (elimPorResidente.get(a.residenteId) ?? 0) + 1);
     }
     const risco = new Set((aceitacao.data?.riscos ?? []).map((r) => r.residenteId));
+    const ivcfMap = ivcf.data;
 
     return (residentes.data ?? []).map((r) => {
       const ic = intercPorResidente.get(r.id) ?? 0;
       const el = elimPorResidente.get(r.id) ?? 0;
       const nut = risco.has(r.id);
+      const av = ivcfMap?.get(r.id);
+      const ivcfStatus: StatusIVCF = av?.status ?? "sem";
+      // Grau atual vem do IVCF mais recente (se houver), senão do cadastro.
+      const grauAtual = av ? (av.classificacao.replace("Grau ", "") as GrauDependencia) : r.grau_dependencia;
+      const nivelAtual = grauNivel(grauAtual);
+      const nivelContratual = grauNivel(r.grau_contratual);
+      const divergeGrau =
+        nivelAtual !== null && nivelContratual !== null && Math.abs(nivelAtual - nivelContratual) >= 1;
+      const ivcfPendente = ivcfStatus !== "atualizado";
       return {
         id: r.id,
         nome: r.nome,
         quarto: r.quarto,
-        grau: r.grau_dependencia,
+        grau: grauAtual,
+        grauContratual: r.grau_contratual,
+        ivcfStatus,
+        ivcfData: av?.registradoEm ?? null,
+        divergeGrau,
         intercorrenciasRecentes: ic,
         alertasEliminacao: el,
         riscoNutricional: nut,
-        // Atenção clínica: intercorrências frequentes (2+), eliminação em alerta
-        // ou risco nutricional. (IVCF vencido entrará quando houver a avaliação.)
-        atencao: ic >= 2 || el > 0 || nut,
+        ivcfPendente,
+        // Atenção clínica: IVCF vencido/sem avaliação, divergência de grau,
+        // intercorrências frequentes (2+), eliminação em alerta ou risco nutricional.
+        atencao: ivcfPendente || divergeGrau || ic >= 2 || el > 0 || nut,
       };
     });
-  }, [residentes.data, intercorrencias.data, alertasElim.data, aceitacao.data]);
+  }, [residentes.data, intercorrencias.data, alertasElim.data, aceitacao.data, ivcf.data]);
 
   const filtradas = useMemo(() => {
     return linhas.filter((l) => {
@@ -82,6 +117,8 @@ export function SupervisaoClinica() {
       switch (filtroAlerta) {
         case "atencao":
           return l.atencao;
+        case "ivcf":
+          return l.ivcfPendente;
         case "intercorrencia":
           return l.intercorrenciasRecentes > 0;
         case "eliminacao":
@@ -98,10 +135,12 @@ export function SupervisaoClinica() {
     residentes.isLoading ||
     intercorrencias.isLoading ||
     alertasElim.isLoading ||
-    aceitacao.isLoading
+    aceitacao.isLoading ||
+    ivcf.isLoading
   )
     return <LoadingState />;
-  const erro = residentes.error ?? intercorrencias.error ?? alertasElim.error ?? aceitacao.error;
+  const erro =
+    residentes.error ?? intercorrencias.error ?? alertasElim.error ?? aceitacao.error ?? ivcf.error;
   if (erro) return <ErrorState error={erro} />;
 
   const totalAtencao = linhas.filter((l) => l.atencao).length;
@@ -147,6 +186,7 @@ export function SupervisaoClinica() {
               opcoes={[
                 { v: "todos", label: "Todos" },
                 { v: "atencao", label: "Atenção" },
+                { v: "ivcf", label: "IVCF pendente" },
                 { v: "intercorrencia", label: "Intercorrência" },
                 { v: "eliminacao", label: "Eliminação" },
                 { v: "nutricional", label: "Nutricional" },
@@ -200,11 +240,31 @@ export function SupervisaoClinica() {
                       </div>
                     </div>
                     <Celula rotulo="Grau" className="sm:col-span-2">
-                      {l.grau ? <Badge variant="muted">{l.grau}</Badge> : <Traco />}
+                      {l.grau ? (
+                        <span className="flex items-center gap-1">
+                          <Badge variant="muted">{l.grau}</Badge>
+                          {l.divergeGrau && (
+                            <Badge variant="destructive" title={`Contrato: ${l.grauContratual}`}>
+                              ≠ {l.grauContratual}
+                            </Badge>
+                          )}
+                        </span>
+                      ) : (
+                        <Traco />
+                      )}
                     </Celula>
                     <Celula rotulo="IVCF" className="sm:col-span-2">
-                      {/* Sem tabela de avaliações IVCF no schema atual. */}
-                      <Badge variant="muted">sem avaliação</Badge>
+                      {l.ivcfStatus === "sem" ? (
+                        <Badge variant="muted">sem avaliação</Badge>
+                      ) : l.ivcfStatus === "desatualizado" ? (
+                        <Badge variant="warning" title={l.ivcfData ? formatarDataBR(l.ivcfData) : undefined}>
+                          vencido &gt; 6m
+                        </Badge>
+                      ) : (
+                        <Badge variant="success" title={l.ivcfData ? formatarDataBR(l.ivcfData) : undefined}>
+                          atualizado
+                        </Badge>
+                      )}
                     </Celula>
                     <Celula rotulo="Intercorr. (7d)" className="sm:col-span-2">
                       <span
@@ -238,8 +298,8 @@ export function SupervisaoClinica() {
                 ))}
               </ul>
               <p className="mt-4 text-xs text-muted-foreground/80">
-                Status do IVCF (atualizado / desatualizado &gt; 6 meses / sem avaliação) entra
-                quando o módulo clínico de avaliação for construído.
+                Grau "≠" sinaliza divergência entre o grau atual (última IVCF) e o contratual.
+                IVCF: atualizado / vencido &gt; 6 meses / sem avaliação.
               </p>
             </>
           )}
