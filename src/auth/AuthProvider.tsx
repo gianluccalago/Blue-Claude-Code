@@ -58,7 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUsuario(u);
       setUsuarioAtual(
-        u ? { id: u.id, nome: u.nome, perfil: u.perfil } : null,
+        u
+          ? { id: u.id, nome: u.nome, perfil: u.perfil, residenteVinculado: u.residente_vinculado }
+          : null,
       );
       setCarregando(false);
     }
@@ -98,7 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // O onAuthStateChange também aplica; aqui garantimos o estado imediato.
     setSession(data.session);
     setUsuario(u);
-    setUsuarioAtual({ id: u.id, nome: u.nome, perfil: u.perfil });
+    setUsuarioAtual({
+      id: u.id,
+      nome: u.nome,
+      perfil: u.perfil,
+      residenteVinculado: u.residente_vinculado,
+    });
     setCarregando(false);
   }
 

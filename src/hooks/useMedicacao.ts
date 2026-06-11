@@ -9,6 +9,8 @@ import type {
   StatusAdministracao,
 } from "@/types/database";
 
+// ─── Queries ──────────────────────────────────────────────────────────────────
+
 export function usePrescricoes(residenteId: string | undefined) {
   return useQuery({
     queryKey: ["prescricoes", residenteId],
@@ -46,6 +48,13 @@ export function useAdministracoesHoje(residenteId: string | undefined) {
   });
 }
 
+// ─── Mutação de confirmação ───────────────────────────────────────────────────
+
+/**
+ * Registra a administração de medicação pelo cuidador.
+ * A baixa de estoque NÃO ocorre aqui — ocorre na Dispensação (Farmácia).
+ * O campo baixa_farmacia é reservado para reconciliação futura.
+ */
 export function useRegistrarAdministracao(residenteId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -60,9 +69,12 @@ export function useRegistrarAdministracao(residenteId: string) {
         status: args.status,
         itens_faltantes: args.itensFaltantes ?? null,
         administrado_por: CUIDADOR_ATUAL.nome,
+        baixa_farmacia: false,
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["administracao", residenteId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["administracao", residenteId] });
+    },
   });
 }

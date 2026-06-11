@@ -317,13 +317,8 @@ function UsuarioCard({
             )}
             {u.tipo_remuneracao && (
               <span>
-                · {u.tipo_remuneracao === "mensal" ? "Mensal" : "Por plantão"}
-                {u.tipo_remuneracao === "mensal" && u.valor_mensal != null
-                  ? ` R$ ${u.valor_mensal}`
-                  : ""}
-                {u.tipo_remuneracao === "plantao" && u.valor_plantao != null
-                  ? ` R$ ${u.valor_plantao}`
-                  : ""}
+                · {u.tipo_remuneracao === "mensal_fixo" ? "Mensal" : "Por plantão"}
+                {/* Valores ficam na Administração (Remuneração da equipe). */}
               </span>
             )}
           </div>

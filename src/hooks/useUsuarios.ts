@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { PerfilUsuario, TipoRemuneracao, Usuario } from "@/types/database";
+import type { PerfilUsuario, Usuario } from "@/types/database";
 
 // ===========================================================================
 // MASTER-3 · Usuários e acessos — CRUD da tabela `usuarios` e gestão dos
@@ -25,9 +25,8 @@ export interface UsuarioValor {
   vinculo: string | null;
   registro_profissional: string | null;
   isento_ponto_app: boolean;
-  tipo_remuneracao: TipoRemuneracao | null;
-  valor_mensal: number | null;
-  valor_plantao: number | null;
+  // A remuneração (mensal/plantão) é gerida pela Administração (Remuneração da
+  // equipe), não aqui — por isso não entra no cadastro de usuário do Master.
   residente_vinculado: string | null;
   ativo: boolean;
 }
@@ -57,9 +56,6 @@ function paraRegistro(v: UsuarioValor) {
     vinculo: v.vinculo,
     registro_profissional: v.registro_profissional?.trim() || null,
     isento_ponto_app: v.isento_ponto_app,
-    tipo_remuneracao: v.tipo_remuneracao,
-    valor_mensal: v.valor_mensal,
-    valor_plantao: v.valor_plantao,
     residente_vinculado: v.residente_vinculado,
   };
 }

@@ -30,9 +30,6 @@ interface FormState {
   vinculo: string;
   registro: string;
   isento_ponto_app: boolean;
-  tipo_remuneracao: "" | "mensal" | "plantao";
-  valor_mensal: string;
-  valor_plantao: string;
   residente_vinculado: string;
   ativo: boolean;
 }
@@ -48,20 +45,9 @@ function estadoInicial(u?: Usuario): FormState {
     vinculo: u?.vinculo ?? "CLT",
     registro: u?.registro_profissional ?? "",
     isento_ponto_app: u?.isento_ponto_app ?? true,
-    tipo_remuneracao: u?.tipo_remuneracao ?? "",
-    valor_mensal: u?.valor_mensal != null ? String(u.valor_mensal) : "",
-    valor_plantao: u?.valor_plantao != null ? String(u.valor_plantao) : "",
     residente_vinculado: u?.residente_vinculado ?? "",
     ativo: u?.ativo ?? true,
   };
-}
-
-/** "1.234,50" ou "1234.5" → número; vazio → null. */
-function paraNumero(s: string): number | null {
-  const limpo = s.trim().replace(/\./g, "").replace(",", ".");
-  if (limpo === "") return null;
-  const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
 }
 
 export function UsuarioForm({
@@ -119,9 +105,6 @@ export function UsuarioForm({
       vinculo: cfg.mostraVinculo ? f.vinculo || null : null,
       registro_profissional: mostraRegistro ? f.registro.trim() || null : null,
       isento_ponto_app: cfg.mostraIsentoPonto ? f.isento_ponto_app : true,
-      tipo_remuneracao: cfg.mostraRemuneracao && f.tipo_remuneracao ? f.tipo_remuneracao : null,
-      valor_mensal: cfg.mostraRemuneracao ? paraNumero(f.valor_mensal) : null,
-      valor_plantao: cfg.mostraRemuneracao ? paraNumero(f.valor_plantao) : null,
       residente_vinculado: cfg.vinculaResidente ? f.residente_vinculado || null : null,
       ativo: f.ativo,
     };
@@ -243,52 +226,7 @@ export function UsuarioForm({
         )}
       </div>
 
-      {/* Remuneração (base dos custos de pessoal da Administração) */}
-      {cfg.mostraRemuneracao && (
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="mb-2 text-sm font-semibold text-secondary">Remuneração</div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className={labelBase}>Tipo</label>
-              <select
-                value={f.tipo_remuneracao}
-                onChange={(e) =>
-                  set("tipo_remuneracao", e.target.value as FormState["tipo_remuneracao"])
-                }
-                className={inputBase}
-              >
-                <option value="">Não informado</option>
-                <option value="mensal">Mensal (fixo)</option>
-                <option value="plantao">Por plantão</option>
-              </select>
-            </div>
-            {f.tipo_remuneracao !== "plantao" && (
-              <div>
-                <label className={labelBase}>Valor mensal (R$)</label>
-                <input
-                  value={f.valor_mensal}
-                  onChange={(e) => set("valor_mensal", e.target.value)}
-                  placeholder="0,00"
-                  inputMode="decimal"
-                  className={inputBase}
-                />
-              </div>
-            )}
-            {f.tipo_remuneracao !== "mensal" && (
-              <div>
-                <label className={labelBase}>Valor por plantão (R$)</label>
-                <input
-                  value={f.valor_plantao}
-                  onChange={(e) => set("valor_plantao", e.target.value)}
-                  placeholder="0,00"
-                  inputMode="decimal"
-                  className={inputBase}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* A remuneração é gerida pela Administração (Remuneração da equipe). */}
 
       {/* Isento de ponto no app */}
       {cfg.mostraIsentoPonto && (

@@ -1,6 +1,7 @@
 import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
+import { DietaResumo } from "@/components/nutricao/DietaResumo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
@@ -59,6 +60,7 @@ function HospedeCard({ hospede: h }: { hospede: Residente }) {
           </div>
           <p className="text-muted-foreground">{ouNaoInformado(h.historia_vida)}</p>
         </div>
+        <DietaResumo residenteId={h.id} />
       </CardContent>
     </Card>
   );

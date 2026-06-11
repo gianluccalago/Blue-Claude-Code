@@ -22,6 +22,7 @@ import {
   useAlertasEliminacaoPainel,
   useRegistrarTratamento,
   useRegistrarEliminacaoTratamento,
+  useResolucoesMedicas,
   estadoDaPendencia,
   type AlertaEliminacaoPainel,
 } from "@/hooks/useCoordenacao";
@@ -30,7 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
-import type { Residente } from "@/types/database";
+import type { Residente, ResolucaoMedica } from "@/types/database";
 
 const PERIODO_LABEL: Record<string, string> = {
   noite: "Noite / jejum",
@@ -59,6 +60,7 @@ export function PainelCoordenacao() {
   const alertas = useAlertasEliminacaoPainel();
   const registrar = useRegistrarTratamento();
   const tratarAlerta = useRegistrarEliminacaoTratamento();
+  const resolucoes = useResolucoesMedicas();
 
   const carregando =
     residentes.isLoading ||
@@ -86,13 +88,20 @@ export function PainelCoordenacao() {
   const quarto = (id: string) => info.get(id)?.quarto ?? "—";
 
   const trat = tratamentos.data ?? [];
+  const resolData: ResolucaoMedica[] = resolucoes.data ?? [];
 
   // ----- Pendências abertas (sem tratamento "resolvido") -----
   const medsAbertas = (medicacoes.data ?? [])
     .map((m) => ({ reg: m, estado: estadoDaPendencia(trat, "medicacao", m.id) }))
     .filter((x) => !x.estado.resolvido);
   const intercAbertas = (intercorrencias.data ?? [])
-    .map((i) => ({ reg: i, estado: estadoDaPendencia(trat, "intercorrencia", i.id) }))
+    .map((i) => ({
+      reg: i,
+      estado: estadoDaPendencia(trat, "intercorrencia", i.id),
+      resolucaoMedica: resolData.find(
+        (r) => r.tipo_origem === "intercorrencia" && r.referencia_id === i.id,
+      ) ?? null,
+    }))
     .filter((x) => !x.estado.resolvido);
 
   // ----- Indicadores -----
@@ -107,51 +116,20 @@ export function PainelCoordenacao() {
 
   const procedimentos = enfermagem.data ?? [];
 
+  async function handleSilenciarTodos() {
+    for (const a of alertasElim) {
+      await tratarAlerta.mutateAsync({
+        residenteId: a.residenteId,
+        tipoAlerta: a.tipo,
+        acao: "silenciado",
+        observacao: null,
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* 1. ALERTAS DE ELIMINAÇÃO */}
-      <Card className="border-warning/40">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="size-5 text-warning" /> Alertas de eliminação
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {alertasElim.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-success">
-              <CheckCircle2 className="size-5" />
-              <span className="text-sm font-semibold">Sem alertas de eliminação.</span>
-            </div>
-          ) : (
-            alertasElim.map((a) => (
-              <AlertaEliminacaoCard
-                key={`${a.residenteId}-${a.tipo}`}
-                alerta={a}
-                nome={nome(a.residenteId)}
-                quarto={quarto(a.residenteId)}
-                ocupado={tratarAlerta.isPending}
-                onEscalar={() =>
-                  tratarAlerta.mutate({
-                    residenteId: a.residenteId,
-                    tipoAlerta: a.tipo,
-                    acao: "escalado_medico",
-                  })
-                }
-                onSilenciar={(observacao) =>
-                  tratarAlerta.mutate({
-                    residenteId: a.residenteId,
-                    tipoAlerta: a.tipo,
-                    acao: "silenciado",
-                    observacao,
-                  })
-                }
-              />
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 2. INDICADORES */}
+      {/* 1. INDICADORES */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Indicador
           icon={ClipboardList}
@@ -213,7 +191,7 @@ export function PainelCoordenacao() {
                   }
                 />
               ))}
-              {intercAbertas.map(({ reg, estado }) => (
+              {intercAbertas.map(({ reg, estado, resolucaoMedica }) => (
                 <PendenciaCard
                   key={reg.id}
                   titulo={`Intercorrência — ${reg.tipo}`}
@@ -221,6 +199,8 @@ export function PainelCoordenacao() {
                   detalhe={ouNaoInformado(reg.observacao)}
                   rodape={`Registrado por ${ouNaoInformado(reg.registrado_por)} · ${formatarDataHoraBR(reg.registrado_em)}`}
                   escaladoEm={estado.escaladoEm}
+                  resolvidoPeloMedicoEm={resolucaoMedica?.resolvido_em ?? null}
+                  resolvidoPeloMedicoObs={resolucaoMedica?.observacao ?? null}
                   ocupado={registrar.isPending}
                   onResolver={() =>
                     registrar.mutate({
@@ -276,6 +256,73 @@ export function PainelCoordenacao() {
           )}
         </CardContent>
       </Card>
+
+      {/* 4. ALERTAS DE ELIMINAÇÃO */}
+      <Card className={cn(alertasElim.length > 0 ? "border-warning/40" : "")}>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-warning" />
+              Alertas de eliminação
+              {alertasElim.length > 0 && (
+                <Badge variant="warning">{alertasElim.length}</Badge>
+              )}
+            </CardTitle>
+            {alertasElim.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSilenciarTodos}
+                disabled={tratarAlerta.isPending}
+              >
+                <BellOff className="size-4" /> Silenciar todos
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {alertasElim.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-success">
+              <CheckCircle2 className="size-5" />
+              <span className="text-sm font-semibold">Sem alertas de eliminação.</span>
+            </div>
+          ) : (
+            alertasElim.map((a) => {
+              const resolucaoElim = a.escalacaoId
+                ? (resolData.find(
+                    (r) => r.tipo_origem === "eliminacao" && r.referencia_id === a.escalacaoId,
+                  ) ?? null)
+                : null;
+              return (
+                <AlertaEliminacaoCard
+                  key={`${a.residenteId}-${a.tipo}`}
+                  alerta={a}
+                  nome={nome(a.residenteId)}
+                  quarto={quarto(a.residenteId)}
+                  ocupado={tratarAlerta.isPending}
+                  resolvidoPeloMedicoEm={resolucaoElim?.resolvido_em ?? null}
+                  resolvidoPeloMedicoObs={resolucaoElim?.observacao ?? null}
+                  onEscalar={() =>
+                    tratarAlerta.mutate({
+                      residenteId: a.residenteId,
+                      tipoAlerta: a.tipo,
+                      acao: "escalado_medico",
+                    })
+                  }
+                  onSilenciar={(observacao) =>
+                    tratarAlerta.mutate({
+                      residenteId: a.residenteId,
+                      tipoAlerta: a.tipo,
+                      acao: "silenciado",
+                      observacao,
+                    })
+                  }
+                />
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -308,6 +355,8 @@ function PendenciaCard({
   detalhe,
   rodape,
   escaladoEm,
+  resolvidoPeloMedicoEm,
+  resolvidoPeloMedicoObs,
   ocupado,
   onResolver,
   onEscalar,
@@ -317,6 +366,8 @@ function PendenciaCard({
   detalhe: string;
   rodape: string;
   escaladoEm: string | null;
+  resolvidoPeloMedicoEm?: string | null;
+  resolvidoPeloMedicoObs?: string | null;
   ocupado: boolean;
   onResolver: () => void;
   onEscalar: () => void;
@@ -332,19 +383,30 @@ function PendenciaCard({
           <div className="mt-1 text-sm font-semibold text-secondary">{hospede}</div>
           <div className="text-sm text-muted-foreground">{detalhe}</div>
           <div className="mt-1 text-xs text-muted-foreground">{rodape}</div>
+          {resolvidoPeloMedicoObs && (
+            <div className="mt-1 text-sm text-secondary/80">
+              Conduta: "{resolvidoPeloMedicoObs}"
+            </div>
+          )}
         </div>
-        {escaladoEm && (
-          <Badge variant="warning" className="px-3 py-1.5">
-            <Stethoscope className="size-3.5" /> Escalado ao médico · {formatarDataHoraBR(escaladoEm)}
-          </Badge>
-        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          {resolvidoPeloMedicoEm && (
+            <Badge variant="success" className="px-3 py-1.5">
+              <Stethoscope className="size-3.5" /> Resolvido pelo médico ·{" "}
+              {formatarDataHoraBR(resolvidoPeloMedicoEm)}
+            </Badge>
+          )}
+          {escaladoEm && !resolvidoPeloMedicoEm && (
+            <Badge variant="warning" className="px-3 py-1.5">
+              <Stethoscope className="size-3.5" /> Escalado ao médico · {formatarDataHoraBR(escaladoEm)}
+            </Badge>
+          )}
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button variant="success" onClick={onResolver} disabled={ocupado}>
           <Check className="size-4" /> Marcar resolvido
         </Button>
-        {/* O fluxo real até o perfil Médico será ligado quando o Médico for
-            construído; por ora apenas marca a pendência como escalada. */}
         <Button variant="outline" onClick={onEscalar} disabled={ocupado}>
           <Stethoscope className="size-4" /> Escalar ao médico
         </Button>
@@ -363,6 +425,8 @@ function AlertaEliminacaoCard({
   nome,
   quarto,
   ocupado,
+  resolvidoPeloMedicoEm,
+  resolvidoPeloMedicoObs,
   onEscalar,
   onSilenciar,
 }: {
@@ -370,6 +434,8 @@ function AlertaEliminacaoCard({
   nome: string;
   quarto: string;
   ocupado: boolean;
+  resolvidoPeloMedicoEm?: string | null;
+  resolvidoPeloMedicoObs?: string | null;
   onEscalar: () => void;
   onSilenciar: (observacao: string | null) => void;
 }) {
@@ -399,11 +465,19 @@ function AlertaEliminacaoCard({
               <History className="size-3.5" /> Reincidente
             </Badge>
           )}
-          {alerta.escaladoEm && (
+          {resolvidoPeloMedicoEm ? (
+            <Badge variant="success" className="px-3 py-1.5">
+              <Stethoscope className="size-3.5" /> Resolvido pelo médico ·{" "}
+              {formatarDataHoraBR(resolvidoPeloMedicoEm)}
+            </Badge>
+          ) : alerta.escaladoEm ? (
             <Badge variant="secondary" className="px-3 py-1.5">
               <Stethoscope className="size-3.5" /> Escalado ao médico ·{" "}
               {formatarDataHoraBR(alerta.escaladoEm)}
             </Badge>
+          ) : null}
+          {resolvidoPeloMedicoObs && (
+            <p className="w-full text-xs text-secondary/80">Conduta: "{resolvidoPeloMedicoObs}"</p>
           )}
         </div>
       </div>

@@ -29,6 +29,36 @@ import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
 import { Escalas } from "@/routes/coordenacao/Escalas";
 import { MinhaEscala } from "@/routes/cuidador/MinhaEscala";
+import { Prescricoes } from "@/routes/medico/Prescricoes";
+import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
+import { EvolucaoMedico } from "@/routes/medico/Evolucao";
+import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
+import { Manutencao } from "@/routes/hotelaria/Manutencao";
+import { Rouparia } from "@/routes/hotelaria/Rouparia";
+import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
+import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
+import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
+import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
+import { Dispensacao } from "@/routes/farmacia/Dispensacao";
+import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
+import { Atividades } from "@/routes/multidisciplinar/Atividades";
+import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
+import { Mensalidades } from "@/routes/administracao/Mensalidades";
+import { Upselling } from "@/routes/administracao/Upselling";
+import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
+import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
+import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
+import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
+import { Dietas } from "@/routes/nutricionista/Dietas";
+import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
+import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
+import { Inicio as FamiliaInicio } from "@/routes/familia/Inicio";
+import { Fotos as FamiliaFotos } from "@/routes/familia/Fotos";
+import { Mensalidade as FamiliaMensalidade } from "@/routes/familia/Mensalidade";
+import { Solicitacoes as FamiliaSolicitacoes } from "@/routes/familia/Solicitacoes";
+import { CameraQuarto } from "@/routes/familia/CameraQuarto";
+import { SinaisVitais } from "@/routes/familia/SinaisVitais";
+import { SolicitacoesFamiliaInbox } from "@/components/solicitacoes/SolicitacoesFamiliaInbox";
 import { getPerfil } from "@/data/profiles";
 
 const rootRoute = createRootRoute({
@@ -56,6 +86,10 @@ function AppIndex() {
   if (perfil === "master") return <PainelEstrategico />;
   // Coordenação: a "Visão geral" é o painel da coordenação.
   if (perfil === "coordenacao") return <PainelCoordenacao />;
+  // Administração: a "Visão geral" é o painel da administração.
+  if (perfil === "administracao") return <PainelAdministracao />;
+  // Família: o "Início" é o resumo curado do hóspede.
+  if (perfil === "familia") return <FamiliaInicio />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.
   if (def && !def.emConstrucao && def.rotaInicial !== `/app/${perfil}`) {
     return <Navigate to={def.rotaInicial} />;
@@ -129,6 +163,147 @@ const minhaEscalaRoute = createRoute({
   path: "minha-escala",
   component: MinhaEscala,
 });
+const prescricoesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "prescricoes",
+  component: Prescricoes,
+});
+const escaladosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "escalados",
+  component: EscaladosMedico,
+});
+const evolucaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "evolucao",
+  component: EvolucaoMedico,
+});
+const inspecaoSuitesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "inspecao-suites",
+  component: InspecaoSuites,
+});
+const manutencaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "manutencao",
+  component: Manutencao,
+});
+const roupariaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "rouparia",
+  component: Rouparia,
+});
+const visaoDiaHotelariaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "visao-dia",
+  component: PainelHotelaria,
+});
+const chamadoManutencaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "chamado-manutencao",
+  component: AbrirChamado,
+});
+const painelFarmaciaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "painel",
+  component: PainelFarmacia,
+});
+const dispensacaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "dispensacao",
+  component: Dispensacao,
+});
+const estoqueHospedeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "estoque",
+  component: EstoqueHospede,
+});
+const estoqueResgateRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "resgate",
+  component: EstoqueResgate,
+});
+const atividadesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "atividades",
+  component: Atividades,
+});
+const dietasRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "dietas",
+  component: Dietas,
+});
+const acompanhamentoNutricionalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "acompanhamento-nutricional",
+  component: AcompanhamentoNutricional,
+});
+const evolucaoNutricionalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "evolucao-nutricional",
+  component: EvolucaoNutricional,
+});
+const tabelaPrecosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "tabela-precos",
+  component: TabelaPrecos,
+});
+const mensalidadesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "mensalidades",
+  component: Mensalidades,
+});
+const upsellingRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "upselling",
+  component: Upselling,
+});
+const demonstrativoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "demonstrativo",
+  component: Demonstrativo,
+});
+const remuneracaoEquipeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "remuneracao-equipe",
+  component: RemuneracaoEquipe,
+});
+const custosPessoalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "custos-pessoal",
+  component: CustosPessoal,
+});
+const fotosFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "fotos",
+  component: FamiliaFotos,
+});
+const mensalidadeFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "mensalidade-familia",
+  component: FamiliaMensalidade,
+});
+const solicitacoesFamiliaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "solicitacoes",
+  component: FamiliaSolicitacoes,
+});
+const cameraQuartoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "camera-quarto",
+  component: CameraQuarto,
+});
+const sinaisVitaisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "sinais-vitais",
+  component: SinaisVitais,
+});
+// Caixa de "Solicitações da família" — Coordenação, Médico e Administração.
+const solicitacoesFamiliaInboxRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "solicitacoes-familia",
+  component: SolicitacoesFamiliaInbox,
+});
 
 // Master (MASTER-2): visões consolidadas de supervisão (leitura).
 const masterHospedeRoute = createRoute({
@@ -191,6 +366,34 @@ const routeTree = rootRoute.addChildren([
     masterUsuariosRoute,
     masterResidentesRoute,
     masterEquipeRoute,
+    prescricoesRoute,
+    escaladosRoute,
+    evolucaoRoute,
+    inspecaoSuitesRoute,
+    manutencaoRoute,
+    roupariaRoute,
+    visaoDiaHotelariaRoute,
+    chamadoManutencaoRoute,
+    painelFarmaciaRoute,
+    dispensacaoRoute,
+    estoqueHospedeRoute,
+    estoqueResgateRoute,
+    atividadesRoute,
+    dietasRoute,
+    acompanhamentoNutricionalRoute,
+    evolucaoNutricionalRoute,
+    tabelaPrecosRoute,
+    mensalidadesRoute,
+    upsellingRoute,
+    demonstrativoRoute,
+    remuneracaoEquipeRoute,
+    custosPessoalRoute,
+    fotosFamiliaRoute,
+    mensalidadeFamiliaRoute,
+    solicitacoesFamiliaRoute,
+    cameraQuartoRoute,
+    sinaisVitaisRoute,
+    solicitacoesFamiliaInboxRoute,
     placeholderRoute,
   ]),
 ]);

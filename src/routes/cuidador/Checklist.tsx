@@ -23,17 +23,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, horarioParaMinutos, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
-import type { PlanoCuidadoItem, TarefaRegistro } from "@/types/database";
+import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
+import type { PlanoCuidadoItem, TarefaRegistro, Turno } from "@/types/database";
 
-// 6 refeições, na ordem do dia. A chave (usada na gravação) é o próprio nome.
+// 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
+// A chave (usada na gravação) é o nome da refeição.
 const REFEICOES = [
-  "Café da manhã",
-  "Lanche da manhã",
-  "Almoço",
-  "Lanche da tarde",
-  "Jantar",
-  "Ceia",
+  { nome: "Café da manhã", horario: "08:00" },
+  { nome: "Lanche da manhã", horario: "10:00" },
+  { nome: "Almoço", horario: "12:00" },
+  { nome: "Lanche da tarde", horario: "16:00" },
+  { nome: "Jantar", horario: "19:00" },
+  { nome: "Ceia", horario: "21:00" },
 ] as const;
 const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;
@@ -78,7 +79,12 @@ export function Checklist() {
         onSelect={setSelecionadoId}
       />
       {hospedeId && (
-        <ChecklistDoHospede key={hospedeId} residenteId={hospedeId} liberado={plantao.liberado} />
+        <ChecklistDoHospede
+          key={hospedeId}
+          residenteId={hospedeId}
+          liberado={plantao.liberado}
+          turno={plantao.turnoAtivo}
+        />
       )}
     </div>
   );
@@ -93,9 +99,11 @@ interface Confirmacao {
 function ChecklistDoHospede({
   residenteId,
   liberado,
+  turno,
 }: {
   residenteId: string;
   liberado: boolean;
+  turno: Turno | null;
 }) {
   const plano = usePlanoCuidado(residenteId);
   const registros = useRegistrosHoje(residenteId);
@@ -106,6 +114,14 @@ function ChecklistDoHospede({
   const registrosHoje = registros.data ?? [];
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
+  const planoItensDoTurno = useMemo(
+    () => planoItens.filter((item) => horarioNoTurno(item.horario, turno)),
+    [planoItens, turno]
+  );
+  const refeicoesDoTurno = useMemo(
+    () => REFEICOES.filter((r) => horarioNoTurno(r.horario, turno)),
+    [turno]
+  );
 
   // Confirmação para ações destrutivas (evita toque acidental no tablet).
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
@@ -156,8 +172,10 @@ function ChecklistDoHospede({
         <CardContent className="space-y-3">
           {planoItens.length === 0 ? (
             <EmptyState label="Este hóspede ainda não possui plano de cuidado ativo." />
+          ) : planoItensDoTurno.length === 0 ? (
+            <EmptyState label="Nenhuma tarefa agendada para o seu turno." />
           ) : (
-            planoItens.map((item) => {
+            planoItensDoTurno.map((item) => {
               const registro = registroDaTarefa(item.id);
               const feito = !!registro;
               const status = calcularStatus(item, feito);
@@ -222,7 +240,10 @@ function ChecklistDoHospede({
           <CardTitle>Aceitação alimentar</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {REFEICOES.map((refeicao) => {
+          {refeicoesDoTurno.length === 0 ? (
+            <EmptyState label="Nenhuma refeição agendada para o seu turno." />
+          ) : (
+          refeicoesDoTurno.map(({ nome: refeicao }) => {
             const reg = registroRefeicao(refeicao);
             const nivelAtual = reg?.tarefa.split(": ")[1];
             return (
@@ -250,7 +271,8 @@ function ChecklistDoHospede({
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </CardContent>
       </Card>
 

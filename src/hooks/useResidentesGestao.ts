@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { GrauDependencia, OcupacaoSuite } from "@/types/database";
+import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
 
 // ===========================================================================
 // MASTER · Gestão de residentes — criar/editar a ficha completa do hóspede.
@@ -18,8 +18,8 @@ export interface ResidenteValor {
   modulo: number | null;
   andar: number | null;
   quarto: string | null;
-  tipo_suite: string | null;
-  ocupacao: OcupacaoSuite | null;
+  tipo_suite: TipoSuite | null;
+  ocupacao: Ocupacao | null;
   data_admissao: string | null;
   responsavel_legal: string | null;
   contato: string | null;
@@ -45,7 +45,7 @@ function paraRegistro(v: ResidenteValor) {
     modulo: v.modulo,
     andar: v.andar,
     quarto: t(v.quarto),
-    tipo_suite: t(v.tipo_suite),
+    tipo_suite: v.tipo_suite,
     ocupacao: v.ocupacao,
     data_admissao: v.data_admissao,
     responsavel_legal: t(v.responsavel_legal),

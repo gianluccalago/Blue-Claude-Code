@@ -24,12 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, ouNaoInformado, formatarDataHoraBR, horarioParaMinutos } from "@/lib/utils";
+import { cn, ouNaoInformado, formatarDataHoraBR, horarioParaMinutos, horarioNoTurno } from "@/lib/utils";
 import type {
   Administracao,
   PeriodoMedicacao,
   Prescricao,
   StatusAdministracao,
+  Turno,
 } from "@/types/database";
 
 // 6 períodos com horário padrão, na ordem do dia.
@@ -59,7 +60,12 @@ export function Medicacao() {
       <PlantaoBar plantao={plantao} />
       <HospedeSelector hospedes={hospedes} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
       {hospedeId && (
-        <MedicacaoDoHospede key={hospedeId} residenteId={hospedeId} liberado={plantao.liberado} />
+        <MedicacaoDoHospede
+          key={hospedeId}
+          residenteId={hospedeId}
+          liberado={plantao.liberado}
+          turno={plantao.turnoAtivo}
+        />
       )}
     </div>
   );
@@ -68,9 +74,11 @@ export function Medicacao() {
 function MedicacaoDoHospede({
   residenteId,
   liberado,
+  turno,
 }: {
   residenteId: string;
   liberado: boolean;
+  turno: Turno | null;
 }) {
   const prescricoes = usePrescricoes(residenteId);
   const administracoes = useAdministracoesHoje(residenteId);
@@ -85,13 +93,23 @@ function MedicacaoDoHospede({
     return mapa;
   }, [administracoes.data]);
 
+  // Apenas os períodos cujo horário cai dentro do turno ativo da cuidadora.
+  const periodosDoTurno = useMemo(
+    () => PERIODOS.filter((p) => horarioNoTurno(p.horario, turno)),
+    [turno]
+  );
+
   if (prescricoes.isLoading) return <LoadingState />;
   if (prescricoes.isError) return <ErrorState error={prescricoes.error} />;
 
+  if (periodosDoTurno.length === 0) {
+    return <EmptyState label="Nenhum período de medicação para o seu turno." />;
+  }
+
   return (
-    <Tabs defaultValue="manha">
+    <Tabs defaultValue={periodosDoTurno[0].key} key={periodosDoTurno[0].key}>
       <TabsList className="w-full justify-start">
-        {PERIODOS.map((p) => (
+        {periodosDoTurno.map((p) => (
           <TabsTrigger key={p.key} value={p.key} className="gap-1.5">
             <span>
               {p.label} <span className="font-normal opacity-70">· {p.horario}</span>
@@ -100,7 +118,7 @@ function MedicacaoDoHospede({
           </TabsTrigger>
         ))}
       </TabsList>
-      {PERIODOS.map((p) => {
+      {periodosDoTurno.map((p) => {
         // Medicamentos do período, ordenados por horário sugerido (sem horário vão ao fim).
         const doPeriodo = (prescricoes.data ?? [])
           .filter((m) => m.periodo === p.key)
@@ -175,7 +193,14 @@ function PeriodoMedicacaoView({
                   <Pill className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-secondary">{m.medicamento}</div>
+                  <div className="font-semibold text-secondary">
+                    {m.medicamento}
+                    {m.quantidade && (
+                      <span className="ml-1.5 font-normal text-muted-foreground">
+                        · {m.quantidade}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {[ouNaoInformado(m.dose), m.horario, `via ${m.via}`]
                       .filter(Boolean)

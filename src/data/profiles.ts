@@ -50,9 +50,8 @@ export const PERFIS: PerfilDef[] = [
       { label: "Residentes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
       { label: "Profissionais", to: "/app/master/profissionais" },
+      { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao" },
     ],
-    // O Painel estratégico (Visão geral inicial) já é tela real; as demais
-    // sub-rotas do Master serão construídas nas próximas etapas (MASTER-2+).
     emConstrucao: false,
   },
   {
@@ -61,13 +60,15 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Prescrições e evolução clínica",
     icon: Stethoscope,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/medico",
+    rotaInicial: "/app/medico/prescricoes",
     menu: [
-      { label: "Visão geral", to: "/app/medico" },
       { label: "Prescrições", to: "/app/medico/prescricoes" },
+      { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },
+      { label: "Estoque de resgate", to: "/app/medico/resgate" },
+      { label: "Solicitações da família", to: "/app/medico/solicitacoes-familia" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "coordenacao",
@@ -82,8 +83,11 @@ export const PERFIS: PerfilDef[] = [
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },
+      { label: "Estoque de resgate", to: "/app/coordenacao/resgate" },
       { label: "Profissionais", to: "/app/coordenacao/profissionais" },
       { label: "Escalas", to: "/app/coordenacao/escalas" },
+      { label: "Solicitações da família", to: "/app/coordenacao/solicitacoes-familia" },
+      { label: "Abrir chamado de manutenção", to: "/app/coordenacao/chamado-manutencao" },
     ],
     emConstrucao: false,
   },
@@ -101,6 +105,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Registrar intercorrência", to: "/app/cuidador/intercorrencia" },
       { label: "Meus hóspedes", to: "/app/cuidador/hospedes" },
       { label: "Minha escala", to: "/app/cuidador/minha-escala" },
+      { label: "Abrir chamado de manutenção", to: "/app/cuidador/chamado-manutencao" },
     ],
     emConstrucao: false,
   },
@@ -122,25 +127,23 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Fisio, fono, nutrição e psicologia",
     icon: Activity,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/multidisciplinar",
-    menu: [
-      { label: "Visão geral", to: "/app/multidisciplinar" },
-      { label: "Atendimentos", to: "/app/multidisciplinar/atendimentos" },
-    ],
-    emConstrucao: true,
+    rotaInicial: "/app/multidisciplinar/atividades",
+    menu: [{ label: "Atividades", to: "/app/multidisciplinar/atividades" }],
+    emConstrucao: false,
   },
   {
     id: "nutricionista",
     nome: "Nutricionista",
-    descricao: "Dietas e avaliação nutricional",
+    descricao: "Dietas e acompanhamento nutricional",
     icon: Apple,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/nutricionista",
+    rotaInicial: "/app/nutricionista/dietas",
     menu: [
-      { label: "Visão geral", to: "/app/nutricionista" },
       { label: "Dietas", to: "/app/nutricionista/dietas" },
+      { label: "Acompanhamento", to: "/app/nutricionista/acompanhamento-nutricional" },
+      { label: "Evolução nutricional", to: "/app/nutricionista/evolucao-nutricional" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "farmacia",
@@ -148,12 +151,29 @@ export const PERFIS: PerfilDef[] = [
     descricao: "Dispensação e modelo caixinha",
     icon: Pill,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/farmacia",
+    rotaInicial: "/app/farmacia/painel",
     menu: [
-      { label: "Visão geral", to: "/app/farmacia" },
+      { label: "Painel da farmácia", to: "/app/farmacia/painel" },
+      { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
+      { label: "Estoque de resgate", to: "/app/farmacia/resgate" },
       { label: "Dispensação", to: "/app/farmacia/dispensacao" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
+  },
+  {
+    id: "hotelaria",
+    nome: "Hotelaria",
+    descricao: "Inspeção, manutenção e rouparia",
+    icon: BedDouble,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/hotelaria/visao-dia",
+    menu: [
+      { label: "Painel da Hotelaria", to: "/app/hotelaria/visao-dia" },
+      { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
+      { label: "Manutenção", to: "/app/hotelaria/manutencao" },
+      { label: "Rouparia", to: "/app/hotelaria/rouparia" },
+    ],
+    emConstrucao: false,
   },
   {
     id: "administracao",
@@ -163,24 +183,17 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/administracao",
     menu: [
-      { label: "Visão geral", to: "/app/administracao" },
-      { label: "Financeiro", to: "/app/administracao/financeiro" },
+      { label: "Painel da Administração", to: "/app/administracao" },
+      { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
+      { label: "Mensalidades", to: "/app/administracao/mensalidades" },
+      { label: "Upselling", to: "/app/administracao/upselling" },
+      { label: "Demonstrativo mensal", to: "/app/administracao/demonstrativo" },
+      { label: "Remuneração da equipe", to: "/app/administracao/remuneracao-equipe" },
+      { label: "Custos de pessoal", to: "/app/administracao/custos-pessoal" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
+      { label: "Solicitações da família", to: "/app/administracao/solicitacoes-familia" },
     ],
-    emConstrucao: true,
-  },
-  {
-    id: "hotelaria",
-    nome: "Hotelaria",
-    descricao: "Limpeza, rouparia e inspeção",
-    icon: BedDouble,
-    cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/hotelaria",
-    menu: [
-      { label: "Visão geral", to: "/app/hotelaria" },
-      { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao" },
-    ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
   {
     id: "familia",
@@ -190,10 +203,14 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/familia",
     menu: [
-      { label: "Visão geral", to: "/app/familia" },
-      { label: "Acompanhamento", to: "/app/familia/acompanhamento" },
+      { label: "Início", to: "/app/familia" },
+      { label: "Fotos", to: "/app/familia/fotos" },
+      { label: "Mensalidade e extras", to: "/app/familia/mensalidade-familia" },
+      { label: "Solicitações", to: "/app/familia/solicitacoes" },
+      { label: "Câmera do quarto", to: "/app/familia/camera-quarto" },
+      { label: "Sinais vitais", to: "/app/familia/sinais-vitais" },
     ],
-    emConstrucao: true,
+    emConstrucao: false,
   },
 ];
 
@@ -201,10 +218,15 @@ export function getPerfil(id: string | undefined): PerfilDef | undefined {
   return PERFIS.find((p) => p.id === id);
 }
 
-/**
- * Identidade do usuário atual usada pelos registros (feito_por, registrado_por,
- * ponto/plantão etc.). Antes era a Ana Paula fixa; agora aponta para o objeto
- * mutável que o AuthProvider sincroniza com o usuário AUTENTICADO. Os hooks que
- * já liam CUIDADOR_ATUAL.id/.nome passam a registrar o usuário logado.
- */
+// ---------------------------------------------------------------------------
+// Identidade do usuário atual (autenticado) — usada pelos registros de cada
+// perfil (feito_por, registrado_por, definida_por, lancado_por…). Antes eram
+// placeholders fixos; agora apontam para o objeto mutável que o AuthProvider
+// sincroniza com o usuário AUTENTICADO. Família usa residenteId = residente
+// vinculado, garantindo que cada família veja só o seu hóspede.
+// ---------------------------------------------------------------------------
 export { usuarioAtual as CUIDADOR_ATUAL } from "@/auth/usuarioAtual";
+export { usuarioAtual as MULTI_ATUAL } from "@/auth/usuarioAtual";
+export { usuarioAtual as NUTRI_ATUAL } from "@/auth/usuarioAtual";
+export { usuarioAtual as ADMIN_ATUAL } from "@/auth/usuarioAtual";
+export { familiaAtual as FAMILIA_ATUAL } from "@/auth/usuarioAtual";

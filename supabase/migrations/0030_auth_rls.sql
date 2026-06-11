@@ -1,23 +1,19 @@
 -- ============================================================================
--- Blue Senior Living — Migration 0016
--- CORREÇÃO da autenticação: recria as credenciais de login corretamente.
+-- Blue Senior Living — Migration 0030
+-- AUTENTICAÇÃO (Supabase Auth) + TRAVAS de permissão (RLS) por perfil.
+-- Self-contained e idempotente. Rode DEPOIS das 0001–0029.
 --
--- POR QUE: no 0015 algumas colunas de token de auth.users podiam ficar NULL
--- (email_change_token_current, phone_change, phone_change_token…). O GoTrue do
--- Supabase NÃO consegue ler NULL nesses campos e FALHA no login — aparece como
--- "e-mail ou senha inválidos" mesmo com a senha certa. Aqui recriamos os
--- usuários com TODOS os campos de token = '' (string vazia).
+-- 1. Garante o Master gianluccalago@gmail.com (acesso total).
+-- 2. Cria credenciais de login (senha "blue") para cada usuário ATIVO.
+-- 3. Funções app_perfil()/app_usuario_id().
+-- 4. RLS: tudo exige login; residentes escopado (cuidador→designados,
+--    família→residente_vinculado); prescrições sem família; usuarios com
+--    criação/edição restrita (coordenação só Cuidadora/Enfermagem).
 --
--- Este script é self-contained e idempotente: pode rodar quantas vezes quiser.
--- Recria as credenciais de teste (senha "blue") e reaplica funções + RLS.
---
--- COMO USAR:
---   Supabase > SQL Editor > New query > cole TUDO > Run.
---   Se preferir, dá para criar os usuários pelo painel (Authentication > Add
---   user, com "Auto Confirm") — o app reconhece pelo email.
---
--- ⚠️ Senha "blue" é provisória de teste — troque por individual/forte antes de
+-- ⚠️ Senha "blue" é PROVISÓRIA de teste — trocar por individual/forte antes de
 --    produção (idealmente com troca obrigatória no primeiro acesso).
+-- As tabelas dos módulos novos (estoque, mensalidades, evolução, IVCF, etc.)
+-- ficam como o módulo as criou; travá-las por RLS fina é um passo seguinte.
 -- ============================================================================
 
 create extension if not exists pgcrypto;
@@ -25,9 +21,7 @@ create extension if not exists pgcrypto;
 -- ---------- 1. Master dono do sistema ----------
 insert into public.usuarios (nome, email, perfil, ativo)
 select 'Gianlucca Lago (Master)', 'gianluccalago@gmail.com', 'master', true
-where not exists (
-  select 1 from public.usuarios where lower(email) = 'gianluccalago@gmail.com'
-);
+where not exists (select 1 from public.usuarios where lower(email) = 'gianluccalago@gmail.com');
 
 -- ---------- 2. Funções auxiliares (usuário logado) ----------
 create or replace function public.app_perfil()
@@ -48,7 +42,7 @@ grant execute on function public.app_perfil() to authenticated, anon;
 grant execute on function public.app_usuario_id() to authenticated, anon;
 
 -- ---------- 3. RLS ----------
--- 3a. Operacionais: exigem login (authenticated).
+-- 3a. Operacionais: exigem login (authenticated). Bloqueia acesso anônimo.
 do $$ declare t text;
 begin
   foreach t in array array[
@@ -115,49 +109,65 @@ create policy usuarios_update on public.usuarios for update to authenticated
     or (public.app_perfil() = 'coordenacao' and perfil in ('cuidador','enfermagem'))
   );
 
--- ---------- 4. Credenciais de login (RECRIADAS corretamente) ----------
+-- ---------- 4. Credenciais de login (robusto + diagnóstico) ----------
 do $$
-declare u record; uid uuid;
+declare u record; uid uuid; ok int := 0;
 begin
   for u in
-    select * from public.usuarios
-    where ativo and email is not null and btrim(email) <> ''
+    select * from public.usuarios where ativo and email is not null and btrim(email) <> ''
   loop
-    -- Remove credencial anterior (idempotência forte; corrige estados parciais).
-    delete from auth.identities i using auth.users au
-      where au.id = i.user_id and lower(au.email) = lower(u.email);
-    delete from auth.users where lower(email) = lower(u.email);
+    begin
+      delete from auth.identities i using auth.users au
+        where au.id = i.user_id and lower(au.email) = lower(u.email);
+      delete from auth.users where lower(email) = lower(u.email);
 
-    uid := gen_random_uuid();
-
-    -- TODOS os campos de token = '' (evita o erro de NULL no login do GoTrue).
-    insert into auth.users (
-      instance_id, id, aud, role, email, encrypted_password,
-      email_confirmed_at, created_at, updated_at, last_sign_in_at,
-      raw_app_meta_data, raw_user_meta_data,
-      confirmation_token, recovery_token, email_change,
-      email_change_token_new, email_change_token_current,
-      phone_change, phone_change_token, reauthentication_token
-    ) values (
-      '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated',
-      lower(u.email), crypt('blue', gen_salt('bf')),
-      now(), now(), now(), now(),
-      '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
-      '', '', '', '', '', '', '', ''
-    );
-
-    insert into auth.identities (
-      id, provider_id, user_id, identity_data, provider,
-      created_at, updated_at, last_sign_in_at
-    ) values (
-      gen_random_uuid(), lower(u.email), uid,
-      jsonb_build_object('sub', uid::text, 'email', lower(u.email), 'email_verified', true),
-      'email', now(), now(), now()
-    );
+      uid := gen_random_uuid();
+      insert into auth.users (
+        instance_id, id, aud, role, email, encrypted_password,
+        email_confirmed_at, created_at, updated_at, last_sign_in_at,
+        raw_app_meta_data, raw_user_meta_data,
+        confirmation_token, recovery_token, email_change,
+        email_change_token_new, email_change_token_current,
+        phone_change, phone_change_token, reauthentication_token
+      ) values (
+        '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated',
+        lower(u.email), crypt('blue', gen_salt('bf')),
+        now(), now(), now(), now(),
+        '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+        '', '', '', '', '', '', '', ''
+      );
+      begin
+        insert into auth.identities (
+          id, provider_id, user_id, identity_data, provider, created_at, updated_at, last_sign_in_at
+        ) values (
+          gen_random_uuid(), lower(u.email), uid,
+          jsonb_build_object('sub', uid::text, 'email', lower(u.email), 'email_verified', true),
+          'email', now(), now(), now()
+        );
+      exception when others then
+        begin
+          insert into auth.identities (
+            provider_id, user_id, identity_data, provider, created_at, updated_at, last_sign_in_at
+          ) values (
+            lower(u.email), uid,
+            jsonb_build_object('sub', uid::text, 'email', lower(u.email), 'email_verified', true),
+            'email', now(), now(), now()
+          );
+        exception when others then
+          raise notice 'identity ignorada p/ % (%).', u.email, sqlerrm;
+        end;
+      end;
+      ok := ok + 1;
+    exception when others then
+      raise notice 'FALHOU para %: %', u.email, sqlerrm;
+    end;
   end loop;
+  raise notice 'Credenciais OK: %', ok;
 end $$;
 
--- Conferência rápida (opcional): deve listar 1 linha por usuário ativo.
--- select email from auth.users order by email;
+select u.email, u.perfil, (au.id is not null) as tem_login
+from public.usuarios u
+left join auth.users au on lower(au.email) = lower(u.email)
+where u.ativo order by u.email;
 
 -- Fim.

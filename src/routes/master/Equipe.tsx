@@ -62,7 +62,7 @@ function cargoDe(u: Usuario): string {
 
 /** Escalado por turnos (cuidador/enfermagem) ou pago por plantão. */
 function ehEscalado(u: Usuario): boolean {
-  return PERFIS_GRUPO_CUIDADO.includes(u.perfil) || u.tipo_remuneracao === "plantao";
+  return PERFIS_GRUPO_CUIDADO.includes(u.perfil) || u.tipo_remuneracao === "por_plantao";
 }
 
 export function Equipe() {

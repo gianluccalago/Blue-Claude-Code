@@ -164,8 +164,8 @@ function ItemEnfermagem({
   onRegistrar: () => void;
   onDesfazer: (adm: Administracao) => void;
 }) {
-  // Subtítulo: dose · horário (se houver) · via.
-  const detalhe = [ouNaoInformado(m.dose), m.horario, `via ${VIA_LABEL[m.via] ?? m.via}`]
+  // Subtítulo: dose · quantidade (se houver) · horário (se houver) · via.
+  const detalhe = [ouNaoInformado(m.dose), m.quantidade, m.horario, `via ${VIA_LABEL[m.via] ?? m.via}`]
     .filter(Boolean)
     .join(" · ");
 

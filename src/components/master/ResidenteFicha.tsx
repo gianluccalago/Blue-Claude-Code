@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
-import type { GrauDependencia, OcupacaoSuite, Residente } from "@/types/database";
+import type { GrauDependencia, Ocupacao, Residente, TipoSuite } from "@/types/database";
+
+/** Tipos de suíte (alinhado à tabela de preços da Administração). */
+const TIPOS_SUITE: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -118,10 +121,15 @@ export function ResidenteFicha({
             <input value={v.quarto ?? ""} onChange={(e) => set("quarto", e.target.value)} className={inputBase} placeholder="ex: 1-2-04" />
           </Campo>
           <Campo rotulo="Tipo de suíte">
-            <input value={v.tipo_suite ?? ""} onChange={(e) => set("tipo_suite", e.target.value)} className={inputBase} placeholder="ex: Standard, Premium" />
+            <select value={v.tipo_suite ?? ""} onChange={(e) => set("tipo_suite", (e.target.value || null) as TipoSuite | null)} className={inputBase}>
+              <option value="">Não informado</option>
+              {TIPOS_SUITE.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           </Campo>
           <Campo rotulo="Ocupação">
-            <select value={v.ocupacao ?? ""} onChange={(e) => set("ocupacao", (e.target.value || null) as OcupacaoSuite | null)} className={inputBase}>
+            <select value={v.ocupacao ?? ""} onChange={(e) => set("ocupacao", (e.target.value || null) as Ocupacao | null)} className={inputBase}>
               <option value="">Não informado</option>
               <option value="individual">Individual</option>
               <option value="dupla">Dupla</option>
