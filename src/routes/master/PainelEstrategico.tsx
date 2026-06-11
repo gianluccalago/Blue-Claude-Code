@@ -36,11 +36,18 @@ import {
   calcularAderencia,
   useAderenciaHoje,
   useAceitacaoBaixaRecente,
+  useUltimasAvaliacoesIVCF,
 } from "@/hooks/useMaster";
+import { usePagamentosDoMes } from "@/hooks/useMensalidades";
+import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
+import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
+import { useChamadosManutencao } from "@/hooks/useManutencao";
+import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
-import { cn } from "@/lib/utils";
+import { cn, grauNivel } from "@/lib/utils";
+import { formatarMoeda } from "@/lib/mensalidade";
 
 // ===========================================================================
 // MASTER-1 · Painel estratégico (cockpit do CEO).
@@ -61,6 +68,11 @@ function labelMes(d: Date): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** "YYYY-MM" de um Date (mês de referência financeiro). */
+function mesRefDe(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function PainelEstrategico() {
   // Seletor de mês: escopo dos indicadores financeiros (BLOCO FINANCEIRO).
   // Os dados financeiros ainda não têm tabela; quando o módulo Administração/
@@ -74,6 +86,14 @@ export function PainelEstrategico() {
   const alertasElim = useAlertasEliminacaoPainel();
   const aderencia = useAderenciaHoje();
   const aceitacao = useAceitacaoBaixaRecente();
+  // Financeiro do mês selecionado + clínico/operacional reais (pós-unificação).
+  const mesRef = mesRefDe(mes);
+  const pagamentos = usePagamentosDoMes(mesRef);
+  const upselling = useUpsellingTodosDoMes(mesRef);
+  const custos = useCustosPessoalDoMes(mesRef);
+  const ivcf = useUltimasAvaliacoesIVCF();
+  const chamados = useChamadosManutencao();
+  const inspecoes = useInspecoesHoje();
 
   const carregando =
     residentes.isLoading ||
@@ -82,7 +102,13 @@ export function PainelEstrategico() {
     medicacoes.isLoading ||
     alertasElim.isLoading ||
     aderencia.isLoading ||
-    aceitacao.isLoading;
+    aceitacao.isLoading ||
+    pagamentos.isLoading ||
+    upselling.isLoading ||
+    custos.isLoading ||
+    ivcf.isLoading ||
+    chamados.isLoading ||
+    inspecoes.isLoading;
 
   const erro =
     residentes.error ??
@@ -91,7 +117,11 @@ export function PainelEstrategico() {
     medicacoes.error ??
     alertasElim.error ??
     aderencia.error ??
-    aceitacao.error;
+    aceitacao.error ??
+    pagamentos.error ??
+    upselling.error ??
+    chamados.error ??
+    inspecoes.error;
 
   if (carregando) return <LoadingState />;
   if (erro) return <ErrorState error={erro} />;
@@ -99,6 +129,16 @@ export function PainelEstrategico() {
   const listaResidentes = residentes.data ?? [];
   const ocupacao = calcularOcupacao(listaResidentes);
   const nomePorId = new Map(listaResidentes.map((r) => [r.id, r.nome]));
+
+  // Distribuição por tipo de suíte (agora cadastrado na ficha do residente).
+  const porTipoSuite = (() => {
+    const m = new Map<string, number>();
+    for (const r of listaResidentes) {
+      const k = r.tipo_suite ?? "Não informado";
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  })();
 
   // ----- OPERACIONAL: alertas críticos abertos (tempo real) -----
   const trat = tratamentos.data ?? [];
@@ -115,11 +155,45 @@ export function PainelEstrategico() {
   // ----- OPERACIONAL: aderência da equipe ao plano (hoje) -----
   const ad = calcularAderencia(aderencia.data?.itens ?? [], aderencia.data?.registros ?? []);
 
-  // ----- CLÍNICO: hóspedes sem evacuação há 3+ dias (alerta de eliminação) -----
+  // ----- FINANCEIRO (mês selecionado) -----
+  const receitaMensalidades = listaResidentes.reduce((s, r) => s + (r.mensalidade_valor ?? 0), 0);
+  const totalUpselling = (upselling.data ?? []).reduce((s, u) => s + (u.valor ?? 0), 0);
+  const receitaPrevista = receitaMensalidades + totalUpselling;
+  const custoPessoal = (custos.linhas ?? []).reduce((s, l) => s + (l.valorFinal ?? 0), 0);
+  const temCusto = (custos.linhas ?? []).length > 0;
+  const resultadoBruto = receitaPrevista - custoPessoal;
+  // Inadimplência: residentes com mensalidade que NÃO têm pagamento "pago" no mês.
+  const pagosIds = new Set(
+    (pagamentos.data ?? []).filter((p) => p.status === "pago").map((p) => p.residente_id),
+  );
+  const comMensalidade = listaResidentes.filter((r) => (r.mensalidade_valor ?? 0) > 0);
+  const inadimplentes = comMensalidade.filter((r) => !pagosIds.has(r.id));
+  const valorInadimplente = inadimplentes.reduce((s, r) => s + (r.mensalidade_valor ?? 0), 0);
+  const recebido = (pagamentos.data ?? [])
+    .filter((p) => p.status === "pago")
+    .reduce((s, p) => s + (p.valor ?? 0), 0);
+
+  // ----- OPERACIONAL: manutenção e hotelaria (tempo real) -----
+  const chamadosAbertos = (chamados.data ?? []).filter((c) => c.status !== "resolvido");
+  const emergencias = chamadosAbertos.filter((c) => c.urgencia === "emergencia").length;
+  const inspHoje = inspecoes.data ?? [];
+  const naoConformes = inspHoje.filter((i) => i.tem_nao_conformidade).length;
+
+  // ----- CLÍNICO -----
   const semEvacuacao = alertas.filter((a) => a.tipo === "evacuacao");
-  // ----- CLÍNICO: baixa aceitação alimentar recente -----
   const riscoAlimentar = aceitacao.data?.riscos ?? [];
   const temDadosAceitacao = aceitacao.data?.comDados ?? false;
+  // IVCF desatualizado/sem avaliação.
+  const ivcfMap = ivcf.data;
+  const ivcfPendentes = listaResidentes.filter((r) => (ivcfMap?.get(r.id)?.status ?? "sem") !== "atualizado");
+  // Divergência de grau (atual da última IVCF × contratual).
+  const divergentes = listaResidentes.filter((r) => {
+    const av = ivcfMap?.get(r.id);
+    const grauAtual = av ? (av.classificacao.replace("Grau ", "")) : r.grau_dependencia;
+    const na = grauNivel(grauAtual as "I" | "II" | "III" | null);
+    const nc = grauNivel(r.grau_contratual);
+    return na !== null && nc !== null && Math.abs(na - nc) >= 1;
+  });
 
   return (
     <div className="space-y-8">
@@ -193,15 +267,11 @@ export function PainelEstrategico() {
           <Metric
             icon={BedDouble}
             rotulo="Por tipo de suíte"
-            // SEM DADOS: a ficha do residente tem módulo/andar/quarto, mas não
-            // "tipo de suíte". Exibimos a distribuição por módulo (dado real)
-            // e marcamos tipo de suíte como pendente de cadastro.
             valor={
               <span className="text-sm font-semibold text-secondary">
-                {ocupacao.porModulo.map((m) => `${m.rotulo}: ${m.total}`).join(" · ")}
+                {porTipoSuite.map(([t, n]) => `${t}: ${n}`).join(" · ")}
               </span>
             }
-            nota="tipo de suíte não cadastrado — exibindo por módulo"
           />
         </div>
       </section>
@@ -213,42 +283,44 @@ export function PainelEstrategico() {
           titulo={`Financeiro · ${labelMes(mes)}`}
           tom="estrategico"
         />
-        {/* SEM DADOS em todo o bloco: ainda não existem as tabelas de
-            mensalidades/contratos, upselling, custos de pessoal nem baixas
-            financeiras. Origem futura: módulo Administração/Financeiro
-            (mensalidades, inadimplência, recebimentos) e módulo de Custos
-            (pessoal fixo + por plantão). Cada card aponta para a tela de
-            detalhe quando ela existir (ex: inadimplência → Mensalidades). */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <Metric
             icon={TrendingUp}
             rotulo="Receita prevista"
-            valor={null}
-            nota="mensalidades vigentes + upselling — módulo Financeiro"
+            valor={<ValorMoeda v={receitaPrevista} />}
+            nota={`Mensalidades ${formatarMoeda(receitaMensalidades)} + upselling ${formatarMoeda(totalUpselling)}`}
           />
           <Metric
             icon={Coins}
             rotulo="Custo de pessoal"
-            valor={null}
-            nota="mensal fixo + por plantão — módulo de Custos"
+            valor={temCusto ? <ValorMoeda v={custoPessoal} /> : null}
+            to="/app/administracao/custos-pessoal"
+            nota={temCusto ? "mensal fixo + por plantão realizado" : "remuneração não cadastrada"}
           />
           <Metric
             icon={Wallet}
             rotulo="Resultado bruto"
-            valor={null}
+            valor={temCusto ? <ValorMoeda v={resultadoBruto} destaque /> : null}
             nota="receita prevista − custo de pessoal"
           />
           <Metric
             icon={AlertCircle}
             rotulo="Inadimplência"
-            valor={null}
-            nota="hóspedes com mensalidade vencida — Mensalidades"
+            valor={inadimplentes.length}
+            destaque={inadimplentes.length > 0}
+            to="/app/administracao/mensalidades"
+            nota={
+              comMensalidade.length === 0
+                ? "nenhuma mensalidade cadastrada"
+                : `${inadimplentes.length} de ${comMensalidade.length} · ${formatarMoeda(valorInadimplente)} em aberto`
+            }
           />
           <Metric
             icon={Receipt}
-            rotulo="Recebido vs. pendente"
-            valor={null}
-            nota="recebimentos do mês — módulo Financeiro"
+            rotulo="Recebido vs. previsto"
+            valor={<ValorMoeda v={recebido} />}
+            to="/app/administracao/mensalidades"
+            nota={`Recebido de ${formatarMoeda(receitaMensalidades)} previstos`}
           />
         </div>
       </section>
@@ -281,18 +353,26 @@ export function PainelEstrategico() {
           <Metric
             icon={Wrench}
             rotulo="Manutenção"
-            // SEM DADOS: não há tabela de chamados/emergências de manutenção.
-            // Origem futura: módulo de Manutenção (chamados abertos + emergências).
-            valor={null}
-            nota="chamados e emergências — módulo de Manutenção"
+            valor={chamadosAbertos.length}
+            destaque={emergencias > 0}
+            to="/app/hotelaria/manutencao"
+            nota={
+              chamadosAbertos.length === 0
+                ? "nenhum chamado aberto"
+                : `${chamadosAbertos.length} abertos${emergencias > 0 ? ` · ${emergencias} emergência(s)` : ""}`
+            }
           />
           <Metric
             icon={Sparkles}
             rotulo="Hotelaria"
-            // SEM DADOS: não há tabela de não-conformidades/inspeção de suítes.
-            // Origem futura: módulo de Hotelaria (inspeção e não-conformidades).
-            valor={null}
-            nota="não-conformidades e inspeção — módulo de Hotelaria"
+            valor={naoConformes}
+            destaque={naoConformes > 0}
+            to="/app/hotelaria/inspecao-suites"
+            nota={
+              inspHoje.length === 0
+                ? "nenhuma inspeção hoje"
+                : `${naoConformes} não-conformidade(s) · ${inspHoje.length} inspeção(ões) hoje`
+            }
           />
         </div>
       </section>
@@ -305,19 +385,55 @@ export function PainelEstrategico() {
           <ClinicoCard
             icon={Stethoscope}
             titulo="IVCF desatualizado"
-            // SEM DADOS: não existe tabela de avaliações IVCF no schema atual.
-            // Origem futura: módulo clínico/avaliação (avaliacao_ivcf) — então
-            // listaremos quem está sem avaliação há 6+ meses ou sem nenhuma.
-            corpo={<SemDados nota="avaliação IVCF ainda não registrada no sistema" />}
+            corpo={
+              ivcfPendentes.length === 0 ? (
+                <p className="text-sm text-success">Todos com IVCF em dia.</p>
+              ) : (
+                <div>
+                  <div className="text-3xl font-extrabold tabular-nums text-secondary">
+                    {ivcfPendentes.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    sem avaliação ou há mais de 6 meses
+                  </p>
+                  <ul className="mt-2 space-y-0.5">
+                    {ivcfPendentes.slice(0, 5).map((r) => (
+                      <li key={r.id} className="text-sm text-secondary">
+                        {r.nome}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            }
           />
           <ClinicoCard
             icon={Layers}
             titulo="Divergência de grau"
-            // SEM DADOS por ora: o grau ATUAL viria da última avaliação IVCF
-            // (tabela inexistente) e o grau CONTRATUAL não é cadastrado na ficha
-            // do hóspede. O campo residentes.grau_contratual será adicionado na
-            // ficha do hóspede em MASTER-3; aqui sinalizamos a pendência.
-            corpo={<SemDados nota="grau contratual não cadastrado (será adicionado na ficha — MASTER-3)" />}
+            corpo={
+              divergentes.length === 0 ? (
+                <p className="text-sm text-success">Nenhuma divergência de grau.</p>
+              ) : (
+                <div>
+                  <div className="text-3xl font-extrabold tabular-nums text-destructive">
+                    {divergentes.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    grau atual (IVCF) ≠ contratual — gatilho de renegociação
+                  </p>
+                  <ul className="mt-2 space-y-0.5">
+                    {divergentes.slice(0, 5).map((r) => (
+                      <li key={r.id} className="text-sm font-semibold text-secondary">
+                        {r.nome}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          (contrato {r.grau_contratual})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            }
           />
           <ClinicoCard
             icon={HeartPulse}
@@ -409,6 +525,20 @@ function SectionTitle({
 }
 
 /** Texto padrão de ausência de dado (nunca número fictício). */
+/** Valor monetário formatado para os cards financeiros. */
+function ValorMoeda({ v, destaque }: { v: number; destaque?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "text-2xl font-extrabold tabular-nums",
+        destaque && v < 0 ? "text-destructive" : "text-secondary",
+      )}
+    >
+      {formatarMoeda(v)}
+    </span>
+  );
+}
+
 function SemDados({ nota }: { nota?: string }) {
   return (
     <div className="mt-1">
