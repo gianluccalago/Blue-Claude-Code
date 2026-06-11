@@ -40,12 +40,14 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-secondary text-secondary-foreground",
     rotaInicial: "/app/master",
     menu: [
-      { label: "Visão geral", to: "/app/master" },
+      { label: "Painel estratégico", to: "/app/master" },
       { label: "Residentes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
       { label: "Profissionais", to: "/app/master/profissionais" },
     ],
-    emConstrucao: true,
+    // O Painel estratégico (Visão geral inicial) já é tela real; as demais
+    // sub-rotas do Master serão construídas nas próximas etapas (MASTER-2+).
+    emConstrucao: false,
   },
   {
     id: "medico",

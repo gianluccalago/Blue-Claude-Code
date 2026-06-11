@@ -17,6 +17,7 @@ import { Hospedes } from "@/routes/cuidador/Hospedes";
 import { PlanosCuidado } from "@/routes/coordenacao/PlanosCuidado";
 import { ModelosRotina } from "@/routes/coordenacao/ModelosRotina";
 import { PainelCoordenacao } from "@/routes/coordenacao/Painel";
+import { PainelEstrategico } from "@/routes/master/PainelEstrategico";
 import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
@@ -44,6 +45,8 @@ const appRoute = createRoute({
 function AppIndex() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   const def = getPerfil(perfil);
+  // Master: a "Visão geral" inicial é o Painel estratégico (cockpit do CEO).
+  if (perfil === "master") return <PainelEstrategico />;
   // Coordenação: a "Visão geral" é o painel da coordenação.
   if (perfil === "coordenacao") return <PainelCoordenacao />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.
