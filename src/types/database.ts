@@ -27,6 +27,8 @@ export type CategoriaTurno = "cuidadoras" | "enfermeiras";
 export type TagTurno = "diurno" | "noturno";
 
 export type GrauDependencia = "I" | "II" | "III";
+/** Ocupação da suíte. */
+export type OcupacaoSuite = "individual" | "dupla";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
 // 6 períodos de medicação, cada um com horário padrão (ver PERIODOS nas telas).
 // "jejum" (06:00) e "noite" (20:00) são separados (antes eram "noite/jejum").
@@ -51,14 +53,25 @@ export interface Database {
           id: string;
           nome: string;
           data_nascimento: string | null;
+          // Grau ATUAL (vem do IVCF).
           grau_dependencia: GrauDependencia | null;
+          // Grau CONTRATUAL (definido no contrato) — divergência = renegociação.
+          grau_contratual: GrauDependencia | null;
           modulo: number | null;
           andar: number | null;
           quarto: string | null;
+          tipo_suite: string | null;
+          ocupacao: OcupacaoSuite | null;
           responsavel_legal: string | null;
           contato: string | null;
+          contato_emergencia_nome: string | null;
+          contato_emergencia_telefone: string | null;
+          plano_saude_operadora: string | null;
+          plano_saude_numero: string | null;
+          hospital_referencia: string | null;
           alergias: string | null;
           proteses: string | null;
+          mensalidade_valor: number | null;
           historia_vida: string | null;
           data_admissao: string | null;
         };
@@ -67,13 +80,22 @@ export interface Database {
           nome: string;
           data_nascimento?: string | null;
           grau_dependencia?: GrauDependencia | null;
+          grau_contratual?: GrauDependencia | null;
           modulo?: number | null;
           andar?: number | null;
           quarto?: string | null;
+          tipo_suite?: string | null;
+          ocupacao?: OcupacaoSuite | null;
           responsavel_legal?: string | null;
           contato?: string | null;
+          contato_emergencia_nome?: string | null;
+          contato_emergencia_telefone?: string | null;
+          plano_saude_operadora?: string | null;
+          plano_saude_numero?: string | null;
+          hospital_referencia?: string | null;
           alergias?: string | null;
           proteses?: string | null;
+          mensalidade_valor?: number | null;
           historia_vida?: string | null;
           data_admissao?: string | null;
         };
@@ -98,6 +120,8 @@ export interface Database {
           tipo_remuneracao: TipoRemuneracao | null;
           valor_mensal: number | null;
           valor_plantao: number | null;
+          // Horário fixo dos mensalistas (quem não é escalado). Ex "Seg–Sex 8h–17h".
+          horario_trabalho: string | null;
         };
         Insert: {
           id?: string;
@@ -113,6 +137,7 @@ export interface Database {
           tipo_remuneracao?: TipoRemuneracao | null;
           valor_mensal?: number | null;
           valor_plantao?: number | null;
+          horario_trabalho?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];

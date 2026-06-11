@@ -104,6 +104,21 @@ export function useDefinirAtivoUsuario() {
   });
 }
 
+/** Define o horário fixo de trabalho (mensalistas administrativos/operacionais). */
+export function useDefinirHorarioTrabalho() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; horario: string | null }) => {
+      const { error } = await supabase
+        .from("usuarios")
+        .update({ horario_trabalho: args.horario?.trim() || null })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarUsuarios(qc),
+  });
+}
+
 function invalidarUsuarios(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["usuarios"] });
   // O módulo de Escalas lista profissionais a partir de usuarios.

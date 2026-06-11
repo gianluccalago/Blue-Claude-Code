@@ -17,6 +17,32 @@ export function calcularIdade(dataNascimento: string | null): number | null {
   return idade;
 }
 
+/** Nível numérico do grau de dependência (I=1, II=2, III=3) ou null. */
+export function grauNivel(grau: "I" | "II" | "III" | null | undefined): number | null {
+  if (grau === "I") return 1;
+  if (grau === "II") return 2;
+  if (grau === "III") return 3;
+  return null;
+}
+
+/** Tempo de permanência (desde a admissão) em texto, ex "2 anos e 3 meses". */
+export function tempoDePermanencia(dataAdmissao: string | null): string {
+  if (!dataAdmissao) return "Não informado";
+  const inicio = new Date(dataAdmissao + (dataAdmissao.length === 10 ? "T00:00:00" : ""));
+  if (Number.isNaN(inicio.getTime())) return "Não informado";
+  const hoje = new Date();
+  let meses = (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
+  if (hoje.getDate() < inicio.getDate()) meses -= 1;
+  if (meses < 0) return "Não informado";
+  const anos = Math.floor(meses / 12);
+  const m = meses % 12;
+  const partes: string[] = [];
+  if (anos > 0) partes.push(`${anos} ${anos === 1 ? "ano" : "anos"}`);
+  if (m > 0) partes.push(`${m} ${m === 1 ? "mês" : "meses"}`);
+  if (partes.length === 0) return "Menos de 1 mês";
+  return partes.join(" e ");
+}
+
 /** Exibe "Não informado" para valores vazios/nulos. */
 export function ouNaoInformado(valor: string | null | undefined): string {
   if (valor === null || valor === undefined || valor.trim() === "") {

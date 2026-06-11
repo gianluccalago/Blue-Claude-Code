@@ -148,8 +148,15 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
             rotulo="Grau atual"
             valor={hospede.grau_dependencia ? `Grau ${hospede.grau_dependencia}` : "Não informado"}
           />
-          {/* Tipo de suíte ainda não é cadastrado na ficha (só módulo/andar). */}
-          <Campo rotulo="Tipo de suíte" valor="sem dados" esmaecido />
+          {/* Tipo de suíte e ocupação agora vêm da ficha (MASTER · Residentes). */}
+          <Campo
+            rotulo="Tipo de suíte"
+            valor={
+              hospede.tipo_suite
+                ? `${hospede.tipo_suite}${hospede.ocupacao ? ` · ${hospede.ocupacao}` : ""}`
+                : "Não informado"
+            }
+          />
           <Campo
             rotulo="Localização"
             valor={`Módulo ${ouNaoInformado(hospede.modulo?.toString() ?? null)} · Andar ${ouNaoInformado(
