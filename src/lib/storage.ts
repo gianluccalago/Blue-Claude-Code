@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 export const BUCKET_FOTOS_MANUTENCAO = "manutencao-fotos";
 export const BUCKET_FOTOS_ATIVIDADE = "atividades-fotos";
 export const BUCKET_UPSELLING_COMPROVANTES = "upselling-comprovantes";
+export const BUCKET_FOTOS_INTERCORRENCIA = "intercorrencias-fotos";
 
 /**
  * Faz upload de uma foto de evidência de manutenção e retorna a URL pública.
@@ -49,6 +50,28 @@ export async function uploadFotoAtividade(
 
     const { data: pub } = supabase.storage.from(BUCKET_FOTOS_ATIVIDADE).getPublicUrl(path);
     return pub.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Faz upload da foto de uma intercorrência registrada pelo cuidador.
+ * Retorna `null` em caso de falha — a intercorrência é salva mesmo sem foto.
+ */
+export async function uploadFotoIntercorrencia(
+  file: File,
+  residenteId: string
+): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${residenteId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET_FOTOS_INTERCORRENCIA)
+      .upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from(BUCKET_FOTOS_INTERCORRENCIA).getPublicUrl(path);
+    return data.publicUrl ?? null;
   } catch {
     return null;
   }

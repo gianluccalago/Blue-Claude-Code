@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Check, Plus, X, Clock4, Droplet, CircleDot, AlertTriangle } from "lucide-react";
+import { Check, Plus, X, Clock4, Droplet, CircleDot, AlertTriangle, Loader2, Utensils } from "lucide-react";
+import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import {
@@ -15,6 +16,7 @@ import {
   useRemoverEliminacao,
   calcularAlertasEliminacao,
 } from "@/hooks/useEliminacao";
+import { useDietaAtiva } from "@/hooks/useNutricao";
 import { usePlantao } from "@/hooks/usePlantao";
 import { PlantaoBar } from "@/components/cuidador/PlantaoBar";
 import { HospedeSelector } from "@/components/HospedeSelector";
@@ -24,10 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
-import type { PlanoCuidadoItem, TarefaRegistro, Turno } from "@/types/database";
+import type { PlanoCuidadoItem, Residente, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
-// A chave (usada na gravação) é o nome da refeição.
 const REFEICOES = [
   { nome: "Café da manhã", horario: "08:00" },
   { nome: "Lanche da manhã", horario: "10:00" },
@@ -63,6 +64,7 @@ export function Checklist() {
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
 
   const hospedeId = selecionadoId ?? hospedes?.[0]?.id;
+  const hospedeSel = hospedes?.find((h) => h.id === hospedeId);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -78,10 +80,11 @@ export function Checklist() {
         selecionadoId={hospedeId}
         onSelect={setSelecionadoId}
       />
-      {hospedeId && (
+      {hospedeId && hospedeSel && (
         <ChecklistDoHospede
           key={hospedeId}
           residenteId={hospedeId}
+          hospede={hospedeSel}
           liberado={plantao.liberado}
           turno={plantao.turnoAtivo}
         />
@@ -98,10 +101,12 @@ interface Confirmacao {
 
 function ChecklistDoHospede({
   residenteId,
+  hospede,
   liberado,
   turno,
 }: {
   residenteId: string;
+  hospede: Residente;
   liberado: boolean;
   turno: Turno | null;
 }) {
@@ -110,6 +115,7 @@ function ChecklistDoHospede({
   const marcar = useMarcarTarefa(residenteId);
   const remover = useRemoverRegistro(residenteId);
   const definirRefeicao = useDefinirRefeicao(residenteId);
+  const dieta = useDietaAtiva(residenteId);
 
   const registrosHoje = registros.data ?? [];
   const planoItens = plano.data ?? [];
@@ -123,7 +129,6 @@ function ChecklistDoHospede({
     [turno]
   );
 
-  // Confirmação para ações destrutivas (evita toque acidental no tablet).
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
   const [outros, setOutros] = useState("");
 
@@ -140,7 +145,10 @@ function ChecklistDoHospede({
         acao: () => remover.mutate(existente.id),
       });
     } else {
-      marcar.mutate({ tarefa: item.id, horario: item.horario });
+      marcar.mutate(
+        { tarefa: item.id, horario: item.horario },
+        { onSuccess: () => toast.success(`Tarefa marcada: ${item.tarefa}`) },
+      );
     }
   }
 
@@ -150,7 +158,10 @@ function ChecklistDoHospede({
   }
   function selecionarRefeicao(refeicao: string, nivel: string) {
     const existente = registroRefeicao(refeicao);
-    definirRefeicao.mutate({ registroId: existente?.id, tarefa: `Aceitação ${refeicao}: ${nivel}` });
+    definirRefeicao.mutate(
+      { registroId: existente?.id, tarefa: `Aceitação ${refeicao}: ${nivel}` },
+      { onSuccess: () => toast.success(`${refeicao}: ${nivel}`) },
+    );
   }
 
   // ----- Sob demanda -----
@@ -158,11 +169,40 @@ function ChecklistDoHospede({
     (r) => !planIds.has(r.tarefa) && !r.tarefa.startsWith("Aceitação "),
   );
 
+  // Resumo de dieta para exibir (consistência + restrições)
+  const dietaResumo = dieta.data
+    ? [dieta.data.consistencia, (dieta.data.restricoes ?? []).join(", ")]
+        .filter((p) => p && p.trim())
+        .join(" · ")
+    : null;
+
   if (plano.isError) return <ErrorState error={plano.error} />;
   if (plano.isLoading || registros.isLoading) return <LoadingState />;
 
   return (
     <div className="space-y-6">
+      {/* ---- Header sticky: quem é o hóspede ---- */}
+      <div className="sticky top-0 z-10 -mx-1 rounded-lg border border-secondary/20 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span className="font-bold text-secondary">{hospede.nome}</span>
+            <span className="ml-2 text-sm text-muted-foreground">Quarto {hospede.quarto ?? "—"}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {hospede.alergias && (
+              <Badge variant="destructive" className="gap-1 text-xs">
+                <AlertTriangle className="size-3" /> Alérgico a {hospede.alergias}
+              </Badge>
+            )}
+            {dietaResumo && (
+              <Badge variant="warning" className="gap-1 text-xs">
+                <Utensils className="size-3" /> {dietaResumo}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* ---- Tarefas do plano ---- */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -217,15 +257,14 @@ function ChecklistDoHospede({
                     onClick={() => onToggleTarefa(item)}
                     disabled={!liberado || marcar.isPending || remover.isPending}
                   >
-                    {feito ? (
-                      <>
-                        <X className="size-4" /> Desfazer
-                      </>
+                    {(marcar.isPending || remover.isPending) ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : feito ? (
+                      <X className="size-4" />
                     ) : (
-                      <>
-                        <Check className="size-5" /> Marcar feito
-                      </>
+                      <Check className="size-5" />
                     )}
+                    {feito ? "Desfazer" : "Marcar feito"}
                   </Button>
                 </div>
               );
@@ -237,7 +276,16 @@ function ChecklistDoHospede({
       {/* ---- Aceitação alimentar ---- */}
       <Card>
         <CardHeader>
-          <CardTitle>Aceitação alimentar</CardTitle>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <CardTitle>Aceitação alimentar</CardTitle>
+            {/* Resumo de dieta ativo: visibilidade no momento da refeição */}
+            {dietaResumo && (
+              <div className="flex items-center gap-1.5 rounded-md bg-warning/10 px-3 py-1.5 text-xs font-semibold text-warning-foreground">
+                <Utensils className="size-3.5" />
+                {dietaResumo}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           {refeicoesDoTurno.length === 0 ? (
@@ -258,13 +306,15 @@ function ChecklistDoHospede({
                         onClick={() => selecionarRefeicao(refeicao, nivel)}
                         disabled={!liberado || definirRefeicao.isPending}
                         className={cn(
-                          "rounded-md border px-2 py-3 text-xs font-semibold transition-all sm:text-sm",
+                          "rounded-md border px-2 py-4 text-sm font-semibold transition-all",
                           ativo
                             ? "border-primary bg-primary text-primary-foreground shadow-card"
                             : "border-border bg-card text-muted-foreground hover:border-primary/50",
                         )}
                       >
-                        {nivel}
+                        {definirRefeicao.isPending && ativo ? (
+                          <Loader2 className="mx-auto size-4 animate-spin" />
+                        ) : nivel}
                       </button>
                     );
                   })}
@@ -295,7 +345,10 @@ function ChecklistDoHospede({
               <Button
                 key={label}
                 variant="outline"
-                onClick={() => marcar.mutate({ tarefa: label })}
+                onClick={() => marcar.mutate(
+                  { tarefa: label },
+                  { onSuccess: () => toast.success(label) },
+                )}
                 disabled={!liberado || marcar.isPending}
               >
                 <Plus className="size-4" /> {label}
@@ -315,11 +368,14 @@ function ChecklistDoHospede({
               variant="secondary"
               disabled={!liberado || !outros.trim() || marcar.isPending}
               onClick={async () => {
-                await marcar.mutateAsync({ tarefa: `Outros: ${outros.trim()}` });
+                const tarefa = `Outros: ${outros.trim()}`;
+                await marcar.mutateAsync({ tarefa });
+                toast.success(tarefa);
                 setOutros("");
               }}
             >
-              <Plus className="size-4" /> Adicionar
+              {marcar.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+              Adicionar
             </Button>
           </div>
 
@@ -392,12 +448,6 @@ function Legenda() {
   );
 }
 
-/**
- * Seção de Eliminações (urina / evacuação). Acessível o dia todo, sem horário
- * fixo. Cada toque grava um evento. Mostra resumo de hoje, lista removível e
- * os alertas de vigilância clínica — que são calculados AGORA, ao abrir a tela
- * (não há notificação automática em segundo plano).
- */
 function EliminacoesSection({
   residenteId,
   pedirConfirmacao,
@@ -412,13 +462,10 @@ function EliminacoesSection({
   const remover = useRemoverEliminacao(residenteId);
 
   const registros = eliminacoes.data ?? [];
-  // Cálculo sob demanda dos alertas (mesma função reutilizável do futuro
-  // painel da Coordenação/Enfermagem).
   const alertas = calcularAlertasEliminacao(registros);
 
   const inicioHoje = new Date();
   inicioHoje.setHours(0, 0, 0, 0);
-  // registros já vêm do mais recente para o mais antigo.
   const deHoje = registros.filter((r) => new Date(r.registrado_em) >= inicioHoje);
   const urinaHoje = deHoje.filter((r) => r.tipo === "urina");
   const evacHoje = deHoje.filter((r) => r.tipo === "evacuacao");
@@ -450,17 +497,19 @@ function EliminacoesSection({
             variant="secondary"
             className="h-20 flex-col gap-1.5 text-base"
             disabled={!liberado || registrar.isPending}
-            onClick={() => registrar.mutate("urina")}
+            onClick={() => registrar.mutate("urina", { onSuccess: () => toast.success("Urina registrada") })}
           >
-            <Droplet className="size-6" /> Urinou
+            {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <Droplet className="size-6" />}
+            Urinou
           </Button>
           <Button
             variant="secondary"
             className="h-20 flex-col gap-1.5 text-base"
             disabled={!liberado || registrar.isPending}
-            onClick={() => registrar.mutate("evacuacao")}
+            onClick={() => registrar.mutate("evacuacao", { onSuccess: () => toast.success("Evacuação registrada") })}
           >
-            <CircleDot className="size-6" /> Evacuou
+            {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <CircleDot className="size-6" />}
+            Evacuou
           </Button>
         </div>
 

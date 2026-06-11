@@ -4,6 +4,7 @@
  * Duas abas: "Dispensar" (por hóspede) e "Mapa do período" (todos os hóspedes).
  */
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Package,
   Trash2,
@@ -71,6 +72,8 @@ export function Dispensacao() {
   const [dataSelecionada, setDataSelecionada] = useState(hojeISODate());
 
   const hId = hospedeId ?? residentes[0]?.id;
+  const indice = residentes.findIndex((r) => r.id === hId);
+  const proximo = indice < residentes.length - 1 ? residentes[indice + 1] : null;
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
@@ -112,6 +115,8 @@ export function Dispensacao() {
               key={`${hId}-${dataSelecionada}`}
               residenteId={hId}
               data={dataSelecionada}
+              onProximo={proximo ? () => setHospedeId(proximo.id) : undefined}
+              proximoNome={proximo?.nome ?? null}
             />
           )}
         </TabsContent>
@@ -129,9 +134,13 @@ export function Dispensacao() {
 function Dispensar({
   residenteId,
   data,
+  onProximo,
+  proximoNome,
 }: {
   residenteId: string;
   data: string;
+  onProximo?: () => void;
+  proximoNome: string | null;
 }) {
   const [periodoKey, setPeriodoKey] = useState<PeriodoMedicacao>("manha");
   const [confirmando, setConfirmando] = useState(false);
@@ -158,7 +167,7 @@ function Dispensar({
     [dispensacoes, periodoKey]
   );
 
-  async function handleConfirmar() {
+  async function handleConfirmar(avancar: boolean) {
     if (itensDoZiploc.length === 0) return;
     setConfirmando(true);
     setErro(null);
@@ -169,6 +178,8 @@ function Dispensar({
         data,
         itens: itensDoZiploc,
       });
+      toast.success("Dispensação confirmada — estoque baixado.");
+      if (avancar && onProximo) onProximo();
     } catch (e) {
       setErro(extrairErro(e));
     } finally {
@@ -180,6 +191,7 @@ function Dispensar({
     if (!window.confirm("Desfazer esta dispensação e estornar o estoque?")) return;
     try {
       await desfazer.mutateAsync(disp);
+      toast.success("Dispensação desfeita — estoque estornado.");
     } catch (e) {
       setErro(extrairErro(e));
     }
@@ -243,20 +255,36 @@ function Dispensar({
         </CardContent>
       </Card>
 
-      {/* Botão confirmar */}
+      {/* Botões confirmar */}
       {erro && (
         <p className="flex items-center gap-1.5 text-sm text-destructive">
           <AlertTriangle className="h-4 w-4 shrink-0" /> {erro}
         </p>
       )}
-      <Button
-        className="w-full gap-2"
-        disabled={itensDoZiploc.length === 0 || confirmando || confirmar.isPending}
-        onClick={handleConfirmar}
-      >
-        <CheckCircle2 className="h-4 w-4" />
-        {confirmando ? "Salvando…" : "Confirmar dispensação (separar ziploc)"}
-      </Button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          disabled={itensDoZiploc.length === 0 || confirmando || confirmar.isPending}
+          onClick={() => handleConfirmar(false)}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {confirmando ? "Salvando…" : "Confirmar"}
+        </Button>
+        <Button
+          className="w-full gap-2"
+          disabled={itensDoZiploc.length === 0 || confirmando || confirmar.isPending || !onProximo}
+          onClick={() => handleConfirmar(true)}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {onProximo ? `Confirmar e próximo ▸` : "Confirmar (último)"}
+        </Button>
+      </div>
+      {onProximo && proximoNome && (
+        <p className="text-center text-xs text-muted-foreground">
+          Próximo: <span className="font-semibold">{proximoNome}</span>
+        </p>
+      )}
 
       {/* Histórico do período nesta data */}
       {dispDoPeriodo.length > 0 && (

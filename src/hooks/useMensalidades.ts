@@ -112,3 +112,33 @@ export function useMarcarPagamento() {
     onSuccess: (_r, args) => qc.invalidateQueries({ queryKey: ["pagamentos-mensalidade", args.mes] }),
   });
 }
+
+export type MarcarPagamentosLoteInput = {
+  mes: string;
+  itens: { residenteId: string; valor: number }[];
+};
+
+/** Marca várias mensalidades como pagas de uma vez (upsert em lote) para o mês. */
+export function useMarcarPagamentosLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: MarcarPagamentosLoteInput) => {
+      if (args.itens.length === 0) return;
+      const agora = new Date().toISOString();
+      const linhas = args.itens.map((i) => ({
+        residente_id: i.residenteId,
+        mes_referencia: args.mes,
+        valor: i.valor,
+        status: "pago" as const,
+        pago_em: agora,
+        registrado_por: ADMIN_ATUAL.nome,
+      }));
+      const { error } = await supabase
+        .from("pagamento_mensalidade")
+        .upsert(linhas, { onConflict: "residente_id,mes_referencia" });
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) =>
+      qc.invalidateQueries({ queryKey: ["pagamentos-mensalidade", args.mes] }),
+  });
+}

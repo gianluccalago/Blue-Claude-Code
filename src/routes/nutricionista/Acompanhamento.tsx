@@ -169,6 +169,8 @@ function AceitacaoDoHospede({ residenteId }: { residenteId: string }) {
 function VisaoGeral() {
   const residentes = useResidentes();
   const aceitacao = useAceitacaoTodos(DIAS_PERIODO);
+  // Filtro padrão: prioriza quem tem risco (mais útil no dia a dia da nutri).
+  const [apenasRisco, setApenasRisco] = useState(true);
 
   const isLoading = residentes.isLoading || aceitacao.isLoading;
 
@@ -187,23 +189,49 @@ function VisaoGeral() {
   if (residentes.isError) return <ErrorState error={residentes.error} />;
   if (aceitacao.isError) return <ErrorState error={aceitacao.error} />;
 
-  const lista = (residentes.data ?? []).map((r: Residente) => ({
+  const listaCompleta = (residentes.data ?? []).map((r: Residente) => ({
     residente: r,
     baixos: contagemPorResidente.get(r.id) ?? 0,
   }));
-  lista.sort((a, b) => b.baixos - a.baixos);
+  listaCompleta.sort((a, b) => b.baixos - a.baixos);
+  const comRisco = listaCompleta.filter((l) => l.baixos > 0).length;
+  const lista = apenasRisco ? listaCompleta.filter((l) => l.baixos > 0) : listaCompleta;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="size-5 text-primary" />
-          Atenção alimentar — últimos {DIAS_PERIODO} dias
-        </CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="size-5 text-primary" />
+            Atenção alimentar — últimos {DIAS_PERIODO} dias
+          </CardTitle>
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            <button
+              onClick={() => setApenasRisco(true)}
+              className={
+                "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors " +
+                (apenasRisco ? "bg-card text-secondary shadow-card" : "text-muted-foreground hover:text-secondary")
+              }
+            >
+              Com risco ({comRisco})
+            </button>
+            <button
+              onClick={() => setApenasRisco(false)}
+              className={
+                "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors " +
+                (!apenasRisco ? "bg-card text-secondary shadow-card" : "text-muted-foreground hover:text-secondary")
+              }
+            >
+              Todos ({listaCompleta.length})
+            </button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {lista.length === 0 ? (
-          <EmptyState label="Nenhum residente cadastrado." />
+          <EmptyState
+            label={apenasRisco ? "Nenhum hóspede com risco no período. 🎉" : "Nenhum residente cadastrado."}
+          />
         ) : (
           <div className="space-y-2">
             {lista.map(({ residente, baixos }) => (

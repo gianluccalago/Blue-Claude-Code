@@ -7,10 +7,12 @@
  * pagamento/boleto.
  */
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  CheckCheck,
   ChevronLeft,
   ChevronRight,
   Pencil,
@@ -20,6 +22,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import {
   useAjustarMensalidade,
   useMarcarPagamento,
+  useMarcarPagamentosLote,
   usePagamentosDoMes,
   useTabelaPreco,
 } from "@/hooks/useMensalidades";
@@ -47,9 +50,11 @@ function extrairErro(e: unknown): string {
 
 export function Mensalidades() {
   const [mes, setMes] = useState(mesAtual());
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const residentes = useResidentes();
   const tabelaPreco = useTabelaPreco();
   const pagamentos = usePagamentosDoMes(mes);
+  const marcarLote = useMarcarPagamentosLote();
 
   if (residentes.isLoading || tabelaPreco.isLoading || pagamentos.isLoading) return <LoadingState />;
   if (residentes.isError) return <ErrorState error={residentes.error} />;
@@ -62,14 +67,52 @@ export function Mensalidades() {
   const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
   const mesEhPassado = mes < mesAtual();
 
+  function valorDe(r: Residente): number {
+    return r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
+  }
+
   let totalPendente = 0;
   let countInadimplentes = 0;
   for (const r of residentes.data) {
-    const valor = r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
     const pago = pagamentoMap.get(r.id)?.status === "pago";
     if (!pago) {
-      totalPendente += valor;
+      totalPendente += valorDe(r);
       if (mesEhPassado) countInadimplentes++;
+    }
+  }
+
+  // Pendentes do mês — base para a seleção em lote.
+  const pendentes = residentes.data.filter((r) => pagamentoMap.get(r.id)?.status !== "pago");
+
+  function toggleSelecionado(id: string) {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  }
+
+  function toggleTodos() {
+    if (selecionados.size === pendentes.length) {
+      setSelecionados(new Set());
+    } else {
+      setSelecionados(new Set(pendentes.map((r) => r.id)));
+    }
+  }
+
+  async function marcarSelecionados() {
+    const itens = pendentes
+      .filter((r) => selecionados.has(r.id))
+      .map((r) => ({ residenteId: r.id, valor: valorDe(r) }));
+    if (itens.length === 0) return;
+    if (!window.confirm(`Marcar ${itens.length} mensalidade(s) como paga(s)?`)) return;
+    try {
+      await marcarLote.mutateAsync({ mes, itens });
+      toast.success(`${itens.length} mensalidade(s) marcada(s) como paga(s).`);
+      setSelecionados(new Set());
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao marcar pagamentos.");
     }
   }
 
@@ -77,11 +120,11 @@ export function Mensalidades() {
     <div className="space-y-6">
       <Card>
         <CardContent className="flex items-center justify-between gap-3 py-4">
-          <Button variant="outline" size="icon" onClick={() => setMes((m) => deslocarMes(m, -1))}>
+          <Button variant="outline" size="icon" onClick={() => { setMes((m) => deslocarMes(m, -1)); setSelecionados(new Set()); }}>
             <ChevronLeft className="size-4" />
           </Button>
           <span className="text-lg font-bold text-secondary">{formatarMesReferencia(mes)}</span>
-          <Button variant="outline" size="icon" onClick={() => setMes((m) => deslocarMes(m, 1))}>
+          <Button variant="outline" size="icon" onClick={() => { setMes((m) => deslocarMes(m, 1)); setSelecionados(new Set()); }}>
             <ChevronRight className="size-4" />
           </Button>
         </CardContent>
@@ -112,17 +155,50 @@ export function Mensalidades() {
         </Card>
       </div>
 
+      {/* Barra de ações em lote (apenas se houver pendentes) */}
+      {pendentes.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-secondary">
+              <input
+                type="checkbox"
+                checked={selecionados.size === pendentes.length && pendentes.length > 0}
+                onChange={toggleTodos}
+                className="size-4 rounded border-input"
+              />
+              Selecionar todos os pendentes ({pendentes.length})
+            </label>
+            <Button
+              size="sm"
+              disabled={selecionados.size === 0 || marcarLote.isPending}
+              onClick={marcarSelecionados}
+            >
+              <CheckCheck className="size-4" />
+              {marcarLote.isPending
+                ? "Salvando…"
+                : `Marcar ${selecionados.size > 0 ? selecionados.size : ""} como paga(s)`}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
-        {residentes.data.map((r) => (
-          <ResidenteMensalidade
-            key={r.id}
-            residente={r}
-            mes={mes}
-            mesEhPassado={mesEhPassado}
-            valorSugerido={precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? null}
-            pagamento={pagamentoMap.get(r.id)}
-          />
-        ))}
+        {residentes.data.map((r) => {
+          const pago = pagamentoMap.get(r.id)?.status === "pago";
+          return (
+            <ResidenteMensalidade
+              key={r.id}
+              residente={r}
+              mes={mes}
+              mesEhPassado={mesEhPassado}
+              valorSugerido={precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? null}
+              pagamento={pagamentoMap.get(r.id)}
+              selecionavel={!pago}
+              selecionado={selecionados.has(r.id)}
+              onToggleSelecionado={() => toggleSelecionado(r.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -134,12 +210,18 @@ function ResidenteMensalidade({
   mesEhPassado,
   valorSugerido,
   pagamento,
+  selecionavel,
+  selecionado,
+  onToggleSelecionado,
 }: {
   residente: Residente;
   mes: string;
   mesEhPassado: boolean;
   valorSugerido: number | null;
   pagamento: PagamentoMensalidade | undefined;
+  selecionavel: boolean;
+  selecionado: boolean;
+  onToggleSelecionado: () => void;
 }) {
   const [editando, setEditando] = useState(false);
   const marcar = useMarcarPagamento();
@@ -158,15 +240,26 @@ function ResidenteMensalidade({
         valor: valorVigente ?? 0,
         pago: !pago,
       });
+      toast.success(!pago ? "Mensalidade marcada como paga." : "Mensalidade marcada como pendente.");
     } catch (e) {
       setErro(extrairErro(e));
     }
   }
 
   return (
-    <Card>
+    <Card className={cn(selecionado && "border-primary/50 ring-1 ring-primary/30")}>
       <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-        <div>
+        <div className="flex items-start gap-3">
+          {selecionavel && (
+            <input
+              type="checkbox"
+              checked={selecionado}
+              onChange={onToggleSelecionado}
+              className="mt-1 size-4 shrink-0 rounded border-input"
+              aria-label={`Selecionar ${r.nome}`}
+            />
+          )}
+          <div>
           <CardTitle>{r.nome}</CardTitle>
           <p className="text-sm text-muted-foreground">Quarto {r.quarto ?? "—"}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -175,6 +268,7 @@ function ResidenteMensalidade({
             <Badge variant="outline">
               {r.ocupacao === "dupla" ? "Dupla" : r.ocupacao === "individual" ? "Individual" : "Não informado"}
             </Badge>
+          </div>
           </div>
         </div>
         <Button variant={editando ? "outline" : "ghost"} size="sm" onClick={() => setEditando((v) => !v)}>

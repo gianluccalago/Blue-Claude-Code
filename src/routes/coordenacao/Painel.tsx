@@ -93,9 +93,19 @@ export function PainelCoordenacao() {
   const resolData: ResolucaoMedica[] = resolucoes.data ?? [];
 
   // ----- Pendências abertas (sem tratamento "resolvido") -----
+  // Ordenação por gravidade: NÃO administrada > Parcial (escalado sobe ao topo).
+  function gravidadeMed(status: string, escalado: boolean): number {
+    if (escalado) return 0;
+    if (status === "nao") return 1;
+    return 2; // "parcial"
+  }
   const medsAbertas = (medicacoes.data ?? [])
     .map((m) => ({ reg: m, estado: estadoDaPendencia(trat, "medicacao", m.id) }))
-    .filter((x) => !x.estado.resolvido);
+    .filter((x) => !x.estado.resolvido)
+    .sort((a, b) =>
+      gravidadeMed(a.reg.status, !!a.estado.escaladoEm) -
+      gravidadeMed(b.reg.status, !!b.estado.escaladoEm),
+    );
   const intercAbertas = (intercorrencias.data ?? [])
     .map((i) => ({
       reg: i,
@@ -104,7 +114,9 @@ export function PainelCoordenacao() {
         (r) => r.tipo_origem === "intercorrencia" && r.referencia_id === i.id,
       ) ?? null,
     }))
-    .filter((x) => !x.estado.resolvido);
+    .filter((x) => !x.estado.resolvido)
+    // Escalados (mas não resolvidos) aparecem por último para liberar foco no não-escalado.
+    .sort((a, b) => (!!a.estado.escaladoEm ? 1 : 0) - (!!b.estado.escaladoEm ? 1 : 0));
 
   // ----- Indicadores -----
   const inicioHoje = new Date();
@@ -167,14 +179,15 @@ export function PainelCoordenacao() {
               {medsAbertas.map(({ reg, estado }) => (
                 <PendenciaCard
                   key={reg.id}
-                  titulo={`Medicação — ${PERIODO_LABEL[reg.periodo] ?? reg.periodo}`}
+                  titulo={`Medicação ${PERIODO_LABEL[reg.periodo] ?? reg.periodo}`}
                   hospede={nome(reg.residente_id)}
                   detalhe={
                     reg.status === "nao"
-                      ? "NÃO administrada"
+                      ? "NÃO administrada — nenhum oral foi dado"
                       : `Parcial — faltou: ${ouNaoInformado(reg.itens_faltantes)}`
                   }
                   rodape={`Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}
+                  severidade={reg.status === "nao" ? "critico" : "atencao"}
                   escaladoEm={estado.escaladoEm}
                   ocupado={registrar.isPending}
                   onResolver={() =>
@@ -200,6 +213,7 @@ export function PainelCoordenacao() {
                   hospede={nome(reg.residente_id)}
                   detalhe={ouNaoInformado(reg.observacao)}
                   rodape={`Registrado por ${ouNaoInformado(reg.registrado_por)} · ${formatarDataHoraBR(reg.registrado_em)}`}
+                  severidade="atencao"
                   escaladoEm={estado.escaladoEm}
                   resolvidoPeloMedicoEm={resolucaoMedica?.resolvido_em ?? null}
                   resolvidoPeloMedicoObs={resolucaoMedica?.observacao ?? null}
@@ -356,6 +370,7 @@ function PendenciaCard({
   hospede,
   detalhe,
   rodape,
+  severidade = "atencao",
   escaladoEm,
   resolvidoPeloMedicoEm,
   resolvidoPeloMedicoObs,
@@ -367,6 +382,7 @@ function PendenciaCard({
   hospede: string;
   detalhe: string;
   rodape: string;
+  severidade?: "critico" | "atencao";
   escaladoEm: string | null;
   resolvidoPeloMedicoEm?: string | null;
   resolvidoPeloMedicoObs?: string | null;
@@ -374,12 +390,17 @@ function PendenciaCard({
   onResolver: () => void;
   onEscalar: () => void;
 }) {
+  const borderCls = severidade === "critico"
+    ? "border-destructive/30 bg-destructive/5"
+    : "border-warning/30 bg-warning/5";
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+    <div className={cn("flex flex-col gap-3 rounded-lg border p-4", borderCls)}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="destructive">Crítico</Badge>
+            <Badge variant={severidade === "critico" ? "destructive" : "warning"}>
+              {severidade === "critico" ? "Crítico" : "Atenção"}
+            </Badge>
             <span className="font-bold text-secondary">{titulo}</span>
           </div>
           <div className="mt-1 text-sm font-semibold text-secondary">{hospede}</div>

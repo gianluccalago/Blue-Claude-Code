@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { HeartPulse, AlertCircle, Filter } from "lucide-react";
+import { HeartPulse, AlertCircle, Filter, Search } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useAlertasEliminacaoPainel } from "@/hooks/useCoordenacao";
 import {
@@ -33,6 +33,7 @@ type FiltroAlerta =
   | "intercorrencia"
   | "eliminacao"
   | "nutricional";
+type OrdenacaoClinica = "atencao" | "nome" | "quarto" | "intercorrencias";
 
 interface LinhaClinica {
   id: string;
@@ -62,6 +63,8 @@ export function SupervisaoClinica() {
 
   const [filtroGrau, setFiltroGrau] = useState<FiltroGrau>("todos");
   const [filtroAlerta, setFiltroAlerta] = useState<FiltroAlerta>("todos");
+  const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoClinica>("atencao");
 
   const linhas = useMemo<LinhaClinica[]>(() => {
     const limite = Date.now() - DIAS_INTERCORRENCIAS_RECENTES * 24 * 60 * 60 * 1000;
@@ -112,8 +115,14 @@ export function SupervisaoClinica() {
   }, [residentes.data, intercorrencias.data, alertasElim.data, aceitacao.data, ivcf.data]);
 
   const filtradas = useMemo(() => {
-    return linhas.filter((l) => {
+    const termo = busca.trim().toLowerCase();
+    const filtro = linhas.filter((l) => {
       if (filtroGrau !== "todos" && l.grau !== filtroGrau) return false;
+      if (termo) {
+        const casa =
+          l.nome.toLowerCase().includes(termo) || (l.quarto ?? "").toLowerCase().includes(termo);
+        if (!casa) return false;
+      }
       switch (filtroAlerta) {
         case "atencao":
           return l.atencao;
@@ -129,7 +138,30 @@ export function SupervisaoClinica() {
           return true;
       }
     });
-  }, [linhas, filtroGrau, filtroAlerta]);
+
+    const ordenada = [...filtro];
+    switch (ordenacao) {
+      case "nome":
+        ordenada.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+        break;
+      case "quarto":
+        ordenada.sort((a, b) => (a.quarto ?? "").localeCompare(b.quarto ?? "", "pt-BR", { numeric: true }));
+        break;
+      case "intercorrencias":
+        ordenada.sort((a, b) => b.intercorrenciasRecentes - a.intercorrenciasRecentes);
+        break;
+      case "atencao":
+      default:
+        // Quem precisa de atenção primeiro, depois por intercorrências.
+        ordenada.sort(
+          (a, b) =>
+            Number(b.atencao) - Number(a.atencao) ||
+            b.intercorrenciasRecentes - a.intercorrenciasRecentes,
+        );
+        break;
+    }
+    return ordenada;
+  }, [linhas, filtroGrau, filtroAlerta, busca, ordenacao]);
 
   if (
     residentes.isLoading ||
@@ -163,35 +195,62 @@ export function SupervisaoClinica() {
 
       {/* FILTROS */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-6">
-          <div className="flex items-center gap-2">
-            <Filter className="size-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground">Grau</span>
-            <Segmentado<FiltroGrau>
-              valor={filtroGrau}
-              onChange={setFiltroGrau}
-              opcoes={[
-                { v: "todos", label: "Todos" },
-                { v: "I", label: "I" },
-                { v: "II", label: "II" },
-                { v: "III", label: "III" },
-              ]}
-            />
+        <CardContent className="space-y-3 pt-6">
+          {/* Busca + ordenação */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por nome ou quarto…"
+                className="h-10 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Ordenar</span>
+              <Segmentado<OrdenacaoClinica>
+                valor={ordenacao}
+                onChange={setOrdenacao}
+                opcoes={[
+                  { v: "atencao", label: "Atenção" },
+                  { v: "nome", label: "Nome" },
+                  { v: "quarto", label: "Quarto" },
+                  { v: "intercorrencias", label: "Intercorr." },
+                ]}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Alerta</span>
-            <Segmentado<FiltroAlerta>
-              valor={filtroAlerta}
-              onChange={setFiltroAlerta}
-              opcoes={[
-                { v: "todos", label: "Todos" },
-                { v: "atencao", label: "Atenção" },
-                { v: "ivcf", label: "IVCF pendente" },
-                { v: "intercorrencia", label: "Intercorrência" },
-                { v: "eliminacao", label: "Eliminação" },
-                { v: "nutricional", label: "Nutricional" },
-              ]}
-            />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex items-center gap-2">
+              <Filter className="size-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-muted-foreground">Grau</span>
+              <Segmentado<FiltroGrau>
+                valor={filtroGrau}
+                onChange={setFiltroGrau}
+                opcoes={[
+                  { v: "todos", label: "Todos" },
+                  { v: "I", label: "I" },
+                  { v: "II", label: "II" },
+                  { v: "III", label: "III" },
+                ]}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Alerta</span>
+              <Segmentado<FiltroAlerta>
+                valor={filtroAlerta}
+                onChange={setFiltroAlerta}
+                opcoes={[
+                  { v: "todos", label: "Todos" },
+                  { v: "atencao", label: "Atenção" },
+                  { v: "ivcf", label: "IVCF pendente" },
+                  { v: "intercorrencia", label: "Intercorrência" },
+                  { v: "eliminacao", label: "Eliminação" },
+                  { v: "nutricional", label: "Nutricional" },
+                ]}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

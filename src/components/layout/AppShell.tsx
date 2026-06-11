@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useParams, useRouterState, Navigate } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -10,6 +11,7 @@ export function AppShell() {
   const { perfil: perfilId } = useParams({ strict: false }) as { perfil?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { usuario, carregando } = useAuth();
+  const [menuAberto, setMenuAberto] = useState(false);
 
   // Aguarda a resolução da sessão antes de decidir qualquer redirecionamento.
   if (carregando) return <LoadingState />;
@@ -33,11 +35,16 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar perfil={perfil} />
+      {/* Sidebar fixa no desktop; drawer no mobile */}
+      <Sidebar
+        perfil={perfil}
+        menuAberto={menuAberto}
+        onFechar={() => setMenuAberto(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar titulo={titulo} />
+        <Topbar titulo={titulo} onAbrirMenu={() => setMenuAberto(true)} />
         <CamaleaoBar />
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           <div className="mx-auto w-full max-w-5xl">
             <Outlet />
           </div>

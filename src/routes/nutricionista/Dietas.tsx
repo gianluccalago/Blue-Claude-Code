@@ -6,7 +6,8 @@
  * histórico de dietas anteriores.
  */
 import { useState } from "react";
-import { AlertCircle, ChevronDown, ChevronUp, History, Pencil, Salad } from "lucide-react";
+import { toast } from "sonner";
+import { AlertCircle, ChevronDown, ChevronUp, Copy, History, Pencil, Salad } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useDefinirDieta, useDietaAtiva, useHistoricoDietas } from "@/hooks/useNutricao";
 import { CONSISTENCIAS, RESTRICOES_DIETA } from "@/lib/nutricao";
@@ -79,6 +80,7 @@ function DietaDoHospede({ residenteId }: { residenteId: string }) {
             <FormDieta
               residenteId={residenteId}
               dietaAtual={dietaAtiva.data}
+              ultimaDoHistorico={(historico.data ?? [])[0] ?? null}
               onSalvo={() => setEditando(false)}
               onCancelar={() => setEditando(false)}
             />
@@ -134,14 +136,18 @@ function DietaDoHospede({ residenteId }: { residenteId: string }) {
   );
 }
 
+type DietaResumo = { consistencia: string; restricoes: string[] | null; observacoes: string | null };
+
 function FormDieta({
   residenteId,
   dietaAtual,
+  ultimaDoHistorico,
   onSalvo,
   onCancelar,
 }: {
   residenteId: string;
-  dietaAtual: { consistencia: string; restricoes: string[] | null; observacoes: string | null } | null | undefined;
+  dietaAtual: DietaResumo | null | undefined;
+  ultimaDoHistorico: DietaResumo | null;
   onSalvo: () => void;
   onCancelar: () => void;
 }) {
@@ -155,6 +161,13 @@ function FormDieta({
     setRestricoes((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   }
 
+  function copiarDieta(d: DietaResumo) {
+    setConsistencia(d.consistencia);
+    setRestricoes(d.restricoes ?? []);
+    setObservacoes(d.observacoes ?? "");
+    toast.success("Dieta copiada — revise e salve.");
+  }
+
   async function handleSalvar() {
     if (!consistencia) return;
     setErro(null);
@@ -164,14 +177,23 @@ function FormDieta({
         restricoes,
         observacoes: observacoes.trim() || null,
       });
+      toast.success("Dieta definida.");
       onSalvo();
     } catch (e) {
       setErro(extrairErro(e));
     }
   }
 
+  // Origem para "copiar última": a dieta ativa ou, se não houver, a última do histórico.
+  const origemCopia = dietaAtual ?? ultimaDoHistorico;
+
   return (
     <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+      {origemCopia && (
+        <Button variant="outline" size="sm" onClick={() => copiarDieta(origemCopia)} disabled={definir.isPending}>
+          <Copy className="size-3.5" /> Copiar última dieta definida
+        </Button>
+      )}
       <div className="space-y-1.5">
         <p className="text-sm font-semibold text-secondary">Consistência</p>
         <div className="flex flex-wrap gap-2">

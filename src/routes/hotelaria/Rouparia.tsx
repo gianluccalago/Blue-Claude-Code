@@ -3,7 +3,8 @@
  * Saldo em trânsito (lavanderia) por categoria, com limite de alerta.
  */
 import { useState } from "react";
-import { Shirt, AlertTriangle, Save } from "lucide-react";
+import { toast } from "sonner";
+import { Shirt, AlertTriangle, Save, Minus, Plus } from "lucide-react";
 import { useRouparia, useAtualizarRouparia } from "@/hooks/useRouparia";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { cn, formatarDataHoraBR } from "@/lib/utils";
 import type { RoupariaTransito } from "@/types/database";
 
 const inputClass =
-  "h-9 w-20 rounded-md border border-input bg-card px-2 text-sm text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-9 w-16 rounded-md border border-input bg-card px-2 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function Rouparia() {
   const { data, isLoading, isError, error } = useRouparia();
@@ -74,8 +75,13 @@ function ItemRouparia({ item }: { item: RoupariaTransito }) {
   const acima = saldoNum > limiteNum;
   const alterado = saldoNum !== item.saldo_atual || limiteNum !== item.limite;
 
+  function ajustarSaldo(delta: number) {
+    setSaldo((s) => String(Math.max(0, (Number(s) || 0) + delta)));
+  }
+
   async function handleSalvar() {
     await atualizar.mutateAsync({ id: item.id, saldoAtual: saldoNum, limite: limiteNum });
+    toast.success(`${item.categoria} atualizada.`);
   }
 
   return (
@@ -94,6 +100,15 @@ function ItemRouparia({ item }: { item: RoupariaTransito }) {
         )}
         <div className="flex items-center gap-1.5">
           <label className="text-xs text-muted-foreground">Saldo</label>
+          {/* Botões −/+ para ajuste por toque (sem teclado) */}
+          <button
+            type="button"
+            onClick={() => ajustarSaldo(-1)}
+            className="grid size-9 place-items-center rounded-md border bg-card text-secondary transition-colors hover:bg-accent"
+            aria-label="Diminuir saldo"
+          >
+            <Minus className="size-4" />
+          </button>
           <input
             type="number"
             min={0}
@@ -101,6 +116,14 @@ function ItemRouparia({ item }: { item: RoupariaTransito }) {
             onChange={(e) => setSaldo(e.target.value)}
             className={inputClass}
           />
+          <button
+            type="button"
+            onClick={() => ajustarSaldo(1)}
+            className="grid size-9 place-items-center rounded-md border bg-card text-secondary transition-colors hover:bg-accent"
+            aria-label="Aumentar saldo"
+          >
+            <Plus className="size-4" />
+          </button>
         </div>
         <div className="flex items-center gap-1.5">
           <label className="text-xs text-muted-foreground">Limite</label>

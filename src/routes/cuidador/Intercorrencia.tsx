@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Phone, Stethoscope, UserCog, Siren, Check } from "lucide-react";
+import { useRef, useState } from "react";
+import { Phone, Stethoscope, UserCog, Siren, Camera, X } from "lucide-react";
+import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useRegistrarIntercorrencia } from "@/hooks/useIntercorrencia";
@@ -17,6 +18,16 @@ const TIPOS = [
   "Vômito",
 ] as const;
 
+// Sub-opções por tipo — geram texto automático, dispensam digitação em urgência.
+const SUB_TIPOS: Record<string, string[]> = {
+  "Queda": ["Sem ferimento", "Hematoma", "Sangramento", "Contusão"],
+  "Alteração de consciência": ["Confusão", "Agitação", "Sonolência", "Desmaio"],
+  "Humor/sono": ["Insônia", "Agitação", "Choro", "Apatia"],
+  "Lesão de pele": ["Escara", "Flebite", "Machucado", "Queimadura"],
+  "Recusa": ["Medicação", "Alimentação", "Higiene", "Tratamento"],
+  "Vômito": ["1 vez", "2 vezes", "3 ou mais vezes", "Com sangue"],
+};
+
 const CONTATOS = [
   { label: "SAMU", numero: "192", icon: Siren, cor: "text-destructive" },
   { label: "Médico Geriatra", numero: "(11) 99999-0002", icon: Stethoscope, cor: "text-primary" },
@@ -28,9 +39,12 @@ export function Intercorrencia() {
   const registrar = useRegistrarIntercorrencia();
 
   const [tipo, setTipo] = useState<string | null>(null);
+  const [subTipo, setSubTipo] = useState<string | null>(null);
   const [hospedeId, setHospedeId] = useState<string>("");
   const [observacao, setObservacao] = useState("");
-  const [sucesso, setSucesso] = useState(false);
+  const [foto, setFoto] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const fotoRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -40,13 +54,48 @@ export function Intercorrencia() {
   const hospedeSel = hospedeId || hospedes[0].id;
   const podeEnviar = !!tipo && !!hospedeSel && !registrar.isPending;
 
+  function selecionarTipo(t: string) {
+    setTipo(t);
+    setSubTipo(null);
+    // Pré-preenche o sub-tipo padrão (primeiro da lista) e gera o texto automático
+    const sub = SUB_TIPOS[t]?.[0] ?? null;
+    if (sub) setSubTipo(sub);
+  }
+
+  function selecionarSubTipo(s: string) {
+    setSubTipo(s);
+  }
+
+  function capturarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFoto(file);
+    setFotoPreview(URL.createObjectURL(file));
+  }
+
+  function removerFoto() {
+    setFoto(null);
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoPreview(null);
+    if (fotoRef.current) fotoRef.current.value = "";
+  }
+
+  // Texto gerado automaticamente: "Queda — Hematoma" + obs adicional.
+  function gerarTexto(): string {
+    const partes = [tipo, subTipo].filter(Boolean).join(" — ");
+    const obs = observacao.trim();
+    return obs ? `${partes}${partes ? ". " : ""}${obs}` : partes;
+  }
+
   async function enviar() {
     if (!tipo) return;
-    await registrar.mutateAsync({ residenteId: hospedeSel, tipo, observacao });
-    setSucesso(true);
+    const textoFinal = gerarTexto();
+    await registrar.mutateAsync({ residenteId: hospedeSel, tipo, observacao: textoFinal, foto });
+    toast.success("Intercorrência registrada e equipe notificada.");
     setTipo(null);
+    setSubTipo(null);
     setObservacao("");
-    setTimeout(() => setSucesso(false), 4000);
+    removerFoto();
   }
 
   return (
@@ -56,12 +105,13 @@ export function Intercorrencia() {
           <CardTitle>Registrar intercorrência</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Tipo (toque) */}
           <Campo titulo="Tipo de intercorrência">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {TIPOS.map((t) => (
                 <button
                   key={t}
-                  onClick={() => setTipo(t)}
+                  onClick={() => selecionarTipo(t)}
                   className={cn(
                     "rounded-lg border px-3 py-4 text-sm font-semibold transition-all",
                     tipo === t
@@ -75,6 +125,29 @@ export function Intercorrencia() {
             </div>
           </Campo>
 
+          {/* Sub-tipo (aparece após selecionar o tipo) */}
+          {tipo && SUB_TIPOS[tipo] && (
+            <Campo titulo="Detalhe">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {SUB_TIPOS[tipo].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => selecionarSubTipo(s)}
+                    className={cn(
+                      "rounded-lg border px-3 py-3 text-sm font-semibold transition-all",
+                      subTipo === s
+                        ? "border-secondary bg-secondary text-secondary-foreground shadow-card"
+                        : "border-border bg-card text-secondary hover:border-secondary/50",
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </Campo>
+          )}
+
+          {/* Hóspede */}
           <Campo titulo="Hóspede">
             <select
               value={hospedeSel}
@@ -89,24 +162,65 @@ export function Intercorrencia() {
             </select>
           </Campo>
 
-          <Campo titulo="Observação (opcional)">
+          {/* Observação adicional */}
+          <Campo titulo="Observação adicional (opcional)">
             <textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              rows={4}
-              placeholder="Descreva o que aconteceu…"
+              rows={3}
+              placeholder="Detalhe extra se necessário…"
               className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </Campo>
 
-          {sucesso && (
-            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 p-3 text-sm font-medium text-success">
-              <Check className="size-4" /> Intercorrência registrada e equipe notificada.
+          {/* Foto */}
+          <Campo titulo="Foto (opcional)">
+            <div className="space-y-2">
+              {fotoPreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={fotoPreview}
+                    alt="Prévia da foto"
+                    className="h-32 w-32 rounded-lg object-cover border"
+                  />
+                  <button
+                    onClick={removerFoto}
+                    className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full bg-destructive text-white"
+                    aria-label="Remover foto"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fotoRef.current?.click()}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm font-medium text-muted-foreground hover:border-primary/50 hover:text-secondary transition-colors"
+                >
+                  <Camera className="size-4" /> Tirar foto / escolher da galeria
+                </button>
+              )}
+              <input
+                ref={fotoRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={capturarFoto}
+                className="hidden"
+              />
+            </div>
+          </Campo>
+
+          {/* Preview do texto gerado */}
+          {tipo && (
+            <div className="rounded-lg border border-secondary/30 bg-secondary/5 px-4 py-3 text-sm text-secondary">
+              <span className="font-semibold">Registro: </span>
+              {gerarTexto() || tipo}
             </div>
           )}
 
           <Button size="lg" className="w-full" disabled={!podeEnviar} onClick={enviar}>
-            Registrar intercorrência
+            {registrar.isPending ? "Registrando…" : "Registrar intercorrência"}
           </Button>
         </CardContent>
       </Card>

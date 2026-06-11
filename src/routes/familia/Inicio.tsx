@@ -7,12 +7,12 @@ import {
   CalendarClock,
   Wallet,
   MessageSquare,
-  Camera,
-  Activity,
   ArrowRight,
 } from "lucide-react";
 import { useResidenteFamilia } from "@/hooks/useFamilia";
+import { useSolicitacoesFamilia } from "@/hooks/useSolicitacoes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
 import { calcularIdade, ouNaoInformado } from "@/lib/utils";
 
@@ -21,19 +21,13 @@ const ATALHOS = [
   { to: "/app/familia/compromissos-familia", label: "Compromissos", descricao: "Agenda externa e detalhes", icon: CalendarClock },
   { to: "/app/familia/mensalidade-familia", label: "Mensalidade e extras", descricao: "Demonstrativo do mês", icon: Wallet },
   { to: "/app/familia/solicitacoes", label: "Solicitações", descricao: "Fale com a Coordenação, Médico ou Administração", icon: MessageSquare },
-  { to: "/app/familia/camera-quarto", label: "Câmera do quarto", descricao: "Em desenvolvimento", icon: Camera },
-  { to: "/app/familia/sinais-vitais", label: "Sinais vitais", descricao: "Em desenvolvimento", icon: Activity },
 ] as const;
 
-/**
- * Início do Portal da Família — resumo curado do hóspede (sem dado clínico
- * cru) e atalhos para as demais telas.
- *
- * SEGURANÇA: ver comentário em FAMILIA_ATUAL (src/data/profiles.ts) — esta
- * tela está fixa em UM hóspede até existir autenticação.
- */
 export function Inicio() {
   const residente = useResidenteFamilia();
+  const solicitacoes = useSolicitacoesFamilia();
+
+  const respondidas = (solicitacoes.data ?? []).filter((s) => s.status === "respondida").length;
 
   if (residente.isLoading) return <LoadingState />;
   if (residente.isError) return <ErrorState error={residente.error} />;
@@ -44,7 +38,6 @@ export function Inicio() {
     <div className="space-y-6">
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-8 text-center sm:flex-row sm:text-left">
-          {/* residentes não possui campo de foto; placeholder de avatar. */}
           <div className="grid size-20 shrink-0 place-items-center rounded-full bg-accent text-primary">
             <UserRound className="size-10" />
           </div>
@@ -69,23 +62,32 @@ export function Inicio() {
         <CardHeader>
           <CardTitle>Acompanhamento</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          {ATALHOS.map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              className="flex items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
-            >
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                <a.icon className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-secondary">{a.label}</p>
-                <p className="text-sm text-muted-foreground">{a.descricao}</p>
-              </div>
-              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            </Link>
-          ))}
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {ATALHOS.map((a) => {
+            const isSolicitacoes = a.to === "/app/familia/solicitacoes";
+            return (
+              <Link
+                key={a.to}
+                to={a.to}
+                className="flex min-h-[56px] items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+              >
+                <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <a.icon className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-secondary">{a.label}</p>
+                  <p className="text-sm text-muted-foreground">{a.descricao}</p>
+                </div>
+                {isSolicitacoes && respondidas > 0 ? (
+                  <Badge variant="success" className="shrink-0">
+                    {respondidas} resposta{respondidas > 1 ? "s" : ""}
+                  </Badge>
+                ) : (
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+                )}
+              </Link>
+            );
+          })}
         </CardContent>
       </Card>
     </div>

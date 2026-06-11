@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   FileText,
   ClipboardList,
@@ -339,10 +339,30 @@ function FormIVCF({
     ? calcularGrupoIdade(residente.data_nascimento)
     : null;
 
-  const [form, setForm] = useState<IVCFForm>({ ...FORM_VAZIO, idade: idadeInicial });
+  // Rascunho em localStorage por hóspede — evita perder a avaliação ao sair no meio.
+  const chaveRascunho = `ivcf-rascunho-${residente.id}`;
+  const [form, setForm] = useState<IVCFForm>(() => {
+    try {
+      const salvo = localStorage.getItem(chaveRascunho);
+      if (salvo) return { ...FORM_VAZIO, idade: idadeInicial, ...JSON.parse(salvo) };
+    } catch {
+      // ignora rascunho corrompido
+    }
+    return { ...FORM_VAZIO, idade: idadeInicial };
+  });
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoIVCF | null>(null);
   const criar = useCriarAvaliacaoIVCF();
+
+  // Persiste o rascunho a cada alteração (enquanto não foi salvo de vez).
+  useEffect(() => {
+    if (resultado) return;
+    try {
+      localStorage.setItem(chaveRascunho, JSON.stringify(form));
+    } catch {
+      // storage cheio/indisponível — ignora
+    }
+  }, [form, chaveRascunho, resultado]);
 
   function set<K extends keyof IVCFForm>(key: K, value: IVCFForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -366,6 +386,12 @@ function FormIVCF({
         dominiosAlterados: res.dominiosAlterados,
         itensIndisponiveis: res.itensIndisponiveis,
       });
+      // Avaliação salva no banco — descarta o rascunho local.
+      try {
+        localStorage.removeItem(chaveRascunho);
+      } catch {
+        // ignora
+      }
       setResultado(res);
     } catch (e) {
       setErro(extrairErro(e));
@@ -395,6 +421,26 @@ function FormIVCF({
             style={{ width: `${(respondidas / total) * 100}%` }}
           />
         </div>
+        {respondidas > 1 && (
+          <p className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>Rascunho salvo automaticamente neste dispositivo.</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm("Limpar todas as respostas desta avaliação?")) return;
+                setForm({ ...FORM_VAZIO, idade: idadeInicial });
+                try {
+                  localStorage.removeItem(chaveRascunho);
+                } catch {
+                  // ignora
+                }
+              }}
+              className="font-semibold text-destructive hover:underline"
+            >
+              Limpar rascunho
+            </button>
+          </p>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">

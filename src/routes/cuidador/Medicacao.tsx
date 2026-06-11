@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   XCircle,
   CircleDashed,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import {
@@ -54,11 +56,27 @@ export function Medicacao() {
   if (!hospedes || hospedes.length === 0)
     return <EmptyState label="Você não possui hóspedes designados." />;
 
+  const hospedeSel = hospedes.find((h) => h.id === hospedeId);
+
   return (
     <div className="space-y-6">
       {/* Controle de plantão: confirmação de medicação exige check-in no turno. */}
       <PlantaoBar plantao={plantao} />
       <HospedeSelector hospedes={hospedes} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
+
+      {/* Banner de alergias — risco clínico de segurança */}
+      {hospedeSel?.alergias && (
+        <div className="flex items-center gap-3 rounded-lg border-2 border-destructive bg-destructive/10 px-4 py-3">
+          <AlertTriangle className="size-6 shrink-0 text-destructive" />
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-destructive">
+              ⚠️ Alérgico a:
+            </p>
+            <p className="font-bold text-destructive">{hospedeSel.alergias.toUpperCase()}</p>
+          </div>
+        </div>
+      )}
+
       {hospedeId && (
         <MedicacaoDoHospede
           key={hospedeId}
@@ -165,14 +183,13 @@ function PeriodoMedicacaoView({
     return <EmptyState label="Sem prescrições ativas para este período." />;
   }
 
-  // Confirmação BINÁRIA: as orais vêm em pacotes fechados preparados pela
-  // farmácia; o cuidador administra o pacote do período inteiro ou não —
-  // não existe meio-termo (por isso não há "parcial" aqui).
   async function confirmarTodas() {
     await registrar.mutateAsync({ periodo, status: "sim" });
+    toast.success("Medicação confirmada.");
   }
   async function confirmarNao() {
     await registrar.mutateAsync({ periodo, status: "nao" });
+    toast.warning("Não administrada — coordenação notificada.");
   }
 
   const jaRegistrado = !!registro;
@@ -243,7 +260,12 @@ function PeriodoMedicacaoView({
             disabled={!liberado || orais.length === 0 || registrar.isPending}
             onClick={confirmarTodas}
           >
-            <Check className="size-5" /> Sim, todas ({orais.length} orais)
+            {registrar.isPending ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <Check className="size-5" />
+            )}
+            Sim, todas ({orais.length} orais)
           </Button>
           <Button
             variant="destructive"
@@ -251,7 +273,12 @@ function PeriodoMedicacaoView({
             disabled={!liberado || registrar.isPending}
             onClick={confirmarNao}
           >
-            <Ban className="size-5" /> Não
+            {registrar.isPending ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <Ban className="size-5" />
+            )}
+            Não
           </Button>
         </div>
       </div>

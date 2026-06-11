@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Send, MessageSquare, CornerDownRight, CalendarClock, Bus, Save, Info, Plus } from "lucide-react";
 import {
   DESTINOS_SOLICITACAO,
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
+import { cn, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
 import type { CompromissoExterno, DestinoSolicitacao, SolicitacaoFamilia } from "@/types/database";
 
 const inputBase =
@@ -24,17 +25,41 @@ const inputBase =
 const textareaBase =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+// Marca as respostas como lidas localmente (não há campo "lida" no banco):
+// guardamos o instante da última visita ao painel; respostas mais novas viram "nova".
+const CHAVE_VISTO = "familia-solicitacoes-visto";
+function getUltimoVisto(): number {
+  const v = localStorage.getItem(CHAVE_VISTO);
+  return v ? Number(v) : 0;
+}
+function marcarVistoAgora() {
+  localStorage.setItem(CHAVE_VISTO, String(Date.now()));
+}
+
 /**
  * A família abre solicitações para Coordenação/Médico/Administração e
  * acompanha as respostas, e também gerencia os compromissos externos do
  * hóspede (cadastra novos e edita os detalhes/instruções).
  */
 export function Solicitacoes() {
+  const solicitacoes = useSolicitacoesFamilia();
+  const [ultimoVisto] = useState(getUltimoVisto);
+
+  // Respostas mais novas que a última visita ao painel.
+  const novasRespostas = (solicitacoes.data ?? []).filter(
+    (s) => s.status === "respondida" && s.respondida_em && new Date(s.respondida_em).getTime() > ultimoVisto,
+  ).length;
+
   return (
     <Tabs defaultValue="solicitacoes">
       <TabsList className="w-full justify-start">
         <TabsTrigger value="solicitacoes" className="gap-1.5">
           <MessageSquare className="size-4" /> Solicitações
+          {novasRespostas > 0 && (
+            <Badge variant="success" className="ml-1">
+              {novasRespostas} nova{novasRespostas > 1 ? "s" : ""}
+            </Badge>
+          )}
         </TabsTrigger>
         <TabsTrigger value="compromissos" className="gap-1.5">
           <CalendarClock className="size-4" /> Compromissos
@@ -55,6 +80,15 @@ function PainelSolicitacoes() {
   const solicitacoes = useSolicitacoesFamilia();
   const criar = useCriarSolicitacao();
 
+  // "Foto" do último visto ao montar — para destacar respostas novas nesta sessão.
+  const [ultimoVisto] = useState(getUltimoVisto);
+
+  // Ao carregar as solicitações, marca tudo como visto (limpa o badge da aba).
+  const carregou = !!solicitacoes.data;
+  useEffect(() => {
+    if (carregou) marcarVistoAgora();
+  }, [carregou]);
+
   const [destino, setDestino] = useState<DestinoSolicitacao>("coordenacao");
   const [assunto, setAssunto] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -67,7 +101,9 @@ function PainelSolicitacoes() {
         onSuccess: () => {
           setAssunto("");
           setMensagem("");
+          toast.success("Solicitação enviada à equipe.");
         },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao enviar."),
       },
     );
   }
@@ -136,16 +172,29 @@ function PainelSolicitacoes() {
         ) : (solicitacoes.data ?? []).length === 0 ? (
           <EmptyState label="Nenhuma solicitação enviada ainda." />
         ) : (
-          (solicitacoes.data ?? []).map((s) => <SolicitacaoCard key={s.id} solicitacao={s} />)
+          (solicitacoes.data ?? []).map((s) => (
+            <SolicitacaoCard key={s.id} solicitacao={s} ultimoVisto={ultimoVisto} />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-function SolicitacaoCard({ solicitacao: s }: { solicitacao: SolicitacaoFamilia }) {
+function SolicitacaoCard({
+  solicitacao: s,
+  ultimoVisto,
+}: {
+  solicitacao: SolicitacaoFamilia;
+  ultimoVisto: number;
+}) {
+  const respostaNova =
+    s.status === "respondida" &&
+    !!s.respondida_em &&
+    new Date(s.respondida_em).getTime() > ultimoVisto;
+
   return (
-    <Card>
+    <Card className={cn(respostaNova && "border-success/50 ring-1 ring-success/30")}>
       <CardContent className="space-y-2 py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -155,7 +204,7 @@ function SolicitacaoCard({ solicitacao: s }: { solicitacao: SolicitacaoFamilia }
           <div className="flex items-center gap-2">
             <Badge variant="muted">{labelDestino(s.destino)}</Badge>
             {s.status === "respondida" ? (
-              <Badge variant="success">Respondida</Badge>
+              <Badge variant="success">{respostaNova ? "Resposta nova" : "Respondida"}</Badge>
             ) : (
               <Badge variant="warning">Aberta</Badge>
             )}

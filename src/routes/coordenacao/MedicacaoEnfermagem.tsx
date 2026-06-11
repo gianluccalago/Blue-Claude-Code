@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Syringe, ShieldAlert, Check, CircleDashed, X } from "lucide-react";
+import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   usePrescricoesEnfermagem,
@@ -41,20 +41,46 @@ const VIA_LABEL: Record<string, string> = {
 export function MedicacaoEnfermagem() {
   const residentes = useResidentes();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
-  const hospedeId = selecionadoId ?? residentes.data?.[0]?.id;
+  const lista = residentes.data ?? [];
+  const hospedeId = selecionadoId ?? lista[0]?.id;
+  const indice = lista.findIndex((r) => r.id === hospedeId);
 
   if (residentes.isLoading) return <LoadingState />;
   if (residentes.isError) return <ErrorState error={residentes.error} />;
-  if (!residentes.data || residentes.data.length === 0)
-    return <EmptyState label="Nenhum residente cadastrado." />;
+  if (lista.length === 0) return <EmptyState label="Nenhum residente cadastrado." />;
+
+  const anterior = indice > 0 ? lista[indice - 1] : null;
+  const proximo = indice < lista.length - 1 ? lista[indice + 1] : null;
 
   return (
     <div className="space-y-6">
-      <HospedeSelector
-        hospedes={residentes.data}
-        selecionadoId={hospedeId}
-        onSelect={setSelecionadoId}
-      />
+      <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
+
+      {/* Navegação prev/next */}
+      {lista.length > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => anterior && setSelecionadoId(anterior.id)}
+            disabled={!anterior}
+            className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="size-4" />
+            {anterior ? anterior.nome.split(" ")[0] : "Anterior"}
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {indice + 1} / {lista.length}
+          </span>
+          <button
+            onClick={() => proximo && setSelecionadoId(proximo.id)}
+            disabled={!proximo}
+            className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {proximo ? proximo.nome.split(" ")[0] : "Próximo"}
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+      )}
+
       {hospedeId && <EnfermagemDoHospede key={hospedeId} residenteId={hospedeId} />}
     </div>
   );

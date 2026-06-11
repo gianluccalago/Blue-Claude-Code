@@ -3,6 +3,7 @@
  * Fluxo: lista de suítes → formulário de inspeção / histórico.
  */
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { useSearch } from "@tanstack/react-router";
 import {
   CheckCircle2,
@@ -142,12 +143,31 @@ export function InspecaoSuites() {
     setResidenteSelecionado(null);
   }
 
+  // Próxima suíte na ordem da lista (por quarto) — para o fluxo serial.
+  function proximaSuite(atual: Residente): Residente | null {
+    const idx = suitesComQuarto.findIndex((r) => r.id === atual.id);
+    return idx >= 0 && idx < suitesComQuarto.length - 1 ? suitesComQuarto[idx + 1] : null;
+  }
+
   if (tela === "form" && residenteSelecionado) {
+    const prox = proximaSuite(residenteSelecionado);
+    const indiceAtual = suitesComQuarto.findIndex((r) => r.id === residenteSelecionado.id);
     return (
       <FormInspecao
+        key={residenteSelecionado.id}
         residente={residenteSelecionado}
         onVoltar={voltarLista}
         onSalvo={voltarLista}
+        proxima={prox}
+        onProxima={
+          prox
+            ? () => {
+                setResidenteSelecionado(prox);
+                // permanece na tela "form"
+              }
+            : undefined
+        }
+        progresso={`${indiceAtual + 1} / ${suitesComQuarto.length}`}
       />
     );
   }
@@ -271,10 +291,16 @@ function FormInspecao({
   residente,
   onVoltar,
   onSalvo,
+  proxima,
+  onProxima,
+  progresso,
 }: {
   residente: Residente;
   onVoltar: () => void;
   onSalvo: () => void;
+  proxima?: Residente | null;
+  onProxima?: () => void;
+  progresso?: string;
 }) {
   const [tipo, setTipo] = useState<TipoInspecao>("diaria");
   const [respostas, setRespostas] = useState<Record<string, StatusItemInspecao | undefined>>({});
@@ -304,7 +330,7 @@ function FormInspecao({
     setErro(null);
   }
 
-  async function handleSalvar() {
+  async function handleSalvar(avancar: boolean) {
     if (!todosRespondidos) {
       setErro("Responda todos os itens antes de salvar.");
       return;
@@ -322,7 +348,12 @@ function FormInspecao({
         tipo,
         itens: itensSalvar,
       });
-      onSalvo();
+      toast.success(`Inspeção de ${residente.nome} salva.`);
+      if (avancar && onProxima) {
+        onProxima();
+      } else {
+        onSalvo();
+      }
     } catch (e) {
       setErro(extrairErro(e));
     }
@@ -333,10 +364,15 @@ function FormInspecao({
   return (
     <div className="space-y-5 pb-8">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={onVoltar} className="gap-1 -ml-1">
           <ChevronLeft className="h-4 w-4" /> Voltar
         </Button>
+        {progresso && (
+          <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+            Suíte {progresso}
+          </span>
+        )}
       </div>
 
       <div>
@@ -460,14 +496,30 @@ function FormInspecao({
       )}
 
       {/* Salvar */}
-      <Button
-        className="w-full gap-2"
-        disabled={!todosRespondidos || salvar.isPending}
-        onClick={handleSalvar}
-      >
-        <ClipboardCheck className="h-4 w-4" />
-        {salvar.isPending ? "Salvando…" : "Salvar inspeção"}
-      </Button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          disabled={!todosRespondidos || salvar.isPending}
+          onClick={() => handleSalvar(false)}
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          {salvar.isPending ? "Salvando…" : "Salvar e voltar"}
+        </Button>
+        <Button
+          className="w-full gap-2"
+          disabled={!todosRespondidos || salvar.isPending || !proxima}
+          onClick={() => handleSalvar(true)}
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          {proxima ? "Salvar e próxima ▸" : "Salvar (última)"}
+        </Button>
+      </div>
+      {proxima && (
+        <p className="text-center text-xs text-muted-foreground">
+          Próxima: <span className="font-semibold">{proxima.nome}</span> · Quarto {proxima.quarto ?? "—"}
+        </p>
+      )}
 
       {naoConformes > 0 && (
         <p className="text-xs text-muted-foreground text-center">
