@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             nome: usuarioEfetivo.nome,
             perfil: usuarioEfetivo.perfil,
             residenteVinculado: usuarioEfetivo.residente_vinculado,
+            registro: usuarioEfetivo.registro_profissional,
           }
         : null,
     );

@@ -1,11 +1,13 @@
 import { jsPDF } from "jspdf";
 import type { GrupoPrescricao } from "@/hooks/useMedico";
 import type { Residente } from "@/types/database";
-import { formatarDataBR } from "@/lib/utils";
+import { formatarDataBR, hojeISO } from "@/lib/utils";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 
-// TODO: quando houver autenticação, substituir pelo médico logado via auth context
-//       (buscar usuario logado, verificar perfil "medico", usar nome + registro_profissional)
-const MEDICO_FIXO = { nome: "Dr. Gianlucca Lagomarsino", crm: "CRM-PR 54.260" };
+/** Assinatura da receita: médico LOGADO (nome + registro profissional/CRM). */
+function medicoAssinante(): { nome: string; crm: string } {
+  return { nome: usuarioAtual.nome, crm: usuarioAtual.registro ?? "" };
+}
 
 // Dados fixos da instituição (cabeçalho da receita).
 const INSTITUICAO = {
@@ -90,7 +92,7 @@ function nomeSanitizado(nome: string): string {
 }
 
 function nomeArquivo(nomeHospede: string, ext: string): string {
-  const data = new Date().toISOString().slice(0, 10);
+  const data = hojeISO(); // dia civil LOCAL (toISOString direto seria UTC)
   return `prescricao_${nomeSanitizado(nomeHospede)}_${data}.${ext}`;
 }
 
@@ -377,7 +379,8 @@ export function exportarPrescricaoPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(...INK);
-  doc.text(`${MEDICO_FIXO.nome}  —  ${MEDICO_FIXO.crm}`, L, y);
+  const medico = medicoAssinante();
+  doc.text(`${medico.nome}${medico.crm ? `  —  ${medico.crm}` : ""}`, L, y);
 
   y += 6;
   doc.setFont("courier", "normal");

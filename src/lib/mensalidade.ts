@@ -9,9 +9,9 @@ export const OCUPACOES: { value: Ocupacao; label: string }[] = [
   { value: "dupla", label: "Dupla" },
 ];
 
-/** Formata um valor numérico como moeda BRL, ou "Não informado" se nulo. */
+/** Formata um valor numérico como moeda BRL, ou "Não informado" se nulo/NaN. */
 export function formatarMoeda(valor: number | null | undefined): string {
-  if (valor === null || valor === undefined) return "Não informado";
+  if (valor === null || valor === undefined || !Number.isFinite(valor)) return "Não informado";
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 

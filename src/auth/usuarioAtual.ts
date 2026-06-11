@@ -18,6 +18,8 @@ export interface UsuarioAtual {
   perfil: PerfilUsuario;
   /** Residente vinculado (perfil família); null nos demais. */
   residenteVinculado: string | null;
+  /** Registro profissional (CRM/COREN/CRN…), quando houver. */
+  registro: string | null;
 }
 
 const PADRAO: UsuarioAtual = {
@@ -25,6 +27,7 @@ const PADRAO: UsuarioAtual = {
   nome: "Ana Paula",
   perfil: "cuidador",
   residenteVinculado: null,
+  registro: null,
 };
 
 /** Mesma referência durante toda a vida do app (mutada in-place). */
@@ -48,6 +51,7 @@ export function setUsuarioAtual(u: UsuarioAtual | null) {
   usuarioAtual.nome = v.nome;
   usuarioAtual.perfil = v.perfil;
   usuarioAtual.residenteVinculado = v.residenteVinculado;
+  usuarioAtual.registro = v.registro;
   familiaAtual.nome = v.nome;
   familiaAtual.residenteId = v.residenteVinculado ?? "";
 }

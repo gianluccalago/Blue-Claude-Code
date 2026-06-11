@@ -14,6 +14,8 @@ import type { AtividadeParticipacao, CompromissoExterno, Residente } from "@/typ
 export function useResidenteFamilia() {
   return useQuery({
     queryKey: ["residente-familia", FAMILIA_ATUAL.residenteId],
+    // Família sem residente vinculado não consulta (evita eq com uuid vazio).
+    enabled: !!FAMILIA_ATUAL.residenteId,
     queryFn: async (): Promise<Residente | null> => {
       const { data, error } = await supabase
         .from("residentes")
@@ -43,6 +45,7 @@ export function useFotosResidente() {
   const residenteId = FAMILIA_ATUAL.residenteId;
   return useQuery({
     queryKey: ["fotos-familia", residenteId],
+    enabled: !!residenteId,
     queryFn: async (): Promise<FotoAtividade[]> => {
       const { data: rows, error: errP } = await supabase
         .from("atividade_participacao")
@@ -89,6 +92,7 @@ export function useFotosResidente() {
 export function useCompromissosResidente() {
   return useQuery({
     queryKey: ["compromissos-familia", FAMILIA_ATUAL.residenteId],
+    enabled: !!FAMILIA_ATUAL.residenteId,
     queryFn: async (): Promise<CompromissoExterno[]> => {
       const { data, error } = await supabase
         .from("compromisso_externo")

@@ -15,9 +15,7 @@ import type {
   AcaoPendencia,
   AcaoEliminacaoTratamento,
 } from "@/types/database";
-
-/** Quem trata as pendências neste painel (sem login ainda). */
-const COORDENACAO = "Coordenação";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 
 /** Janela (dias) para listar intercorrências "recentes" no painel. */
 const DIAS_INTERCORRENCIAS = 7;
@@ -82,7 +80,7 @@ export function useRegistrarTratamento() {
         tipo_origem: args.tipoOrigem,
         referencia_id: args.referenciaId,
         acao: args.acao,
-        tratado_por: COORDENACAO,
+        tratado_por: usuarioAtual.nome,
         observacao: args.observacao ?? null,
       });
       if (error) throw error;
@@ -292,7 +290,7 @@ export function useRegistrarEliminacaoTratamento() {
         tipo_alerta: args.tipoAlerta,
         acao: args.acao,
         observacao: args.observacao ?? null,
-        tratado_por: COORDENACAO,
+        tratado_por: usuarioAtual.nome,
       });
       if (error) throw error;
     },

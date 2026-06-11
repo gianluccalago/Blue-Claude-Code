@@ -3,7 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { FAMILIA_ATUAL } from "@/data/profiles";
 import type { DestinoSolicitacao, SolicitacaoFamilia } from "@/types/database";
 
-const KEY_FAMILIA = ["solicitacoes-familia", FAMILIA_ATUAL.residenteId];
+// FAMILIA_ATUAL é MUTÁVEL (sincronizada pelo login/Camaleão): a chave precisa
+// ser calculada a cada render — congelada no escopo do módulo, ela capturaria
+// o residenteId vazio da carga inicial e o cache nunca acompanharia o usuário.
+const keyFamilia = () => ["solicitacoes-familia", FAMILIA_ATUAL.residenteId];
 const KEY_DESTINO = ["solicitacoes-destino"];
 
 export const DESTINOS_SOLICITACAO: { value: DestinoSolicitacao; label: string }[] = [
@@ -19,7 +22,9 @@ export function labelDestino(destino: string): string {
 /** Solicitações abertas pela família atual, mais recente primeiro. */
 export function useSolicitacoesFamilia() {
   return useQuery({
-    queryKey: KEY_FAMILIA,
+    queryKey: keyFamilia(),
+    // Família sem residente vinculado não consulta (evita eq com uuid vazio).
+    enabled: !!FAMILIA_ATUAL.residenteId,
     queryFn: async (): Promise<SolicitacaoFamilia[]> => {
       const { data, error } = await supabase
         .from("solicitacao_familia")
@@ -53,7 +58,7 @@ export function useCriarSolicitacao() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: KEY_FAMILIA });
+      qc.invalidateQueries({ queryKey: keyFamilia() });
       qc.invalidateQueries({ queryKey: KEY_DESTINO });
     },
   });
@@ -105,7 +110,7 @@ export function useResponderSolicitacao() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY_DESTINO });
-      qc.invalidateQueries({ queryKey: KEY_FAMILIA });
+      qc.invalidateQueries({ queryKey: keyFamilia() });
     },
   });
 }
@@ -132,7 +137,7 @@ export function useRedirecionarSolicitacao() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY_DESTINO });
-      qc.invalidateQueries({ queryKey: KEY_FAMILIA });
+      qc.invalidateQueries({ queryKey: keyFamilia() });
     },
   });
 }

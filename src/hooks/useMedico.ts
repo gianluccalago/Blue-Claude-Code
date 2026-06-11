@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 import type {
   AvaliacaoIVCF,
   EliminacaoTratamento,
@@ -386,8 +387,7 @@ export function useRegistrarResolucaoMedica() {
         tipo_origem: args.tipoOrigem,
         referencia_id: args.referenciaId,
         observacao: args.observacao ?? null,
-        // TODO: puxar do médico logado quando houver autenticação (auth context)
-        resolvido_por: "Médico",
+        resolvido_por: usuarioAtual.nome,
       });
       if (error) throw error;
     },

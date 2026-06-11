@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { hojeISO } from "@/lib/utils";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 import type { Dispensacao, ItemDispensacaoJson } from "@/types/database";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Dia civil LOCAL (não UTC): à noite em SP o toISOString() viraria o dia errado. */
 export function hojeISODate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return hojeISO();
 }
 
 function mesRefDeData(data: string): string {
@@ -70,8 +73,8 @@ export function useConfirmarDispensacao() {
           residente_id: args.residenteId,
           periodo: args.periodo,
           data: args.data,
-          itens: args.itens as unknown as never,
-          dispensado_por: args.dispensadoPor ?? "Farmácia",
+          itens: args.itens,
+          dispensado_por: args.dispensadoPor ?? usuarioAtual.nome,
         })
         .select("id")
         .single();

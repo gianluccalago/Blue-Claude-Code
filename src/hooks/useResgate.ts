@@ -37,7 +37,8 @@ export function useCriarItemResgate() {
   return useMutation({
     mutationFn: async (args: { medicamento: string; quantidade: number; unidade: string }) => {
       const { error } = await supabase.from("estoque_resgate").insert({
-        medicamento: args.medicamento,
+        // MAIÚSCULAS: o casamento prescrição↔estoque↔dispensação é por nome.
+        medicamento: args.medicamento.trim().toUpperCase(),
         quantidade_atual: args.quantidade,
         unidade: args.unidade,
       });

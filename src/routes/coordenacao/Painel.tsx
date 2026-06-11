@@ -34,10 +34,12 @@ import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 import type { Residente, ResolucaoMedica } from "@/types/database";
 
 const PERIODO_LABEL: Record<string, string> = {
-  noite: "Noite / jejum",
+  jejum: "Jejum",
   manha: "Manhã",
-  almoco: "Após almoço",
+  almoco: "Almoço",
+  apos_almoco: "Após almoço",
   tarde: "Tarde",
+  noite: "Noite",
 };
 
 const VIA_LABEL: Record<string, string> = {

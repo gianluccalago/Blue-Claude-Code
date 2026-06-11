@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { hojeISO } from "@/lib/utils";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 import type { InspecaoSuite, InspecaoItem, TipoInspecao, StatusItemInspecao } from "@/types/database";
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 /** Todas as inspeções de hoje (usadas para calcular status das suítes). */
 export function useInspecoesHoje() {
-  const hoje = new Date().toISOString().slice(0, 10);
+  // Dia civil LOCAL (toISOString direto seria UTC e viraria o dia às 21h em SP).
+  const hoje = hojeISO();
   return useQuery({
     queryKey: ["inspecoes-hoje", hoje],
     queryFn: async (): Promise<InspecaoSuite[]> => {
@@ -119,7 +122,7 @@ export function useSalvarInspecao() {
           residente_id: args.residenteId,
           problema: item.observacao ? `${item.item} — ${item.observacao}` : item.item,
           urgencia: "media",
-          aberto_por: "Hotelaria",
+          aberto_por: usuarioAtual.nome,
           perfil_solicitante: "hotelaria",
           inspecao_item_id: item.id,
         });
@@ -129,7 +132,7 @@ export function useSalvarInspecao() {
       return suite.id as string;
     },
     onSuccess: (_id, vars) => {
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = hojeISO();
       qc.invalidateQueries({ queryKey: ["inspecoes-hoje", hoje] });
       qc.invalidateQueries({ queryKey: ["inspecoes-suite", vars.residenteId] });
       qc.invalidateQueries({ queryKey: ["chamados-manutencao"] });

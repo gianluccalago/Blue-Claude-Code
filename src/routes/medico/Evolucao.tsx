@@ -28,7 +28,7 @@ import type { AvaliacaoIVCF, Evolucao, Residente } from "@/types/database";
 type TriOpcao = "sim" | "nao" | "indisponivel";
 type IdadeGrupo = "60-74" | "75-84" | "85+";
 
-interface IVCFForm {
+type IVCFForm = {
   idade: IdadeGrupo | null;
   autopercepcao: "boa" | "ruim" | null;
   avdi_compras: boolean | null;
@@ -360,7 +360,7 @@ function FormIVCF({
     try {
       await criar.mutateAsync({
         residenteId: residente.id,
-        respostas: form as unknown as Record<string, unknown>,
+        respostas: form,
         pontuacaoTotal: res.pontuacao,
         classificacao: res.classificacao,
         dominiosAlterados: res.dominiosAlterados,
