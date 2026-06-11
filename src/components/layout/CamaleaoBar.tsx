@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, LogOut, Glasses, Loader2 } from "lucide-react";
+import { Eye, LogOut, Glasses, Loader2, Search, ChevronDown } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { getPerfil } from "@/data/profiles";
 import { PERFIL_LABEL } from "@/data/perfisSistema";
+import { cn } from "@/lib/utils";
 import type { PerfilUsuario, Usuario } from "@/types/database";
 
 // ===========================================================================
@@ -20,6 +21,8 @@ import type { PerfilUsuario, Usuario } from "@/types/database";
 export function CamaleaoBar() {
   const { ehMaster, impersonado, usuario, personificar } = useAuth();
   const navigate = useNavigate();
+  const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState("");
 
   const usuariosQ = useQuery({
     queryKey: ["camaleao-usuarios"],
@@ -78,9 +81,9 @@ export function CamaleaoBar() {
         </span>
         <button
           onClick={voltarAoMaster}
-          className="inline-flex items-center gap-1 rounded-md border border-warning/50 bg-card px-3 py-1.5 text-xs font-semibold text-secondary transition-colors hover:bg-accent"
+          className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-4 py-2 text-xs font-bold text-secondary-foreground shadow-card transition-colors hover:bg-secondary/90"
         >
-          <LogOut className="size-3.5" /> Voltar ao Master
+          <LogOut className="size-4" /> Voltar ao Master
         </button>
       </div>
     );
@@ -107,25 +110,67 @@ export function CamaleaoBar() {
           nenhum outro usuário ativo encontrado ({total} no total)
         </span>
       ) : (
-        <select
-          defaultValue=""
-          onChange={(e) => {
-            if (e.target.value) verComo(e.target.value);
-            e.currentTarget.value = "";
-          }}
-          className="h-8 rounded-md border border-input bg-card px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">Selecione um usuário…</option>
-          {porPerfil.map(([perfil, lista]) => (
-            <optgroup key={perfil} label={PERFIL_LABEL[perfil] ?? perfil}>
-              {lista.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nome}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <div className="relative">
+          <button
+            onClick={() => setAberto((v) => !v)}
+            className="flex h-8 min-w-[200px] items-center gap-2 rounded-md border border-input bg-card px-2 text-xs text-muted-foreground transition-colors hover:border-primary/50"
+          >
+            <Search className="size-3.5 shrink-0" />
+            <span className="flex-1 text-left">Buscar usuário…</span>
+            <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", aberto && "rotate-180")} />
+          </button>
+
+          {aberto && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => { setAberto(false); setBusca(""); }} />
+              <div className="absolute z-20 mt-1 max-h-80 w-72 overflow-hidden rounded-lg border bg-card shadow-lg">
+                <div className="flex items-center gap-2 border-b px-3 py-2">
+                  <Search className="size-3.5 shrink-0 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Nome do usuário…"
+                    className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto py-1">
+                  {porPerfil
+                    .map(([perfil, lista]) => [
+                      perfil,
+                      lista.filter((u) => u.nome.toLowerCase().includes(busca.trim().toLowerCase())),
+                    ] as const)
+                    .filter(([, lista]) => lista.length > 0)
+                    .map(([perfil, lista]) => (
+                      <div key={perfil}>
+                        <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          {PERFIL_LABEL[perfil] ?? perfil}
+                        </p>
+                        {lista.map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              verComo(u.id);
+                              setAberto(false);
+                              setBusca("");
+                            }}
+                            className="block w-full px-3 py-2 text-left text-xs font-medium text-secondary transition-colors hover:bg-accent"
+                          >
+                            {u.nome}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  {porPerfil.every(([, lista]) =>
+                    lista.every((u) => !u.nome.toLowerCase().includes(busca.trim().toLowerCase())),
+                  ) && (
+                    <p className="px-3 py-3 text-xs text-muted-foreground">Nenhum usuário encontrado.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       <span className="text-xs text-muted-foreground">(você continua logado como Master)</span>

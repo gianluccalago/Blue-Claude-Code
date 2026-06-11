@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { LembreteProvisionamento } from "@/components/farmacia/LembreteProvisionamento";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
 import type { Dispensacao, ItemDispensacaoJson, PeriodoMedicacao, Prescricao } from "@/types/database";
@@ -81,6 +82,7 @@ export function Dispensacao() {
 
   return (
     <div className="space-y-4 pb-8">
+      <LembreteProvisionamento />
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-xl font-bold">Dispensação</h1>
         <div className="flex items-center gap-2">

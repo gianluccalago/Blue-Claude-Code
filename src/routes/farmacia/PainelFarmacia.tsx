@@ -204,7 +204,7 @@ export function PainelFarmacia() {
                 <div key={resId} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-medium text-sm">{nome}</p>
-                    <Link to="/app/farmacia/estoque">
+                    <Link to="/app/farmacia/estoque" search={{ hospede: resId }}>
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
                         Ver estoque <ArrowRight className="h-3 w-3" />
                       </Button>
@@ -295,7 +295,7 @@ export function PainelFarmacia() {
                 <div key={residenteId} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
                     <p className="font-medium text-sm">{residenteNome}</p>
-                    <Link to="/app/farmacia/estoque">
+                    <Link to="/app/farmacia/estoque" search={{ hospede: residenteId }}>
                       <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
                         Reprovisionar <ArrowRight className="h-3 w-3" />
                       </Button>

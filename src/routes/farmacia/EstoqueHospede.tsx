@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearch } from "@tanstack/react-router";
 import {
   Package,
   PackageCheck,
@@ -19,6 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LembreteProvisionamento } from "@/components/farmacia/LembreteProvisionamento";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
 import type { EstoqueHospede, Prescricao } from "@/types/database";
@@ -116,11 +118,23 @@ export function EstoqueHospedeScreen() {
   const [mesRef, setMesRef] = useState(mesAtualISO());
   const [modoProvisionamento, setModoProvisionamento] = useState(false);
 
+  // Pré-seleção via ?hospede=ID (vindo dos alertas do Painel da Farmácia).
+  const search = useSearch({ strict: false }) as { hospede?: string };
+  const [autoPreencheu, setAutoPreencheu] = useState(false);
+  useEffect(() => {
+    if (autoPreencheu || !search.hospede || !residentes) return;
+    if (residentes.some((r) => r.id === search.hospede)) {
+      setResidenteId(search.hospede);
+    }
+    setAutoPreencheu(true);
+  }, [search.hospede, residentes, autoPreencheu]);
+
   if (loadRes) return <LoadingState />;
   if (errRes) return <ErrorState error={errResMsg} />;
 
   return (
     <div className="space-y-6">
+      <LembreteProvisionamento />
       {/* ── Seletores ──────────────────────────────────────────── */}
       <Card>
         <CardHeader>
