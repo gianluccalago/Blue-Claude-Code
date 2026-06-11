@@ -2,13 +2,29 @@ import { Outlet, useParams, useRouterState, Navigate } from "@tanstack/react-rou
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { getPerfil } from "@/data/profiles";
+import { useAuth } from "@/auth/AuthProvider";
+import { LoadingState } from "@/components/states";
 
 export function AppShell() {
   const { perfil: perfilId } = useParams({ strict: false }) as { perfil?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const perfil = getPerfil(perfilId);
+  const { usuario, carregando } = useAuth();
 
-  // Perfil inválido na URL → volta para a seleção
+  // Aguarda a resolução da sessão antes de decidir qualquer redirecionamento.
+  if (carregando) return <LoadingState />;
+  // Sem sessão → vai para o login.
+  if (!usuario) return <Navigate to="/" />;
+
+  // TRAVA DE PERFIL: cada usuário só acessa as telas do SEU perfil; o Master
+  // tem acesso total (pode navegar por qualquer perfil). A trava real dos
+  // DADOS está no banco (RLS); esta é a trava de navegação na interface.
+  if (usuario.perfil !== perfilId && usuario.perfil !== "master") {
+    const destino = getPerfil(usuario.perfil)?.rotaInicial ?? `/app/${usuario.perfil}`;
+    return <Navigate to={destino} />;
+  }
+
+  const perfil = getPerfil(perfilId);
+  // Perfil inválido na URL → volta para o login.
   if (!perfil) return <Navigate to="/" />;
 
   const itemAtivo = perfil.menu.find((m) => m.to === pathname);

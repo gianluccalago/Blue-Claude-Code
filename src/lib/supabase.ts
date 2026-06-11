@@ -12,5 +12,11 @@ if (!url || !anonKey) {
 }
 
 export const supabase = createClient<Database>(url, anonKey, {
-  auth: { persistSession: false },
+  // Autenticação real (email/senha): mantém a sessão em localStorage e renova
+  // o token automaticamente. As travas de acesso ficam no banco via RLS.
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
 });

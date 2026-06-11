@@ -105,6 +105,18 @@ export const PERFIS: PerfilDef[] = [
     emConstrucao: false,
   },
   {
+    // Enfermagem é um perfil de login (Téc. de Enfermagem / Enfermeira). As
+    // telas próprias ainda serão construídas; por ora cai em "Em construção".
+    id: "enfermagem",
+    nome: "Enfermagem",
+    descricao: "Procedimentos e administração de medicação",
+    icon: Stethoscope,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/enfermagem",
+    menu: [{ label: "Visão geral", to: "/app/enfermagem" }],
+    emConstrucao: true,
+  },
+  {
     id: "multidisciplinar",
     nome: "Equipe Multidisciplinar",
     descricao: "Fisio, fono, nutrição e psicologia",
@@ -189,8 +201,10 @@ export function getPerfil(id: string | undefined): PerfilDef | undefined {
   return PERFIS.find((p) => p.id === id);
 }
 
-/** Cuidador padrão da demo (Ana Paula) — id alinhado ao seed SQL. */
-export const CUIDADOR_ATUAL = {
-  id: "b0000000-0000-0000-0000-000000000004",
-  nome: "Ana Paula",
-} as const;
+/**
+ * Identidade do usuário atual usada pelos registros (feito_por, registrado_por,
+ * ponto/plantão etc.). Antes era a Ana Paula fixa; agora aponta para o objeto
+ * mutável que o AuthProvider sincroniza com o usuário AUTENTICADO. Os hooks que
+ * já liam CUIDADOR_ATUAL.id/.nome passam a registrar o usuário logado.
+ */
+export { usuarioAtual as CUIDADOR_ATUAL } from "@/auth/usuarioAtual";

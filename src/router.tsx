@@ -7,7 +7,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { SelecaoPerfil } from "@/routes/SelecaoPerfil";
+import { Login } from "@/routes/Login";
 import { EmConstrucao } from "@/routes/EmConstrucao";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
@@ -35,10 +35,11 @@ const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
 
+// A rota inicial é o LOGIN (a Login redireciona sozinha se já houver sessão).
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: SelecaoPerfil,
+  component: Login,
 });
 
 // Layout do app com sidebar + topbar; o perfil ativo vem do segmento da URL.
