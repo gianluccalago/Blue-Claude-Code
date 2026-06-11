@@ -41,6 +41,9 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/master",
     menu: [
       { label: "Painel estratégico", to: "/app/master" },
+      { label: "Visão do hóspede (360°)", to: "/app/master/hospede" },
+      { label: "Painel operacional", to: "/app/master/operacional" },
+      { label: "Supervisão clínica", to: "/app/master/clinica" },
       { label: "Residentes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
       { label: "Profissionais", to: "/app/master/profissionais" },

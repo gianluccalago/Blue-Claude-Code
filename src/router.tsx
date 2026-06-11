@@ -18,6 +18,9 @@ import { PlanosCuidado } from "@/routes/coordenacao/PlanosCuidado";
 import { ModelosRotina } from "@/routes/coordenacao/ModelosRotina";
 import { PainelCoordenacao } from "@/routes/coordenacao/Painel";
 import { PainelEstrategico } from "@/routes/master/PainelEstrategico";
+import { Visao360 } from "@/routes/master/Visao360";
+import { PainelOperacional } from "@/routes/master/PainelOperacional";
+import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
 import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
@@ -123,6 +126,23 @@ const minhaEscalaRoute = createRoute({
   component: MinhaEscala,
 });
 
+// Master (MASTER-2): visões consolidadas de supervisão (leitura).
+const masterHospedeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "hospede",
+  component: Visao360,
+});
+const masterOperacionalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "operacional",
+  component: PainelOperacional,
+});
+const masterClinicaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "clinica",
+  component: SupervisaoClinica,
+});
+
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -146,6 +166,9 @@ const routeTree = rootRoute.addChildren([
     profissionaisRoute,
     escalasRoute,
     minhaEscalaRoute,
+    masterHospedeRoute,
+    masterOperacionalRoute,
+    masterClinicaRoute,
     placeholderRoute,
   ]),
 ]);

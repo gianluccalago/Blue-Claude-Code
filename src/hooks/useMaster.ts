@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { dataISO, hojeISO, horarioParaMinutos } from "@/lib/utils";
 import type {
   GrauDependencia,
+  Intercorrencia,
   PlanoCuidadoItem,
   Residente,
   TarefaRegistro,
@@ -173,6 +174,83 @@ export function useAceitacaoBaixaRecente() {
         .map(([residenteId, baixas]) => ({ residenteId, baixas }))
         .sort((a, b) => b.baixas - a.baixas);
       return { comDados: regs.length > 0, riscos };
+    },
+  });
+}
+
+// ===========================================================================
+// MASTER-2 — fontes por hóspede (Visão 360°) e de toda a casa (supervisão).
+// ===========================================================================
+
+/** Janela (dias) para considerar intercorrências "recentes" na supervisão. */
+export const DIAS_INTERCORRENCIAS_RECENTES = 7;
+
+/** Intercorrências de UM residente, mais recentes primeiro (Visão 360°). */
+export function useIntercorrenciasResidente(residenteId: string | undefined) {
+  return useQuery({
+    queryKey: ["master-interc-residente", residenteId],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<Intercorrencia[]> => {
+      const { data, error } = await supabase
+        .from("intercorrencia")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .order("registrado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Resumo da aceitação alimentar de hoje de um residente (último nível por refeição). */
+export interface AceitacaoRefeicao {
+  refeicao: string;
+  nivel: string;
+}
+
+/** Registros "Aceitação <refeição>: <nível>" de hoje, um por refeição (o mais recente). */
+export function useAceitacaoResidenteHoje(residenteId: string | undefined) {
+  return useQuery({
+    queryKey: ["master-aceitacao-residente", residenteId, hojeISO()],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<AceitacaoRefeicao[]> => {
+      const { data, error } = await supabase
+        .from("tarefa_registro")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .eq("data", hojeISO())
+        .like("tarefa", "Aceitação %")
+        .order("feito_em", { ascending: false });
+      if (error) throw error;
+      const porRefeicao = new Map<string, string>();
+      for (const r of data ?? []) {
+        // formato "Aceitação <refeição>: <nível>"
+        const m = r.tarefa.match(/^Aceitação\s+(.+?):\s*(.+?)\s*$/);
+        if (!m) continue;
+        // como vêm ordenados do mais recente, só registra o primeiro de cada refeição
+        if (!porRefeicao.has(m[1])) porRefeicao.set(m[1], m[2]);
+      }
+      return [...porRefeicao.entries()].map(([refeicao, nivel]) => ({ refeicao, nivel }));
+    },
+  });
+}
+
+/** Turnos VAGOS (furos de escala) a partir de hoje, pelos próximos `dias`. */
+export function useTurnosVagosProximos(dias = 14) {
+  return useQuery({
+    queryKey: ["master-turnos-vagos", hojeISO(), dias],
+    queryFn: async () => {
+      const fim = new Date();
+      fim.setDate(fim.getDate() + dias);
+      const { data, error } = await supabase
+        .from("turnos")
+        .select("*")
+        .is("profissional_id", null)
+        .gte("data", hojeISO())
+        .lte("data", dataISO(fim))
+        .order("inicio", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }
