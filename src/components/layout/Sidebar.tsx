@@ -8,7 +8,7 @@ import type { PerfilDef } from "@/data/profiles";
 export function Sidebar({ perfil }: { perfil: PerfilDef }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { usuario, sair } = useAuth();
+  const { usuarioEfetivo, sair } = useAuth();
   const Icon = perfil.icon;
 
   async function logout() {
@@ -28,7 +28,7 @@ export function Sidebar({ perfil }: { perfil: PerfilDef }) {
             <Icon className="size-5" />
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-bold">{ouNaoInformado(usuario?.nome)}</div>
+            <div className="truncate text-sm font-bold">{ouNaoInformado(usuarioEfetivo?.nome)}</div>
             <div className="truncate text-xs text-sidebar-muted">{perfil.nome}</div>
           </div>
         </div>

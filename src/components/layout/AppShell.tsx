@@ -1,6 +1,7 @@
 import { Outlet, useParams, useRouterState, Navigate } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { CamaleaoBar } from "./CamaleaoBar";
 import { getPerfil } from "@/data/profiles";
 import { useAuth } from "@/auth/AuthProvider";
 import { LoadingState } from "@/components/states";
@@ -35,6 +36,7 @@ export function AppShell() {
       <Sidebar perfil={perfil} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar titulo={titulo} />
+        <CamaleaoBar />
         <main className="flex-1 overflow-y-auto px-6 py-6">
           <div className="mx-auto w-full max-w-5xl">
             <Outlet />
