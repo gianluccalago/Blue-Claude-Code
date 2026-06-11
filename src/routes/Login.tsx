@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "@tanstack/react-router";
-import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -56,11 +56,21 @@ export function Login() {
   }
 
   const inputBase =
-    "h-12 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "h-12 w-full rounded-md border border-input bg-card px-3.5 text-sm transition-colors duration-200 placeholder:text-muted-foreground/70 hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-accent via-background to-background px-6 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
+      {/* Camada decorativa: halos celestes sutis, identidade sem ruído */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+      >
+        <div className="absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -bottom-40 -right-24 h-80 w-80 rounded-full bg-accent blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-md animate-fade-in-up">
         <div className="mb-8 flex flex-col items-center text-center">
           <HeroLogo />
           <div className="mt-6 h-1 w-16 rounded-full bg-primary" />
@@ -69,7 +79,7 @@ export function Login() {
 
         <form
           onSubmit={onSubmit}
-          className="space-y-4 rounded-lg border border-border bg-card p-6 shadow-card"
+          className="space-y-4 rounded-lg border border-border/60 bg-card/95 p-7 shadow-lifted backdrop-blur-sm"
         >
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-secondary">E-mail</label>
@@ -96,7 +106,7 @@ export function Login() {
           </div>
 
           {erro && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <div className="flex animate-fade-in items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <span>{erro}</span>
             </div>
@@ -113,7 +123,8 @@ export function Login() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5 text-primary-strong" />
           Acesso restrito à equipe e familiares cadastrados pela administração.
         </p>
       </div>

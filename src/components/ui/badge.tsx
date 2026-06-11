@@ -3,16 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors",
+  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors duration-200",
   {
     variants: {
       variant: {
         default: "border-transparent bg-primary/15 text-secondary",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
-        success: "border-transparent bg-success/15 text-success",
-        warning: "border-transparent bg-warning/20 text-warning-foreground",
-        destructive: "border-transparent bg-destructive/15 text-destructive",
-        purple: "border-transparent bg-purple-100 text-purple-700",
+        success: "border-transparent bg-success/12 text-success",
+        warning: "border-transparent bg-warning/18 text-warning-foreground",
+        destructive: "border-transparent bg-destructive/12 text-destructive",
+        /* "purple" é o selo semântico de ENFERMAGEM (alias do token nursing) */
+        purple: "border-transparent bg-nursing/12 text-nursing",
         outline: "text-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",
       },

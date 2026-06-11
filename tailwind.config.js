@@ -24,6 +24,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          strong: "hsl(var(--primary-strong))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -49,6 +50,11 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        /* Roxo semântico: procedimentos exclusivos de enfermagem */
+        nursing: {
+          DEFAULT: "hsl(var(--nursing))",
+          foreground: "hsl(var(--nursing-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -69,9 +75,16 @@ export default {
         md: "calc(var(--radius) - 4px)",
         sm: "calc(var(--radius) - 8px)",
       },
+      /* Escala de elevação única do app (navy translúcido, nunca preto puro) */
       boxShadow: {
-        soft: "0 4px 20px -4px rgba(28, 74, 110, 0.12)",
+        xs: "0 1px 3px 0 rgba(28, 74, 110, 0.07)",
         card: "0 2px 12px -2px rgba(28, 74, 110, 0.10)",
+        soft: "0 4px 20px -4px rgba(28, 74, 110, 0.12)",
+        lifted: "0 10px 36px -8px rgba(28, 74, 110, 0.20)",
+        "glow-primary": "0 4px 24px -4px rgba(92, 191, 229, 0.45)",
+      },
+      transitionDuration: {
+        DEFAULT: "200ms",
       },
     },
   },

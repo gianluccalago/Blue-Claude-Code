@@ -2,52 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   BLUE SENIOR LIVING — Design tokens (fonte única da identidade visual)
+   Paleta: azul celeste #5CBFE5 (ação) · navy #1C4A6E (estrutura) ·
+   fundo claro #F2F8FC. Ver ESTETICA.md para o racional completo.
+   =========================================================================== */
+
 @layer base {
   :root {
     /* Fundo claro com leve tom celeste */
     --background: 200 60% 97%;
-    --foreground: 207 55% 24%;
+    --foreground: 207 55% 22%;
 
     --card: 0 0% 100%;
-    --card-foreground: 207 55% 24%;
+    --card-foreground: 207 55% 22%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 207 55% 24%;
+    --popover-foreground: 207 55% 22%;
 
-    /* Azul celeste #5CBFE5 — cor de destaque */
+    /* Azul celeste #5CBFE5 — cor de ação/destaque */
     --primary: 197 72% 63%;
-    --primary-foreground: 207 60% 18%;
+    --primary-foreground: 207 60% 16%;
+    /* Variante mais funda para hover/active de elementos primários */
+    --primary-strong: 197 65% 52%;
 
-    /* Azul escuro (claramente azul) — cor estrutural */
-    --secondary: 206 58% 30%;
+    /* Navy (claramente azul) — cor estrutural / títulos */
+    --secondary: 206 58% 28%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 200 45% 93%;
-    --muted-foreground: 207 24% 44%;
+    --muted: 200 45% 94%;
+    --muted-foreground: 207 22% 46%;
 
-    --accent: 197 70% 90%;
-    --accent-foreground: 206 58% 30%;
+    --accent: 197 70% 91%;
+    --accent-foreground: 206 58% 28%;
 
-    --destructive: 0 72% 51%;
+    /* Semânticas — vermelho=crítico · âmbar=atenção · verde=ok · roxo=enfermagem */
+    --destructive: 0 68% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 58% 42%;
+    --success: 152 55% 38%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 38 80% 15%;
+    --warning-foreground: 35 85% 22%;
 
-    --border: 200 35% 87%;
-    --input: 200 35% 87%;
-    --ring: 197 72% 63%;
+    --nursing: 262 60% 56%;
+    --nursing-foreground: 0 0% 100%;
 
-    /* Sidebar — azul escuro (não preto) */
-    --sidebar: 207 56% 26%;
+    --border: 204 36% 89%;
+    --input: 204 32% 84%;
+    --ring: 197 72% 55%;
+
+    /* Sidebar — navy profundo com acabamento próprio */
+    --sidebar: 208 58% 22%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-muted: 200 35% 78%;
+    --sidebar-muted: 203 32% 74%;
     --sidebar-accent: 197 72% 63%;
 
-    --radius: 1rem; /* cantos arredondados 16px */
+    --radius: 1rem; /* cantos 16px — assinatura visual da marca */
   }
 }
 
@@ -63,5 +75,82 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Seleção de texto na cor da marca */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+  }
+
+  /* Scrollbar discreta, coerente com o tema (WebKit) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--secondary) / 0.18);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--secondary) / 0.32);
+    background-clip: content-box;
+    border: 2px solid transparent;
+  }
+
+  /* Foco visível consistente (acessibilidade AA) sem duplicar com ring do Tailwind */
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Números tabulares em qualquer contexto de dado */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Entrada suave de conteúdo (usada nos painéis e dropdowns) */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.25s ease-out both;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out both;
+  }
+
+  /* Shimmer dos skeletons de carregamento */
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Feedback de toque nos botões da ponta (tablet) */
+  .press-feedback {
+    @apply transition-transform duration-150 active:scale-[0.98];
   }
 }

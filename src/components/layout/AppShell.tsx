@@ -45,7 +45,7 @@ export function AppShell() {
         <Topbar titulo={titulo} onAbrirMenu={() => setMenuAberto(true)} />
         <CamaleaoBar />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-          <div className="mx-auto w-full max-w-5xl">
+          <div key={pathname} className="mx-auto w-full max-w-5xl animate-fade-in-up">
             <Outlet />
           </div>
         </main>
