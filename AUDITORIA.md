@@ -132,12 +132,19 @@ cálculos do painel protegidos contra divisão por zero; estados vazios com
 
 ## PROBLEMAS NÃO CORRIGIDOS (decisão humana)
 
-1. **Master ainda mostra "sem dados" para IVCF, dieta, evoluções e financeiro
-   na Visão 360°/Painéis.** Quando essas telas foram construídas, as tabelas
-   não existiam; após a unificação das branches, existem (`avaliacao_ivcf`,
-   `dieta`, `evolucao`, `pagamento_mensalidade`, `upselling`…). Ligar os cards
-   a essas fontes é **integração nova** (novas queries), não correção de bug —
-   fora do escopo desta auditoria. Recomendo como próximo passo.
+1. ~~Master ainda mostra "sem dados"…~~ **RESOLVIDO** (integração feita após a
+   auditoria): os 4 painéis do Master foram ligados às tabelas reais —
+   - Visão 360°: IVCF, dieta ativa, evoluções médica/nutricional, atividades
+     multidisciplinares e financeiro (mensalidade + upselling do mês).
+   - Supervisão Clínica: status do IVCF (atualizado / vencido > 6m / sem
+     avaliação) e divergência de grau (atual da última IVCF × contratual).
+   - Painel Estratégico: financeiro do mês (receita prevista, custo de pessoal,
+     resultado bruto, inadimplência, recebido), tipo de suíte real, manutenção,
+     hotelaria e clínico (IVCF/divergência).
+   - Painel Operacional: solicitações da família por destino, farmácia
+     (estoque/provisionamento/resgate) e hotelaria/manutenção.
+   Único "sem dados" remanescente proposital: **taxa de ocupação** (depende de
+   um cadastro de total de suítes da casa, que ainda não existe).
 2. **Falsos positivos descartados na auditoria** (analisados e considerados
    comportamento CORRETO — documentados para não "corrigirem" no futuro):
    - `inicioDoDiaISO()` e `combinarDataHoraISO()` retornam meia-noite/hora

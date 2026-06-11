@@ -26,6 +26,15 @@ import {
   useAderenciaHoje,
   useTurnosVagosProximos,
 } from "@/hooks/useMaster";
+import { useSolicitacoesPorDestino } from "@/hooks/useSolicitacoes";
+import {
+  useEstoqueTodosMes,
+  useEstoqueResgateAll,
+  useResidentesComProvisionamento,
+  mesAtualISO,
+} from "@/hooks/usePainelFarmacia";
+import { useChamadosManutencao } from "@/hooks/useManutencao";
+import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -35,9 +44,9 @@ import type { ReactNode } from "react";
 // ===========================================================================
 // MASTER-2 · Painel operacional consolidado — supervisão de toda a operação
 // em tempo real, em modo LEITURA. Cada bloco traz contadores + lista resumida
-// e, quando faz sentido, linka para a tela de detalhe. Blocos sem fonte no
-// schema atual (Farmácia, Hotelaria, solicitações da família) mostram "sem
-// dados" com a origem futura comentada — nunca número fictício.
+// e linka para a tela de detalhe: assistencial, coordenação (com solicitações
+// da família), farmácia (estoque/provisionamento/resgate), hotelaria/manutenção
+// e escalas — todos com dados reais.
 // ===========================================================================
 
 export function PainelOperacional() {
@@ -48,6 +57,16 @@ export function PainelOperacional() {
   const tratamentos = useTratamentos();
   const alertasElim = useAlertasEliminacaoPainel();
   const turnosVagos = useTurnosVagosProximos(14);
+  // Fontes reais (pós-unificação): família, farmácia, hotelaria, manutenção.
+  const mesRef = mesAtualISO();
+  const solCoord = useSolicitacoesPorDestino("coordenacao");
+  const solMedico = useSolicitacoesPorDestino("medico");
+  const solAdmin = useSolicitacoesPorDestino("administracao");
+  const estoque = useEstoqueTodosMes(mesRef);
+  const estoqueResgate = useEstoqueResgateAll();
+  const provisionados = useResidentesComProvisionamento(mesRef);
+  const chamados = useChamadosManutencao();
+  const inspecoes = useInspecoesHoje();
 
   const carregando =
     residentes.isLoading ||
@@ -56,7 +75,15 @@ export function PainelOperacional() {
     intercorrencias.isLoading ||
     tratamentos.isLoading ||
     alertasElim.isLoading ||
-    turnosVagos.isLoading;
+    turnosVagos.isLoading ||
+    solCoord.isLoading ||
+    solMedico.isLoading ||
+    solAdmin.isLoading ||
+    estoque.isLoading ||
+    estoqueResgate.isLoading ||
+    provisionados.isLoading ||
+    chamados.isLoading ||
+    inspecoes.isLoading;
 
   const erro =
     residentes.error ??
@@ -65,7 +92,11 @@ export function PainelOperacional() {
     intercorrencias.error ??
     tratamentos.error ??
     alertasElim.error ??
-    turnosVagos.error;
+    turnosVagos.error ??
+    solCoord.error ??
+    estoque.error ??
+    chamados.error ??
+    inspecoes.error;
 
   if (carregando) return <LoadingState />;
   if (erro) return <ErrorState error={erro} />;
@@ -100,6 +131,28 @@ export function PainelOperacional() {
       em: a.escaladoEm!,
     })),
   ];
+
+  // ---- Coordenação: solicitações da família em aberto, por destino ----
+  const abertas = (d: ReturnType<typeof useSolicitacoesPorDestino>) =>
+    (d.data ?? []).filter((s) => s.status === "aberta").length;
+  const solAbertasCoord = abertas(solCoord);
+  const solAbertasMedico = abertas(solMedico);
+  const solAbertasAdmin = abertas(solAdmin);
+  const solAbertasTotal = solAbertasCoord + solAbertasMedico + solAbertasAdmin;
+
+  // ---- Farmácia ----
+  const estoqueBaixo = (estoque.data ?? []).filter((e) => e.quantidade_atual <= 0).length;
+  const totalResidentes = residentes.data?.length ?? 0;
+  const semProvisionamento = Math.max(0, totalResidentes - (provisionados.data ?? []).length);
+  const resgateBaixo = (estoqueResgate.data ?? []).filter((e) => e.quantidade_atual <= 2).length;
+
+  // ---- Hotelaria / Manutenção ----
+  const inspHoje = inspecoes.data ?? [];
+  const idsInspecionados = new Set(inspHoje.map((i) => i.residente_id));
+  const pendentesInspecao = Math.max(0, totalResidentes - idsInspecionados.size);
+  const naoConformes = inspHoje.filter((i) => i.tem_nao_conformidade).length;
+  const chamadosAbertos = (chamados.data ?? []).filter((c) => c.status !== "resolvido");
+  const emergencias = chamadosAbertos.filter((c) => c.urgencia === "emergencia").length;
 
   // ---- Escalas ----
   const vagos = turnosVagos.data ?? [];
@@ -179,9 +232,11 @@ export function PainelOperacional() {
             destaque={escalados.length > 0}
             icon={Stethoscope}
           />
-          {/* SEM DADOS: não há tabela de solicitações da família. Origem futura:
-              portal Família (solicitações por destino: coordenação, nutrição…). */}
-          <Contador rotulo="Solicitações da família" valor="sem dados" />
+          <Contador
+            rotulo="Solicitações da família"
+            valor={solAbertasTotal}
+            destaque={solAbertasTotal > 0}
+          />
         </div>
         {escalados.length > 0 && (
           <Resumo>
@@ -195,37 +250,52 @@ export function PainelOperacional() {
             ))}
           </Resumo>
         )}
-        <p className="mt-3 text-xs text-muted-foreground/80">
-          Solicitações da família por destino — portal Família (futuro).
-        </p>
+        {solAbertasTotal > 0 && (
+          <p className="mt-3 text-xs text-muted-foreground/80">
+            Solicitações da família em aberto — Coordenação {solAbertasCoord} · Médico{" "}
+            {solAbertasMedico} · Administração {solAbertasAdmin}.
+          </p>
+        )}
       </Bloco>
 
-      {/* FARMÁCIA — sem fonte no schema atual */}
-      <Bloco icon={PackageOpen} titulo="Farmácia">
-        {/* SEM DADOS: não há tabelas de estoque/provisionamento/resgate.
-            Origem futura: módulo Farmácia (modelo caixinha). */}
+      {/* FARMÁCIA */}
+      <Bloco icon={PackageOpen} titulo="Farmácia" to="/app/farmacia/painel">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Contador rotulo="Estoque baixo/negativo" valor="sem dados" />
-          <Contador rotulo="Pendentes de provisionamento" valor="sem dados" />
-          <Contador rotulo="Resgate baixo" valor="sem dados" />
+          <Contador
+            rotulo="Estoque baixo/negativo"
+            valor={estoqueBaixo}
+            destaque={estoqueBaixo > 0}
+          />
+          <Contador
+            rotulo="Pendentes de provisionamento"
+            valor={semProvisionamento}
+            destaque={semProvisionamento > 0}
+          />
+          <Contador rotulo="Resgate baixo (≤ 2)" valor={resgateBaixo} destaque={resgateBaixo > 0} />
         </div>
-        <p className="mt-3 text-xs text-muted-foreground/80">
-          Estoque, provisionamento e resgate — módulo Farmácia (futuro).
-        </p>
       </Bloco>
 
-      {/* HOTELARIA — sem fonte no schema atual */}
-      <Bloco icon={Sparkles} titulo="Hotelaria e manutenção">
-        {/* SEM DADOS: não há tabelas de inspeção/não-conformidade nem de
-            chamados de manutenção. Origem futura: módulos Hotelaria e Manutenção. */}
+      {/* HOTELARIA / MANUTENÇÃO */}
+      <Bloco icon={Sparkles} titulo="Hotelaria e manutenção" to="/app/hotelaria/visao-dia">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Contador rotulo="Suítes pendentes de inspeção" valor="sem dados" />
-          <Contador rotulo="Não-conformidades" valor="sem dados" />
-          <Contador rotulo="Manutenção (abertos/emergências)" valor="sem dados" icon={Wrench} />
+          <Contador
+            rotulo="Suítes pendentes de inspeção"
+            valor={pendentesInspecao}
+            destaque={pendentesInspecao > 0}
+          />
+          <Contador rotulo="Não-conformidades" valor={naoConformes} destaque={naoConformes > 0} />
+          <Contador
+            rotulo="Manutenção (abertos/emerg.)"
+            valor={chamadosAbertos.length}
+            destaque={emergencias > 0}
+            icon={Wrench}
+          />
         </div>
-        <p className="mt-3 text-xs text-muted-foreground/80">
-          Inspeção, não-conformidades e chamados — módulos Hotelaria e Manutenção (futuro).
-        </p>
+        {emergencias > 0 && (
+          <p className="mt-3 text-xs font-semibold text-destructive">
+            {emergencias} chamado(s) de EMERGÊNCIA aberto(s).
+          </p>
+        )}
       </Bloco>
 
       {/* ESCALAS */}
