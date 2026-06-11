@@ -12,14 +12,14 @@ const inputClass =
 const URGENCIAS: { value: UrgenciaChamado; label: string; cor: string }[] = [
   { value: "baixa", label: "Baixa", cor: "border-muted-foreground/30 hover:bg-muted" },
   { value: "media", label: "Média", cor: "border-blue-400 hover:bg-blue-50 hover:text-blue-700" },
-  { value: "alta", label: "Alta", cor: "border-amber-400 hover:bg-amber-50 hover:text-amber-700" },
-  { value: "emergencia", label: "Emergência", cor: "border-destructive hover:bg-red-50 hover:text-destructive" },
+  { value: "alta", label: "Alta", cor: "border-warning/70 hover:bg-warning/10 hover:text-warning-foreground" },
+  { value: "emergencia", label: "Emergência", cor: "border-destructive hover:bg-destructive/10 hover:text-destructive" },
 ];
 
 const URGENCIA_ATIVA: Record<UrgenciaChamado, string> = {
   baixa: "bg-muted-foreground/20 border-muted-foreground/40 text-secondary",
   media: "bg-blue-500 border-blue-500 text-white",
-  alta: "bg-amber-500 border-amber-500 text-white",
+  alta: "bg-warning border-warning text-white",
   emergencia: "bg-destructive border-destructive text-white",
 };
 

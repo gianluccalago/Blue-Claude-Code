@@ -452,7 +452,7 @@ function FormProvisionamento({
             <Button variant="outline" size="sm" onClick={copiarMesAnterior} className="shrink-0">
               <Copy className="size-3.5" /> Copiar do mês anterior
               {mudancas > 0 && (
-                <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-[11px] font-bold text-amber-700">
+                <span className="ml-1 rounded-full bg-warning/15 px-1.5 text-[11px] font-bold text-warning-foreground">
                   {mudancas} dif.
                 </span>
               )}

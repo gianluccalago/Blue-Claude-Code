@@ -514,7 +514,7 @@ function MapaHospede({
         <div
           className={cn(
             "mt-0.5 rounded-full p-1.5 shrink-0",
-            jaDispensado ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"
+            jaDispensado ? "bg-success/12 text-success" : "bg-warning/15 text-warning-foreground"
           )}
         >
           {jaDispensado ? (
@@ -534,7 +534,7 @@ function MapaHospede({
             ))}
           </div>
           {jaDispensado && (
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-success mt-1">
               Dispensado {dispensacoes.length}× hoje
             </p>
           )}

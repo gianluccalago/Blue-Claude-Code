@@ -145,28 +145,28 @@ export function PainelHotelaria() {
         <ResumoCard
           label="Suítes pendentes"
           value={suitesPendentes}
-          cor={suitesPendentes > 0 ? "border-l-amber-500" : "border-l-green-500"}
+          cor={suitesPendentes > 0 ? "border-l-warning" : "border-l-success"}
           icon={suitesPendentes > 0 ? Clock : CheckCircle2}
           destaque={suitesPendentes > 0 ? "amber" : undefined}
         />
         <ResumoCard
           label="Não-conformidades"
           value={suitesNaoConformes}
-          cor={suitesNaoConformes > 0 ? "border-l-destructive" : "border-l-green-500"}
+          cor={suitesNaoConformes > 0 ? "border-l-destructive" : "border-l-success"}
           icon={suitesNaoConformes > 0 ? AlertTriangle : CheckCircle2}
           destaque={suitesNaoConformes > 0 ? "destructive" : undefined}
         />
         <ResumoCard
           label="Emergências"
           value={contadoresChamados.emergencias}
-          cor={contadoresChamados.emergencias > 0 ? "border-l-destructive" : "border-l-green-500"}
+          cor={contadoresChamados.emergencias > 0 ? "border-l-destructive" : "border-l-success"}
           icon={contadoresChamados.emergencias > 0 ? Siren : CheckCircle2}
           destaque={contadoresChamados.emergencias > 0 ? "destructive" : undefined}
         />
         <ResumoCard
           label="Saldo rouparia"
           value={saldoRoupariaTotal}
-          cor={roupariaAcimaDoLimite ? "border-l-destructive" : "border-l-green-500"}
+          cor={roupariaAcimaDoLimite ? "border-l-destructive" : "border-l-success"}
           icon={roupariaAcimaDoLimite ? AlertTriangle : Shirt}
           destaque={roupariaAcimaDoLimite ? "destructive" : undefined}
         />
@@ -192,13 +192,13 @@ export function PainelHotelaria() {
             <ResumoCard
               label="Pendentes hoje"
               value={suitesPendentes}
-              cor={suitesPendentes > 0 ? "border-l-amber-500" : "border-l-green-500"}
+              cor={suitesPendentes > 0 ? "border-l-warning" : "border-l-success"}
               icon={suitesPendentes > 0 ? Clock : CheckCircle2}
             />
             <ResumoCard
               label="Não-conformidades"
               value={suitesNaoConformes}
-              cor={suitesNaoConformes > 0 ? "border-l-destructive" : "border-l-green-500"}
+              cor={suitesNaoConformes > 0 ? "border-l-destructive" : "border-l-success"}
               icon={suitesNaoConformes > 0 ? AlertTriangle : CheckCircle2}
             />
           </div>
@@ -224,8 +224,8 @@ export function PainelHotelaria() {
                           search={{ residente: r.id }}
                           className={cn(
                             "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:opacity-80",
-                            st === "conforme" && "border-green-500/40 bg-green-50 text-green-700",
-                            st === "nao_conformidade" && "border-destructive/40 bg-red-50 text-destructive",
+                            st === "conforme" && "border-success/40 bg-success/10 text-success",
+                            st === "nao_conformidade" && "border-destructive/40 bg-destructive/10 text-destructive",
                             st === "pendente" && "border-border bg-muted text-muted-foreground"
                           )}
                         >
@@ -272,19 +272,19 @@ export function PainelHotelaria() {
             <ResumoCard
               label="Emergências"
               value={contadoresChamados.emergencias}
-              cor={contadoresChamados.emergencias > 0 ? "border-l-destructive" : "border-l-green-500"}
+              cor={contadoresChamados.emergencias > 0 ? "border-l-destructive" : "border-l-success"}
               icon={contadoresChamados.emergencias > 0 ? Siren : CheckCircle2}
             />
             <ResumoCard
               label="Abertos"
               value={contadoresChamados.abertos}
-              cor={contadoresChamados.abertos > 0 ? "border-l-destructive" : "border-l-green-500"}
+              cor={contadoresChamados.abertos > 0 ? "border-l-destructive" : "border-l-success"}
               icon={contadoresChamados.abertos > 0 ? AlertTriangle : CheckCircle2}
             />
             <ResumoCard
               label="Em andamento"
               value={contadoresChamados.emAndamento}
-              cor={contadoresChamados.emAndamento > 0 ? "border-l-amber-500" : "border-l-green-500"}
+              cor={contadoresChamados.emAndamento > 0 ? "border-l-warning" : "border-l-success"}
               icon={contadoresChamados.emAndamento > 0 ? Clock : CheckCircle2}
             />
           </div>
@@ -299,13 +299,13 @@ export function PainelHotelaria() {
                   to="/app/hotelaria/manutencao"
                   className={cn(
                     "flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent",
-                    emergenciaAtiva(c) && "border-destructive bg-red-50/40"
+                    emergenciaAtiva(c) && "border-destructive bg-destructive/5"
                   )}
                 >
                   <div
                     className={cn(
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                      emergenciaAtiva(c) ? "bg-red-100 text-destructive" : "bg-amber-100 text-amber-600"
+                      emergenciaAtiva(c) ? "bg-destructive/10 text-destructive" : "bg-warning/15 text-warning-foreground"
                     )}
                   >
                     {emergenciaAtiva(c) ? <Siren className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
@@ -342,12 +342,12 @@ export function PainelHotelaria() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Card className={cn("border-l-4", roupariaAcimaDoLimite ? "border-l-destructive" : "border-l-green-500")}>
+          <Card className={cn("border-l-4", roupariaAcimaDoLimite ? "border-l-destructive" : "border-l-success")}>
             <CardContent className="flex items-center gap-3 pt-4 pb-3">
               {roupariaAcimaDoLimite ? (
                 <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
               ) : (
-                <Shirt className="h-6 w-6 shrink-0 text-green-600" />
+                <Shirt className="h-6 w-6 shrink-0 text-success" />
               )}
               <div>
                 <p className={cn("text-2xl font-bold leading-none", roupariaAcimaDoLimite && "text-destructive")}>
@@ -407,7 +407,7 @@ function ResumoCard({
           className={cn(
             "h-6 w-6 shrink-0 opacity-70",
             destaque === "destructive" && "text-destructive opacity-100",
-            destaque === "amber" && "text-amber-500 opacity-100"
+            destaque === "amber" && "text-warning opacity-100"
           )}
         />
         <div>

@@ -380,7 +380,7 @@ function AtividadeCard({
           <div
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-              registrada ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"
+              registrada ? "bg-success/12 text-success" : "bg-muted text-muted-foreground"
             )}
           >
             {registrada ? <CheckCircle2 className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
@@ -639,7 +639,7 @@ function HistoricoPorHospede({ residentes }: { residentes: Residente[] }) {
               {historico.map((p) => (
                 <Card key={p.id}>
                   <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/12 text-success">
                       <Check className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">

@@ -193,18 +193,18 @@ export function InspecaoSuites() {
 
       {/* Contadores */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className={cn("border-l-4", contadores.pendentes > 0 ? "border-l-amber-500" : "border-l-green-500")}>
+        <Card className={cn("border-l-4", contadores.pendentes > 0 ? "border-l-warning" : "border-l-success")}>
           <CardContent className="flex items-center gap-3 pt-4 pb-3">
-            <Clock className={cn("h-5 w-5", contadores.pendentes > 0 ? "text-amber-500" : "text-green-500")} />
+            <Clock className={cn("h-5 w-5", contadores.pendentes > 0 ? "text-warning" : "text-success")} />
             <div>
               <p className="text-2xl font-bold leading-none">{contadores.pendentes}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Pendentes hoje</p>
             </div>
           </CardContent>
         </Card>
-        <Card className={cn("border-l-4", contadores.comNaoConformidade > 0 ? "border-l-destructive" : "border-l-green-500")}>
+        <Card className={cn("border-l-4", contadores.comNaoConformidade > 0 ? "border-l-destructive" : "border-l-success")}>
           <CardContent className="flex items-center gap-3 pt-4 pb-3">
-            <AlertTriangle className={cn("h-5 w-5", contadores.comNaoConformidade > 0 ? "text-destructive" : "text-green-500")} />
+            <AlertTriangle className={cn("h-5 w-5", contadores.comNaoConformidade > 0 ? "text-destructive" : "text-success")} />
             <div>
               <p className="text-2xl font-bold leading-none">{contadores.comNaoConformidade}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Não-conformidades</p>
@@ -224,8 +224,8 @@ export function InspecaoSuites() {
                 <div
                   className={cn(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    st === "conforme" && "bg-green-100 text-green-600",
-                    st === "nao_conformidade" && "bg-red-100 text-destructive",
+                    st === "conforme" && "bg-success/12 text-success",
+                    st === "nao_conformidade" && "bg-destructive/10 text-destructive",
                     st === "pendente" && "bg-muted text-muted-foreground"
                   )}
                 >
@@ -245,9 +245,9 @@ export function InspecaoSuites() {
                   variant="outline"
                   className={cn(
                     "text-xs hidden sm:inline-flex",
-                    st === "conforme" && "border-green-500 text-green-600",
+                    st === "conforme" && "border-success text-success",
                     st === "nao_conformidade" && "border-destructive text-destructive",
-                    st === "pendente" && "border-amber-500 text-amber-600"
+                    st === "pendente" && "border-warning text-warning-foreground"
                   )}
                 >
                   {st === "conforme" && "Inspecionada"}
@@ -421,7 +421,7 @@ function FormInspecao({
         <div
           className={cn(
             "h-full rounded-full transition-all",
-            naoConformes > 0 ? "bg-destructive" : "bg-green-500"
+            naoConformes > 0 ? "bg-destructive" : "bg-success"
           )}
           style={{ width: `${(totalRespondidos / itens.length) * 100}%` }}
         />
@@ -437,8 +437,8 @@ function FormInspecao({
               key={item}
               className={cn(
                 "transition-colors",
-                resp === "conforme" && "border-green-500/50 bg-green-50/30",
-                resp === "nao_conforme" && "border-destructive/50 bg-red-50/30"
+                resp === "conforme" && "border-success/50 bg-success/5",
+                resp === "nao_conforme" && "border-destructive/50 bg-destructive/5"
               )}
             >
               <CardContent className="p-3 space-y-2">
@@ -450,8 +450,8 @@ function FormInspecao({
                       className={cn(
                         "flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
                         resp === "conforme"
-                          ? "bg-green-500 border-green-500 text-white"
-                          : "bg-background hover:bg-green-50 hover:border-green-400 hover:text-green-700"
+                          ? "bg-success border-success text-white"
+                          : "bg-background hover:bg-success/10 hover:border-success/60 hover:text-success"
                       )}
                     >
                       <Check className="h-3 w-3" /> Conforme
@@ -462,7 +462,7 @@ function FormInspecao({
                         "flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
                         resp === "nao_conforme"
                           ? "bg-destructive border-destructive text-white"
-                          : "bg-background hover:bg-red-50 hover:border-red-400 hover:text-red-700"
+                          : "bg-background hover:bg-destructive/10 hover:border-destructive/60 hover:text-destructive"
                       )}
                     >
                       <X className="h-3 w-3" /> Não conforme
@@ -597,7 +597,7 @@ function InspecaoCard({ inspecao }: { inspecao: InspecaoSuite }) {
           <div
             className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-              inspecao.tem_nao_conformidade ? "bg-red-100 text-destructive" : "bg-green-100 text-green-600"
+              inspecao.tem_nao_conformidade ? "bg-destructive/10 text-destructive" : "bg-success/12 text-success"
             )}
           >
             {inspecao.tem_nao_conformidade ? (
@@ -655,7 +655,7 @@ function ItemInspecaoRow({ item }: { item: InspecaoItem }) {
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-2">
         {item.status === "conforme" ? (
-          <Check className="h-3.5 w-3.5 shrink-0 text-green-500" />
+          <Check className="h-3.5 w-3.5 shrink-0 text-success" />
         ) : (
           <X className="h-3.5 w-3.5 shrink-0 text-destructive" />
         )}

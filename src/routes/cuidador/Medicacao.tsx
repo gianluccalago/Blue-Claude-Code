@@ -240,7 +240,7 @@ function PeriodoMedicacaoView({
       {/* Aviso da regra de segurança */}
       {enfermagem.length > 0 && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldAlert className="size-3.5 text-purple-600" />
+          <ShieldAlert className="size-3.5 text-nursing" />
           Itens injetável/insulina/sonda são de responsabilidade da Enfermagem e não entram na sua
           confirmação.
         </p>

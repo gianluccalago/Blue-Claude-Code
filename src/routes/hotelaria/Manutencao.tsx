@@ -131,19 +131,19 @@ export function Manutencao() {
 
       {/* Contadores */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className={cn("border-l-4", contadores.abertos > 0 ? "border-l-destructive" : "border-l-green-500")}>
+        <Card className={cn("border-l-4", contadores.abertos > 0 ? "border-l-destructive" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
             <p className="text-2xl font-bold leading-none">{contadores.abertos}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Abertos</p>
           </CardContent>
         </Card>
-        <Card className={cn("border-l-4", contadores.emAndamento > 0 ? "border-l-amber-500" : "border-l-green-500")}>
+        <Card className={cn("border-l-4", contadores.emAndamento > 0 ? "border-l-warning" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
             <p className="text-2xl font-bold leading-none">{contadores.emAndamento}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Em andamento</p>
           </CardContent>
         </Card>
-        <Card className={cn("border-l-4", contadores.emergencias > 0 ? "border-l-destructive" : "border-l-green-500")}>
+        <Card className={cn("border-l-4", contadores.emergencias > 0 ? "border-l-destructive" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
             <p className={cn("text-2xl font-bold leading-none", contadores.emergencias > 0 && "text-destructive")}>
               {contadores.emergencias}
@@ -205,7 +205,7 @@ function ChamadoCard({
   const destaque = emergenciaAtiva(chamado);
 
   return (
-    <Card className={cn(destaque && "border-destructive bg-red-50/40")}>
+    <Card className={cn(destaque && "border-destructive bg-destructive/5")}>
       <CardContent className="p-0">
         <button
           className="w-full flex items-center gap-3 p-4 text-left"
@@ -215,9 +215,9 @@ function ChamadoCard({
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
               chamado.status === "resolvido"
-                ? "bg-green-100 text-green-600"
+                ? "bg-success/12 text-success"
                 : destaque
-                  ? "bg-red-100 text-destructive"
+                  ? "bg-destructive/10 text-destructive"
                   : "bg-muted text-muted-foreground"
             )}
           >

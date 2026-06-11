@@ -29,7 +29,7 @@ export function LembreteProvisionamento() {
   return (
     <Link
       to="/app/farmacia/estoque"
-      className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 transition-colors hover:bg-amber-100"
+      className="flex items-center justify-between gap-3 rounded-lg border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-warning-foreground transition-colors hover:bg-warning/15"
     >
       <span className="flex items-center gap-2">
         <AlertTriangle className="size-4 shrink-0" />

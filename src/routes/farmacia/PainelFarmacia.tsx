@@ -164,25 +164,25 @@ export function PainelFarmacia() {
         <ContadorCard
           label="Itens baixo/negativo"
           value={totalItensProblema}
-          cor={totalItensProblema > 0 ? "border-l-destructive" : "border-l-green-500"}
+          cor={totalItensProblema > 0 ? "border-l-destructive" : "border-l-success"}
           icon={totalItensProblema > 0 ? PackageMinus : CheckCircle2}
         />
         <ContadorCard
           label="Hóspedes sem prov."
           value={resSemProv.length}
-          cor={resSemProv.length > 0 ? "border-l-amber-500" : "border-l-green-500"}
+          cor={resSemProv.length > 0 ? "border-l-warning" : "border-l-success"}
           icon={resSemProv.length > 0 ? CalendarX : CalendarCheck}
         />
         <ContadorCard
           label="Pres. alteradas"
           value={prescricoesAlteradas.length}
-          cor={prescricoesAlteradas.length > 0 ? "border-l-orange-500" : "border-l-green-500"}
+          cor={prescricoesAlteradas.length > 0 ? "border-l-warning" : "border-l-success"}
           icon={prescricoesAlteradas.length > 0 ? RefreshCw : CheckCircle2}
         />
         <ContadorCard
           label="Resgate crítico"
           value={resgatesBaixos.length}
-          cor={resgatesBaixos.length > 0 ? "border-l-destructive" : "border-l-green-500"}
+          cor={resgatesBaixos.length > 0 ? "border-l-destructive" : "border-l-success"}
           icon={resgatesBaixos.length > 0 ? PackageX : CheckCircle2}
         />
       </div>
@@ -221,7 +221,7 @@ export function PainelFarmacia() {
                             ? "border-destructive text-destructive"
                             : item.quantidade_atual === 0
                             ? "border-destructive text-destructive"
-                            : "border-amber-500 text-amber-700"
+                            : "border-warning text-warning-foreground"
                         )}
                       >
                         {item.medicamento} — {item.quantidade_atual} {item.unidade}
@@ -258,7 +258,7 @@ export function PainelFarmacia() {
                     <p
                       className={cn(
                         "text-xs",
-                        item.quantidade_atual < 0 ? "text-destructive" : "text-amber-600"
+                        item.quantidade_atual < 0 ? "text-destructive" : "text-warning-foreground"
                       )}
                     >
                       {item.quantidade_atual} {item.unidade} disponíveis
@@ -280,7 +280,7 @@ export function PainelFarmacia() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <RefreshCw className="h-4 w-4 text-orange-500" />
+            <RefreshCw className="h-4 w-4 text-warning" />
             Prescrições alteradas após provisionamento
           </CardTitle>
         </CardHeader>
@@ -325,7 +325,7 @@ export function PainelFarmacia() {
         </CardHeader>
         <CardContent className="space-y-4">
           {dia >= 20 && resSemProv.length > 0 && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+            <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/40 p-3 text-sm text-warning-foreground">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
                 Dia {dia} — prazo de provisionamento (referência: dia 20) com{" "}
@@ -348,7 +348,7 @@ export function PainelFarmacia() {
                   {resSemProv.map((r) => (
                     <li key={r.id} className="flex items-center justify-between text-sm">
                       <span className="flex items-center gap-1">
-                        <CalendarX className="h-3.5 w-3.5 text-amber-500" />
+                        <CalendarX className="h-3.5 w-3.5 text-warning" />
                         {r.nome}
                       </span>
                       <Link to="/app/farmacia/estoque">
@@ -373,7 +373,7 @@ export function PainelFarmacia() {
                 <ul className="space-y-1">
                   {resComProvLista.map((r) => (
                     <li key={r.id} className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                       {r.nome}
                     </li>
                   ))}

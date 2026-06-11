@@ -243,7 +243,7 @@ export function PainelCoordenacao() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Syringe className="size-5 text-purple-600" /> Procedimentos de enfermagem do turno
+            <Syringe className="size-5 text-nursing" /> Procedimentos de enfermagem do turno
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -255,7 +255,7 @@ export function PainelCoordenacao() {
                 key={p.id}
                 className="flex items-center gap-3 rounded-lg border bg-card p-3"
               >
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-purple-100 text-purple-700">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/12 text-nursing">
                   <ShieldAlert className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">

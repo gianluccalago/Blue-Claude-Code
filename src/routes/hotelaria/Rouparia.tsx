@@ -37,12 +37,12 @@ export function Rouparia() {
       </div>
 
       {/* Saldo total */}
-      <Card className={cn("border-l-4", acimaDoLimite ? "border-l-destructive" : "border-l-green-500")}>
+      <Card className={cn("border-l-4", acimaDoLimite ? "border-l-destructive" : "border-l-success")}>
         <CardContent className="flex items-center gap-3 pt-4 pb-3">
           {acimaDoLimite ? (
             <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
           ) : (
-            <Shirt className="h-6 w-6 shrink-0 text-green-600" />
+            <Shirt className="h-6 w-6 shrink-0 text-success" />
           )}
           <div>
             <p className={cn("text-2xl font-bold leading-none", acimaDoLimite && "text-destructive")}>

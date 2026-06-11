@@ -131,7 +131,7 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
         <Card key={p.key}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Syringe className="size-5 text-purple-600" /> {p.label}
+              <Syringe className="size-5 text-nursing" /> {p.label}
               <span className="text-sm font-normal text-muted-foreground">· {p.horario}</span>
             </CardTitle>
           </CardHeader>
@@ -202,7 +202,7 @@ function ItemEnfermagem({
     <div className="rounded-lg border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-purple-100 text-purple-700">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/12 text-nursing">
             <ShieldAlert className="size-4" />
           </div>
           <div className="min-w-0">
