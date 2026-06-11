@@ -82,7 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: email.trim(),
       password: senha,
     });
-    if (error) throw new Error("E-mail ou senha inválidos.");
+    if (error) {
+      // Loga a causa real (ex: credencial inexistente, e-mail não confirmado)
+      // para diagnóstico; ao usuário mostramos uma mensagem genérica.
+      console.error("Falha no login:", error.message);
+      throw new Error("E-mail ou senha inválidos.");
+    }
 
     // Confere se há um usuário ATIVO correspondente; senão, derruba a sessão.
     const u = await resolverUsuario(data.user?.email ?? undefined);
