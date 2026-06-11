@@ -374,15 +374,20 @@ function Contador({
 }) {
   const semDados = valor === "sem dados";
   return (
-    <div className={cn("rounded-lg border p-3", destaque && "border-primary/40 bg-primary/5")}>
+    <div
+      className={cn(
+        "rounded-lg border border-border/70 bg-card p-3 shadow-xs",
+        destaque && "border-primary/40 bg-primary/5",
+      )}
+    >
       <div className="flex items-center gap-1.5 text-muted-foreground">
         {Icon && <Icon className="size-3.5" />}
-        <span className="text-[11px] font-semibold leading-tight">{rotulo}</span>
+        <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide">{rotulo}</span>
       </div>
       <div
         className={cn(
-          "mt-1.5 font-extrabold tabular-nums",
-          semDados ? "text-base text-muted-foreground" : "text-2xl text-secondary",
+          "mt-1.5 font-extrabold tracking-tight tabular-nums",
+          semDados ? "text-base text-muted-foreground/70" : "text-2xl text-secondary",
         )}
       >
         {valor}

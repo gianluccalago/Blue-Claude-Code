@@ -56,7 +56,7 @@ export function PainelAdministracao() {
               <BedDouble className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{totalHospedes}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{totalHospedes}</p>
               <p className="text-sm text-muted-foreground">Hóspede(s) ocupando suítes</p>
             </div>
           </CardContent>
@@ -68,7 +68,7 @@ export function PainelAdministracao() {
               <Wallet className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalMensalidades)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalMensalidades)}</p>
               <p className="text-sm text-muted-foreground">Receita prevista (mensalidades)</p>
             </div>
           </CardContent>
@@ -80,7 +80,7 @@ export function PainelAdministracao() {
               <Receipt className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalUpselling)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalUpselling)}</p>
               <p className="text-sm text-muted-foreground">Upselling do mês</p>
             </div>
           </CardContent>
@@ -92,7 +92,7 @@ export function PainelAdministracao() {
               <TrendingUp className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(receitaTotalPrevista)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(receitaTotalPrevista)}</p>
               <p className="text-sm text-muted-foreground">Receita total prevista</p>
             </div>
           </CardContent>
@@ -104,7 +104,7 @@ export function PainelAdministracao() {
               <Users className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalCustoPessoal)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalCustoPessoal)}</p>
               <p className="text-sm text-muted-foreground">Custo de pessoal do mês</p>
             </div>
           </CardContent>
@@ -116,7 +116,7 @@ export function PainelAdministracao() {
               <AlertTriangle className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">
                 {inadimplentes.length} · {formatarMoeda(valorInadimplente)}
               </p>
               <p className="text-sm text-muted-foreground">Inadimplência (mensalidades pendentes)</p>
@@ -130,7 +130,7 @@ export function PainelAdministracao() {
               <CheckCircle2 className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(valorRecebido)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(valorRecebido)}</p>
               <p className="text-sm text-muted-foreground">Recebido no mês ({percentRecebido}%)</p>
             </div>
           </CardContent>

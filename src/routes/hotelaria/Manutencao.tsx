@@ -133,19 +133,19 @@ export function Manutencao() {
       <div className="grid grid-cols-3 gap-3">
         <Card className={cn("border-l-4", contadores.abertos > 0 ? "border-l-destructive" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
-            <p className="text-2xl font-bold leading-none">{contadores.abertos}</p>
+            <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums">{contadores.abertos}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Abertos</p>
           </CardContent>
         </Card>
         <Card className={cn("border-l-4", contadores.emAndamento > 0 ? "border-l-warning" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
-            <p className="text-2xl font-bold leading-none">{contadores.emAndamento}</p>
+            <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums">{contadores.emAndamento}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Em andamento</p>
           </CardContent>
         </Card>
         <Card className={cn("border-l-4", contadores.emergencias > 0 ? "border-l-destructive" : "border-l-success")}>
           <CardContent className="pt-4 pb-3">
-            <p className={cn("text-2xl font-bold leading-none", contadores.emergencias > 0 && "text-destructive")}>
+            <p className={cn("text-2xl font-extrabold leading-none tracking-tight tabular-nums", contadores.emergencias > 0 && "text-destructive")}>
               {contadores.emergencias}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Emergências ativas</p>
@@ -215,7 +215,7 @@ function ChamadoCard({
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
               chamado.status === "resolvido"
-                ? "bg-success/12 text-success"
+                ? "bg-success/10 text-success"
                 : destaque
                   ? "bg-destructive/10 text-destructive"
                   : "bg-muted text-muted-foreground"

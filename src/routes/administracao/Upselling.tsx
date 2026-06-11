@@ -150,7 +150,7 @@ function LancamentosDoHospede({ residenteId, mes }: { residenteId: string; mes: 
               <Wallet className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(total)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(total)}</p>
               <p className="text-sm text-muted-foreground">Total de upselling no mês</p>
             </div>
           </div>
@@ -573,7 +573,7 @@ function VisaoGeral({ mes }: { mes: string }) {
             <Wallet className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalGeral)}</p>
+            <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalGeral)}</p>
             <p className="text-sm text-muted-foreground">Total geral de upselling da casa no mês</p>
           </div>
         </CardContent>

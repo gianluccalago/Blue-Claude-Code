@@ -577,13 +577,13 @@ function Metric({
     >
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-4" />
-        <span className="text-xs font-semibold">{rotulo}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide">{rotulo}</span>
       </div>
       <div className="mt-2">
         {semDados ? (
-          <span className="text-2xl font-extrabold text-muted-foreground">sem dados</span>
+          <span className="text-xl font-bold text-muted-foreground/70">sem dados</span>
         ) : typeof valor === "number" || typeof valor === "string" ? (
-          <span className="text-3xl font-extrabold tabular-nums text-secondary">
+          <span className="text-3xl font-extrabold tracking-tight tabular-nums text-secondary">
             {valor}
             {sufixo}
           </span>

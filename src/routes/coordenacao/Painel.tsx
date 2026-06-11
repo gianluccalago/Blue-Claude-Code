@@ -255,7 +255,7 @@ export function PainelCoordenacao() {
                 key={p.id}
                 className="flex items-center gap-3 rounded-lg border bg-card p-3"
               >
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/12 text-nursing">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/10 text-nursing">
                   <ShieldAlert className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -358,9 +358,9 @@ function Indicador({
     <Card className={cn("p-4", destaque && "border-primary/40 bg-primary/5")}>
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-4" />
-        <span className="text-xs font-semibold">{rotulo}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide">{rotulo}</span>
       </div>
-      <div className="mt-2 text-3xl font-extrabold tabular-nums text-secondary">{valor}</div>
+      <div className="mt-2 text-3xl font-extrabold tracking-tight tabular-nums text-secondary">{valor}</div>
     </Card>
   );
 }

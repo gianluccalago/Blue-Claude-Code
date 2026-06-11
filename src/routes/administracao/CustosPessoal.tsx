@@ -86,25 +86,25 @@ export function CustosPessoal() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="py-4">
-            <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalMensalFixo)}</p>
+            <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalMensalFixo)}</p>
             <p className="text-sm text-muted-foreground">Mensal fixo</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalPorPlantao)}</p>
+            <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalPorPlantao)}</p>
             <p className="text-sm text-muted-foreground">Por plantão</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalGeral)}</p>
+            <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalGeral)}</p>
             <p className="text-sm text-muted-foreground">Custo total de pessoal</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-2xl font-bold tabular-nums text-secondary">
+            <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">
               {formatarMoeda(totalPago)} / {formatarMoeda(totalPendente)}
             </p>
             <p className="text-sm text-muted-foreground">Pago / Pendente</p>

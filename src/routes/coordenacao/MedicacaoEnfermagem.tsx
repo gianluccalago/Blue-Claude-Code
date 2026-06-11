@@ -202,7 +202,7 @@ function ItemEnfermagem({
     <div className="rounded-lg border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/12 text-nursing">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-nursing/10 text-nursing">
             <ShieldAlert className="size-4" />
           </div>
           <div className="min-w-0">

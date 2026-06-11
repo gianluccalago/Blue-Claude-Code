@@ -514,7 +514,7 @@ function MapaHospede({
         <div
           className={cn(
             "mt-0.5 rounded-full p-1.5 shrink-0",
-            jaDispensado ? "bg-success/12 text-success" : "bg-warning/15 text-warning-foreground"
+            jaDispensado ? "bg-success/10 text-success" : "bg-warning/15 text-warning-foreground"
           )}
         >
           {jaDispensado ? (

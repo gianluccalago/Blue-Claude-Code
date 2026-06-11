@@ -45,7 +45,7 @@ export function Rouparia() {
             <Shirt className="h-6 w-6 shrink-0 text-success" />
           )}
           <div>
-            <p className={cn("text-2xl font-bold leading-none", acimaDoLimite && "text-destructive")}>
+            <p className={cn("text-2xl font-extrabold leading-none tracking-tight tabular-nums", acimaDoLimite && "text-destructive")}>
               {saldoTotal}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">

@@ -193,7 +193,7 @@ function ProfissionalCard({
       <div
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-lg",
-          enf ? "bg-nursing/12 text-nursing" : "bg-accent text-secondary",
+          enf ? "bg-nursing/10 text-nursing" : "bg-accent text-secondary",
         )}
       >
         <Icone className="size-5" />

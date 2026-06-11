@@ -137,7 +137,7 @@ export function Mensalidades() {
               <AlertTriangle className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{countInadimplentes}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{countInadimplentes}</p>
               <p className="text-sm text-muted-foreground">Inadimplente(s)</p>
             </div>
           </CardContent>
@@ -148,7 +148,7 @@ export function Mensalidades() {
               <Wallet className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-secondary">{formatarMoeda(totalPendente)}</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums text-secondary">{formatarMoeda(totalPendente)}</p>
               <p className="text-sm text-muted-foreground">Total pendente no mês</p>
             </div>
           </CardContent>

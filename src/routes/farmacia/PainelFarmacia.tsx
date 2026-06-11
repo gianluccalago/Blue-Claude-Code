@@ -60,8 +60,12 @@ function ContadorCard({
       <CardContent className="flex items-center gap-3 pt-4 pb-3">
         <Icon className="h-6 w-6 shrink-0 opacity-70" />
         <div>
-          <p className="text-2xl font-bold leading-none">{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums text-secondary">
+            {value}
+          </p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </p>
         </div>
       </CardContent>
     </Card>

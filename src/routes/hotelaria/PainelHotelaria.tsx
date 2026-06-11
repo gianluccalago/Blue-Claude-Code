@@ -350,7 +350,7 @@ export function PainelHotelaria() {
                 <Shirt className="h-6 w-6 shrink-0 text-success" />
               )}
               <div>
-                <p className={cn("text-2xl font-bold leading-none", roupariaAcimaDoLimite && "text-destructive")}>
+                <p className={cn("text-2xl font-extrabold leading-none tracking-tight tabular-nums", roupariaAcimaDoLimite && "text-destructive")}>
                   {saldoRoupariaTotal}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -413,7 +413,7 @@ function ResumoCard({
         <div>
           <p
             className={cn(
-              "text-2xl font-bold leading-none",
+              "text-2xl font-extrabold leading-none tracking-tight tabular-nums",
               destaque === "destructive" && "text-destructive"
             )}
           >

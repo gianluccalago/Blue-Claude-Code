@@ -197,7 +197,7 @@ export function InspecaoSuites() {
           <CardContent className="flex items-center gap-3 pt-4 pb-3">
             <Clock className={cn("h-5 w-5", contadores.pendentes > 0 ? "text-warning" : "text-success")} />
             <div>
-              <p className="text-2xl font-bold leading-none">{contadores.pendentes}</p>
+              <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums">{contadores.pendentes}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Pendentes hoje</p>
             </div>
           </CardContent>
@@ -206,7 +206,7 @@ export function InspecaoSuites() {
           <CardContent className="flex items-center gap-3 pt-4 pb-3">
             <AlertTriangle className={cn("h-5 w-5", contadores.comNaoConformidade > 0 ? "text-destructive" : "text-success")} />
             <div>
-              <p className="text-2xl font-bold leading-none">{contadores.comNaoConformidade}</p>
+              <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums">{contadores.comNaoConformidade}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Não-conformidades</p>
             </div>
           </CardContent>
@@ -224,7 +224,7 @@ export function InspecaoSuites() {
                 <div
                   className={cn(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    st === "conforme" && "bg-success/12 text-success",
+                    st === "conforme" && "bg-success/10 text-success",
                     st === "nao_conformidade" && "bg-destructive/10 text-destructive",
                     st === "pendente" && "bg-muted text-muted-foreground"
                   )}
@@ -597,7 +597,7 @@ function InspecaoCard({ inspecao }: { inspecao: InspecaoSuite }) {
           <div
             className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-              inspecao.tem_nao_conformidade ? "bg-destructive/10 text-destructive" : "bg-success/12 text-success"
+              inspecao.tem_nao_conformidade ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
             )}
           >
             {inspecao.tem_nao_conformidade ? (
