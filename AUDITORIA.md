@@ -159,6 +159,7 @@ cálculos do painel protegidos contra divisão por zero; estados vazios com
    documentada na migration 0030; exige decisão de fluxo (e-mail de convite ou
    troca forçada).
 4. **Uploads dependem de buckets criados no Supabase** (`atividades-fotos`,
-   manutenção): o código tolera a falha (retorna `null`), mas se o bucket não
-   existir no projeto, a foto simplesmente não é salva. Conferir no painel
-   Storage.
+   `manutencao-fotos`, `upselling-comprovantes` e — novo — `intercorrencias-fotos`
+   para a foto da intercorrência do cuidador): o código tolera a falha (retorna
+   `null`), mas se o bucket não existir no projeto, a foto simplesmente não é
+   salva. Conferir/criar no painel Storage.
