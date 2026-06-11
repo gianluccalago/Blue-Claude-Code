@@ -15,8 +15,10 @@ export function EmConstrucao() {
       <h2 className="text-xl font-bold text-secondary">Em construção</h2>
       <p className="max-w-md text-muted-foreground">
         O módulo do perfil <span className="font-semibold">{perfil?.nome ?? ""}</span> será
-        desenvolvido nas próximas etapas, sobre a mesma base. Por enquanto, apenas o perfil{" "}
-        <span className="font-semibold">Cuidadores</span> possui telas completas.
+        desenvolvido nas próximas etapas, sobre a mesma base. Por enquanto, os perfis{" "}
+        <span className="font-semibold">Cuidadores</span>,{" "}
+        <span className="font-semibold">Coordenação</span> e{" "}
+        <span className="font-semibold">Master</span> possuem telas completas.
       </p>
     </Card>
   );
