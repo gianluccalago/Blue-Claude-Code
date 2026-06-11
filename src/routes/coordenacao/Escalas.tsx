@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useTurnos";
 import { useProfissionais } from "@/hooks/useProfissionais";
 import { useRegistrarPonto } from "@/hooks/usePonto";
+import { useTurnosVagosProximos } from "@/hooks/useMaster";
 import { TurnoModal } from "@/components/escala/TurnoModal";
 import { TurnoRecorrenteModal } from "@/components/escala/TurnoRecorrenteModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -44,6 +45,7 @@ export function Escalas() {
   const excluir = useExcluirTurno();
   const recorrentes = useCriarTurnosRecorrentes();
   const ajustarPonto = useRegistrarPonto();
+  const vagos7 = useTurnosVagosProximos(7);
 
   const [ancora, setAncora] = useState(() => new Date());
   const [visao, setVisao] = useState<Visao>("semana");
@@ -106,8 +108,30 @@ export function Escalas() {
 
   const salvando = criar.isPending || editar.isPending;
 
+  const turnosVagos = vagos7.data ?? [];
+
   return (
     <div className="space-y-5">
+      {/* Faixa de furos de escala (próximos 7 dias) */}
+      {turnosVagos.length > 0 && (
+        <button
+          onClick={() => {
+            const primeiro = turnosVagos[0];
+            setAncora(new Date(`${primeiro.data}T12:00:00`));
+            setVisao("semana");
+            setDiaDetalhe(primeiro.data);
+          }}
+          className="flex w-full items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-left transition-colors hover:bg-destructive/15"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <AlertTriangle className="size-4 shrink-0" />
+            Próximos 7 dias: {turnosVagos.length} turno{turnosVagos.length > 1 ? "s" : ""} vago
+            {turnosVagos.length > 1 ? "s" : ""} a cobrir
+          </span>
+          <span className="text-xs font-semibold text-destructive underline">ver →</span>
+        </button>
+      )}
+
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

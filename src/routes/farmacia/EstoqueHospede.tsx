@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearch } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   Package,
   PackageCheck,
@@ -7,6 +8,7 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle2,
+  Copy,
   Pencil,
   PackagePlus,
 } from "lucide-react";
@@ -352,6 +354,10 @@ function FormProvisionamento({
   const provisionar = useProvisionarEstoque();
   const [erro, setErro] = useState<string | null>(null);
 
+  // Provisionamento do mês anterior — base para "copiar quantidades".
+  const mesAnterior = navegarMes(mesRef, -1);
+  const estoqueAnterior = useEstoqueHospede(residenteId, mesAnterior);
+
   const sugestoes = useMemo(
     () => calcularSugestoes(prescricoes, mesRef, estoqueExistente),
     [prescricoes, mesRef, estoqueExistente],
@@ -360,6 +366,33 @@ function FormProvisionamento({
   const [quantidades, setQuantidades] = useState<Record<string, number>>(() =>
     Object.fromEntries(sugestoes.map((s) => [s.medicamento, s.quantidadeEditada])),
   );
+
+  // Quantidades provisionadas no mês anterior, por medicamento.
+  const provisionadoAnterior = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of estoqueAnterior.data ?? []) {
+      m.set(e.medicamento, e.quantidade_provisionada ?? 0);
+    }
+    return m;
+  }, [estoqueAnterior.data]);
+
+  // Itens cuja quantidade do mês anterior difere da sugestão atual (para o diff).
+  const mudancas = sugestoes.filter((s) => {
+    const ant = provisionadoAnterior.get(s.medicamento);
+    return ant !== undefined && ant !== s.quantidadeSugerida;
+  }).length;
+
+  function copiarMesAnterior() {
+    setQuantidades((prev) => {
+      const novo = { ...prev };
+      for (const s of sugestoes) {
+        const ant = provisionadoAnterior.get(s.medicamento);
+        if (ant !== undefined) novo[s.medicamento] = ant;
+      }
+      return novo;
+    });
+    toast.success("Quantidades copiadas do mês anterior — revise antes de salvar.");
+  }
 
   function setQtd(med: string, val: number) {
     setQuantidades((prev) => ({ ...prev, [med]: Math.max(0, val) }));
@@ -404,14 +437,28 @@ function FormProvisionamento({
   return (
     <Card className="border-primary/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PackagePlus className="size-5 text-primary" />
-          Provisionar — {formatarMesExtenso(mesRef)}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Sugestão calculada a partir das prescrições ativas ({diasNoMes(mesRef)} dias no mês).
-          Ajuste as quantidades se necessário.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <PackagePlus className="size-5 text-primary" />
+              Provisionar — {formatarMesExtenso(mesRef)}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Sugestão calculada a partir das prescrições ativas ({diasNoMes(mesRef)} dias no mês).
+              Ajuste as quantidades se necessário.
+            </p>
+          </div>
+          {provisionadoAnterior.size > 0 && (
+            <Button variant="outline" size="sm" onClick={copiarMesAnterior} className="shrink-0">
+              <Copy className="size-3.5" /> Copiar do mês anterior
+              {mudancas > 0 && (
+                <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-[11px] font-bold text-amber-700">
+                  {mudancas} dif.
+                </span>
+              )}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
