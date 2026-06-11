@@ -16,6 +16,7 @@ import {
   useAvaliacoesIVCF,
   useCriarAvaliacaoIVCF,
 } from "@/hooks/useMedico";
+import { useIntercorrenciasResidente, useAceitacaoResidenteHoje } from "@/hooks/useMaster";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -288,39 +289,118 @@ function FormEvolucao({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="size-5 text-primary" />
-          Nova evolução
-        </CardTitle>
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="size-5 text-primary" />
+            Nova evolução
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <textarea
+            autoFocus
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Descreva a evolução clínica do hóspede…"
+            rows={8}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            disabled={criar.isPending}
+          />
+          {erro && (
+            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertCircle className="size-4 shrink-0" /> {erro}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSalvar}
+              disabled={!texto.trim() || criar.isPending}
+            >
+              {criar.isPending ? "Salvando…" : "Salvar evolução"}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={criar.isPending}>
+              Cancelar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contexto do dia (read-only) ao lado do textarea */}
+      <ContextoDoDia residenteId={residenteId} />
+    </div>
+  );
+}
+
+/** Painel read-only com o resumo do dia do hóspede para apoiar a evolução. */
+function ContextoDoDia({ residenteId }: { residenteId: string }) {
+  const intercorrencias = useIntercorrenciasResidente(residenteId);
+  const aceitacao = useAceitacaoResidenteHoje(residenteId);
+
+  const inicioHoje = new Date();
+  inicioHoje.setHours(0, 0, 0, 0);
+  const intercHoje = (intercorrencias.data ?? []).filter(
+    (i) => new Date(i.registrado_em) >= inicioHoje,
+  );
+  const intercRecentes = (intercorrencias.data ?? []).slice(0, 3);
+  const refeicoes = aceitacao.data ?? [];
+
+  return (
+    <Card className="h-fit bg-muted/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-muted-foreground">Contexto do dia</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <textarea
-          autoFocus
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Descreva a evolução clínica do hóspede…"
-          rows={5}
-          className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-          disabled={criar.isPending}
-        />
-        {erro && (
-          <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            <AlertCircle className="size-4 shrink-0" /> {erro}
+      <CardContent className="space-y-4 text-sm">
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Intercorrências hoje
+          </p>
+          {intercHoje.length === 0 ? (
+            <p className="text-muted-foreground">Nenhuma hoje.</p>
+          ) : (
+            <ul className="space-y-1">
+              {intercHoje.map((i) => (
+                <li key={i.id} className="text-secondary">
+                  <span className="font-semibold">{i.tipo}</span>
+                  {i.observacao ? ` — ${i.observacao}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Aceitação alimentar hoje
+          </p>
+          {refeicoes.length === 0 ? (
+            <p className="text-muted-foreground">Sem registros.</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {refeicoes.map((r) => (
+                <li key={r.refeicao} className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{r.refeicao}</span>
+                  <span className="font-semibold text-secondary">{r.nivel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {intercRecentes.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Últimas intercorrências
+            </p>
+            <ul className="space-y-1">
+              {intercRecentes.map((i) => (
+                <li key={i.id} className="text-xs text-muted-foreground">
+                  {formatarDataHoraBR(i.registrado_em)} · {i.tipo}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleSalvar}
-            disabled={!texto.trim() || criar.isPending}
-          >
-            {criar.isPending ? "Salvando…" : "Salvar evolução"}
-          </Button>
-          <Button variant="outline" onClick={onClose} disabled={criar.isPending}>
-            Cancelar
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
