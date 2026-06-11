@@ -22,9 +22,11 @@ function perfilDaFuncao(funcao: FuncaoProfissional): "cuidador" | "enfermagem" {
 }
 
 /**
- * Profissionais de escala = usuarios com função preenchida ou perfil de
- * cuidador/enfermagem. (Outros tipos de usuário — médico, farmácia etc. — não
- * são geridos aqui; isso virá no módulo de autenticação/Master.)
+ * Profissionais de escala = usuarios do grupo de cuidados (perfil cuidador ou
+ * enfermagem). Os demais tipos (médico, multidisciplinar, nutricionista,
+ * farmácia etc.) são geridos na tela Usuários e acessos do Master (MASTER-3),
+ * não aqui — por isso filtramos por perfil e não por "funcao preenchida"
+ * (multidisciplinar/nutricionista também usam funcao e não entram na escala).
  */
 export function useProfissionais() {
   return useQuery({
@@ -33,7 +35,7 @@ export function useProfissionais() {
       const { data, error } = await supabase.from("usuarios").select("*");
       if (error) throw error;
       const lista = (data ?? []).filter(
-        (u) => u.funcao || u.perfil === "cuidador" || u.perfil === "enfermagem",
+        (u) => u.perfil === "cuidador" || u.perfil === "enfermagem",
       );
       lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       return lista;

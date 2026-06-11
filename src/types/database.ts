@@ -12,9 +12,14 @@ export type PerfilUsuario =
   | "cuidador"
   | "enfermagem"
   | "multidisciplinar"
+  | "nutricionista"
   | "farmacia"
   | "administracao"
+  | "hotelaria"
   | "familia";
+
+/** Forma de remuneração (base dos custos de pessoal). */
+export type TipoRemuneracao = "mensal" | "plantao";
 
 export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";
 export type VinculoProfissional = "CLT" | "PJ";
@@ -86,6 +91,13 @@ export interface Database {
           vinculo: string | null;
           registro_profissional: string | null;
           isento_ponto_app: boolean;
+          // MASTER-3: residente que o usuário-família acompanha (null nos demais
+          // perfis). Será a trava de visibilidade quando o login existir.
+          residente_vinculado: string | null;
+          // MASTER-3: remuneração (base dos custos de pessoal da Administração).
+          tipo_remuneracao: TipoRemuneracao | null;
+          valor_mensal: number | null;
+          valor_plantao: number | null;
         };
         Insert: {
           id?: string;
@@ -97,6 +109,10 @@ export interface Database {
           vinculo?: string | null;
           registro_profissional?: string | null;
           isento_ponto_app?: boolean;
+          residente_vinculado?: string | null;
+          tipo_remuneracao?: TipoRemuneracao | null;
+          valor_mensal?: number | null;
+          valor_plantao?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];

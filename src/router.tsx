@@ -21,6 +21,7 @@ import { PainelEstrategico } from "@/routes/master/PainelEstrategico";
 import { Visao360 } from "@/routes/master/Visao360";
 import { PainelOperacional } from "@/routes/master/PainelOperacional";
 import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
+import { UsuariosAcessos } from "@/routes/master/UsuariosAcessos";
 import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
@@ -142,6 +143,11 @@ const masterClinicaRoute = createRoute({
   path: "clinica",
   component: SupervisaoClinica,
 });
+const masterUsuariosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "usuarios",
+  component: UsuariosAcessos,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -169,6 +175,7 @@ const routeTree = rootRoute.addChildren([
     masterHospedeRoute,
     masterOperacionalRoute,
     masterClinicaRoute,
+    masterUsuariosRoute,
     placeholderRoute,
   ]),
 ]);
