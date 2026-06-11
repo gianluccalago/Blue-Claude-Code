@@ -7,10 +7,12 @@
  * useLancarUpselling).
  */
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  CopyPlus,
   Pencil,
   Plus,
   Receipt,
@@ -98,13 +100,46 @@ function UpsellingHospede({ mes }: { mes: string }) {
 
 function LancamentosDoHospede({ residenteId, mes }: { residenteId: string; mes: string }) {
   const lancamentos = useLancamentosDoMes(residenteId, mes);
+  const mesAnterior = deslocarMes(mes, -1);
+  const lancamentosAnterior = useLancamentosDoMes(residenteId, mesAnterior);
+  const lancar = useLancarUpselling(residenteId);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [repetindo, setRepetindo] = useState(false);
 
   if (lancamentos.isLoading) return <LoadingState />;
   if (lancamentos.isError) return <ErrorState error={lancamentos.error} />;
 
   const itens = lancamentos.data ?? [];
   const total = itens.reduce((acc, i) => acc + i.valor, 0);
+  const itensAnterior = lancamentosAnterior.data ?? [];
+
+  // Itens do mês anterior que ainda não existem no mês atual (mesma categoria+descrição).
+  const chaveItem = (categoria: string, descricao: string | null) => `${categoria}::${descricao ?? ""}`;
+  const jaExistentes = new Set(itens.map((i) => chaveItem(i.categoria, i.descricao)));
+  const repetiveis = itensAnterior.filter((i) => !jaExistentes.has(chaveItem(i.categoria, i.descricao)));
+
+  async function repetirMesAnterior() {
+    if (repetiveis.length === 0) return;
+    if (!window.confirm(`Repetir ${repetiveis.length} lançamento(s) do mês anterior neste mês?`)) return;
+    setRepetindo(true);
+    try {
+      for (const item of repetiveis) {
+        await lancar.mutateAsync({
+          categoria: item.categoria,
+          descricao: item.descricao,
+          valor: item.valor,
+          data: hojeISO(),
+          mesReferencia: mes,
+          comprovante: null,
+        });
+      }
+      toast.success(`${repetiveis.length} lançamento(s) repetido(s) — revise os valores.`);
+    } catch (e) {
+      toast.error(extrairErro(e));
+    } finally {
+      setRepetindo(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -119,9 +154,17 @@ function LancamentosDoHospede({ residenteId, mes }: { residenteId: string; mes: 
               <p className="text-sm text-muted-foreground">Total de upselling no mês</p>
             </div>
           </div>
-          <Button onClick={() => setMostrarForm((v) => !v)}>
-            <Plus className="size-4" /> {mostrarForm ? "Cancelar" : "Lançar despesa extra"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {repetiveis.length > 0 && (
+              <Button variant="outline" onClick={repetirMesAnterior} disabled={repetindo || lancar.isPending}>
+                <CopyPlus className="size-4" />
+                {repetindo ? "Repetindo…" : `Repetir do mês anterior (${repetiveis.length})`}
+              </Button>
+            )}
+            <Button onClick={() => setMostrarForm((v) => !v)}>
+              <Plus className="size-4" /> {mostrarForm ? "Cancelar" : "Lançar despesa extra"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
