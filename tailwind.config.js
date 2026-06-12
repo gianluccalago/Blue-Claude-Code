@@ -81,6 +81,7 @@ export default {
         card: "0 2px 12px -2px rgba(28, 74, 110, 0.10)",
         soft: "0 4px 20px -4px rgba(28, 74, 110, 0.12)",
         lifted: "0 10px 36px -8px rgba(28, 74, 110, 0.20)",
+        cinematic: "0 24px 70px -20px rgba(28, 74, 110, 0.45)",
         "glow-primary": "0 4px 24px -4px rgba(92, 191, 229, 0.45)",
       },
       transitionDuration: {

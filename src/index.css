@@ -58,6 +58,9 @@
     --sidebar-foreground: 0 0% 100%;
     --sidebar-muted: 203 32% 74%;
     --sidebar-accent: 197 72% 63%;
+    /* Extremos do gradiente da sidebar (navy profundo → quase preto-azulado) */
+    --sidebar-top: 207 56% 25%;
+    --sidebar-bottom: 210 64% 13%;
 
     --radius: 1rem; /* cantos 16px — assinatura visual da marca */
   }
@@ -142,6 +145,21 @@
     animation: fade-in 0.2s ease-out both;
   }
 
+  /* Transição de rota: slide + fade (conteúdo principal do app) */
+  @keyframes route-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .animate-route-in {
+    animation: route-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   /* Shimmer dos skeletons de carregamento */
   @keyframes shimmer {
     100% {
@@ -149,8 +167,92 @@
     }
   }
 
+  /* Gradiente cinematográfico vivo (login) — deslocamento lento do fundo */
+  @keyframes aurora {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      transform: translate3d(2%, -3%, 0) scale(1.08);
+      opacity: 1;
+    }
+  }
+  .animate-aurora {
+    animation: aurora 14s ease-in-out infinite;
+  }
+  .animate-aurora-slow {
+    animation: aurora 22s ease-in-out infinite reverse;
+  }
+
+  /* Pulso suave de glow para selos/indicadores críticos */
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.35);
+    }
+    50% {
+      box-shadow: 0 0 0 6px hsl(var(--primary) / 0);
+    }
+  }
+  .animate-glow-pulse {
+    animation: glow-pulse 2.2s ease-out infinite;
+  }
+
   /* Feedback de toque nos botões da ponta (tablet) */
   .press-feedback {
     @apply transition-transform duration-150 active:scale-[0.98];
+  }
+
+  /* ----- Superfícies de produto premium ----- */
+
+  /* Fundo "mesh" do app: celeste→branco com halos quase imperceptíveis */
+  .bg-app-mesh {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(58rem 40rem at 12% -8%, hsl(var(--primary) / 0.14), transparent 60%),
+      radial-gradient(46rem 36rem at 108% 4%, hsl(197 72% 63% / 0.1), transparent 55%),
+      radial-gradient(60rem 50rem at 50% 120%, hsl(206 58% 28% / 0.06), transparent 60%);
+  }
+
+  /* Vidro: topbar, modais e cards flutuantes */
+  .glass {
+    background-color: hsl(0 0% 100% / 0.72);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+  .glass-dark {
+    background-color: hsl(var(--sidebar) / 0.6);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  /* Gradiente da marca para medalhões/realces */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, hsl(197 72% 63%), hsl(199 78% 48%));
+  }
+  .bg-navy-gradient {
+    background-image: linear-gradient(160deg, hsl(var(--sidebar-top)), hsl(var(--sidebar-bottom)));
+  }
+  .bg-hero-navy {
+    background-image:
+      radial-gradient(40rem 24rem at 88% -40%, hsl(197 72% 63% / 0.35), transparent 60%),
+      linear-gradient(135deg, hsl(206 58% 26%), hsl(210 64% 16%));
+  }
+
+  /* Texto em gradiente da marca (números de hero, títulos de destaque) */
+  .text-gradient-brand {
+    background-image: linear-gradient(120deg, hsl(199 78% 46%), hsl(197 72% 63%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Anel de marca para itens ativos/focados com presença */
+  .ring-brand {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.4),
+      0 8px 28px -10px hsl(var(--primary) / 0.5);
   }
 }

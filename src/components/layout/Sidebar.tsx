@@ -1,5 +1,46 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LogOut, X } from "lucide-react";
+import {
+  LogOut,
+  X,
+  LayoutDashboard,
+  Pill,
+  Syringe,
+  AlertTriangle,
+  MessageSquare,
+  CalendarDays,
+  ClipboardList,
+  ListChecks,
+  PackageOpen,
+  UserCog,
+  Wrench,
+  Stethoscope,
+  FileText,
+  HeartPulse,
+  Users2,
+  Apple,
+  Salad,
+  Activity,
+  Wallet,
+  Receipt,
+  Tags,
+  FileSpreadsheet,
+  Coins,
+  Banknote,
+  PackageMinus,
+  PackageSearch,
+  PackageCheck,
+  ClipboardCheck,
+  Sparkles,
+  Shirt,
+  CalendarClock,
+  CalendarRange,
+  UserRound,
+  Image,
+  Camera,
+  Home,
+  Shield,
+  type LucideIcon,
+} from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
@@ -13,6 +54,85 @@ const DESTINO_POR_PERFIL: Record<string, DestinoSolicitacao> = {
   medico: "medico",
   administracao: "administracao",
 };
+
+// Ícone por rota — puramente visual (não altera navegação nem dados).
+const ICONE_POR_ROTA: Record<string, LucideIcon> = {
+  // Master
+  "/app/master": LayoutDashboard,
+  "/app/master/hospede": UserRound,
+  "/app/master/operacional": Activity,
+  "/app/master/clinica": HeartPulse,
+  "/app/master/usuarios": Shield,
+  "/app/master/residentes": Users2,
+  "/app/master/equipe": UserCog,
+  "/app/master/profissionais": UserCog,
+  "/app/master/chamado-manutencao": Wrench,
+  // Médico
+  "/app/medico/prescricoes": Pill,
+  "/app/medico/escalados": Stethoscope,
+  "/app/medico/evolucao": FileText,
+  "/app/medico/resgate": PackageOpen,
+  "/app/medico/solicitacoes-familia": MessageSquare,
+  // Coordenação
+  "/app/coordenacao": LayoutDashboard,
+  "/app/coordenacao/planos": ClipboardList,
+  "/app/coordenacao/modelos": ListChecks,
+  "/app/coordenacao/medicacao-enfermagem": Syringe,
+  "/app/coordenacao/intercorrencias": AlertTriangle,
+  "/app/coordenacao/resgate": PackageOpen,
+  "/app/coordenacao/profissionais": UserCog,
+  "/app/coordenacao/escalas": CalendarDays,
+  "/app/coordenacao/solicitacoes-familia": MessageSquare,
+  "/app/coordenacao/chamado-manutencao": Wrench,
+  // Cuidador
+  "/app/cuidador/checklist": ClipboardCheck,
+  "/app/cuidador/medicacao": Pill,
+  "/app/cuidador/compromissos": CalendarClock,
+  "/app/cuidador/intercorrencia": AlertTriangle,
+  "/app/cuidador/hospedes": Users2,
+  "/app/cuidador/minha-escala": CalendarRange,
+  "/app/cuidador/chamado-manutencao": Wrench,
+  // Enfermagem
+  "/app/enfermagem": LayoutDashboard,
+  // Multidisciplinar
+  "/app/multidisciplinar/atividades": Activity,
+  // Nutricionista
+  "/app/nutricionista/dietas": Salad,
+  "/app/nutricionista/acompanhamento-nutricional": Apple,
+  "/app/nutricionista/evolucao-nutricional": FileText,
+  // Farmácia
+  "/app/farmacia/painel": LayoutDashboard,
+  "/app/farmacia/estoque": PackageSearch,
+  "/app/farmacia/resgate": PackageMinus,
+  "/app/farmacia/dispensacao": PackageCheck,
+  // Hotelaria
+  "/app/hotelaria/visao-dia": LayoutDashboard,
+  "/app/hotelaria/inspecao-suites": ClipboardCheck,
+  "/app/hotelaria/manutencao": Wrench,
+  "/app/hotelaria/rouparia": Shirt,
+  // Administração
+  "/app/administracao": LayoutDashboard,
+  "/app/administracao/tabela-precos": Tags,
+  "/app/administracao/mensalidades": Wallet,
+  "/app/administracao/upselling": Receipt,
+  "/app/administracao/demonstrativo": FileSpreadsheet,
+  "/app/administracao/remuneracao-equipe": Coins,
+  "/app/administracao/custos-pessoal": Banknote,
+  "/app/administracao/profissionais": UserCog,
+  "/app/administracao/solicitacoes-familia": MessageSquare,
+  // Família
+  "/app/familia": Home,
+  "/app/familia/fotos": Image,
+  "/app/familia/compromissos-familia": CalendarClock,
+  "/app/familia/mensalidade-familia": Wallet,
+  "/app/familia/solicitacoes": MessageSquare,
+  "/app/familia/camera-quarto": Camera,
+  "/app/familia/sinais-vitais": HeartPulse,
+};
+
+function iconeDaRota(to: string): LucideIcon {
+  return ICONE_POR_ROTA[to] ?? Sparkles;
+}
 
 /** Iniciais do usuário para o avatar (até 2 letras). */
 function iniciais(nome: string | undefined | null): string {
@@ -35,6 +155,7 @@ export function Sidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { usuarioEfetivo, sair } = useAuth();
+  const Icon = perfil.icon;
 
   // Contador de solicitações abertas (SLA visível no menu).
   const destino = DESTINO_POR_PERFIL[perfil.id];
@@ -59,13 +180,19 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "flex h-full w-72 shrink-0 flex-col bg-sidebar text-sidebar-foreground",
+          "flex h-full w-72 shrink-0 flex-col bg-navy-gradient text-sidebar-foreground",
           // Desktop: estática. Mobile: drawer deslizante.
           "fixed inset-y-0 left-0 z-40 transition-transform duration-300 ease-out lg:static lg:translate-x-0",
           menuAberto ? "translate-x-0 shadow-lifted" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-5 py-6">
+        {/* Brilho decorativo no topo */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(24rem_12rem_at_30%_-20%,hsl(197_72%_63%/0.35),transparent_70%)]"
+        />
+
+        <div className="relative flex items-center justify-between px-5 py-6">
           <Logo className="text-white" />
           {/* Fechar (mobile) */}
           {onFechar && (
@@ -79,52 +206,54 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Cartão do usuário logado */}
-        <div className="mx-4 mb-2 rounded-lg border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-sidebar-accent text-sm font-extrabold text-secondary shadow-glow-primary">
-              {iniciais(usuarioEfetivo?.nome)}
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-bold">{ouNaoInformado(usuarioEfetivo?.nome)}</div>
-              <div className="truncate text-xs text-sidebar-muted">{perfil.nome}</div>
-            </div>
+        {/* Etiqueta de área do perfil */}
+        <div className="relative mx-4 mb-3 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3.5 py-3">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+            <Icon className="size-5" />
           </div>
-          <button
-            onClick={logout}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-xs font-semibold text-sidebar-muted transition-colors duration-200 hover:border-white/30 hover:bg-white/10 hover:text-white"
-          >
-            <LogOut className="size-3.5" />
-            Sair
-          </button>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-bold leading-tight">{perfil.nome}</div>
+            <div className="truncate text-[11px] text-sidebar-muted">Área de trabalho</div>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-4 py-3">
+        <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {perfil.menu.map((item) => {
             const ativo = pathname === item.to;
             const mostrarBadge = item.to.endsWith("/solicitacoes-familia") && abertas > 0;
+            const ItemIcon = iconeDaRota(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={onFechar}
                 className={cn(
-                  "relative flex items-center justify-between gap-2 rounded-md px-4 py-3 text-sm font-semibold transition-all duration-200",
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200",
                   ativo
-                    ? "bg-sidebar-accent text-secondary shadow-card"
-                    : "text-sidebar-muted hover:bg-white/10 hover:text-white",
+                    ? "bg-white/12 text-white shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.08)]"
+                    : "text-sidebar-muted hover:bg-white/8 hover:text-white",
                 )}
               >
-                {/* Filete de destaque do item ativo */}
+                {/* Pílula/glow do item ativo */}
                 {ativo && (
                   <span
                     aria-hidden="true"
-                    className="absolute -left-1.5 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/90"
+                    className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full bg-sidebar-accent shadow-glow-primary"
                   />
                 )}
-                <span>{item.label}</span>
+                <span
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-200",
+                    ativo
+                      ? "bg-brand-gradient text-white"
+                      : "bg-white/5 text-sidebar-muted group-hover:bg-white/10 group-hover:text-white",
+                  )}
+                >
+                  <ItemIcon className="size-4" />
+                </span>
+                <span className="flex-1 truncate">{item.label}</span>
                 {mostrarBadge && (
-                  <span className="grid min-w-[20px] shrink-0 place-items-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">
+                  <span className="grid min-w-[20px] shrink-0 place-items-center rounded-full bg-brand-gradient px-1.5 py-0.5 text-[11px] font-bold text-white shadow-glow-primary">
                     {abertas}
                   </span>
                 )}
@@ -133,8 +262,28 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-4 text-[11px] tracking-wide text-sidebar-muted">
-          Blue Senior Living · v0.1
+        {/* Rodapé: usuário em destaque */}
+        <div className="relative border-t border-white/10 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-white/5 p-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-gradient text-sm font-extrabold text-white shadow-glow-primary">
+              {iniciais(usuarioEfetivo?.nome)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold">{ouNaoInformado(usuarioEfetivo?.nome)}</div>
+              <div className="truncate text-[11px] text-sidebar-muted">Sessão ativa</div>
+            </div>
+            <button
+              onClick={logout}
+              className="grid size-9 shrink-0 place-items-center rounded-lg border border-white/15 text-sidebar-muted transition-colors duration-200 hover:border-white/30 hover:bg-white/10 hover:text-white"
+              aria-label="Sair"
+              title="Sair"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
+          <p className="mt-2 text-center text-[10px] tracking-wide text-sidebar-muted/70">
+            Blue Senior Living · v0.1
+          </p>
         </div>
       </aside>
     </>

@@ -34,7 +34,7 @@ export function AppShell() {
   const titulo = itemAtivo?.label ?? perfil.nome;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-app-mesh">
       {/* Sidebar fixa no desktop; drawer no mobile */}
       <Sidebar
         perfil={perfil}
@@ -44,8 +44,8 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar titulo={titulo} onAbrirMenu={() => setMenuAberto(true)} />
         <CamaleaoBar />
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-          <div key={pathname} className="mx-auto w-full max-w-5xl animate-fade-in-up">
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+          <div key={pathname} className="mx-auto w-full max-w-5xl animate-route-in">
             <Outlet />
           </div>
         </main>
