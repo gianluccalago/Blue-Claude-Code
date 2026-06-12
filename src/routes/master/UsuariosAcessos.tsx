@@ -65,6 +65,13 @@ export function UsuariosAcessos() {
   const lista = usuarios.data ?? [];
   const listaResidentes = residentes.data ?? [];
 
+  // Cargos (funcao) já usados no sistema — sugeridos ao criar/editar usuário,
+  // permitindo reaproveitar um cargo existente ou criar um novo.
+  const cargosExistentes = useMemo(
+    () => [...new Set(lista.map((u) => u.funcao?.trim()).filter((c): c is string => !!c))].sort(),
+    [lista],
+  );
+
   // Contadores: usuários ATIVOS por perfil (grupo cuidado = cuidador+enfermagem).
   const ativosPorPerfil = useMemo(() => {
     const m = new Map<PerfilSeletor, number>();
@@ -150,6 +157,7 @@ export function UsuariosAcessos() {
         <UsuarioForm
           modoEdicao={false}
           residentes={listaResidentes}
+          cargosExistentes={cargosExistentes}
           salvando={criar.isPending}
           onCancelar={() => setAdicionando(false)}
           onSalvar={(valor: UsuarioValor) =>
@@ -203,6 +211,7 @@ export function UsuariosAcessos() {
                   modoEdicao
                   inicial={u}
                   residentes={listaResidentes}
+                  cargosExistentes={cargosExistentes}
                   salvando={editar.isPending}
                   onCancelar={() => setEditandoId(null)}
                   onSalvar={(valor) =>

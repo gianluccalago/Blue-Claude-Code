@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +54,7 @@ export function UsuarioForm({
   inicial,
   modoEdicao,
   residentes,
+  cargosExistentes = [],
   salvando,
   onSalvar,
   onCancelar,
@@ -61,12 +62,15 @@ export function UsuarioForm({
   inicial?: Usuario;
   modoEdicao: boolean;
   residentes: Residente[];
+  /** Cargos (funcao) já usados no sistema — alimentam as sugestões do combobox. */
+  cargosExistentes?: string[];
   salvando: boolean;
   onSalvar: (valor: UsuarioValor) => void;
   onCancelar: () => void;
 }) {
   const [f, setF] = useState<FormState>(() => estadoInicial(inicial));
   const cfg = configPerfil(f.seletor);
+  const listaCargosId = useId();
 
   function set<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setF((atual) => ({ ...atual, [campo]: valor }));
@@ -82,9 +86,28 @@ export function UsuarioForm({
     }));
   }
 
-  // No grupo de cuidados, o COREN só vale para enfermagem (não p/ Cuidadora).
+  // Cargo (função) existe para todo perfil que não seja Família (portal).
+  const usaCargo = f.seletor !== "familia";
+
+  // Sugestões do combobox: base do perfil ∪ cargos já usados no sistema.
+  // Não restringem — o Master pode escolher uma destas OU digitar um cargo novo.
+  const sugestoesCargo = useMemo(() => {
+    const base = [
+      ...(cfg.funcoes ?? []),
+      ...(cfg.funcaoFixa ? [cfg.funcaoFixa] : []),
+      ...(cfg.cargosSugeridos ?? []),
+      ...cargosExistentes,
+    ];
+    return [...new Set(base.map((s) => s.trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, "pt-BR"),
+    );
+  }, [cfg, cargosExistentes]);
+
+  // No grupo de cuidados, o COREN só vale para quem entra como Enfermagem
+  // (deriva do cargo digitado, suportando cargos personalizados).
   const mostraRegistro =
-    !!cfg.registroLabel && (!cfg.registroSomenteEnfermagem || f.funcao !== "Cuidadora");
+    !!cfg.registroLabel &&
+    (!cfg.registroSomenteEnfermagem || perfilDoBanco(f.seletor, f.funcao) === "enfermagem");
 
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
   const familiaPrecisaResidente = cfg.vinculaResidente && !f.residente_vinculado;
@@ -96,7 +119,7 @@ export function UsuarioForm({
   );
 
   function salvar() {
-    const funcaoFinal = cfg.funcoes || cfg.funcaoFixa ? f.funcao || null : null;
+    const funcaoFinal = usaCargo ? f.funcao.trim() || null : null;
     const valor: UsuarioValor = {
       nome: f.nome.trim(),
       email: f.email.trim(),
@@ -156,21 +179,28 @@ export function UsuarioForm({
           </select>
         </div>
 
-        {/* Função (seletor) */}
-        {cfg.funcoes && (
+        {/* Cargo (combobox: escolher um existente OU criar um novo) */}
+        {usaCargo && (
           <div>
-            <label className={labelBase}>Função</label>
-            <select
+            <label className={labelBase}>Cargo</label>
+            <input
+              list={listaCargosId}
               value={f.funcao}
               onChange={(e) => set("funcao", e.target.value)}
+              placeholder="Escolha um cargo ou digite um novo"
               className={inputBase}
-            >
-              {cfg.funcoes.map((fn) => (
-                <option key={fn} value={fn}>
-                  {fn}
-                </option>
+            />
+            <datalist id={listaCargosId}>
+              {sugestoesCargo.map((c) => (
+                <option key={c} value={c} />
               ))}
-            </select>
+            </datalist>
+            {f.seletor === "cuidador" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cargos de enfermagem (enfermeira, técnica…) entram no perfil Enfermagem; os demais,
+                como Cuidador(a).
+              </p>
+            )}
           </div>
         )}
 

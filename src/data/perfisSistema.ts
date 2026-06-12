@@ -50,6 +50,9 @@ export interface ConfigPerfil {
   funcoes?: string[];
   /** Função fixa/implícita (sem seletor), ex: Nutricionista. */
   funcaoFixa?: string;
+  /** Cargos sugeridos no combobox (além de funcoes/funcaoFixa). Não restringem:
+   *  o Master pode escolher um destes OU digitar um cargo novo. */
+  cargosSugeridos?: string[];
   /** Rótulo do campo de registro profissional (CRM/COREN/CREFITO/CRN…). */
   registroLabel?: string;
   /** No grupo de cuidados, o COREN só vale para enfermagem (não p/ Cuidadora). */
@@ -63,14 +66,26 @@ export interface ConfigPerfil {
 
 /** Os 10 perfis, na ordem do seletor. */
 export const PERFIS_SISTEMA: ConfigPerfil[] = [
-  { value: "master", label: "Master", icon: Shield },
-  { value: "medico", label: "Médico Geriatra", icon: Stethoscope, registroLabel: "Registro (CRM)" },
-  { value: "coordenacao", label: "Coordenação Assistencial", icon: ClipboardList },
+  { value: "master", label: "Master", icon: Shield, cargosSugeridos: ["Diretor Geral", "Administrador"] },
+  {
+    value: "medico",
+    label: "Médico Geriatra",
+    icon: Stethoscope,
+    registroLabel: "Registro (CRM)",
+    cargosSugeridos: ["Médico Geriatra", "Médica Geriatra", "Clínico Geral", "Psiquiatra"],
+  },
+  {
+    value: "coordenacao",
+    label: "Coordenação Assistencial",
+    icon: ClipboardList,
+    cargosSugeridos: ["Coordenadora Assistencial", "Coordenador Assistencial", "Enfermeira Coordenadora"],
+  },
   {
     value: "cuidador",
     label: "Cuidadores / Enfermagem",
     icon: HeartHandshake,
     funcoes: ["Cuidadora", "Técnica de Enfermagem", "Enfermeira"],
+    cargosSugeridos: ["Cuidador", "Cuidadora Líder", "Técnico de Enfermagem", "Enfermeiro"],
     registroLabel: "Registro (COREN)",
     registroSomenteEnfermagem: true,
     mostraVinculo: true,
@@ -82,6 +97,7 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     label: "Equipe Multidisciplinar",
     icon: Activity,
     funcoes: ["Fisioterapeuta", "Educador Físico", "Terapeuta Ocupacional"],
+    cargosSugeridos: ["Fonoaudióloga", "Fonoaudiólogo", "Psicóloga", "Psicólogo", "Assistente Social"],
     registroLabel: "Registro (CREFITO / CREF)",
     mostraVinculo: true,
     mostraRemuneracao: true,
@@ -91,13 +107,29 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     label: "Nutricionista",
     icon: Apple,
     funcaoFixa: "Nutricionista",
+    cargosSugeridos: ["Nutricionista", "Nutricionista Clínica"],
     registroLabel: "Registro (CRN)",
     mostraVinculo: true,
     mostraRemuneracao: true,
   },
-  { value: "farmacia", label: "Farmácia", icon: Pill },
-  { value: "administracao", label: "Administração", icon: Building2 },
-  { value: "hotelaria", label: "Hotelaria", icon: BedDouble },
+  {
+    value: "farmacia",
+    label: "Farmácia",
+    icon: Pill,
+    cargosSugeridos: ["Farmacêutico", "Farmacêutica", "Auxiliar de Farmácia"],
+  },
+  {
+    value: "administracao",
+    label: "Administração",
+    icon: Building2,
+    cargosSugeridos: ["Administradora", "Administrador", "Financeiro", "Recepcionista"],
+  },
+  {
+    value: "hotelaria",
+    label: "Hotelaria",
+    icon: BedDouble,
+    cargosSugeridos: ["Supervisor de Hotelaria", "Governanta", "Camareira", "Manutenção", "Cozinha"],
+  },
   { value: "familia", label: "Família / Hóspede", icon: Users, vinculaResidente: true },
 ];
 
@@ -132,11 +164,16 @@ export function perfilParaSeletor(perfil: PerfilUsuario): PerfilSeletor {
 
 /**
  * Deriva o perfil REAL do banco a partir do seletor + função. Só o grupo de
- * cuidados se desdobra: Cuidadora → 'cuidador'; demais funções → 'enfermagem'.
- * (Mesma regra do módulo de Escalas, para não quebrar nada.)
+ * cuidados se desdobra em dois perfis: cargos de ENFERMAGEM (enfermeira(o),
+ * enfermagem, técnico(a) de enfermagem) → 'enfermagem'; os demais (cuidadora,
+ * cuidador, cuidadora líder, cargos personalizados…) → 'cuidador'. A heurística
+ * por palavra-chave permite CARGOS PERSONALIZADOS sem quebrar a separação e é
+ * compatível com os cargos antigos (Cuidadora→cuidador; Téc./Enfermeira→enfermagem).
  */
 export function perfilDoBanco(seletor: PerfilSeletor, funcao: string | null): PerfilUsuario {
-  if (seletor === "cuidador") return funcao === "Cuidadora" ? "cuidador" : "enfermagem";
+  if (seletor === "cuidador") {
+    return /enferm|t[eé]c/i.test(funcao ?? "") ? "enfermagem" : "cuidador";
+  }
   return seletor;
 }
 
