@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
+import { HistoricoAlteracoes } from "@/components/HistoricoAlteracoes";
 import { cn } from "@/lib/utils";
 import type { TipoRemuneracao, Usuario } from "@/types/database";
 
@@ -68,7 +69,11 @@ function ProfissionalRemuneracao({ profissional: u }: { profissional: Usuario })
       </CardHeader>
       <CardContent>
         {editando ? (
-          <FormRemuneracao profissional={u} onSalvo={() => setEditando(false)} onCancelar={() => setEditando(false)} />
+          <div className="space-y-4">
+            <FormRemuneracao profissional={u} onSalvo={() => setEditando(false)} onCancelar={() => setEditando(false)} />
+            {/* Trilha de auditoria — somente leitura */}
+            <HistoricoAlteracoes tabelaOrigem="usuarios" registroId={u.id} />
+          </div>
         ) : (
           <ResumoRemuneracao profissional={u} />
         )}

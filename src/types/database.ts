@@ -893,6 +893,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["evolucao_nutricional"]["Insert"]>;
         Relationships: [];
       };
+      log_alteracao: {
+        Row: {
+          id: string;
+          tabela_origem: string;
+          registro_id: string;
+          campo: string;
+          valor_anterior: string | null;
+          valor_novo: string | null;
+          motivo: string | null;
+          alterado_por: string;
+          alterado_em: string;
+        };
+        Insert: {
+          id?: string;
+          tabela_origem: string;
+          registro_id: string;
+          campo: string;
+          valor_anterior?: string | null;
+          valor_novo?: string | null;
+          motivo?: string | null;
+          alterado_por: string;
+          alterado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["log_alteracao"]["Insert"]>;
+        Relationships: [];
+      };
       upselling: {
         Row: {
           id: string;
@@ -1001,6 +1027,7 @@ export interface Database {
 
 /* Atalhos de tipo para uso nas telas */
 export type Residente = Database["public"]["Tables"]["residentes"]["Row"];
+export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];
 export type TarefaRegistro = Database["public"]["Tables"]["tarefa_registro"]["Row"];

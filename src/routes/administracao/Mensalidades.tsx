@@ -39,6 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
+import { HistoricoAlteracoes } from "@/components/HistoricoAlteracoes";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
 import type { Ocupacao, PagamentoMensalidade, Residente, TipoSuite } from "@/types/database";
 
@@ -277,12 +278,16 @@ function ResidenteMensalidade({
       </CardHeader>
       <CardContent className="space-y-4">
         {editando ? (
-          <FormAjuste
-            residente={r}
-            valorSugerido={valorSugerido}
-            onSalvo={() => setEditando(false)}
-            onCancelar={() => setEditando(false)}
-          />
+          <div className="space-y-4">
+            <FormAjuste
+              residente={r}
+              valorSugerido={valorSugerido}
+              onSalvo={() => setEditando(false)}
+              onCancelar={() => setEditando(false)}
+            />
+            {/* Trilha de auditoria — somente leitura */}
+            <HistoricoAlteracoes tabelaOrigem="residentes" registroId={r.id} />
+          </div>
         ) : (
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -430,7 +435,10 @@ function FormAjuste({
           )}
         </div>
         <div className="space-y-1.5 sm:col-span-1">
-          <label className="text-sm font-semibold text-secondary">Motivo do ajuste (opcional)</label>
+          <label className="text-sm font-semibold text-secondary">
+            Motivo do ajuste <span className="text-destructive">*</span>{" "}
+            <span className="font-normal text-muted-foreground">(obrigatório se o valor mudar)</span>
+          </label>
           <textarea
             value={ajusteObs}
             onChange={(e) => setAjusteObs(e.target.value)}

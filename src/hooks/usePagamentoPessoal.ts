@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
+import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import { intervaloDoMes } from "@/lib/mensalidade";
 import { useTurnos } from "@/hooks/useTurnos";
 import type {
@@ -32,11 +33,17 @@ export type RemuneracaoInput = {
   valorPlantaoNoturno: number | null;
 };
 
-/** Atualiza o tipo e os valores de remuneração de um profissional. */
+/** Atualiza o tipo e os valores de remuneração de um profissional (com trilha). */
 export function useAtualizarRemuneracao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { id: string; valor: RemuneracaoInput }) => {
+      // Trilha de auditoria: captura os valores anteriores antes de sobrescrever.
+      const { data: atual } = await supabase
+        .from("usuarios")
+        .select("tipo_remuneracao, valor_mensal, valor_plantao_diurno, valor_plantao_noturno")
+        .eq("id", args.id)
+        .maybeSingle();
       const { error } = await supabase
         .from("usuarios")
         .update({
@@ -47,6 +54,12 @@ export function useAtualizarRemuneracao() {
         })
         .eq("id", args.id);
       if (error) throw error;
+      await registrarLogAlteracao([
+        { tabelaOrigem: "usuarios", registroId: args.id, campo: "tipo_remuneracao", valorAnterior: atual?.tipo_remuneracao ?? null, valorNovo: args.valor.tipoRemuneracao },
+        { tabelaOrigem: "usuarios", registroId: args.id, campo: "valor_mensal", valorAnterior: atual?.valor_mensal ?? null, valorNovo: args.valor.valorMensal },
+        { tabelaOrigem: "usuarios", registroId: args.id, campo: "valor_plantao_diurno", valorAnterior: atual?.valor_plantao_diurno ?? null, valorNovo: args.valor.valorPlantaoDiurno },
+        { tabelaOrigem: "usuarios", registroId: args.id, campo: "valor_plantao_noturno", valorAnterior: atual?.valor_plantao_noturno ?? null, valorNovo: args.valor.valorPlantaoNoturno },
+      ]);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["equipe-remuneracao"] });
@@ -162,11 +175,18 @@ export type SalvarPagamentoPessoalInput = {
   observacao: string | null;
 };
 
-/** Salva (upsert) o registro de pagamento de um profissional no mês. */
+/** Salva (upsert) o registro de pagamento de um profissional no mês (com trilha do valor final). */
 export function useSalvarPagamentoPessoal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: SalvarPagamentoPessoalInput) => {
+      // Trilha: valor_final anterior (se já havia registro no mês).
+      const { data: atual } = await supabase
+        .from("pagamento_pessoal")
+        .select("id, valor_final")
+        .eq("profissional_id", args.profissionalId)
+        .eq("mes_referencia", args.mes)
+        .maybeSingle();
       const { error } = await supabase.from("pagamento_pessoal").upsert(
         {
           profissional_id: args.profissionalId,
@@ -183,6 +203,16 @@ export function useSalvarPagamentoPessoal() {
         { onConflict: "profissional_id,mes_referencia" },
       );
       if (error) throw error;
+      await registrarLogAlteracao([
+        {
+          tabelaOrigem: "pagamento_pessoal",
+          registroId: `${args.profissionalId}:${args.mes}`,
+          campo: "valor_final",
+          valorAnterior: atual?.valor_final ?? null,
+          valorNovo: args.valorFinal,
+          motivo: args.observacao,
+        },
+      ]);
     },
     onSuccess: (_r, args) => qc.invalidateQueries({ queryKey: ["pagamento-pessoal", args.mes] }),
   });

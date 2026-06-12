@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
+import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import type { Ocupacao, PagamentoMensalidade, TabelaPreco, TipoSuite } from "@/types/database";
 
 // ─── Tabela de preços ───────────────────────────────────────────────────────────
@@ -17,13 +18,28 @@ export function useTabelaPreco() {
   });
 }
 
-/** Atualiza o valor de uma combinação tipo de suíte × grau. */
+/** Atualiza o valor de uma combinação tipo de suíte × grau (com trilha). */
 export function useAtualizarPreco() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, valor }: { id: string; valor: number }) => {
+      // Trilha de auditoria: valor anterior antes de sobrescrever.
+      const { data: atual } = await supabase
+        .from("tabela_preco")
+        .select("valor")
+        .eq("id", id)
+        .maybeSingle();
       const { error } = await supabase.from("tabela_preco").update({ valor }).eq("id", id);
       if (error) throw error;
+      await registrarLogAlteracao([
+        {
+          tabelaOrigem: "tabela_preco",
+          registroId: id,
+          campo: "valor",
+          valorAnterior: atual?.valor ?? null,
+          valorNovo: valor,
+        },
+      ]);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tabela-preco"] }),
   });
@@ -38,11 +54,24 @@ export type AjustarMensalidadeInput = {
   ajusteObs: string | null;
 };
 
-/** Atualiza tipo de suíte, ocupação e a mensalidade vigente de um residente. */
+/**
+ * Atualiza tipo de suíte, ocupação e a mensalidade vigente de um residente.
+ * MOTIVO OBRIGATÓRIO quando a mensalidade muda (trilha de auditoria).
+ */
 export function useAjustarMensalidade(residenteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: AjustarMensalidadeInput) => {
+      const { data: atual } = await supabase
+        .from("residentes")
+        .select("mensalidade_valor")
+        .eq("id", residenteId)
+        .maybeSingle();
+      const mudouValor =
+        String(atual?.mensalidade_valor ?? "") !== String(args.valor ?? "");
+      if (mudouValor && !args.ajusteObs?.trim()) {
+        throw new Error("Informe o motivo do ajuste da mensalidade (obrigatório).");
+      }
       const { error } = await supabase
         .from("residentes")
         .update({
@@ -53,6 +82,18 @@ export function useAjustarMensalidade(residenteId: string) {
         })
         .eq("id", residenteId);
       if (error) throw error;
+      if (mudouValor) {
+        await registrarLogAlteracao([
+          {
+            tabelaOrigem: "residentes",
+            registroId: residenteId,
+            campo: "mensalidade_valor",
+            valorAnterior: atual?.mensalidade_valor ?? null,
+            valorNovo: args.valor,
+            motivo: args.ajusteObs,
+          },
+        ]);
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["residentes"] }),
   });
