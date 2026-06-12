@@ -228,6 +228,17 @@
     -webkit-backdrop-filter: blur(14px) saturate(140%);
   }
 
+  /* ----- Safe-area do iOS (PWA / atalho da tela inicial) -----
+     Em navegador comum env() resolve para 0 → nada muda. Em modo standalone
+     com viewport-fit=cover, empurra o conteúdo para fora da status bar / notch
+     / indicador inferior. */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+  /* Header/topbar fixo: status bar do iOS somada ao respiro vertical padrão. */
+  .header-safe-top { padding-top: calc(env(safe-area-inset-top) + 0.875rem); }
+
   /* Gradiente da marca para medalhões/realces */
   .bg-brand-gradient {
     background-image: linear-gradient(135deg, hsl(197 72% 63%), hsl(199 78% 48%));

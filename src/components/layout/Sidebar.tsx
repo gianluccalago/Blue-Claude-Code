@@ -191,6 +191,9 @@ export function Sidebar({
       <aside
         className={cn(
           "flex h-full w-72 shrink-0 flex-col bg-navy-gradient text-sidebar-foreground",
+          // Safe-area iOS: afasta logo/menu/rodapé da status bar, do notch e do
+          // indicador inferior em modo standalone (env()=0 no navegador).
+          "safe-top safe-bottom safe-left",
           // Desktop: estática. Mobile: drawer deslizante.
           "fixed inset-y-0 left-0 z-40 transition-transform duration-300 ease-out lg:static lg:translate-x-0",
           menuAberto ? "translate-x-0 shadow-lifted" : "-translate-x-full",

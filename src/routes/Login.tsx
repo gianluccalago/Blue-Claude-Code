@@ -100,7 +100,7 @@ export function Login() {
       </aside>
 
       {/* ===== Painel direito: formulário ===== */}
-      <main className="relative flex w-full items-center justify-center bg-app-mesh px-6 py-12 lg:w-1/2 xl:w-[45%]">
+      <main className="safe-top safe-bottom relative flex w-full items-center justify-center bg-app-mesh px-6 py-12 lg:w-1/2 xl:w-[45%]">
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="mb-8 flex flex-col items-center text-center">
             <div className="lg:hidden">

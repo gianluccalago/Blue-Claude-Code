@@ -11,7 +11,7 @@ export function Topbar({
   onAbrirMenu?: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-white/40 glass px-4 py-3.5 sm:px-6">
+    <header className="header-safe-top safe-left safe-right sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-white/40 glass px-4 pb-3.5 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         {/* Hambúrguer só no mobile (drawer da sidebar) */}
         {onAbrirMenu && (
