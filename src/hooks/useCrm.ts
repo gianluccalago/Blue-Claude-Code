@@ -465,5 +465,186 @@ export function useVincularResidente() {
   });
 }
 
+// ─── Contatos (CRUD + oportunidades vinculadas) ──────────────────────────────
+
+export type ContatoComOportunidades = CrmContato & {
+  oportunidades: { id: string; nome: string }[];
+};
+
+export function useContatosCrm() {
+  return useQuery({
+    queryKey: ["crm-contatos-full"],
+    queryFn: async (): Promise<ContatoComOportunidades[]> => {
+      const [contatos, ops] = await Promise.all([
+        supabase.from("crm_contato").select("*").order("nome"),
+        supabase.from("crm_oportunidade").select("id, nome, contato_id"),
+      ]);
+      if (contatos.error) throw contatos.error;
+      if (ops.error) throw ops.error;
+      const porContato = new Map<string, { id: string; nome: string }[]>();
+      for (const o of ops.data ?? []) {
+        const arr = porContato.get(o.contato_id) ?? [];
+        arr.push({ id: o.id, nome: o.nome });
+        porContato.set(o.contato_id, arr);
+      }
+      return (contatos.data ?? []).map((c) => ({ ...c, oportunidades: porContato.get(c.id) ?? [] }));
+    },
+  });
+}
+
+export type SalvarContatoInput = {
+  id?: string;
+  nome: string;
+  telefones: string[];
+  emails: string[];
+  relacao: string | null;
+  nomeIdoso: string | null;
+  idadeIdoso: number | null;
+  grauEstimado: "I" | "II" | "III" | null;
+  baseLegal: "consentimento" | "legitimo_interesse" | "nao_definida";
+  observacoes: string | null;
+};
+
+export function useSalvarContato() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: SalvarContatoInput) => {
+      const row = {
+        nome: v.nome.trim(),
+        telefones: v.telefones,
+        emails: v.emails,
+        relacao: v.relacao,
+        nome_idoso: v.nomeIdoso,
+        idade_idoso: v.idadeIdoso,
+        grau_estimado: v.grauEstimado,
+        base_legal_lgpd: v.baseLegal,
+        observacoes: v.observacoes,
+      };
+      if (v.id) {
+        const { error } = await supabase.from("crm_contato").update(row).eq("id", v.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("crm_contato").insert(row);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-contatos-full"] });
+      qc.invalidateQueries({ queryKey: KEY.contatos });
+      invalidarPipeline(qc);
+    },
+  });
+}
+
+// ─── Origens (CRUD) ───────────────────────────────────────────────────────────
+
+export function useCrmOrigensTodas() {
+  return useQuery({
+    queryKey: [...KEY.origens, "todas"],
+    queryFn: async (): Promise<CrmOrigem[]> => {
+      const { data, error } = await supabase.from("crm_origem").select("*").order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSalvarOrigem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id?: string; nome: string; tipo: string | null; ativo?: boolean }) => {
+      if (v.id) {
+        const { error } = await supabase.from("crm_origem").update({ nome: v.nome.trim(), tipo: v.tipo, ativo: v.ativo }).eq("id", v.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("crm_origem").insert({ nome: v.nome.trim(), tipo: v.tipo });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY.origens }),
+  });
+}
+
+// ─── Configuração do funil: etapas + motivos ──────────────────────────────────
+
+export function useCrmEtapasTodas() {
+  return useQuery({
+    queryKey: [...KEY.etapas, "todas"],
+    queryFn: async (): Promise<CrmEtapa[]> => {
+      const { data, error } = await supabase.from("crm_etapa").select("*").order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSalvarEtapa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id?: string; nome: string; ordem?: number; ativo?: boolean }) => {
+      if (v.id) {
+        const patch: { nome: string; ativo?: boolean; ordem?: number } = { nome: v.nome.trim() };
+        if (v.ativo !== undefined) patch.ativo = v.ativo;
+        if (v.ordem !== undefined) patch.ordem = v.ordem;
+        const { error } = await supabase.from("crm_etapa").update(patch).eq("id", v.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("crm_etapa").insert({ nome: v.nome.trim(), ordem: v.ordem ?? 99 });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY.etapas });
+      invalidarPipeline(qc);
+    },
+  });
+}
+
+/** Troca a ordem de duas etapas (mover para cima/baixo). */
+export function useReordenarEtapas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { a: { id: string; ordem: number }; b: { id: string; ordem: number } }) => {
+      const { error: e1 } = await supabase.from("crm_etapa").update({ ordem: args.b.ordem }).eq("id", args.a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("crm_etapa").update({ ordem: args.a.ordem }).eq("id", args.b.id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY.etapas });
+      invalidarPipeline(qc);
+    },
+  });
+}
+
+export function useCrmMotivosTodos() {
+  return useQuery({
+    queryKey: [...KEY.motivos, "todos"],
+    queryFn: async (): Promise<CrmMotivoPerda[]> => {
+      const { data, error } = await supabase.from("crm_motivo_perda").select("*").order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useSalvarMotivo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id?: string; nome: string; ativo?: boolean }) => {
+      if (v.id) {
+        const patch: { nome: string; ativo?: boolean } = { nome: v.nome.trim() };
+        if (v.ativo !== undefined) patch.ativo = v.ativo;
+        const { error } = await supabase.from("crm_motivo_perda").update(patch).eq("id", v.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("crm_motivo_perda").insert({ nome: v.nome.trim() });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY.motivos }),
+  });
+}
+
 // Reexport de tipos úteis às telas.
 export type { CrmEvento, CrmTarefa };
