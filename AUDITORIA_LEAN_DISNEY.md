@@ -1,5 +1,52 @@
 # AUDITORIA LEAN + DISNEY — Blue Senior Living
 
+> ## STATUS DE EXECUÇÃO (2026-06-12)
+> As melhorias aprovadas foram executadas em 5 commits (um por bloco), build verde em todos:
+>
+> **BLOCO 1 — Poka-yoke de segurança** (`46986a1`, migração `0035`)
+> - ✅ 1.1 Intercorrência: foto+nome+alergia ao selecionar; botão confirma o nome.
+> - ✅ 1.2 Medicação: cabeçalho com foto+nome+alergia; selo "tomar com alimento" pela dieta.
+> - ✅ 1.3 Prescrição: alerta de alergia com confirmação explícita registrada (`alerta_alergia`).
+> - ✅ 1.4 Escalas: colisão de horário bloqueada (criar/editar/recorrente, noturno incluído).
+> - ✅ 1.5 Dispensação: saldo insuficiente avisado ANTES, com confirmação explícita.
+> - ✅ 1.6 Medicação "Não": motivo em 1 toque (Recusou/Indisposto/Ausente/Outro), visível à coordenação.
+>
+> **BLOCO 2 — Fila puxada** (`249afb9`)
+> - ✅ 2.1 Idade + ordenação mais-antiga-primeiro + dono em todas as filas (Painel, Escalados, Solicitações, Chamados).
+> - ✅ 2.2 Limites centrais em `src/lib/sla.ts` (4h/24h/48h provisórios — a pactuar pela gestão) + selo "atrasado".
+> - ✅ 2.3 Escalas: fila "vagos a cobrir" por urgência (vermelho ≤24h, âmbar ≤72h).
+> - ✅ 2.4 Escalados: selo "REINCIDENTE após resolução de [data]" (janela 48h).
+> - ✅ 2.5 Manutenção: foto obrigatória ao resolver; vencidos no topo; emergências acima de tudo.
+>
+> **BLOCO 3 — Fluxo de turno e lote** (`111bafe`)
+> - ✅ 3.1 Enfermagem: visão "AGORA (casa)" — atrasados em vermelho + período corrente; por-hóspede preservada.
+> - ✅ 3.2 Dispensação: mapa virou fila (pendentes primeiro, contador feito/pendente).
+> - ✅ 3.3 Atividades: fila "Registrar hoje".
+> - ✅ 3.4 Lote: resolver pendências selecionadas de uma vez; tarefa de plano para vários hóspedes.
+>
+> **BLOCO 4 — Trilha de auditoria** (`f1dbc70`, migração `0036`)
+> - ✅ 4.1 `log_alteracao` (imutável por RLS) em mensalidade (motivo obrigatório), tabela de preços, remuneração e valor final do pagamento.
+> - ✅ 4.2 Histórico somente-leitura em Mensalidades e Remuneração.
+> - ✅ 4.3 Rouparia: movimentações com trilha imutável (correção = novo lançamento) — implementado via log de cada movimentação, sem tabela própria de lançamentos (mais simples, mesmo efeito de trilha).
+>
+> **BLOCO 5 — Portal da família** (`c07cbbb`, migração `0037`)
+> - ✅ 5.1 Card "O dia de [nome]" (alimentação + atividade com foto; sem dados sensíveis; vazio acolhedor).
+> - ✅ 5.2 Legenda da foto (descrição da execução).
+> - ✅ 5.3 "Recebemos sua solicitação" → "Em análise por [setor]" (automático) → "Respondida".
+> - ✅ 5.4 "Combinados com a família" visível aos cuidadores designados (leitura).
+> - ✅ 5.5 "Como foi" do compromisso (cuidador/enfermagem) → portal da família.
+> - ✅ 5.6 Extras narrados no demonstrativo (apresentação).
+> - ✅ 5.7 Placeholders honestos e acolhedores (câmera/sinais vitais).
+>
+> **FICOU DE FORA (com motivo)** — itens da auditoria NÃO aprovados nesta rodada:
+> - Interação medicamentosa/contraindicação por classe (1.3 fase 2): exige base farmacológica — fora do escopo aprovado.
+> - Bloco "Experiência" nos painéis do Master (NPS família, pulso da equipe): depende de ritual de coleta a definir pela gestão (§5.2).
+> - Admissão como ritual de boas-vindas, fio único família↔equipe completo, tendências mês-a-mês nos painéis, "ações de agora" no Painel Operacional: não listados nos blocos aprovados.
+> - Confirmação da cozinha na dieta e preferências alimentares: envolvem fluxo humano da cozinha (§5.4), não aprovado nesta rodada.
+> - SLAs definitivos: os valores em `src/lib/sla.ts` são provisórios por decisão — serão pactuados pela gestão (§5.1).
+>
+> **Migrações a rodar no Supabase (idempotentes):** `0035_poka_yoke.sql`, `0036_log_alteracao.sql`, `0037_portal_familia.sql`.
+
 Data: 2026-06-12 · Escopo: app inteiro (10 perfis, ~50 telas/fluxos) · Natureza: **somente proposta** — nada implementado, build intocado.
 Referenciais: **Lean Healthcare** (Graban / Toyota na saúde) e **"Se a Disney Administrasse seu Hospital"** (Fred Lee).
 Método: três passadas (Lean → Fred Lee → síntese), telas percorridas uma a uma com evidência de código.
