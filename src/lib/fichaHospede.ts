@@ -22,9 +22,18 @@ const PERFIS_EDITA_FICHA: ReadonlySet<PerfilUsuario> = new Set([
   "administracao",
 ]);
 
-/** Ficha completa (financeiro/plano de saúde/contatos) vs assistencial. */
+// Financeiro (mensalidade/status de pagamento) é dado SENSÍVEL: só gestão
+// administrativa e Master. Nem clínica (médico/coordenação) vê valores.
+const PERFIS_VE_FINANCEIRO: ReadonlySet<PerfilUsuario> = new Set(["master", "administracao"]);
+
+/** Ficha completa (plano de saúde/contatos/clínico) vs assistencial. */
 export function fichaCompleta(perfil: PerfilUsuario | undefined): boolean {
   return !!perfil && PERFIS_FICHA_COMPLETA.has(perfil);
+}
+
+/** Pode ver o resumo FINANCEIRO (mensalidade/status) — só Administração e Master. */
+export function podeVerFinanceiro(perfil: PerfilUsuario | undefined): boolean {
+  return !!perfil && PERFIS_VE_FINANCEIRO.has(perfil);
 }
 
 /** Pode editar os dados cadastrais e enviar foto do hóspede. */

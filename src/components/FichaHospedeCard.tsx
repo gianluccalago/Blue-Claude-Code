@@ -23,7 +23,7 @@ import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente } from "@/lib/storage";
-import { fichaCompleta } from "@/lib/fichaHospede";
+import { fichaCompleta, podeVerFinanceiro } from "@/lib/fichaHospede";
 import {
   calcularIdade,
   grauNivel,
@@ -153,8 +153,8 @@ export function FichaHospedeCard({
       {/* CLÍNICO-ASSISTENCIAL (resumo, leitura) */}
       <ResumoClinico residenteId={r.id} grauAtual={r.grau_dependencia} completa={completa} />
 
-      {/* FINANCEIRO — apenas ficha completa */}
-      {completa && <ResumoFinanceiro residente={r} />}
+      {/* FINANCEIRO — dado sensível: apenas Administração e Master */}
+      {podeVerFinanceiro(perfil) && <ResumoFinanceiro residente={r} />}
     </div>
   );
 }
