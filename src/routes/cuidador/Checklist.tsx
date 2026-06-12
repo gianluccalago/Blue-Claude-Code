@@ -181,23 +181,32 @@ function ChecklistDoHospede({
 
   return (
     <div className="space-y-6">
-      {/* ---- Header sticky: quem é o hóspede ---- */}
-      <div className="sticky top-0 z-10 -mx-1 rounded-lg border border-secondary/20 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <span className="font-bold text-secondary">{hospede.nome}</span>
-            <span className="ml-2 text-sm text-muted-foreground">Quarto {hospede.quarto ?? "—"}</span>
+      {/* ---- Header sticky: quem é o hóspede (banner de identidade) ---- */}
+      <div className="sticky top-0 z-10 -mx-1 overflow-hidden rounded-lg bg-navy-gradient px-4 py-3.5 shadow-lifted">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-6 -top-8 size-32 rounded-full bg-primary/20 blur-2xl"
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-gradient text-base font-extrabold text-white shadow-glow-primary">
+              {(hospede.nome?.trim()?.[0] ?? "?").toUpperCase()}
+            </div>
+            <div>
+              <span className="text-lg font-extrabold tracking-tight text-white">{hospede.nome}</span>
+              <span className="ml-2 text-sm text-white/70">Quarto {hospede.quarto ?? "—"}</span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {hospede.alergias && (
-              <Badge variant="destructive" className="gap-1 text-xs">
-                <AlertTriangle className="size-3" /> Alérgico a {hospede.alergias}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1.5 text-xs font-bold text-white shadow-card">
+                <AlertTriangle className="size-3.5" /> Alérgico a {hospede.alergias}
+              </span>
             )}
             {dietaResumo && (
-              <Badge variant="warning" className="gap-1 text-xs">
-                <Utensils className="size-3" /> {dietaResumo}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-warning px-3 py-1.5 text-xs font-bold text-warning-foreground shadow-card">
+                <Utensils className="size-3.5" /> {dietaResumo}
+              </span>
             )}
           </div>
         </div>
@@ -306,10 +315,10 @@ function ChecklistDoHospede({
                         onClick={() => selecionarRefeicao(refeicao, nivel)}
                         disabled={!liberado || definirRefeicao.isPending}
                         className={cn(
-                          "rounded-md border px-2 py-4 text-sm font-semibold transition-all",
+                          "min-h-[48px] rounded-lg border px-2 py-4 text-sm font-bold transition-all duration-200 active:scale-[0.97]",
                           ativo
-                            ? "border-primary bg-primary text-primary-foreground shadow-card"
-                            : "border-border bg-card text-muted-foreground hover:border-primary/50",
+                            ? "border-primary bg-brand-gradient text-white shadow-glow-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-secondary",
                         )}
                       >
                         {definirRefeicao.isPending && ativo ? (
@@ -495,20 +504,24 @@ function EliminacoesSection({
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="secondary"
-            className="h-20 flex-col gap-1.5 text-base"
+            className="h-24 flex-col gap-2 text-base"
             disabled={!liberado || registrar.isPending}
             onClick={() => registrar.mutate("urina", { onSuccess: () => toast.success("Urina registrada") })}
           >
-            {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <Droplet className="size-6" />}
+            <span className="grid size-11 place-items-center rounded-full bg-white/15">
+              {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <Droplet className="size-6" />}
+            </span>
             Urinou
           </Button>
           <Button
             variant="secondary"
-            className="h-20 flex-col gap-1.5 text-base"
+            className="h-24 flex-col gap-2 text-base"
             disabled={!liberado || registrar.isPending}
             onClick={() => registrar.mutate("evacuacao", { onSuccess: () => toast.success("Evacuação registrada") })}
           >
-            {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <CircleDot className="size-6" />}
+            <span className="grid size-11 place-items-center rounded-full bg-white/15">
+              {registrar.isPending ? <Loader2 className="size-6 animate-spin" /> : <CircleDot className="size-6" />}
+            </span>
             Evacuou
           </Button>
         </div>

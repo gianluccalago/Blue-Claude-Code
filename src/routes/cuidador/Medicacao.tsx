@@ -66,13 +66,17 @@ export function Medicacao() {
 
       {/* Banner de alergias — risco clínico de segurança */}
       {hospedeSel?.alergias && (
-        <div className="flex items-center gap-3 rounded-lg border-2 border-destructive bg-destructive/10 px-4 py-3">
-          <AlertTriangle className="size-6 shrink-0 text-destructive" />
+        <div className="relative flex items-center gap-3 overflow-hidden rounded-lg border-2 border-destructive bg-gradient-to-r from-destructive/15 to-destructive/5 px-4 py-3.5">
+          <div className="grid size-11 shrink-0 place-items-center rounded-full bg-destructive text-white animate-glow-pulse">
+            <AlertTriangle className="size-6" />
+          </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-destructive">
-              ⚠️ Alérgico a:
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-destructive">
+              ⚠️ Alérgico a
             </p>
-            <p className="font-bold text-destructive">{hospedeSel.alergias.toUpperCase()}</p>
+            <p className="text-lg font-extrabold leading-tight text-destructive">
+              {hospedeSel.alergias.toUpperCase()}
+            </p>
           </div>
         </div>
       )}

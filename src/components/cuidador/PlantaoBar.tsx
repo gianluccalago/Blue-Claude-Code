@@ -36,11 +36,13 @@ export function PlantaoBar({ plantao }: { plantao: Plantao }) {
 
   if (plantao.estado === "sem_checkin") {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border border-warning/50 bg-warning/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Clock className="mt-0.5 size-5 shrink-0 text-warning" />
+      <div className="flex flex-col gap-3 rounded-lg border border-warning/50 bg-gradient-to-r from-warning/15 to-warning/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-full bg-warning text-warning-foreground shadow-card">
+            <Clock className="size-6" />
+          </div>
           <div>
-            <p className="font-bold text-secondary">Inicie seu plantão</p>
+            <p className="font-extrabold text-secondary">Inicie seu plantão</p>
             <p className="text-sm text-muted-foreground">
               Faça o check-in para registrar os cuidados.
             </p>
@@ -55,11 +57,13 @@ export function PlantaoBar({ plantao }: { plantao: Plantao }) {
 
   // estado === "ativo"
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-success/40 bg-success/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3">
-        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" />
+    <div className="flex flex-col gap-3 rounded-lg border border-success/40 bg-gradient-to-r from-success/15 to-success/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-success to-success/70 text-white shadow-card">
+          <CheckCircle2 className="size-6" />
+        </div>
         <div>
-          <p className="font-bold text-secondary">
+          <p className="font-extrabold text-secondary">
             Plantão ativo — iniciado às {formatarHoraBR(plantao.checkInEm)}
           </p>
           <p className="text-sm text-muted-foreground">
