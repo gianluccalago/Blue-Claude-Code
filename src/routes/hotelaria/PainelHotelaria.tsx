@@ -14,6 +14,7 @@ import {
   Shirt,
   ArrowRight,
   Siren,
+  type LucideIcon,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
@@ -22,6 +23,7 @@ import { useRouparia } from "@/hooks/useRouparia";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Medalhao } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import type { ChamadoManutencao, InspecaoSuite, Residente, UrgenciaChamado } from "@/types/database";
@@ -397,31 +399,38 @@ function ResumoCard({
   label: string;
   value: number;
   cor: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   destaque?: "destructive" | "amber";
 }) {
+  // Mapeia o filete herdado + destaque para o tom do medalhão.
+  const tom: "primary" | "success" | "warning" | "destructive" =
+    destaque === "destructive" || cor.includes("destructive")
+      ? "destructive"
+      : destaque === "amber" || cor.includes("warning")
+        ? "warning"
+        : cor.includes("success")
+          ? "success"
+          : "primary";
   return (
-    <Card className={cn("border-l-4", cor)}>
-      <CardContent className="flex items-center gap-3 pt-4 pb-3">
-        <Icon
-          className={cn(
-            "h-6 w-6 shrink-0 opacity-70",
-            destaque === "destructive" && "text-destructive opacity-100",
-            destaque === "amber" && "text-warning opacity-100"
-          )}
-        />
-        <div>
-          <p
-            className={cn(
-              "text-2xl font-extrabold leading-none tracking-tight tabular-nums",
-              destaque === "destructive" && "text-destructive"
-            )}
-          >
-            {value}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="group relative overflow-hidden rounded-lg border border-border/70 bg-card p-4 shadow-xs transition-all duration-200 hover:shadow-card">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-primary/5 blur-2xl"
+      />
+      <div className="relative flex items-start justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <Medalhao icon={Icon} tom={tom} className="size-9 rounded-lg" />
+      </div>
+      <p
+        className={cn(
+          "relative mt-2 text-3xl font-extrabold leading-none tracking-tight tabular-nums",
+          destaque === "destructive" ? "text-destructive" : "text-secondary",
+        )}
+      >
+        {value}
+      </p>
+    </div>
   );
 }

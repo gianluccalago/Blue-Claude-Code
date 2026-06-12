@@ -15,9 +15,11 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Medalhao } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
 import { useResidentes } from "@/hooks/usePlanos";
@@ -44,6 +46,13 @@ function diaAtual(): number {
 
 // ─── Subcomponentes ───────────────────────────────────────────────────────────
 
+// Mapeia o filete de cor herdado (border-l-*) para o tom do medalhão.
+function tomDaCor(cor: string): "success" | "warning" | "destructive" {
+  if (cor.includes("destructive")) return "destructive";
+  if (cor.includes("warning")) return "warning";
+  return "success";
+}
+
 function ContadorCard({
   label,
   value,
@@ -53,22 +62,25 @@ function ContadorCard({
   label: string;
   value: number;
   cor: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }) {
+  const tom = tomDaCor(cor);
   return (
-    <Card className={cn("border-l-4", cor)}>
-      <CardContent className="flex items-center gap-3 pt-4 pb-3">
-        <Icon className="h-6 w-6 shrink-0 opacity-70" />
-        <div>
-          <p className="text-2xl font-extrabold leading-none tracking-tight tabular-nums text-secondary">
-            {value}
-          </p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="group relative overflow-hidden rounded-lg border border-border/70 bg-card p-4 shadow-xs transition-all duration-200 hover:shadow-card">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-primary/5 blur-2xl"
+      />
+      <div className="relative flex items-start justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <Medalhao icon={Icon} tom={tom} className="size-9 rounded-lg" />
+      </div>
+      <p className="relative mt-2 text-3xl font-extrabold leading-none tracking-tight tabular-nums text-secondary">
+        {value}
+      </p>
+    </div>
   );
 }
 

@@ -29,6 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HeroStat, StatCard, Sparkbars } from "@/components/dashboard/primitives";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 import type { Residente, ResolucaoMedica } from "@/types/database";
@@ -143,27 +144,50 @@ export function PainelCoordenacao() {
 
   return (
     <div className="space-y-6">
-      {/* 1. INDICADORES */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Indicador
-          icon={ClipboardList}
-          rotulo="Pendências abertas"
-          valor={pendenciasAbertas}
-          destaque={pendenciasAbertas > 0}
-        />
-        <Indicador icon={AlertTriangle} rotulo="Intercorrências hoje" valor={intercorrenciasHoje} />
-        <Indicador
-          icon={Pill}
-          rotulo="Medicações não administradas hoje"
-          valor={medsAbertas.length}
-          destaque={medsAbertas.length > 0}
-        />
-        <Indicador
-          icon={Droplet}
-          rotulo="Residentes em alerta de eliminação"
-          valor={residentesEmAlerta}
-          destaque={residentesEmAlerta > 0}
-        />
+      {/* 1. COCKPIT DE INDICADORES — hero (pendências) + secundários */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <HeroStat
+            icon={ClipboardList}
+            rotulo="Pendências abertas"
+            valor={pendenciasAbertas}
+            tom={pendenciasAbertas > 0 ? "primary" : "success"}
+            alerta={pendenciasAbertas > 0}
+            apoio={
+              pendenciasAbertas > 0
+                ? `${medsAbertas.length} medicação · ${intercAbertas.length} intercorrência`
+                : "Tudo em dia"
+            }
+          >
+            <Sparkbars
+              valores={[
+                medsAbertas.length,
+                intercAbertas.length,
+                intercorrenciasHoje,
+                residentesEmAlerta,
+                procedimentos.length,
+              ]}
+              tom={pendenciasAbertas > 0 ? "primary" : "success"}
+            />
+          </HeroStat>
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2 lg:grid-cols-3">
+          <StatCard icon={AlertTriangle} rotulo="Intercorrências hoje" valor={intercorrenciasHoje} tom="warning" />
+          <StatCard
+            icon={Pill}
+            rotulo="Medicações não administradas"
+            valor={medsAbertas.length}
+            tom={medsAbertas.length > 0 ? "destructive" : "success"}
+            destaque={medsAbertas.length > 0}
+          />
+          <StatCard
+            icon={Droplet}
+            rotulo="Alertas de eliminação"
+            valor={residentesEmAlerta}
+            tom={residentesEmAlerta > 0 ? "warning" : "success"}
+            destaque={residentesEmAlerta > 0}
+          />
+        </div>
       </div>
 
       {/* 3. PENDÊNCIAS E ATRASOS */}
@@ -340,28 +364,6 @@ export function PainelCoordenacao() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function Indicador({
-  icon: Icon,
-  rotulo,
-  valor,
-  destaque,
-}: {
-  icon: typeof Pill;
-  rotulo: string;
-  valor: number;
-  destaque?: boolean;
-}) {
-  return (
-    <Card className={cn("p-4", destaque && "border-primary/40 bg-primary/5")}>
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="size-4" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide">{rotulo}</span>
-      </div>
-      <div className="mt-2 text-3xl font-extrabold tracking-tight tabular-nums text-secondary">{valor}</div>
-    </Card>
   );
 }
 

@@ -37,6 +37,7 @@ import { useChamadosManutencao } from "@/hooks/useManutencao";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Medalhao } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 import { cn, formatarDataBR, formatarHoraBR } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -159,13 +160,20 @@ export function PainelOperacional() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-secondary">
-          Painel operacional
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Supervisão consolidada de toda a operação · tempo real, modo leitura
-        </p>
+      <div className="relative overflow-hidden rounded-lg bg-hero-navy p-6 text-white shadow-cinematic sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide backdrop-blur-sm">
+            <Sparkles className="size-3.5" /> Tempo real
+          </span>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Painel operacional</h2>
+          <p className="mt-1 text-sm text-white/70">
+            Supervisão consolidada de toda a operação · modo leitura
+          </p>
+        </div>
       </div>
 
       {/* ASSISTENCIAL */}
@@ -338,23 +346,23 @@ function Bloco({
   children: ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b border-border/60 bg-muted/30 pb-3">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
-          <span className="flex items-center gap-2">
-            <Icon className="size-4 text-secondary" /> {titulo}
+          <span className="flex items-center gap-2.5">
+            <Medalhao icon={Icon} tom="secondary" className="size-8 rounded-lg" /> {titulo}
           </span>
           {to && (
             <Link
               to={to}
-              className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-strong transition-colors hover:bg-primary/20"
             >
               Detalhe <ChevronRight className="size-3.5" />
             </Link>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="pt-5">{children}</CardContent>
     </Card>
   );
 }

@@ -45,6 +45,7 @@ import { useChamadosManutencao } from "@/hooks/useManutencao";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Medalhao } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 import { cn, grauNivel } from "@/lib/utils";
 import { formatarMoeda } from "@/lib/mensalidade";
@@ -197,37 +198,44 @@ export function PainelEstrategico() {
 
   return (
     <div className="space-y-8">
-      {/* Cabeçalho com seletor de mês (escopo dos indicadores financeiros). */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-secondary">
-            Painel estratégico
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Visão de voo-alto da operação · indicadores em dados reais
-          </p>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border bg-card px-2 py-1.5 shadow-card">
-          <CalendarDays className="ml-1 size-4 text-muted-foreground" />
-          <button
-            type="button"
-            aria-label="Mês anterior"
-            onClick={() => setMes((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-            className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-secondary"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <span className="min-w-32 text-center text-sm font-bold text-secondary">
-            {labelMes(mes)}
-          </span>
-          <button
-            type="button"
-            aria-label="Próximo mês"
-            onClick={() => setMes((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-            className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-secondary"
-          >
-            <ChevronRight className="size-4" />
-          </button>
+      {/* Cabeçalho HERO navy com seletor de mês (escopo dos indicadores financeiros). */}
+      <div className="relative overflow-hidden rounded-lg bg-hero-navy p-6 text-white shadow-cinematic sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide backdrop-blur-sm">
+              <Sparkles className="size-3.5" /> Visão executiva
+            </span>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Painel estratégico</h2>
+            <p className="mt-1 text-sm text-white/70">
+              Voo-alto da operação · indicadores em dados reais
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 backdrop-blur-sm">
+            <CalendarDays className="ml-1 size-4 text-white/70" />
+            <button
+              type="button"
+              aria-label="Mês anterior"
+              onClick={() => setMes((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              className="grid size-8 place-items-center rounded-md text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="min-w-32 text-center text-sm font-bold text-white">
+              {labelMes(mes)}
+            </span>
+            <button
+              type="button"
+              aria-label="Próximo mês"
+              onClick={() => setMes((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+              className="grid size-8 place-items-center rounded-md text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -507,16 +515,16 @@ function SectionTitle({
   tom: "estrategico" | "operacional";
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2.5">
       <div
         className={cn(
-          "grid size-8 place-items-center rounded-lg",
-          tom === "estrategico" ? "bg-secondary text-secondary-foreground" : "bg-accent text-secondary",
+          "grid size-9 place-items-center rounded-xl text-white",
+          tom === "estrategico" ? "bg-navy-gradient" : "bg-brand-gradient shadow-glow-primary",
         )}
       >
-        <Icon className="size-4" />
+        <Icon className="size-5" />
       </div>
-      <h3 className="text-lg font-bold tracking-tight text-secondary">{titulo}</h3>
+      <h3 className="text-lg font-extrabold tracking-tight text-secondary">{titulo}</h3>
       <Badge variant={tom === "estrategico" ? "secondary" : "default"} className="ml-1">
         {tom === "estrategico" ? "Estratégico" : "Tempo real"}
       </Badge>
@@ -570,16 +578,22 @@ function Metric({
   const conteudo = (
     <Card
       className={cn(
-        "h-full p-4 transition-colors",
+        "group relative h-full overflow-hidden p-4 transition-all duration-200",
         destaque && "border-primary/40 bg-primary/5",
-        to && "hover:border-primary hover:shadow-soft",
+        to && "hover:-translate-y-0.5 hover:border-primary hover:shadow-soft",
       )}
     >
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="size-4" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide">{rotulo}</span>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-primary/5 blur-2xl"
+      />
+      <div className="relative flex items-start justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+          {rotulo}
+        </span>
+        <Medalhao icon={Icon} tom={destaque ? "primary" : "secondary"} className="size-8 rounded-lg" />
       </div>
-      <div className="mt-2">
+      <div className="relative mt-2">
         {semDados ? (
           <span className="text-xl font-bold text-muted-foreground/70">sem dados</span>
         ) : typeof valor === "number" || typeof valor === "string" ? (
@@ -591,7 +605,7 @@ function Metric({
           valor
         )}
       </div>
-      {nota && <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground/80">{nota}</p>}
+      {nota && <p className="relative mt-1.5 text-[11px] leading-snug text-muted-foreground/80">{nota}</p>}
     </Card>
   );
   return to ? (
