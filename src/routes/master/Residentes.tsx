@@ -100,19 +100,19 @@ export function Residentes() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-secondary">Residentes</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes</h2>
           <p className="text-sm text-muted-foreground">
-            {contadores.total} residentes ativos · ficha completa editável
+            {contadores.total} hóspedes ativos · ficha completa editável
           </p>
         </div>
         <Button onClick={() => setModo("novo")}>
-          <Plus className="size-4" /> Adicionar residente
+          <Plus className="size-4" /> Adicionar hóspede
         </Button>
       </div>
 
       {/* CONTADORES */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Contador icon={Users2} rotulo="Residentes ativos" valor={contadores.total} />
+        <Contador icon={Users2} rotulo="Hóspedes ativos" valor={contadores.total} />
         <Contador
           icon={BedDouble}
           rotulo="Por grau atual"
@@ -143,11 +143,11 @@ export function Residentes() {
       {/* LISTA */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Todos os residentes</CardTitle>
+          <CardTitle className="text-base">Todos os hóspedes</CardTitle>
         </CardHeader>
         <CardContent>
           {lista.length === 0 ? (
-            <EmptyState label="Nenhum residente cadastrado." />
+            <EmptyState label="Nenhum hóspede cadastrado." />
           ) : (
             <ul className="space-y-2">
               {lista.map((r) => (

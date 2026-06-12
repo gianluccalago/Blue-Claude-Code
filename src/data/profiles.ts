@@ -47,7 +47,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Painel operacional", to: "/app/master/operacional" },
       { label: "Supervisão clínica", to: "/app/master/clinica" },
       { label: "Usuários e acessos", to: "/app/master/usuarios" },
-      { label: "Residentes", to: "/app/master/residentes" },
+      { label: "Hóspedes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
       { label: "Profissionais", to: "/app/master/profissionais" },
       { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao" },

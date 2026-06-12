@@ -95,11 +95,11 @@ export function useEditarResidente() {
   });
 }
 
-/** Atualiza somente a foto do hóspede (upload direto pelo cabeçalho da ficha). */
+/** Atualiza somente a foto do hóspede (upload/remoção pelo cabeçalho da ficha). */
 export function useDefinirFotoResidente() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { id: string; fotoUrl: string }) => {
+    mutationFn: async (args: { id: string; fotoUrl: string | null }) => {
       const { error } = await supabase
         .from("residentes")
         .update({ foto_url: args.fotoUrl })

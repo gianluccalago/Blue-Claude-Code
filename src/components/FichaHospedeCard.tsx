@@ -1,11 +1,7 @@
-import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  User,
-  Camera,
   Pencil,
-  Loader2,
   AlertTriangle,
   Phone,
   Users,
@@ -21,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FotoUploader } from "@/components/FotoUploader";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
@@ -162,63 +159,27 @@ export function FichaHospedeCard({
   );
 }
 
-// ─── Foto (com upload p/ gestão) ───────────────────────────────────────────────
+// ─── Foto (com upload/remoção p/ gestão) ───────────────────────────────────────
 
 function FotoHospede({ residente: r, podeEditar }: { residente: Residente; podeEditar: boolean }) {
   const definirFoto = useDefinirFotoResidente();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [enviando, setEnviando] = useState(false);
-
-  async function onArquivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setEnviando(true);
-    try {
-      const url = await uploadFotoResidente(file, r.id);
-      if (!url) {
-        toast.error("Não foi possível enviar a foto. Tente novamente.");
-        return;
-      }
-      await definirFoto.mutateAsync({ id: r.id, fotoUrl: url });
-      toast.success("Foto atualizada.");
-    } catch {
-      toast.error("Erro ao salvar a foto.");
-    } finally {
-      setEnviando(false);
-    }
-  }
-
   return (
-    <div className="relative shrink-0 self-center sm:self-auto">
-      <div className="grid size-24 place-items-center overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-glow-primary">
-        {r.foto_url ? (
-          <img src={r.foto_url} alt={`Foto de ${r.nome}`} className="size-full object-cover" />
-        ) : (
-          <User className="size-10" />
-        )}
-      </div>
-      {podeEditar && (
-        <>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={enviando}
-            className="absolute -bottom-1.5 -right-1.5 grid size-9 place-items-center rounded-full border-2 border-card bg-secondary text-white shadow-card transition-colors hover:bg-secondary/90 disabled:opacity-60"
-            aria-label="Trocar foto"
-            title="Trocar foto"
-          >
-            {enviando ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-          </button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onArquivo}
-          />
-        </>
-      )}
+    <div className="self-center sm:self-auto">
+      <FotoUploader
+        fotoUrl={r.foto_url}
+        nome={r.nome}
+        podeEditar={podeEditar}
+        onUpload={(file) => uploadFotoResidente(file, r.id)}
+        onChange={(url) =>
+          definirFoto.mutate(
+            { id: r.id, fotoUrl: url },
+            {
+              onSuccess: () => toast.success(url ? "Foto atualizada." : "Foto removida."),
+              onError: () => toast.error("Não foi possível salvar a foto."),
+            },
+          )
+        }
+      />
     </div>
   );
 }

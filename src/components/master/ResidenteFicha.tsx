@@ -3,6 +3,8 @@ import { Check, X, User, Layers, Users, HeartPulse, Wallet, BookOpen, AlertTrian
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FotoUploader } from "@/components/FotoUploader";
+import { uploadFotoResidente } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
 import type { GrauDependencia, Ocupacao, Residente, TipoSuite } from "@/types/database";
@@ -103,6 +105,25 @@ export function ResidenteFicha({
           </Button>
         </div>
       </div>
+
+      {/* FOTO (só na edição — o upload precisa do id do hóspede) */}
+      {inicial && (
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <FotoUploader
+              fotoUrl={v.foto_url}
+              nome={v.nome || "hóspede"}
+              podeEditar
+              onUpload={(file) => uploadFotoResidente(file, inicial.id)}
+              onChange={(url) => set("foto_url", url)}
+            />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-semibold text-secondary">Foto do hóspede</p>
+              <p>Envie ou troque a foto. Ela é salva ao confirmar as alterações.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* IDENTIFICAÇÃO */}
       <Secao icon={User} titulo="Identificação">
