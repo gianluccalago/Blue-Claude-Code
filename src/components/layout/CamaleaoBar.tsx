@@ -71,9 +71,11 @@ export function CamaleaoBar() {
 
   if (impersonado) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-warning/40 bg-warning/15 px-6 py-2 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-warning/40 bg-gradient-to-r from-warning/20 to-warning/5 px-6 py-2.5 text-sm">
         <span className="flex items-center gap-2 font-semibold text-warning-foreground">
-          <Eye className="size-4" />
+          <span className="grid size-7 place-items-center rounded-lg bg-warning/25">
+            <Eye className="size-4" />
+          </span>
           Modo Camaleão — vendo como <span className="font-bold">{impersonado.nome}</span>
           <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">
             {PERFIL_LABEL[impersonado.perfil] ?? impersonado.perfil}
@@ -81,7 +83,7 @@ export function CamaleaoBar() {
         </span>
         <button
           onClick={voltarAoMaster}
-          className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-4 py-2 text-xs font-bold text-secondary-foreground shadow-card transition-colors hover:bg-secondary/90"
+          className="inline-flex items-center gap-1.5 rounded-md bg-navy-gradient px-4 py-2 text-xs font-bold text-white shadow-card transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
         >
           <LogOut className="size-4" /> Voltar ao Master
         </button>
@@ -92,7 +94,7 @@ export function CamaleaoBar() {
   const total = usuariosQ.data?.length ?? 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-6 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-2 border-b border-white/40 glass px-6 py-2 text-sm">
       <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
         <Glasses className="size-4" /> Camaleão · ver como
       </span>

@@ -32,7 +32,7 @@ export function AbrirChamado() {
   return (
     <div className="space-y-5 pb-8">
       <div>
-        <h1 className="text-xl font-bold">Chamado de manutenção</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Chamado de manutenção</h1>
         <p className="text-sm text-muted-foreground">{label}</p>
       </div>
 

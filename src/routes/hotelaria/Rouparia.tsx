@@ -32,7 +32,7 @@ export function Rouparia() {
   return (
     <div className="space-y-5 pb-8">
       <div>
-        <h1 className="text-xl font-bold">Rouparia</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Rouparia</h1>
         <p className="text-sm text-muted-foreground">Saldo em trânsito na lavanderia, por categoria</p>
       </div>
 

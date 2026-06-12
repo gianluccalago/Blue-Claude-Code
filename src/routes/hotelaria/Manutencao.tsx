@@ -111,7 +111,7 @@ export function Manutencao() {
     <div className="space-y-5 pb-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Manutenção</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Manutenção</h1>
           <p className="text-sm text-muted-foreground">Chamados de manutenção</p>
         </div>
         <Button size="sm" className="gap-1.5 shrink-0" onClick={() => setNovoChamado((v) => !v)}>

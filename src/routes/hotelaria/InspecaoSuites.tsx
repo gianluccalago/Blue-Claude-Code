@@ -185,7 +185,7 @@ export function InspecaoSuites() {
   return (
     <div className="space-y-5 pb-8">
       <div>
-        <h1 className="text-xl font-bold">Inspeção de suítes</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Inspeção de suítes</h1>
         <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
         </p>
@@ -376,7 +376,7 @@ function FormInspecao({
       </div>
 
       <div>
-        <h1 className="text-xl font-bold">Nova inspeção</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Nova inspeção</h1>
         <p className="text-sm text-muted-foreground">
           {residente.nome} · Quarto {residente.quarto ?? "Não informado"}
         </p>
@@ -557,7 +557,7 @@ function HistoricoSuite({
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Histórico de inspeções</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Histórico de inspeções</h1>
           <p className="text-sm text-muted-foreground">
             {residente.nome} · Quarto {residente.quarto ?? "Não informado"}
           </p>

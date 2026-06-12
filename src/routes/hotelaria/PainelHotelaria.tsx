@@ -136,7 +136,7 @@ export function PainelHotelaria() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-xl font-bold">Painel da Hotelaria</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Painel da Hotelaria</h1>
         <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
         </p>

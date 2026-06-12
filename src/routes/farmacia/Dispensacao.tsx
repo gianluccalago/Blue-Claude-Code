@@ -84,7 +84,7 @@ export function Dispensacao() {
     <div className="space-y-4 pb-8">
       <LembreteProvisionamento />
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-xl font-bold">Dispensação</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Dispensação</h1>
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Data:</label>
           <input

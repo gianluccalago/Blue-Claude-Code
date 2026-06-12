@@ -171,7 +171,7 @@ export function PainelFarmacia() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-xl font-bold">Painel da Farmácia</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Painel da Farmácia</h1>
         <p className="text-sm text-muted-foreground">{formatarMesExtenso(mesRef)}</p>
       </div>
 
