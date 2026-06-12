@@ -36,18 +36,24 @@ export function Inicio() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-col items-center gap-4 py-8 text-center sm:flex-row sm:text-left">
-          <div className="grid size-20 shrink-0 place-items-center rounded-full bg-accent text-primary">
-            <UserRound className="size-10" />
+      {/* HERO de boas-vindas — primeira tela da família (celular) */}
+      <div className="relative overflow-hidden rounded-lg bg-hero-navy p-6 text-white shadow-cinematic">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <div className="grid size-20 shrink-0 place-items-center rounded-full bg-white/10 ring-2 ring-white/20 backdrop-blur-sm">
+            <UserRound className="size-10 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-secondary">{ouNaoInformado(r?.nome)}</h1>
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground sm:justify-start">
-              <span className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Acompanhamento de</p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">{ouNaoInformado(r?.nome)}</h1>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white/85 backdrop-blur-sm">
                 <BedDouble className="size-4" /> Quarto {ouNaoInformado(r?.quarto)}
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white/85 backdrop-blur-sm">
                 <Cake className="size-4" />
                 {r?.data_nascimento && calcularIdade(r.data_nascimento) !== null
                   ? `${calcularIdade(r.data_nascimento)} anos`
@@ -55,8 +61,8 @@ export function Inicio() {
               </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -69,9 +75,9 @@ export function Inicio() {
               <Link
                 key={a.to}
                 to={a.to}
-                className="flex min-h-[56px] items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+                className="group flex min-h-[56px] items-center gap-3 rounded-lg border border-border/70 bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card"
               >
-                <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
                   <a.icon className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">

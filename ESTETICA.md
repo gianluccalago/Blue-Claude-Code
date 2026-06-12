@@ -4,6 +4,11 @@ Data: 2026-06-11 · Escopo: camada visual completa (zero mudança de
 funcionalidade). Este documento é a referência para manter o padrão em
 telas futuras.
 
+> **Direção 2026 (redesign ousado):** o app é um SaaS de saúde premium.
+> Navy e celeste deixam de ser tinta e viram protagonistas — gradientes,
+> profundidade com luz (glass + halos), medalhões de gradiente e números
+> de cockpit. Reconhecível numa captura a 3 metros. Veja a seção 10.
+
 ---
 
 ## 1. Princípios
@@ -120,3 +125,73 @@ Transição padrão: 200ms. Drawer da sidebar: 300ms ease-out.
 4. Card clicável ganha `hover:shadow-soft hover:border-primary/...`.
 5. Botões de ação da ponta: `size="lg"` no mínimo.
 6. Conferir o trio: raio `rounded-md/lg`, sombra da escala, transição 200ms.
+
+---
+
+## 10. Linguagem do redesign ousado (2026)
+
+### 10.1 Superfícies e luz (utilitários em `index.css`)
+- `.bg-app-mesh` — fundo do app: celeste→branco com halos radiais quase
+  imperceptíveis. Aplicado no `AppShell`.
+- `.glass` / `.glass-dark` — vidro (blur + translucidez). Usar em topbar,
+  barras fixas e overlays. Topbar e CamaleaoBar usam `.glass`.
+- `.bg-navy-gradient` — navy profundo em gradiente (sidebar, medalhões
+  secundários, banners de identidade da ponta).
+- `.bg-brand-gradient` — celeste→azul (medalhões primários, avatares,
+  itens ativos, botões de destaque da ponta).
+- `.bg-hero-navy` — navy com halo celeste: **cabeçalhos HERO** dos painéis
+  e telas de entrada (Estratégico, Operacional, Administração, Família).
+- `.text-gradient-brand` — número/título em gradiente da marca.
+- `.ring-brand` / `shadow-glow-primary` — glow da marca em elementos ativos.
+
+### 10.2 Cabeçalho HERO (padrão dos dashboards e telas de entrada)
+Bloco `rounded-lg bg-hero-navy p-6 text-white shadow-cinematic` com:
+- halo decorativo (`absolute … bg-primary/20 blur-3xl`),
+- pílula de contexto (selo `border-white/20 bg-white/10 backdrop-blur-sm`),
+- título `text-3xl font-extrabold tracking-tight`,
+- controles (ex.: seletor de mês) em vidro `bg-white/10`.
+
+### 10.3 Cockpit — primitivas (`components/dashboard/primitives.tsx`)
+Componentes APENAS de apresentação (recebem dados prontos via props):
+- `Medalhao` — ícone em gradiente por `tom`
+  (`primary/secondary/success/warning/destructive/nursing`).
+- `HeroStat` — indicador principal: número `text-5xl` + medalhão + glow +
+  `apoio` e `children` (ex.: `Sparkbars`).
+- `StatCard` — KPI secundário: medalhão no canto, número `text-3xl`,
+  `apoio` opcional, hover eleva.
+- `ProgressBar` — barra 0–100 com gradiente por tom (dado real, ex.: %
+  recebido).
+- `Sparkbars` — micro-barras decorativas de uma série real (distribuição).
+Regra: **o tom comunica severidade** (destructive=crítico, warning=atenção,
+success=ok). Hero usa `alerta` para virar vermelho.
+
+### 10.4 Sidebar de produto
+Navy em gradiente (`.bg-navy-gradient`) + halo no topo; cada item tem
+**ícone em medalhão** (mapa rota→ícone no próprio componente, sem tocar
+`data/`); item ativo = medalhão em `.bg-brand-gradient` + pílula lateral
+com glow; rodapé com avatar do usuário em gradiente. Mobile: drawer.
+
+### 10.5 Movimento adicional
+- `.animate-route-in` — transição de rota (slide+fade+scale), no `AppShell`.
+- `.animate-aurora` / `.animate-aurora-slow` — auroras do login.
+- `.animate-glow-pulse` — pulso de glow para alerta crítico (faixa de
+  alergia do Cuidador).
+
+### 10.6 Telas da ponta (Cuidador) no redesign
+Mais identidade, **sem** miniaturizar: banner de hóspede em
+`.bg-navy-gradient` com avatar e selos sólidos de alergia/dieta; níveis de
+refeição com `.bg-brand-gradient` + glow no ativo (≥48px, `active:scale`);
+eliminação em `h-24` com ícone em medalhão; faixa de alergia com medalhão
+pulsante. Mesma quantidade de passos e ações.
+
+### 10.7 Login cinematográfico
+Split-screen: painel navy (`.bg-hero-navy`) com auroras, headline com
+`.text-gradient-brand`, feature pills; cartão de vidro `shadow-cinematic`
+com `backdrop-blur` sobre `.bg-app-mesh`. Mobile cai para coluna única.
+
+### Checklist adicional para telas de gestão novas
+7. Cabeçalho de entrada = HERO navy (10.2) quando a tela for um painel.
+8. Indicadores = primitivas de cockpit (10.3); nunca cards de número
+   "pelado". Hero para o KPI principal, StatCard para os demais.
+9. Barras/sparklines só a partir de dado já carregado (decorativo, sem
+   eixos) — nunca número inventado.
