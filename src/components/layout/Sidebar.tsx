@@ -1,6 +1,9 @@
+import { useRef, useState, type ChangeEvent } from "react";
+import { toast } from "sonner";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LogOut,
+  Loader2,
   X,
   LayoutDashboard,
   Pill,
@@ -45,6 +48,8 @@ import { Logo } from "@/components/Logo";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
 import { useSolicitacoesPorDestino } from "@/hooks/useSolicitacoes";
+import { useFotoResidente, useDefinirMinhaFoto } from "@/hooks/useUsuarioFoto";
+import { uploadFotoUsuario } from "@/lib/storage";
 import type { PerfilDef } from "@/data/profiles";
 import type { DestinoSolicitacao } from "@/types/database";
 
@@ -159,6 +164,73 @@ function iniciais(nome: string | undefined | null): string {
   const primeira = partes[0]?.[0] ?? "";
   const ultima = partes.length > 1 ? partes[partes.length - 1][0] : "";
   return (primeira + ultima).toUpperCase();
+}
+
+/**
+ * Avatar do usuário no rodapé da sidebar. Mostra a foto do usuário; para a
+ * Família, espelha a foto do hóspede vinculado. O próprio usuário (real, não
+ * personificado e não-família) pode trocar a foto pelo botão de câmera.
+ */
+function AvatarUsuario() {
+  const { usuario, impersonado, usuarioEfetivo } = useAuth();
+  const ehFamilia = usuarioEfetivo?.perfil === "familia";
+  const fotoHospede = useFotoResidente(ehFamilia ? usuarioEfetivo?.residente_vinculado : null);
+  const definir = useDefinirMinhaFoto();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [override, setOverride] = useState<string | null>(null);
+
+  const podeEditar = !impersonado && !ehFamilia && !!usuario;
+  const fotoBase = ehFamilia ? fotoHospede.data ?? null : usuarioEfetivo?.foto_url ?? null;
+  const foto = override ?? fotoBase;
+
+  async function onArquivo(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !usuario) return;
+    setEnviando(true);
+    try {
+      const url = await uploadFotoUsuario(file, usuario.id);
+      if (!url) {
+        toast.error("Não foi possível enviar a foto. Tente novamente.");
+        return;
+      }
+      await definir.mutateAsync(url);
+      setOverride(url);
+      toast.success("Foto atualizada.");
+    } catch {
+      toast.error("Erro ao salvar a foto.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="relative shrink-0">
+      <div className="grid size-10 place-items-center overflow-hidden rounded-full bg-brand-gradient text-sm font-extrabold text-white shadow-glow-primary">
+        {foto ? (
+          <img src={foto} alt="" className="size-full object-cover" />
+        ) : (
+          iniciais(usuarioEfetivo?.nome)
+        )}
+      </div>
+      {podeEditar && (
+        <>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={enviando}
+            className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full border border-sidebar bg-white text-secondary shadow-sm transition-colors hover:bg-white/90 disabled:opacity-60"
+            aria-label="Trocar minha foto"
+            title="Trocar minha foto"
+          >
+            {enviando ? <Loader2 className="size-3 animate-spin" /> : <Camera className="size-3" />}
+          </button>
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onArquivo} />
+        </>
+      )}
+    </div>
+  );
 }
 
 export function Sidebar({
@@ -286,9 +358,7 @@ export function Sidebar({
         {/* Rodapé: usuário em destaque */}
         <div className="relative border-t border-white/10 p-3">
           <div className="flex items-center gap-3 rounded-lg bg-white/5 p-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-gradient text-sm font-extrabold text-white shadow-glow-primary">
-              {iniciais(usuarioEfetivo?.nome)}
-            </div>
+            <AvatarUsuario />
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-bold">{ouNaoInformado(usuarioEfetivo?.nome)}</div>
               <div className="truncate text-[11px] text-sidebar-muted">Sessão ativa</div>

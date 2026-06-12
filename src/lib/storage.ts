@@ -5,6 +5,29 @@ export const BUCKET_FOTOS_ATIVIDADE = "atividades-fotos";
 export const BUCKET_UPSELLING_COMPROVANTES = "upselling-comprovantes";
 export const BUCKET_FOTOS_INTERCORRENCIA = "intercorrencias-fotos";
 export const BUCKET_FOTOS_RESIDENTE = "residentes-fotos";
+export const BUCKET_FOTOS_USUARIO = "usuarios-fotos";
+
+/**
+ * Faz upload da foto de um usuário (equipe) e retorna a URL pública.
+ * Retorna `null` em caso de falha — não quebra a interface.
+ */
+export async function uploadFotoUsuario(
+  file: File,
+  usuarioId: string
+): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${usuarioId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET_FOTOS_USUARIO)
+      .upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from(BUCKET_FOTOS_USUARIO).getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Faz upload da foto de um hóspede (ficha) e retorna a URL pública.

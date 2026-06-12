@@ -157,6 +157,7 @@ export interface Database {
           valor_plantao_noturno: number | null;
           // Horário fixo dos mensalistas (quem não é escalado). Ex "Seg–Sex 8h–17h".
           horario_trabalho: string | null;
+          foto_url: string | null;
         };
         Insert: {
           id?: string;
@@ -174,6 +175,7 @@ export interface Database {
           valor_plantao_diurno?: number | null;
           valor_plantao_noturno?: number | null;
           horario_trabalho?: string | null;
+          foto_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];
@@ -978,7 +980,13 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      // Atualiza somente a foto do PRÓPRIO usuário (segurança: não altera perfil).
+      set_minha_foto: {
+        Args: { p_url: string | null };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
