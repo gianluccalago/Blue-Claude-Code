@@ -75,40 +75,49 @@ export function useMedicamentosDaCasa() {
   });
 }
 
+/**
+ * Busca as prescrições ativas de um residente e as agrupa por grupo_prescricao.
+ * Função pura (sem hook) para poder ser chamada em lote (ex.: emissão de
+ * receitas da Farmácia) reutilizando exatamente o mesmo agrupamento do Médico.
+ */
+export async function fetchPrescricoesAtivasAgrupadas(
+  residenteId: string,
+): Promise<GrupoPrescricao[]> {
+  const { data, error } = await supabase
+    .from("prescricao")
+    .select("*")
+    .eq("residente_id", residenteId)
+    .eq("ativa", true)
+    .order("medicamento");
+  if (error) throw error;
+
+  const linhas: Prescricao[] = data ?? [];
+  const mapaGrupo = new Map<string, GrupoPrescricao>();
+
+  for (const l of linhas) {
+    const chave = l.grupo_prescricao ?? l.id;
+    if (!mapaGrupo.has(chave)) {
+      mapaGrupo.set(chave, {
+        grupoPrescricao: chave,
+        medicamento: l.medicamento,
+        dose: l.dose,
+        via: l.via,
+        posologia: l.posologia,
+        linhas: [],
+      });
+    }
+    mapaGrupo.get(chave)!.linhas.push(l);
+  }
+
+  return Array.from(mapaGrupo.values());
+}
+
 /** Todas as prescrições ativas do residente, agrupadas por grupo_prescricao. */
 export function usePrescricoesAtivas(residenteId: string | undefined) {
   return useQuery({
     queryKey: ["prescricoes-medico", residenteId],
     enabled: !!residenteId,
-    queryFn: async (): Promise<GrupoPrescricao[]> => {
-      const { data, error } = await supabase
-        .from("prescricao")
-        .select("*")
-        .eq("residente_id", residenteId!)
-        .eq("ativa", true)
-        .order("medicamento");
-      if (error) throw error;
-
-      const linhas: Prescricao[] = data ?? [];
-      const mapaGrupo = new Map<string, GrupoPrescricao>();
-
-      for (const l of linhas) {
-        const chave = l.grupo_prescricao ?? l.id;
-        if (!mapaGrupo.has(chave)) {
-          mapaGrupo.set(chave, {
-            grupoPrescricao: chave,
-            medicamento: l.medicamento,
-            dose: l.dose,
-            via: l.via,
-            posologia: l.posologia,
-            linhas: [],
-          });
-        }
-        mapaGrupo.get(chave)!.linhas.push(l);
-      }
-
-      return Array.from(mapaGrupo.values());
-    },
+    queryFn: () => fetchPrescricoesAtivasAgrupadas(residenteId!),
   });
 }
 

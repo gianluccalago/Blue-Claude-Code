@@ -1,10 +1,14 @@
+import type { jsPDF } from "jspdf";
 import type { GrupoPrescricao } from "@/hooks/useMedico";
 import type { Residente } from "@/types/database";
 import { formatarDataBR, hojeISO } from "@/lib/utils";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 
+/** Quem assina a receita: nome + registro profissional (CRM). */
+export type AssinanteReceita = { nome: string; crm: string };
+
 /** Assinatura da receita: médico LOGADO (nome + registro profissional/CRM). */
-function medicoAssinante(): { nome: string; crm: string } {
+function medicoAssinante(): AssinanteReceita {
   return { nome: usuarioAtual.nome, crm: usuarioAtual.registro ?? "" };
 }
 
@@ -158,10 +162,11 @@ function dataHoraEmissao(d: Date): string {
 
 type RGB = [number, number, number];
 
-export async function exportarPrescricaoPDF(
+async function construirPrescricaoDoc(
   hospede: Residente,
   grupos: GrupoPrescricao[],
-): Promise<void> {
+  assinante: AssinanteReceita,
+): Promise<jsPDF> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const agora = new Date();
@@ -379,8 +384,7 @@ export async function exportarPrescricaoPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(...INK);
-  const medico = medicoAssinante();
-  doc.text(`${medico.nome}${medico.crm ? `  —  ${medico.crm}` : ""}`, L, y);
+  doc.text(`${assinante.nome}${assinante.crm ? `  —  ${assinante.crm}` : ""}`, L, y);
 
   y += 6;
   doc.setFont("courier", "normal");
@@ -394,7 +398,32 @@ export async function exportarPrescricaoPDF(
   doc.setTextColor(...GRAY);
   doc.text(`Emitida em: ${emissao}`, L, y);
 
+  return doc;
+}
+
+/** Médico: gera e BAIXA o PDF, assinado pelo usuário logado (comportamento atual). */
+export async function exportarPrescricaoPDF(
+  hospede: Residente,
+  grupos: GrupoPrescricao[],
+): Promise<void> {
+  const doc = await construirPrescricaoDoc(hospede, grupos, medicoAssinante());
   doc.save(nomeArquivo(hospede.nome, "pdf"));
+}
+
+/**
+ * Gera o MESMO PDF (layout idêntico ao do Médico) e devolve o Blob + o nome do
+ * arquivo "prescricao_[nome]_[AAAA-MM-DD].pdf", SEM baixar — base para a
+ * emissão em lote da Farmácia. O assinante é informado explicitamente (médico
+ * geriatra escolhido), para a receita sair assinada pelo médico, e não por
+ * quem dispara o lote.
+ */
+export async function gerarPrescricaoBlob(
+  hospede: Residente,
+  grupos: GrupoPrescricao[],
+  assinante: AssinanteReceita,
+): Promise<{ blob: Blob; nomeArquivo: string }> {
+  const doc = await construirPrescricaoDoc(hospede, grupos, assinante);
+  return { blob: doc.output("blob"), nomeArquivo: nomeArquivo(hospede.nome, "pdf") };
 }
 
 // ─── Texto copiável (pronto para colar no site do CFM) ─────────────────────────

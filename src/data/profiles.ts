@@ -155,6 +155,8 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/farmacia/painel",
     menu: [
       { label: "Painel da farmácia", to: "/app/farmacia/painel" },
+      { label: "Pedidos mensais", to: "/app/farmacia/pedidos-mensais" },
+      { label: "Custos de medicamento", to: "/app/farmacia/custos-medicamento" },
       { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
       { label: "Estoque de resgate", to: "/app/farmacia/resgate" },
       { label: "Dispensação", to: "/app/farmacia/dispensacao" },

@@ -102,6 +102,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia
   "/app/farmacia/painel": LayoutDashboard,
+  "/app/farmacia/pedidos-mensais": FileText,
+  "/app/farmacia/custos-medicamento": Pill,
   "/app/farmacia/estoque": PackageSearch,
   "/app/farmacia/resgate": PackageMinus,
   "/app/farmacia/dispensacao": PackageCheck,

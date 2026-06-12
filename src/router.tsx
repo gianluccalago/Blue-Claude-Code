@@ -40,6 +40,8 @@ import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
+import { PedidosMensais } from "@/routes/farmacia/PedidosMensais";
+import { CustosMedicamento } from "@/routes/farmacia/CustosMedicamento";
 import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
 import { Atividades } from "@/routes/multidisciplinar/Atividades";
 import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
@@ -213,6 +215,16 @@ const dispensacaoRoute = createRoute({
   path: "dispensacao",
   component: Dispensacao,
 });
+const pedidosMensaisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "pedidos-mensais",
+  component: PedidosMensais,
+});
+const custosMedicamentoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "custos-medicamento",
+  component: CustosMedicamento,
+});
 const estoqueHospedeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "estoque",
@@ -376,6 +388,8 @@ const routeTree = rootRoute.addChildren([
     chamadoManutencaoRoute,
     painelFarmaciaRoute,
     dispensacaoRoute,
+    pedidosMensaisRoute,
+    custosMedicamentoRoute,
     estoqueHospedeRoute,
     estoqueResgateRoute,
     atividadesRoute,
