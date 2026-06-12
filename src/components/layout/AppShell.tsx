@@ -41,7 +41,13 @@ export function AppShell() {
         menuAberto={menuAberto}
         onFechar={() => setMenuAberto(false)}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* `isolate` cria um contexto de empilhamento próprio para a coluna de
+          conteúdo. Assim a sidebar (fixed, z-40) e seu overlay (z-30) — que
+          vivem no contexto raiz — SEMPRE ficam acima de tudo o que está aqui
+          dentro (Topbar, CamaleaoBar, main), independente do z-index interno.
+          A barra do Camaleão segue acima do conteúdo da página dentro desta
+          coluna; no mobile, o drawer cobre a coluna inteira. */}
+      <div className="isolate flex min-w-0 flex-1 flex-col">
         <Topbar titulo={titulo} onAbrirMenu={() => setMenuAberto(true)} />
         <CamaleaoBar />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
