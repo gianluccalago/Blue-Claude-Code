@@ -10,6 +10,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Login } from "@/routes/Login";
 import { EmConstrucao } from "@/routes/EmConstrucao";
 import { FichaHospedeScreen } from "@/routes/FichaHospedeScreen";
+import { CrmPipeline } from "@/routes/administracao/crm/CrmPipeline";
+import { CrmNovaOportunidade } from "@/routes/administracao/crm/CrmNovaOportunidade";
+import { CrmOportunidade } from "@/routes/administracao/crm/CrmOportunidade";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -361,6 +364,26 @@ const fichaHospedeRoute = createRoute({
   component: FichaHospedeScreen,
 });
 
+// CRM comercial — Administração e Master (RLS no banco restringe os dados).
+const crmPipelineRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm",
+  component: CrmPipeline,
+});
+const crmNovaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-nova",
+  component: CrmNovaOportunidade,
+});
+const crmOportunidadeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-oportunidade",
+  validateSearch: (s: Record<string, unknown>): { id?: string } => ({
+    id: typeof s.id === "string" ? s.id : undefined,
+  }),
+  component: CrmOportunidade,
+});
+
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -391,6 +414,9 @@ const routeTree = rootRoute.addChildren([
     masterResidentesRoute,
     masterEquipeRoute,
     fichaHospedeRoute,
+    crmPipelineRoute,
+    crmNovaRoute,
+    crmOportunidadeRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

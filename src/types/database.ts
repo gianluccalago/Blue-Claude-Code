@@ -1023,6 +1023,141 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["solicitacao_familia"]["Insert"]>;
         Relationships: [];
       };
+      // ── CRM comercial (funil de admissão) ──────────────────────────────
+      crm_etapa: {
+        Row: { id: string; nome: string; ordem: number; ativo: boolean };
+        Insert: { id?: string; nome: string; ordem?: number; ativo?: boolean };
+        Update: Partial<Database["public"]["Tables"]["crm_etapa"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_motivo_perda: {
+        Row: { id: string; nome: string; ativo: boolean };
+        Insert: { id?: string; nome: string; ativo?: boolean };
+        Update: Partial<Database["public"]["Tables"]["crm_motivo_perda"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_origem: {
+        Row: { id: string; nome: string; tipo: string | null; ativo: boolean };
+        Insert: { id?: string; nome: string; tipo?: string | null; ativo?: boolean };
+        Update: Partial<Database["public"]["Tables"]["crm_origem"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_contato: {
+        Row: {
+          id: string;
+          nome: string;
+          telefones: string[];
+          emails: string[];
+          relacao: string | null;
+          nome_idoso: string | null;
+          idade_idoso: number | null;
+          grau_estimado: GrauDependencia | null;
+          base_legal_lgpd: "consentimento" | "legitimo_interesse" | "nao_definida";
+          observacoes: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          telefones?: string[];
+          emails?: string[];
+          relacao?: string | null;
+          nome_idoso?: string | null;
+          idade_idoso?: number | null;
+          grau_estimado?: GrauDependencia | null;
+          base_legal_lgpd?: "consentimento" | "legitimo_interesse" | "nao_definida";
+          observacoes?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_contato"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_oportunidade: {
+        Row: {
+          id: string;
+          nome: string;
+          contato_id: string;
+          origem_id: string | null;
+          qualificacao: number;
+          valor_mensalidade_estimado: number | null;
+          tipo_suite_interesse: string | null;
+          previsao_fechamento: string | null;
+          etapa: string;
+          status: "nova" | "em_andamento" | "ganha" | "perdida" | "pausada";
+          motivo_perda: string | null;
+          responsavel: string | null;
+          residente_id: string | null;
+          criado_em: string;
+          fechado_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          contato_id: string;
+          origem_id?: string | null;
+          qualificacao?: number;
+          valor_mensalidade_estimado?: number | null;
+          tipo_suite_interesse?: string | null;
+          previsao_fechamento?: string | null;
+          etapa?: string;
+          status?: "nova" | "em_andamento" | "ganha" | "perdida" | "pausada";
+          motivo_perda?: string | null;
+          responsavel?: string | null;
+          residente_id?: string | null;
+          criado_em?: string;
+          fechado_em?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_oportunidade"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_tarefa: {
+        Row: {
+          id: string;
+          oportunidade_id: string;
+          tipo: string;
+          assunto: string;
+          descricao: string | null;
+          responsavel: string | null;
+          data: string | null;
+          hora: string | null;
+          concluida: boolean;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          oportunidade_id: string;
+          tipo?: string;
+          assunto: string;
+          descricao?: string | null;
+          responsavel?: string | null;
+          data?: string | null;
+          hora?: string | null;
+          concluida?: boolean;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_tarefa"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_evento: {
+        Row: {
+          id: string;
+          oportunidade_id: string;
+          tipo: string;
+          descricao: string | null;
+          autor: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          oportunidade_id: string;
+          tipo: string;
+          descricao?: string | null;
+          autor?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_evento"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1039,6 +1174,14 @@ export interface Database {
 
 /* Atalhos de tipo para uso nas telas */
 export type Residente = Database["public"]["Tables"]["residentes"]["Row"];
+export type CrmEtapa = Database["public"]["Tables"]["crm_etapa"]["Row"];
+export type CrmMotivoPerda = Database["public"]["Tables"]["crm_motivo_perda"]["Row"];
+export type CrmOrigem = Database["public"]["Tables"]["crm_origem"]["Row"];
+export type CrmContato = Database["public"]["Tables"]["crm_contato"]["Row"];
+export type CrmOportunidade = Database["public"]["Tables"]["crm_oportunidade"]["Row"];
+export type CrmTarefa = Database["public"]["Tables"]["crm_tarefa"]["Row"];
+export type CrmEvento = Database["public"]["Tables"]["crm_evento"]["Row"];
+export type CrmStatus = CrmOportunidade["status"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

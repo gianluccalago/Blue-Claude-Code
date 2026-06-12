@@ -42,6 +42,7 @@ import {
   Camera,
   Home,
   Shield,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -135,6 +136,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/custos-pessoal": Banknote,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
+  // CRM comercial (Administração e Master)
+  "/app/administracao/crm": TrendingUp,
+  "/app/master/crm": TrendingUp,
   // Ficha do hóspede (item "Hóspedes" de cada perfil)
   "/app/medico/ficha": Users2,
   "/app/coordenacao/ficha": Users2,
