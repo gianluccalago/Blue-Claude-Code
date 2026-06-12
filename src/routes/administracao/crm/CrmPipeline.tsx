@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
+import { CrmNav } from "./CrmNav";
 import type { CrmStatus } from "@/types/database";
 
 const inputBase =
@@ -86,6 +87,7 @@ export function CrmPipeline() {
 
   return (
     <div className="space-y-5">
+      <CrmNav ativa="crm" />
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

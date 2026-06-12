@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { Check, Clock3, ListChecks, ArrowRight } from "lucide-react";
 import { useTodasTarefas, useConcluirTarefa, type TarefaComOportunidade } from "@/hooks/useCrm";
+import { CrmNav } from "./CrmNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export function CrmTarefas() {
 
   return (
     <div className="space-y-5">
+      <CrmNav ativa="crm-tarefas" />
       <div className="flex items-center gap-3">
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
           <ListChecks className="size-5" />

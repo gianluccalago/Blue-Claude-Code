@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
+import { CrmNav } from "./CrmNav";
 import type { CrmEtapa, CrmMotivoPerda } from "@/types/database";
 
 const inputBase =
@@ -20,19 +21,22 @@ const inputBase =
 
 export function CrmConfig() {
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div className="flex items-center gap-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
-          <Settings className="size-5" />
+    <div className="space-y-5">
+      <CrmNav ativa="crm-config" />
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+            <Settings className="size-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Configurações do funil</h1>
+            <p className="text-sm text-muted-foreground">Etapas do pipeline e motivos de perda</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Configurações do funil</h1>
-          <p className="text-sm text-muted-foreground">Etapas do pipeline e motivos de perda</p>
-        </div>
-      </div>
 
-      <EtapasCard />
-      <MotivosCard />
+        <EtapasCard />
+        <MotivosCard />
+      </div>
     </div>
   );
 }

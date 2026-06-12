@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { ouNaoInformado, cn } from "@/lib/utils";
+import { CrmNav } from "./CrmNav";
 import type { GrauDependencia } from "@/types/database";
 
 const inputBase =
@@ -46,6 +47,7 @@ export function CrmContatos() {
 
   return (
     <div className="space-y-5">
+      <CrmNav ativa="crm-contatos" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">

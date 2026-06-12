@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
+import { CrmNav } from "./CrmNav";
 
 const inputBase =
   "h-10 rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -41,7 +42,9 @@ export function CrmOrigens() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="space-y-5">
+      <CrmNav ativa="crm-origens" />
+      <div className="mx-auto max-w-2xl space-y-5">
       <div className="flex items-center gap-3">
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
           <Radio className="size-5" />
@@ -81,6 +84,7 @@ export function CrmOrigens() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

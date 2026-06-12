@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard, ProgressBar } from "@/components/dashboard/primitives";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { ouNaoInformado } from "@/lib/utils";
+import { CrmNav } from "./CrmNav";
 
 type Periodo = "mes" | "trimestre" | "ano" | "tudo";
 
@@ -47,6 +48,7 @@ export function CrmRelatorios() {
 
   return (
     <div className="space-y-5">
+      <CrmNav ativa="crm-relatorios" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
