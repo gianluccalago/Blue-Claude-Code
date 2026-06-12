@@ -46,6 +46,8 @@ function estadoInicial(r?: Residente): ResidenteValor {
     proteses: r?.proteses ?? null,
     mensalidade_valor: r?.mensalidade_valor ?? null,
     historia_vida: r?.historia_vida ?? null,
+    celular_proprio: r?.celular_proprio ?? null,
+    foto_url: r?.foto_url ?? null,
   };
 }
 
@@ -161,6 +163,9 @@ export function ResidenteFicha({
       {/* FAMILIAR / EMERGÊNCIA */}
       <Secao icon={Users} titulo="Familiar responsável e emergência">
         <div className="grid gap-4 sm:grid-cols-2">
+          <Campo rotulo="Celular do hóspede">
+            <input value={v.celular_proprio ?? ""} onChange={(e) => set("celular_proprio", e.target.value)} className={inputBase} placeholder="(11) 90000-0000" />
+          </Campo>
           <Campo rotulo="Responsável legal">
             <input value={v.responsavel_legal ?? ""} onChange={(e) => set("responsavel_legal", e.target.value)} className={inputBase} placeholder="Nome (parentesco)" />
           </Campo>

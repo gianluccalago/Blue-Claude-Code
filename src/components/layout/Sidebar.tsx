@@ -130,6 +130,14 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/custos-pessoal": Banknote,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
+  // Ficha do hóspede (item "Hóspedes" de cada perfil)
+  "/app/medico/ficha": Users2,
+  "/app/coordenacao/ficha": Users2,
+  "/app/multidisciplinar/ficha": Users2,
+  "/app/nutricionista/ficha": Users2,
+  "/app/farmacia/ficha": Users2,
+  "/app/hotelaria/ficha": Users2,
+  "/app/administracao/ficha": Users2,
   // Família
   "/app/familia": Home,
   "/app/familia/fotos": Image,

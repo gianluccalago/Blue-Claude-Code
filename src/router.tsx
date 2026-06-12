@@ -9,6 +9,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { Login } from "@/routes/Login";
 import { EmConstrucao } from "@/routes/EmConstrucao";
+import { FichaHospedeScreen } from "@/routes/FichaHospedeScreen";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -349,6 +350,17 @@ const masterEquipeRoute = createRoute({
   component: Equipe,
 });
 
+// Ficha do hóspede — disponível em todos os perfis (menos Família). Aceita
+// ?hospede=ID para abrir direto a partir de uma lista (ex.: Meus hóspedes).
+const fichaHospedeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "ficha",
+  validateSearch: (s: Record<string, unknown>): { hospede?: string } => ({
+    hospede: typeof s.hospede === "string" ? s.hospede : undefined,
+  }),
+  component: FichaHospedeScreen,
+});
+
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -378,6 +390,7 @@ const routeTree = rootRoute.addChildren([
     masterUsuariosRoute,
     masterResidentesRoute,
     masterEquipeRoute,
+    fichaHospedeRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

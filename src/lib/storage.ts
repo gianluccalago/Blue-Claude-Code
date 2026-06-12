@@ -4,6 +4,29 @@ export const BUCKET_FOTOS_MANUTENCAO = "manutencao-fotos";
 export const BUCKET_FOTOS_ATIVIDADE = "atividades-fotos";
 export const BUCKET_UPSELLING_COMPROVANTES = "upselling-comprovantes";
 export const BUCKET_FOTOS_INTERCORRENCIA = "intercorrencias-fotos";
+export const BUCKET_FOTOS_RESIDENTE = "residentes-fotos";
+
+/**
+ * Faz upload da foto de um hóspede (ficha) e retorna a URL pública.
+ * Retorna `null` em caso de falha — o cadastro pode ser salvo sem foto.
+ */
+export async function uploadFotoResidente(
+  file: File,
+  residenteId: string
+): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${residenteId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET_FOTOS_RESIDENTE)
+      .upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from(BUCKET_FOTOS_RESIDENTE).getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Faz upload de uma foto de evidência de manutenção e retorna a URL pública.

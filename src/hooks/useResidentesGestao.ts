@@ -32,6 +32,8 @@ export interface ResidenteValor {
   proteses: string | null;
   mensalidade_valor: number | null;
   historia_vida: string | null;
+  celular_proprio: string | null;
+  foto_url: string | null;
 }
 
 function paraRegistro(v: ResidenteValor) {
@@ -59,6 +61,8 @@ function paraRegistro(v: ResidenteValor) {
     proteses: t(v.proteses),
     mensalidade_valor: v.mensalidade_valor,
     historia_vida: t(v.historia_vida),
+    celular_proprio: t(v.celular_proprio),
+    foto_url: t(v.foto_url),
   };
 }
 
@@ -84,6 +88,21 @@ export function useEditarResidente() {
       const { error } = await supabase
         .from("residentes")
         .update(paraRegistro(args.valor))
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/** Atualiza somente a foto do hóspede (upload direto pelo cabeçalho da ficha). */
+export function useDefinirFotoResidente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; fotoUrl: string }) => {
+      const { error } = await supabase
+        .from("residentes")
+        .update({ foto_url: args.fotoUrl })
         .eq("id", args.id);
       if (error) throw error;
     },

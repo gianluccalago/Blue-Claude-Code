@@ -1,4 +1,5 @@
-import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen } from "lucide-react";
+import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen, ArrowRight } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { DietaResumo } from "@/components/nutricao/DietaResumo";
@@ -10,6 +11,7 @@ import type { Residente } from "@/types/database";
 
 export function Hospedes() {
   const { data, isLoading, isError, error } = useHospedesDesignados(CUIDADOR_ATUAL.id);
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -19,13 +21,13 @@ export function Hospedes() {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       {data.map((h) => (
-        <HospedeCard key={h.id} hospede={h} />
+        <HospedeCard key={h.id} hospede={h} perfil={perfil ?? "cuidador"} />
       ))}
     </div>
   );
 }
 
-function HospedeCard({ hospede: h }: { hospede: Residente }) {
+function HospedeCard({ hospede: h, perfil }: { hospede: Residente; perfil: string }) {
   const idade = calcularIdade(h.data_nascimento);
   return (
     <Card>
@@ -61,6 +63,14 @@ function HospedeCard({ hospede: h }: { hospede: Residente }) {
           <p className="text-muted-foreground">{ouNaoInformado(h.historia_vida)}</p>
         </div>
         <DietaResumo residenteId={h.id} />
+        <Link
+          to="/app/$perfil/ficha"
+          params={{ perfil }}
+          search={{ hospede: h.id }}
+          className="flex items-center justify-center gap-1.5 rounded-md border border-border/70 bg-card py-2.5 text-sm font-semibold text-secondary transition-colors hover:border-primary/40 hover:bg-accent"
+        >
+          Abrir ficha do hóspede <ArrowRight className="size-4" />
+        </Link>
       </CardContent>
     </Card>
   );

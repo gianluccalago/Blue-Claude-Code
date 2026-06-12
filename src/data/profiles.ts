@@ -63,6 +63,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/medico/prescricoes",
     menu: [
       { label: "Prescrições", to: "/app/medico/prescricoes" },
+      { label: "Hóspedes", to: "/app/medico/ficha" },
       { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },
       { label: "Estoque de resgate", to: "/app/medico/resgate" },
@@ -80,6 +81,7 @@ export const PERFIS: PerfilDef[] = [
     // Ordenado por frequência de uso no dia a dia da coordenação.
     menu: [
       { label: "Visão geral", to: "/app/coordenacao" },
+      { label: "Hóspedes", to: "/app/coordenacao/ficha" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },
       { label: "Solicitações da família", to: "/app/coordenacao/solicitacoes-familia" },
@@ -141,7 +143,10 @@ export const PERFIS: PerfilDef[] = [
     icon: Activity,
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/multidisciplinar/atividades",
-    menu: [{ label: "Atividades", to: "/app/multidisciplinar/atividades" }],
+    menu: [
+      { label: "Atividades", to: "/app/multidisciplinar/atividades" },
+      { label: "Hóspedes", to: "/app/multidisciplinar/ficha" },
+    ],
     emConstrucao: false,
   },
   {
@@ -153,6 +158,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/nutricionista/dietas",
     menu: [
       { label: "Dietas", to: "/app/nutricionista/dietas" },
+      { label: "Hóspedes", to: "/app/nutricionista/ficha" },
       { label: "Acompanhamento", to: "/app/nutricionista/acompanhamento-nutricional" },
       { label: "Evolução nutricional", to: "/app/nutricionista/evolucao-nutricional" },
     ],
@@ -167,6 +173,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/farmacia/painel",
     menu: [
       { label: "Painel da farmácia", to: "/app/farmacia/painel" },
+      { label: "Hóspedes", to: "/app/farmacia/ficha" },
       { label: "Pedidos mensais", to: "/app/farmacia/pedidos-mensais" },
       { label: "Custos de medicamento", to: "/app/farmacia/custos-medicamento" },
       { label: "Estoque por hóspede", to: "/app/farmacia/estoque" },
@@ -184,6 +191,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/hotelaria/visao-dia",
     menu: [
       { label: "Painel da Hotelaria", to: "/app/hotelaria/visao-dia" },
+      { label: "Hóspedes", to: "/app/hotelaria/ficha" },
       { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
       { label: "Manutenção", to: "/app/hotelaria/manutencao" },
       { label: "Rouparia", to: "/app/hotelaria/rouparia" },
@@ -199,6 +207,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/administracao",
     menu: [
       { label: "Painel da Administração", to: "/app/administracao" },
+      { label: "Hóspedes", to: "/app/administracao/ficha" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Upselling", to: "/app/administracao/upselling" },

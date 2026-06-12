@@ -102,6 +102,8 @@ export interface Database {
           mensalidade_ajuste_obs: string | null;
           historia_vida: string | null;
           data_admissao: string | null;
+          foto_url: string | null;
+          celular_proprio: string | null;
         };
         Insert: {
           id?: string;
@@ -128,6 +130,8 @@ export interface Database {
           mensalidade_ajuste_obs?: string | null;
           historia_vida?: string | null;
           data_admissao?: string | null;
+          foto_url?: string | null;
+          celular_proprio?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["residentes"]["Insert"]>;
         Relationships: [];
