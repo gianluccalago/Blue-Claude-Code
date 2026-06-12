@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "@tanstack/react-router";
-import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -75,26 +75,27 @@ export function Login() {
 
         <div className="relative max-w-md">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-            <Sparkles className="size-3.5" /> Gestão de ILPI · 2026
+            <Sparkles className="size-3.5" /> Rede de residenciais para idosos
           </span>
           <h2 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight">
-            Cuidado sênior com a
-            <span className="text-gradient-brand"> precisão de um cockpit</span>.
+            Quem cuida e quem ama,
+            <span className="text-gradient-brand"> sempre conectados</span>.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-white/70">
-            Da beira do leito à diretoria — assistencial, farmácia, hotelaria e
-            financeiro em uma única plataforma, em tempo real.
+            O portal das casas Blue Senior Living: aqui a nossa equipe registra
+            cada cuidado do dia a dia, e as famílias acompanham tudo de perto,
+            com transparência e carinho.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <FeaturePill icon={HeartPulse} texto="Segurança clínica" />
-            <FeaturePill icon={ShieldCheck} texto="Acessos por perfil" />
-            <FeaturePill icon={Sparkles} texto="Painéis em tempo real" />
+            <FeaturePill icon={HeartPulse} texto="Cuidado em cada detalhe" />
+            <FeaturePill icon={Users} texto="Família sempre por perto" />
+            <FeaturePill icon={ShieldCheck} texto="Informações protegidas" />
           </div>
         </div>
 
         <p className="relative text-xs text-white/50">
-          © Blue Senior Living · Plataforma de gestão assistencial
+          © Blue Senior Living · Portal exclusivo da equipe e das famílias
         </p>
       </aside>
 
