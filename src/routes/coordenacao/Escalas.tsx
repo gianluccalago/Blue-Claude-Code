@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, AlertTriangle, CalendarRange } from "lucide-react";
 import {
   useTurnos,
@@ -99,10 +100,16 @@ export function Escalas() {
       : ancora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   function salvar(valor: TurnoValor) {
+    // onError: exibe o bloqueio de colisão de horário (poka-yoke da escala).
+    const aoFalhar = (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o turno.");
     if (modal?.inicial) {
-      editar.mutate({ id: modal.inicial.id, valor }, { onSuccess: () => setModal(null) });
+      editar.mutate(
+        { id: modal.inicial.id, valor },
+        { onSuccess: () => setModal(null), onError: aoFalhar },
+      );
     } else {
-      criar.mutate(valor, { onSuccess: () => setModal(null) });
+      criar.mutate(valor, { onSuccess: () => setModal(null), onError: aoFalhar });
     }
   }
 

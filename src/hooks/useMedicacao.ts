@@ -62,12 +62,15 @@ export function useRegistrarAdministracao(residenteId: string) {
       periodo: PeriodoMedicacao;
       status: StatusAdministracao;
       itensFaltantes?: string | null;
+      /** Motivo quando status="nao" (Recusou/Indisposto/Ausente/Outro). */
+      motivo?: string | null;
     }) => {
       const { error } = await supabase.from("administracao").insert({
         residente_id: residenteId,
         periodo: args.periodo,
         status: args.status,
         itens_faltantes: args.itensFaltantes ?? null,
+        motivo: args.motivo ?? null,
         administrado_por: CUIDADOR_ATUAL.nome,
         baixa_farmacia: false,
       });

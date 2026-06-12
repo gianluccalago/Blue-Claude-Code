@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useRegistrarIntercorrencia } from "@/hooks/useIntercorrencia";
+import { HospedeIdentidade } from "@/components/cuidador/HospedeIdentidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
@@ -52,6 +53,7 @@ export function Intercorrencia() {
     return <EmptyState label="Você não possui hóspedes designados." />;
 
   const hospedeSel = hospedeId || hospedes[0].id;
+  const hospedeObj = hospedes.find((h) => h.id === hospedeSel);
   const podeEnviar = !!tipo && !!hospedeSel && !registrar.isPending;
 
   function selecionarTipo(t: string) {
@@ -160,6 +162,10 @@ export function Intercorrencia() {
                 </option>
               ))}
             </select>
+            {/* Poka-yoke: confirmação visual de QUEM é (foto + nome + alergia
+                em destaque) antes de registrar — evita registro no hóspede
+                errado e decisão sem o dado de segurança. */}
+            {hospedeObj && <HospedeIdentidade hospede={hospedeObj} compacto />}
           </Campo>
 
           {/* Observação adicional */}
@@ -219,8 +225,11 @@ export function Intercorrencia() {
             </div>
           )}
 
+          {/* O nome no botão é a confirmação final de que é a pessoa certa. */}
           <Button size="lg" className="w-full" disabled={!podeEnviar} onClick={enviar}>
-            {registrar.isPending ? "Registrando…" : "Registrar intercorrência"}
+            {registrar.isPending
+              ? "Registrando…"
+              : `Registrar intercorrência de ${hospedeObj?.nome.split(" ")[0] ?? "hóspede"}`}
           </Button>
         </CardContent>
       </Card>

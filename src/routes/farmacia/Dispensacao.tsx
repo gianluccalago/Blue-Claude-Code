@@ -16,7 +16,8 @@ import {
   PackageMinus,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
-import { usePrescricoesParaFarmacia } from "@/hooks/useFarmacia";
+import { usePrescricoesParaFarmacia, useEstoqueHospede } from "@/hooks/useFarmacia";
+import { useEstoqueTodosMes } from "@/hooks/usePainelFarmacia";
 import {
   hojeISODate,
   useDispensacoesDoHospede,
@@ -28,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { LembreteProvisionamento } from "@/components/farmacia/LembreteProvisionamento";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
@@ -147,9 +149,12 @@ function Dispensar({
   const [periodoKey, setPeriodoKey] = useState<PeriodoMedicacao>("manha");
   const [confirmando, setConfirmando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // Confirmação explícita quando há saldo insuficiente (poka-yoke 1.5).
+  const [confirmarNegativo, setConfirmarNegativo] = useState<{ avancar: boolean } | null>(null);
 
   const { data: prescricoes = [], isLoading: loadPx, error: errPx } = usePrescricoesParaFarmacia(residenteId);
   const { data: dispensacoes = [], isLoading: loadDisp } = useDispensacoesDoHospede(residenteId, data);
+  const estoque = useEstoqueHospede(residenteId, data.slice(0, 7));
   const confirmar = useConfirmarDispensacao();
   const desfazer = useDesfazerDispensacao();
 
@@ -163,11 +168,30 @@ function Dispensar({
       });
   }, [prescricoes, periodoKey]);
 
+  // Itens cujo saldo do mês não cobre a quantidade a dispensar (ou sem
+  // provisionamento). A dispensação NÃO é bloqueada — o saldo negativo segue
+  // como sinalização (regra atual) — mas nunca passa em silêncio.
+  const insuficientes = useMemo(() => {
+    const saldoPorMed = new Map((estoque.data ?? []).map((e) => [e.medicamento, e.quantidade_atual]));
+    return itensDoZiploc
+      .map((item) => ({ ...item, saldo: saldoPorMed.get(item.medicamento) }))
+      .filter((item) => (item.saldo ?? 0) < item.quantidade);
+  }, [itensDoZiploc, estoque.data]);
+
   // Dispensações deste período nesta data
   const dispDoPeriodo = useMemo(
     () => dispensacoes.filter((d) => d.periodo === periodoKey),
     [dispensacoes, periodoKey]
   );
+
+  function pedirConfirmacao(avancar: boolean) {
+    // Saldo insuficiente → exige confirmação explícita antes de prosseguir.
+    if (insuficientes.length > 0) {
+      setConfirmarNegativo({ avancar });
+      return;
+    }
+    void handleConfirmar(avancar);
+  }
 
   async function handleConfirmar(avancar: boolean) {
     if (itensDoZiploc.length === 0) return;
@@ -257,6 +281,26 @@ function Dispensar({
         </CardContent>
       </Card>
 
+      {/* Aviso de saldo insuficiente — visível ANTES de confirmar */}
+      {insuficientes.length > 0 && (
+        <div className="space-y-1.5 rounded-lg border-2 border-warning/60 bg-warning/10 p-3">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-warning-foreground">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> Saldo insuficiente no mês
+          </p>
+          <ul className="space-y-0.5 text-sm text-warning-foreground/90">
+            {insuficientes.map((i) => (
+              <li key={i.medicamento}>
+                {i.medicamento}: precisa de {i.quantidade}, saldo{" "}
+                {i.saldo === undefined ? "sem provisionamento" : i.saldo}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-warning-foreground/80">
+            Dispensar mesmo assim deixará o saldo negativo (sinalizado no painel da farmácia).
+          </p>
+        </div>
+      )}
+
       {/* Botões confirmar */}
       {erro && (
         <p className="flex items-center gap-1.5 text-sm text-destructive">
@@ -268,7 +312,7 @@ function Dispensar({
           variant="outline"
           className="w-full gap-2"
           disabled={itensDoZiploc.length === 0 || confirmando || confirmar.isPending}
-          onClick={() => handleConfirmar(false)}
+          onClick={() => pedirConfirmacao(false)}
         >
           <CheckCircle2 className="h-4 w-4" />
           {confirmando ? "Salvando…" : "Confirmar"}
@@ -276,12 +320,29 @@ function Dispensar({
         <Button
           className="w-full gap-2"
           disabled={itensDoZiploc.length === 0 || confirmando || confirmar.isPending || !onProximo}
-          onClick={() => handleConfirmar(true)}
+          onClick={() => pedirConfirmacao(true)}
         >
           <CheckCircle2 className="h-4 w-4" />
           {onProximo ? `Confirmar e próximo ▸` : "Confirmar (último)"}
         </Button>
       </div>
+
+      {/* Confirmação explícita do saldo negativo */}
+      <ConfirmDialog
+        aberto={!!confirmarNegativo}
+        titulo="Dispensar com saldo insuficiente?"
+        descricao={`Dispensar mesmo assim deixará saldo negativo: ${insuficientes
+          .map((i) => i.medicamento)
+          .join(", ")}.`}
+        textoConfirmar="Dispensar mesmo assim"
+        varianteConfirmar="warning"
+        onConfirmar={() => {
+          const avancar = confirmarNegativo?.avancar ?? false;
+          setConfirmarNegativo(null);
+          void handleConfirmar(avancar);
+        }}
+        onCancelar={() => setConfirmarNegativo(null)}
+      />
       {onProximo && proximoNome && (
         <p className="text-center text-xs text-muted-foreground">
           Próximo: <span className="font-semibold">{proximoNome}</span>
@@ -393,7 +454,18 @@ function MapaPeriodo({
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const { data: todasDispensacoes = [], isLoading: loadDisp } = useDispensacoesDodia(data);
+  const { data: estoqueTodos = [] } = useEstoqueTodosMes(data.slice(0, 7));
   const confirmar = useConfirmarDispensacao();
+
+  // residenteId → (medicamento → saldo do mês), para o aviso de insuficiência.
+  const saldoPorResidente = useMemo(() => {
+    const m = new Map<string, Map<string, number>>();
+    for (const e of estoqueTodos) {
+      if (!m.has(e.residente_id)) m.set(e.residente_id, new Map());
+      m.get(e.residente_id)!.set(e.medicamento, e.quantidade_atual);
+    }
+    return m;
+  }, [estoqueTodos]);
 
   // Mapa residenteId → dispensações do período hoje
   const dispPorResidente = useMemo(() => {
@@ -435,6 +507,7 @@ function MapaPeriodo({
             residente={res}
             periodoKey={periodoKey}
             dispensacoes={dispPorResidente[res.id] ?? []}
+            saldoPorMed={saldoPorResidente.get(res.id)}
             confirmando={confirmandoId === res.id}
             erro={erros[res.id]}
             onConfirmar={async (itens) => {
@@ -464,6 +537,7 @@ function MapaHospede({
   residente,
   periodoKey,
   dispensacoes,
+  saldoPorMed,
   confirmando,
   erro,
   onConfirmar,
@@ -471,6 +545,7 @@ function MapaHospede({
   residente: { id: string; nome: string };
   periodoKey: PeriodoMedicacao;
   dispensacoes: Dispensacao[];
+  saldoPorMed: Map<string, number> | undefined;
   confirmando: boolean;
   erro: string | undefined;
   onConfirmar: (itens: ItemDispensacaoJson[]) => void;
@@ -485,6 +560,22 @@ function MapaHospede({
         return { medicamento: p.medicamento, quantidade: numero, unidade };
       });
   }, [prescricoes, periodoKey]);
+
+  // Saldo insuficiente do mês: aviso visível + confirmação explícita.
+  const insuficientes = itensDoZiploc.filter(
+    (i) => (saldoPorMed?.get(i.medicamento) ?? 0) < i.quantidade,
+  );
+
+  function confirmarComAviso() {
+    if (insuficientes.length > 0) {
+      const ok = window.confirm(
+        `Saldo insuficiente para: ${insuficientes.map((i) => i.medicamento).join(", ")}.\n` +
+          "Dispensar mesmo assim deixará o saldo negativo. Continuar?",
+      );
+      if (!ok) return;
+    }
+    onConfirmar(itensDoZiploc);
+  }
 
   const jaDispensado = dispensacoes.length > 0;
 
@@ -538,6 +629,12 @@ function MapaHospede({
               Dispensado {dispensacoes.length}× hoje
             </p>
           )}
+          {insuficientes.length > 0 && (
+            <p className="text-xs text-warning-foreground mt-1 flex items-center gap-1 font-semibold">
+              <AlertTriangle className="h-3 w-3" /> Saldo insuficiente:{" "}
+              {insuficientes.map((i) => i.medicamento).join(", ")}
+            </p>
+          )}
           {erro && (
             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> {erro}
@@ -549,7 +646,7 @@ function MapaHospede({
           size="sm"
           variant={jaDispensado ? "outline" : "default"}
           disabled={confirmando}
-          onClick={() => onConfirmar(itensDoZiploc)}
+          onClick={confirmarComAviso}
           className="shrink-0 text-xs"
         >
           {confirmando ? "…" : jaDispensado ? "Dispensar de novo" : "Confirmar"}

@@ -130,6 +130,8 @@ type NovaPrescricaoArgs = {
   via: ViaMedicacao;
   posologia: string;
   periodos: PeriodoQuantidade[];
+  /** Alergeno confirmado pelo médico no alerta de alergia (trilha; null = sem conflito). */
+  alertaAlergia?: string | null;
 };
 
 export function useCriarPrescricao() {
@@ -148,6 +150,7 @@ export function useCriarPrescricao() {
         quantidade: p.quantidade,
         grupo_prescricao: grupoPrescricao,
         ativa: true,
+        alerta_alergia: args.alertaAlergia ?? null,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;
@@ -168,6 +171,8 @@ type EditarPrescricaoArgs = {
   via: ViaMedicacao;
   posologia: string;
   periodos: PeriodoQuantidade[];
+  /** Alergeno confirmado pelo médico no alerta de alergia (trilha; null = sem conflito). */
+  alertaAlergia?: string | null;
 };
 
 /** Edita um grupo: suspende as linhas antigas e cria novas com o mesmo grupo_prescricao. */
@@ -192,6 +197,7 @@ export function useEditarPrescricao() {
         quantidade: p.quantidade,
         grupo_prescricao: args.grupoPrescricao,
         ativa: true,
+        alerta_alergia: args.alertaAlergia ?? null,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;

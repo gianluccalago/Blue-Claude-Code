@@ -54,10 +54,55 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["minha-escala"] });
 }
 
+/** Desloca uma data YYYY-MM-DD em `dias` (cobre noturno que cruza meia-noite). */
+function deslocarDia(iso: string, dias: number): string {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return dataISO(d);
+}
+
+function horaBR(isoTs: string): string {
+  return new Date(isoTs).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Poka-yoke da escala: verifica COLISÃO DE HORÁRIO do profissional. Busca os
+ * turnos dele em data±1 (cobre noturno cruzando meia-noite) e acusa qualquer
+ * sobreposição de intervalo [inicio, fim). Lança erro claro se houver.
+ */
+async function verificarColisaoTurno(
+  profissionalId: string,
+  data: string,
+  inicioISO: string,
+  fimISO: string,
+  ignorarTurnoId?: string,
+): Promise<void> {
+  const { data: existentes, error } = await supabase
+    .from("turnos")
+    .select("id, data, inicio, fim")
+    .eq("profissional_id", profissionalId)
+    .gte("data", deslocarDia(data, -1))
+    .lte("data", deslocarDia(data, 1));
+  if (error) throw error;
+
+  const conflito = (existentes ?? []).find(
+    (t) => t.id !== ignorarTurnoId && t.inicio < fimISO && t.fim > inicioISO,
+  );
+  if (conflito) {
+    throw new Error(
+      `Conflito de horário: esta profissional já tem turno das ${horaBR(conflito.inicio)} às ${horaBR(conflito.fim)} em ${new Date(conflito.data + "T00:00:00").toLocaleDateString("pt-BR")}.`,
+    );
+  }
+}
+
 export function useCriarTurno() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: TurnoValor) => {
+      // Bloqueia sobreposição de horário do mesmo profissional (qualquer categoria).
+      if (v.profissional_id) {
+        await verificarColisaoTurno(v.profissional_id, v.data, v.inicio, v.fim);
+      }
       const { error } = await supabase.from("turnos").insert(v);
       if (error) throw error;
     },
@@ -69,6 +114,15 @@ export function useEditarTurno() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { id: string; valor: TurnoValor }) => {
+      if (args.valor.profissional_id) {
+        await verificarColisaoTurno(
+          args.valor.profissional_id,
+          args.valor.data,
+          args.valor.inicio,
+          args.valor.fim,
+          args.id,
+        );
+      }
       const { error } = await supabase.from("turnos").update(args.valor).eq("id", args.id);
       if (error) throw error;
     },
@@ -124,22 +178,23 @@ export function useCriarTurnosRecorrentes() {
         if (args.diasSemana.includes(d.getDay())) candidatas.push(dataISO(d));
       }
 
-      // 2. Conflito (só quando há profissional): dias que ela já tem turno.
-      let diasOcupados = new Set<string>();
+      // 2. Conflito (só quando há profissional): turnos existentes no período
+      //    (estendido em ±1 dia para cobrir noturnos que cruzam meia-noite).
+      //    A deduplicação é por SOBREPOSIÇÃO DE HORÁRIO, não apenas por dia.
+      let existentes: { inicio: string; fim: string }[] = [];
       if (args.profissional_id) {
         const { data, error } = await supabase
           .from("turnos")
-          .select("data")
+          .select("inicio, fim")
           .eq("profissional_id", args.profissional_id)
-          .gte("data", args.dataInicial)
-          .lte("data", args.dataFinal);
+          .gte("data", deslocarDia(args.dataInicial, -1))
+          .lte("data", deslocarDia(args.dataFinal, 1));
         if (error) throw error;
-        diasOcupados = new Set((data ?? []).map((t) => t.data));
+        existentes = data ?? [];
       }
 
-      // 3. Monta os turnos a inserir.
+      // 3. Monta os turnos a inserir, pulando os que colidem com algum existente.
       const novos = candidatas
-        .filter((dia) => !(args.profissional_id && diasOcupados.has(dia)))
         .map((dia) => ({
           profissional_id: args.profissional_id,
           categoria: args.categoria,
@@ -148,7 +203,12 @@ export function useCriarTurnosRecorrentes() {
           fim: combinarDataHoraISO(dia, args.fimTime, args.fimDiaSeguinte ? 1 : 0),
           tag: args.tag,
           observacao_interna: null,
-        }));
+        }))
+        .filter(
+          (novo) =>
+            !args.profissional_id ||
+            !existentes.some((t) => t.inicio < novo.fim && t.fim > novo.inicio),
+        );
 
       const pulados = candidatas.length - novos.length;
       if (novos.length > 0) {

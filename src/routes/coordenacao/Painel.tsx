@@ -207,7 +207,9 @@ export function PainelCoordenacao() {
                   hospede={nome(reg.residente_id)}
                   detalhe={
                     reg.status === "nao"
-                      ? "NÃO administrada — nenhum oral foi dado"
+                      ? reg.motivo
+                        ? `NÃO administrada — motivo: ${reg.motivo}`
+                        : "NÃO administrada — nenhum oral foi dado"
                       : `Parcial — faltou: ${ouNaoInformado(reg.itens_faltantes)}`
                   }
                   rodape={`Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}

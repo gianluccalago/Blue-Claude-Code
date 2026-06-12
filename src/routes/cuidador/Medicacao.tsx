@@ -9,6 +9,7 @@ import {
   XCircle,
   CircleDashed,
   Loader2,
+  UtensilsCrossed,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
@@ -18,8 +19,10 @@ import {
   useAdministracoesHoje,
   useRegistrarAdministracao,
 } from "@/hooks/useMedicacao";
+import { useDietaAtiva } from "@/hooks/useNutricao";
 import { usePlantao } from "@/hooks/usePlantao";
 import { PlantaoBar } from "@/components/cuidador/PlantaoBar";
+import { HospedeIdentidade } from "@/components/cuidador/HospedeIdentidade";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,22 +67,10 @@ export function Medicacao() {
       <PlantaoBar plantao={plantao} />
       <HospedeSelector hospedes={hospedes} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
 
-      {/* Banner de alergias — risco clínico de segurança */}
-      {hospedeSel?.alergias && (
-        <div className="relative flex items-center gap-3 overflow-hidden rounded-lg border-2 border-destructive bg-gradient-to-r from-destructive/15 to-destructive/5 px-4 py-3.5">
-          <div className="grid size-11 shrink-0 place-items-center rounded-full bg-destructive text-white animate-glow-pulse">
-            <AlertTriangle className="size-6" />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-destructive">
-              ⚠️ Alérgico a
-            </p>
-            <p className="text-lg font-extrabold leading-tight text-destructive">
-              {hospedeSel.alergias.toUpperCase()}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Identidade do hóspede (poka-yoke): FOTO + nome + quarto, com a faixa
+          de alergia em destaque — padrão do Checklist. O selo "tomar com
+          alimento" aparece quando a dieta ativa indicar. */}
+      {hospedeSel && <CabecalhoMedicacao hospede={hospedeSel} />}
 
       {hospedeId && (
         <MedicacaoDoHospede
@@ -90,6 +81,26 @@ export function Medicacao() {
         />
       )}
     </div>
+  );
+}
+
+/** Identidade + selo de dieta. "Tomar com alimento" quando a dieta ativa indicar. */
+function CabecalhoMedicacao({ hospede }: { hospede: import("@/types/database").Residente }) {
+  const dieta = useDietaAtiva(hospede.id);
+  // A dieta é texto livre (observações/restrições); o selo aparece quando o
+  // texto indicar administração junto à alimentação.
+  const textoDieta = [dieta.data?.observacoes ?? "", ...(dieta.data?.restricoes ?? [])].join(" ");
+  const comAlimento = /com (alimento|comida)|junto (a|à|com)|durante (a |as )?refei|ap[oó]s (a |as )?refei/i.test(
+    textoDieta,
+  );
+  return (
+    <HospedeIdentidade hospede={hospede}>
+      {comAlimento && (
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-warning px-3 py-1.5 text-xs font-bold text-warning-foreground">
+          <UtensilsCrossed className="size-3.5" /> Tomar com alimento
+        </span>
+      )}
+    </HospedeIdentidade>
   );
 }
 
@@ -187,13 +198,17 @@ function PeriodoMedicacaoView({
     return <EmptyState label="Sem prescrições ativas para este período." />;
   }
 
+  const [escolhendoMotivo, setEscolhendoMotivo] = useState(false);
+
   async function confirmarTodas() {
     await registrar.mutateAsync({ periodo, status: "sim" });
     toast.success("Medicação confirmada.");
   }
-  async function confirmarNao() {
-    await registrar.mutateAsync({ periodo, status: "nao" });
-    toast.warning("Não administrada — coordenação notificada.");
+  /** "Não" em 1 toque a mais: motivo por botão (zero digitação). */
+  async function confirmarNao(motivo: string) {
+    await registrar.mutateAsync({ periodo, status: "nao", motivo });
+    setEscolhendoMotivo(false);
+    toast.warning(`Não administrada (${motivo.toLowerCase()}) — coordenação notificada.`);
   }
 
   const jaRegistrado = !!registro;
@@ -272,19 +287,34 @@ function PeriodoMedicacaoView({
             Sim, todas ({orais.length} orais)
           </Button>
           <Button
-            variant="destructive"
+            variant={escolhendoMotivo ? "outline" : "destructive"}
             size="lg"
             disabled={!liberado || registrar.isPending}
-            onClick={confirmarNao}
+            onClick={() => setEscolhendoMotivo((v) => !v)}
           >
-            {registrar.isPending ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <Ban className="size-5" />
-            )}
-            Não
+            <Ban className="size-5" />
+            {escolhendoMotivo ? "Cancelar" : "Não"}
           </Button>
         </div>
+
+        {/* Motivo do "Não" — botões grandes (≥44px), zero digitação */}
+        {escolhendoMotivo && (
+          <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-sm font-semibold text-destructive">Por que não foi administrada?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {["Recusou", "Indisposto", "Ausente", "Outro"].map((motivo) => (
+                <button
+                  key={motivo}
+                  disabled={registrar.isPending}
+                  onClick={() => confirmarNao(motivo)}
+                  className="min-h-[48px] rounded-lg border border-destructive/40 bg-card px-3 py-3 text-sm font-bold text-destructive transition-all duration-200 hover:bg-destructive hover:text-white active:scale-[0.97] disabled:opacity-50"
+                >
+                  {registrar.isPending ? <Loader2 className="mx-auto size-4 animate-spin" /> : motivo}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -343,7 +373,9 @@ function StatusBanner({
       classe: "border-destructive/40 bg-destructive/10",
       iconCor: "text-destructive",
       titulo: "NÃO administrada",
-      detalhe: "Coordenação avisada.",
+      detalhe: registro.motivo
+        ? `Motivo: ${registro.motivo}. Coordenação avisada.`
+        : "Coordenação avisada.",
     },
   }[registro.status];
 

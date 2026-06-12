@@ -253,6 +253,9 @@ export interface Database {
           quantidade: string | null;
           posologia: string | null;
           grupo_prescricao: string | null;
+          // Alergeno que casou com o medicamento e foi CONFIRMADO pelo médico
+          // ao prescrever (trilha do alerta de alergia; null = sem conflito).
+          alerta_alergia: string | null;
         };
         Insert: {
           id?: string;
@@ -266,6 +269,7 @@ export interface Database {
           quantidade?: string | null;
           posologia?: string | null;
           grupo_prescricao?: string | null;
+          alerta_alergia?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
         Relationships: [];
@@ -283,6 +287,8 @@ export interface Database {
           // Integração futura com o módulo Farmácia: indica se a baixa de
           // estoque já foi dada. Ainda não há lógica/tela usando este campo.
           baixa_farmacia: boolean;
+          // Motivo quando status="nao" (Recusou/Indisposto/Ausente/Outro).
+          motivo: string | null;
         };
         Insert: {
           id?: string;
@@ -294,6 +300,7 @@ export interface Database {
           administrado_em?: string;
           prescricao_id?: string | null;
           baixa_farmacia?: boolean;
+          motivo?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["administracao"]["Insert"]>;
         Relationships: [];

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, Copy, CheckCheck } from "lucide-react";
+import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, Copy, CheckCheck, AlertTriangle } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useMedico";
 import { toast } from "sonner";
 import { exportarPrescricaoPDF, copiarPrescricao } from "@/lib/exportPrescricao";
+import { alergiaConflitante } from "@/lib/alergia";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,6 +168,7 @@ export function Prescricoes() {
       {hospedeId && modo.tipo === "nova" && (
         <FormPrescricao
           residenteId={hospedeId}
+          alergias={hospedeSelecionado?.alergias ?? null}
           inicial={formInicial()}
           onCancelar={voltar}
           onSalvar={voltar}
@@ -176,6 +178,7 @@ export function Prescricoes() {
       {hospedeId && modo.tipo === "editar" && (
         <FormPrescricao
           residenteId={hospedeId}
+          alergias={hospedeSelecionado?.alergias ?? null}
           inicial={formDeGrupo(modo.grupo)}
           grupoPrescricao={modo.grupo.grupoPrescricao}
           onCancelar={voltar}
@@ -373,12 +376,15 @@ function GrupoCard({
 
 function FormPrescricao({
   residenteId,
+  alergias,
   inicial,
   grupoPrescricao,
   onCancelar,
   onSalvar,
 }: {
   residenteId: string;
+  /** Alergias cadastradas do hóspede — alimenta o alerta de conflito. */
+  alergias: string | null;
   inicial: FormValues;
   grupoPrescricao?: string;
   onCancelar: () => void;
@@ -458,8 +464,20 @@ function FormPrescricao({
   }
 
   const periodosMarcados = form.periodos.filter((p) => p.marcado);
+
+  // Poka-yoke de alergia: cruza o medicamento digitado com as alergias
+  // cadastradas. NÃO bloqueia (a decisão é médica) — exige confirmação
+  // explícita, e a confirmação fica registrada na prescrição.
+  const conflitoAlergia = alergiaConflitante(alergias, form.medicamento);
+  const [alergiaConfirmadaPara, setAlergiaConfirmadaPara] = useState<string | null>(null);
+  const alergiaConfirmada =
+    !!conflitoAlergia && alergiaConfirmadaPara === form.medicamento.trim().toLowerCase();
+
   const podeSalvar =
-    form.medicamento.trim() !== "" && periodosMarcados.length > 0 && !salvando;
+    form.medicamento.trim() !== "" &&
+    periodosMarcados.length > 0 &&
+    !salvando &&
+    (!conflitoAlergia || alergiaConfirmada);
 
   async function handleSalvar() {
     if (!podeSalvar) return;
@@ -474,6 +492,8 @@ function FormPrescricao({
       via: form.via,
       posologia: form.posologia,
       periodos,
+      // Trilha: registra o alérgeno cujo alerta foi exibido e confirmado.
+      alertaAlergia: conflitoAlergia && alergiaConfirmada ? conflitoAlergia : null,
     };
     if (grupoPrescricao) {
       await editar.mutateAsync({ ...base, grupoPrescricao });
@@ -517,6 +537,39 @@ function FormPrescricao({
             ))}
           </datalist>
         </Campo>
+
+        {/* ALERTA DE ALERGIA — exige confirmação explícita (fica registrada) */}
+        {conflitoAlergia && (
+          <div className="space-y-3 rounded-lg border-2 border-destructive bg-destructive/10 p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-destructive text-white animate-glow-pulse">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-destructive">
+                  Hóspede alérgico a {conflitoAlergia.toUpperCase()}
+                </p>
+                <p className="text-sm text-destructive/90">
+                  O medicamento digitado coincide com uma alergia cadastrada. A decisão é médica —
+                  para prosseguir, confirme que está ciente. A confirmação fica registrada.
+                </p>
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-destructive/40 bg-card px-3 py-2.5 text-sm font-semibold text-secondary">
+              <input
+                type="checkbox"
+                className="size-5 accent-destructive"
+                checked={alergiaConfirmada}
+                onChange={(e) =>
+                  setAlergiaConfirmadaPara(
+                    e.target.checked ? form.medicamento.trim().toLowerCase() : null,
+                  )
+                }
+              />
+              Estou ciente da alergia e confirmo a prescrição.
+            </label>
+          </div>
+        )}
 
         {/* Linha: Via + Dose */}
         <div className="grid gap-4 sm:grid-cols-2">
