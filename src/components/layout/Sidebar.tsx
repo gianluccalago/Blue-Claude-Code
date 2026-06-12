@@ -92,8 +92,16 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/cuidador/hospedes": Users2,
   "/app/cuidador/minha-escala": CalendarRange,
   "/app/cuidador/chamado-manutencao": Wrench,
-  // Enfermagem
+  // Enfermagem (mesmo fluxo da cuidadora + medicação exclusiva de enfermagem)
   "/app/enfermagem": LayoutDashboard,
+  "/app/enfermagem/checklist": ClipboardCheck,
+  "/app/enfermagem/medicacao": Pill,
+  "/app/enfermagem/medicacao-enfermagem": Syringe,
+  "/app/enfermagem/compromissos": CalendarClock,
+  "/app/enfermagem/intercorrencia": AlertTriangle,
+  "/app/enfermagem/hospedes": Users2,
+  "/app/enfermagem/minha-escala": CalendarRange,
+  "/app/enfermagem/chamado-manutencao": Wrench,
   // Multidisciplinar
   "/app/multidisciplinar/atividades": Activity,
   // Nutricionista

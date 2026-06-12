@@ -111,16 +111,28 @@ export const PERFIS: PerfilDef[] = [
     emConstrucao: false,
   },
   {
-    // Enfermagem é um perfil de login (Téc. de Enfermagem / Enfermeira). As
-    // telas próprias ainda serão construídas; por ora cai em "Em construção".
+    // Enfermagem (Téc. de Enfermagem / Enfermeira): mesmo fluxo de ponta da
+    // cuidadora (checklist, medicação oral, compromissos, intercorrências,
+    // hóspedes, escala) E TAMBÉM a administração das medicações exclusivas de
+    // enfermagem (injetável, insulina SC, sonda) — a mesma tela já usada pela
+    // Coordenação. Reaproveita as rotas existentes (roteamento por $perfil).
     id: "enfermagem",
     nome: "Enfermagem",
     descricao: "Procedimentos e administração de medicação",
     icon: Stethoscope,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/enfermagem",
-    menu: [{ label: "Visão geral", to: "/app/enfermagem" }],
-    emConstrucao: true,
+    rotaInicial: "/app/enfermagem/checklist",
+    menu: [
+      { label: "Checklist do turno", to: "/app/enfermagem/checklist" },
+      { label: "Medicação", to: "/app/enfermagem/medicacao" },
+      { label: "Medicação de enfermagem", to: "/app/enfermagem/medicacao-enfermagem" },
+      { label: "Compromissos externos", to: "/app/enfermagem/compromissos" },
+      { label: "Registrar intercorrência", to: "/app/enfermagem/intercorrencia" },
+      { label: "Meus hóspedes", to: "/app/enfermagem/hospedes" },
+      { label: "Minha escala", to: "/app/enfermagem/minha-escala" },
+      { label: "Abrir chamado de manutenção", to: "/app/enfermagem/chamado-manutencao" },
+    ],
+    emConstrucao: false,
   },
   {
     id: "multidisciplinar",
