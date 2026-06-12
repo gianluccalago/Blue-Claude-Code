@@ -17,6 +17,7 @@ import {
   Receipt,
   Wallet,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { useDemonstrativoMes, type LinhaDemonstrativo } from "@/hooks/useDemonstrativo";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
@@ -113,7 +114,10 @@ export function Demonstrativo() {
           <div className="flex justify-end">
             <Button
               variant="outline"
-              onClick={() => exportarDemonstrativoConsolidadoExcel(mes, demo.linhas, demo.upsellingTodos)}
+              onClick={async () => {
+                const ok = await exportarDemonstrativoConsolidadoExcel(mes, demo.linhas, demo.upsellingTodos);
+                if (!ok) toast.error("Não foi possível gerar o Excel. Tente novamente.");
+              }}
             >
               <FileSpreadsheet className="size-4" /> Exportar Excel
             </Button>
@@ -208,7 +212,13 @@ function DetalheHospede({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => exportarDemonstrativoIndividualExcel(mes, linha, itens)}>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const ok = await exportarDemonstrativoIndividualExcel(mes, linha, itens);
+                if (!ok) toast.error("Não foi possível gerar o Excel. Tente novamente.");
+              }}
+            >
               <FileSpreadsheet className="size-4" /> Exportar Excel
             </Button>
             <Button variant="outline" onClick={() => exportarDemonstrativoIndividualTexto(mes, linha, itens)}>

@@ -1,12 +1,15 @@
-import * as XLSX from "xlsx";
 import type { LinhaPagamentoPessoal } from "@/hooks/usePagamentoPessoal";
 
 /**
  * Exporta o pagamento da equipe do mês (.xlsx) — base para pagamento por
  * fora / acerto com PJ.
  */
-export function exportarPagamentoPessoalExcel(mes: string, linhas: LinhaPagamentoPessoal[]): boolean {
+export async function exportarPagamentoPessoalExcel(
+  mes: string,
+  linhas: LinhaPagamentoPessoal[],
+): Promise<boolean> {
   try {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
 
     const dados = linhas.map((l) => ({

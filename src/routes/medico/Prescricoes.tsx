@@ -10,6 +10,7 @@ import {
   useMedicamentosDaCasa,
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
+import { toast } from "sonner";
 import { exportarPrescricaoPDF, copiarPrescricao } from "@/lib/exportPrescricao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -219,9 +220,13 @@ function ListaPrescricoes({
 
   const grupos = data ?? [];
 
-  function handleExportPDF() {
+  async function handleExportPDF() {
     if (!hospede) return;
-    exportarPrescricaoPDF(hospede, grupos);
+    try {
+      await exportarPrescricaoPDF(hospede, grupos);
+    } catch {
+      toast.error("Não foi possível gerar o PDF. Tente novamente.");
+    }
   }
 
   async function handleCopiar() {

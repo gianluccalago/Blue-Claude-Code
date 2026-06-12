@@ -21,6 +21,7 @@ import {
   useSalvarPagamentoPessoal,
   type LinhaPagamentoPessoal,
 } from "@/hooks/usePagamentoPessoal";
+import { toast } from "sonner";
 import { exportarPagamentoPessoalExcel } from "@/lib/exportPagamentoPessoal";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,11 @@ export function CustosPessoal() {
   const totalPago = linhas.filter((l) => l.status === "pago").reduce((acc, l) => acc + l.valorFinal, 0);
   const totalPendente = totalGeral - totalPago;
 
+  async function handleExportar() {
+    const ok = await exportarPagamentoPessoalExcel(mes, linhas);
+    if (!ok) toast.error("Não foi possível gerar o Excel. Tente novamente.");
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -64,7 +70,7 @@ export function CustosPessoal() {
         </div>
         <Button
           variant="outline"
-          onClick={() => exportarPagamentoPessoalExcel(mes, linhas)}
+          onClick={handleExportar}
           disabled={linhas.length === 0}
         >
           <Download className="size-4" /> Exportar Excel

@@ -1,4 +1,3 @@
-import { jsPDF } from "jspdf";
 import type { GrupoPrescricao } from "@/hooks/useMedico";
 import type { Residente } from "@/types/database";
 import { formatarDataBR, hojeISO } from "@/lib/utils";
@@ -159,10 +158,11 @@ function dataHoraEmissao(d: Date): string {
 
 type RGB = [number, number, number];
 
-export function exportarPrescricaoPDF(
+export async function exportarPrescricaoPDF(
   hospede: Residente,
   grupos: GrupoPrescricao[],
-): void {
+): Promise<void> {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const agora = new Date();
   const emissao = dataHoraEmissao(agora);

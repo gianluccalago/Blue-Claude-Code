@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import type { LinhaDemonstrativo } from "@/hooks/useDemonstrativo";
 import type { Upselling } from "@/types/database";
 import { formatarMesReferencia, formatarMoeda } from "@/lib/mensalidade";
@@ -18,12 +17,13 @@ function nomeSanitizado(nome: string): string {
  * com o detalhamento. Não lança erro: se a geração falhar, simplesmente não
  * baixa o arquivo.
  */
-export function exportarDemonstrativoConsolidadoExcel(
+export async function exportarDemonstrativoConsolidadoExcel(
   mes: string,
   linhas: LinhaDemonstrativo[],
   upsellingTodos: Upselling[],
-): boolean {
+): Promise<boolean> {
   try {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
 
     const consolidado = linhas.map((l) => ({
@@ -87,12 +87,13 @@ export function exportarDemonstrativoConsolidadoExcel(
  * Exporta o demonstrativo individual de um hóspede (resumo + detalhamento de
  * upselling) em .xlsx — pronto para envio ao mantenedor.
  */
-export function exportarDemonstrativoIndividualExcel(
+export async function exportarDemonstrativoIndividualExcel(
   mes: string,
   linha: LinhaDemonstrativo,
   itensUpselling: Upselling[],
-): boolean {
+): Promise<boolean> {
   try {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
 
     const resumo = [
