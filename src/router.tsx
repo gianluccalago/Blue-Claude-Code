@@ -13,6 +13,7 @@ import { FichaHospedeScreen } from "@/routes/FichaHospedeScreen";
 import { CrmPipeline } from "@/routes/administracao/crm/CrmPipeline";
 import { CrmNovaOportunidade } from "@/routes/administracao/crm/CrmNovaOportunidade";
 import { CrmOportunidade } from "@/routes/administracao/crm/CrmOportunidade";
+import { CrmTarefas } from "@/routes/administracao/crm/CrmTarefas";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -383,6 +384,11 @@ const crmOportunidadeRoute = createRoute({
   }),
   component: CrmOportunidade,
 });
+const crmTarefasRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-tarefas",
+  component: CrmTarefas,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -417,6 +423,7 @@ const routeTree = rootRoute.addChildren([
     crmPipelineRoute,
     crmNovaRoute,
     crmOportunidadeRoute,
+    crmTarefasRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

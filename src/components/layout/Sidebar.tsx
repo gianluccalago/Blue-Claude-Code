@@ -139,6 +139,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   // CRM comercial (Administração e Master)
   "/app/administracao/crm": TrendingUp,
   "/app/master/crm": TrendingUp,
+  "/app/administracao/crm-tarefas": ListChecks,
+  "/app/master/crm-tarefas": ListChecks,
   // Ficha do hóspede (item "Hóspedes" de cada perfil)
   "/app/medico/ficha": Users2,
   "/app/coordenacao/ficha": Users2,

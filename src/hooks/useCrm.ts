@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import { tarefaVencida } from "@/lib/crm";
+import { tarefaVencida, ETAPA_ADMISSAO } from "@/lib/crm";
 import type {
   CrmContato,
   CrmEtapa,
+  CrmMotivoPerda,
   CrmOportunidade,
   CrmOrigem,
   CrmTarefa,
@@ -265,6 +266,202 @@ export function useMoverEtapa() {
       );
     },
     onSuccess: () => invalidarPipeline(qc),
+  });
+}
+
+export function useCrmMotivos(incluirInativos = false) {
+  return useQuery({
+    queryKey: [...KEY.motivos, incluirInativos],
+    queryFn: async (): Promise<CrmMotivoPerda[]> => {
+      let q = supabase.from("crm_motivo_perda").select("*").order("nome");
+      if (!incluirInativos) q = q.eq("ativo", true);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+// ─── Timeline (eventos) ───────────────────────────────────────────────────────
+
+export function useEventos(oportunidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["crm-eventos", oportunidadeId],
+    enabled: !!oportunidadeId,
+    queryFn: async (): Promise<CrmEvento[]> => {
+      const { data, error } = await supabase
+        .from("crm_evento")
+        .select("*")
+        .eq("oportunidade_id", oportunidadeId as string)
+        .order("criado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Anotação livre na timeline (evento tipo "anotacao"). */
+export function useAnotar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { oportunidadeId: string; texto: string }) => {
+      await registrarEventoCrm(args.oportunidadeId, "anotacao", args.texto.trim());
+    },
+    onSuccess: (_r, args) =>
+      qc.invalidateQueries({ queryKey: ["crm-eventos", args.oportunidadeId] }),
+  });
+}
+
+// ─── Tarefas ──────────────────────────────────────────────────────────────────
+
+export function useTarefasOportunidade(oportunidadeId: string | undefined) {
+  return useQuery({
+    queryKey: ["crm-tarefas", oportunidadeId],
+    enabled: !!oportunidadeId,
+    queryFn: async (): Promise<CrmTarefa[]> => {
+      const { data, error } = await supabase
+        .from("crm_tarefa")
+        .select("*")
+        .eq("oportunidade_id", oportunidadeId as string)
+        .order("data", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export type TarefaComOportunidade = CrmTarefa & { oportunidadeNome: string };
+
+/** Todas as tarefas do CRM (tela global), com o nome da oportunidade. */
+export function useTodasTarefas() {
+  return useQuery({
+    queryKey: ["crm-tarefas-todas"],
+    queryFn: async (): Promise<TarefaComOportunidade[]> => {
+      const [tarefas, ops] = await Promise.all([
+        supabase.from("crm_tarefa").select("*"),
+        supabase.from("crm_oportunidade").select("id, nome"),
+      ]);
+      if (tarefas.error) throw tarefas.error;
+      if (ops.error) throw ops.error;
+      const nomePorOp = new Map((ops.data ?? []).map((o) => [o.id, o.nome]));
+      return (tarefas.data ?? []).map((t) => ({
+        ...t,
+        oportunidadeNome: nomePorOp.get(t.oportunidade_id) ?? "—",
+      }));
+    },
+  });
+}
+
+export type NovaTarefaInput = {
+  oportunidadeId: string;
+  tipo: string;
+  assunto: string;
+  descricao: string | null;
+  responsavel: string | null;
+  data: string | null;
+  hora: string | null;
+};
+
+export function useCriarTarefa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NovaTarefaInput) => {
+      const { error } = await supabase.from("crm_tarefa").insert({
+        oportunidade_id: input.oportunidadeId,
+        tipo: input.tipo,
+        assunto: input.assunto.trim(),
+        descricao: input.descricao,
+        responsavel: input.responsavel ?? usuarioAtual.nome,
+        data: input.data,
+        hora: input.hora,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_r, input) => {
+      qc.invalidateQueries({ queryKey: ["crm-tarefas", input.oportunidadeId] });
+      qc.invalidateQueries({ queryKey: ["crm-tarefas-todas"] });
+      invalidarPipeline(qc);
+    },
+  });
+}
+
+/** Conclui uma tarefa em 1 clique e registra evento na timeline. */
+export function useConcluirTarefa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (t: Pick<CrmTarefa, "id" | "oportunidade_id" | "assunto">) => {
+      const { error } = await supabase
+        .from("crm_tarefa")
+        .update({ concluida: true })
+        .eq("id", t.id);
+      if (error) throw error;
+      await registrarEventoCrm(t.oportunidade_id, "tarefa_concluida", `Tarefa concluída: ${t.assunto}.`);
+    },
+    onSuccess: (_r, t) => {
+      qc.invalidateQueries({ queryKey: ["crm-tarefas", t.oportunidade_id] });
+      qc.invalidateQueries({ queryKey: ["crm-tarefas-todas"] });
+      qc.invalidateQueries({ queryKey: ["crm-eventos", t.oportunidade_id] });
+      invalidarPipeline(qc);
+    },
+  });
+}
+
+// ─── Perda / Admissão (status terminais) ──────────────────────────────────────
+
+function invalidarOportunidade(qc: ReturnType<typeof useQueryClient>, id: string) {
+  qc.invalidateQueries({ queryKey: ["crm-oportunidade", id] });
+  qc.invalidateQueries({ queryKey: ["crm-eventos", id] });
+  invalidarPipeline(qc);
+}
+
+export function useMarcarPerda() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; motivo: string }) => {
+      const { error } = await supabase
+        .from("crm_oportunidade")
+        .update({ status: "perdida", motivo_perda: args.motivo, fechado_em: new Date().toISOString() })
+        .eq("id", args.id);
+      if (error) throw error;
+      await registrarEventoCrm(args.id, "perda", `Oportunidade perdida — motivo: ${args.motivo}.`);
+    },
+    onSuccess: (_r, args) => invalidarOportunidade(qc, args.id),
+  });
+}
+
+/**
+ * Marca ADMISSÃO: status "ganha", etapa "Admissão", fechado_em. O vínculo com
+ * o cadastro de residente (residente_id) é gravado pelo fluxo de criação de
+ * residente (Bloco 4) — aqui só fecha a oportunidade como ganha.
+ */
+export function useMarcarAdmissao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string }) => {
+      const { error } = await supabase
+        .from("crm_oportunidade")
+        .update({ status: "ganha", etapa: ETAPA_ADMISSAO, fechado_em: new Date().toISOString() })
+        .eq("id", args.id);
+      if (error) throw error;
+      await registrarEventoCrm(args.id, "admissao", "Oportunidade marcada como ADMISSÃO (ganha).");
+    },
+    onSuccess: (_r, args) => invalidarOportunidade(qc, args.id),
+  });
+}
+
+/** Vincula a oportunidade ao residente criado (rastreabilidade lead→hóspede). */
+export function useVincularResidente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; residenteId: string }) => {
+      const { error } = await supabase
+        .from("crm_oportunidade")
+        .update({ residente_id: args.residenteId })
+        .eq("id", args.id);
+      if (error) throw error;
+      await registrarEventoCrm(args.id, "admissao", "Cadastro de residente criado a partir desta oportunidade.");
+    },
+    onSuccess: (_r, args) => invalidarOportunidade(qc, args.id),
   });
 }
 
