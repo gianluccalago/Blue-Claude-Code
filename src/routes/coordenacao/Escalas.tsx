@@ -431,7 +431,9 @@ function VisaoMes({
   const celulas = Array.from({ length: 42 }, (_, i) => somarDias(base, i));
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
+      {/* Mobile: rola na horizontal com largura mínima para as células não esmagarem. */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <div className="grid min-w-[34rem] grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
         {DIAS.map((d) => (
           <div key={d} className="bg-muted/50 py-2 text-center text-xs font-bold text-secondary">
             {d}
@@ -479,6 +481,7 @@ function VisaoMes({
             </button>
           );
         })}
+      </div>
       </div>
 
       {/* Detalhe do dia selecionado */}

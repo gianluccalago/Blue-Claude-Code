@@ -114,7 +114,7 @@ export function HeroStat({
         <Medalhao icon={icon} tom={alerta ? "destructive" : tom} className="size-10" />
       </div>
       <div className="relative mt-2 flex items-end gap-1">
-        <span className="text-5xl font-extrabold leading-none tracking-tight tabular-nums text-secondary">
+        <span className="text-4xl font-extrabold leading-none tracking-tight tabular-nums text-secondary sm:text-5xl">
           {valor}
         </span>
         {sufixo && <span className="mb-1 text-lg font-bold text-muted-foreground">{sufixo}</span>}
@@ -164,7 +164,7 @@ export function StatCard({
         <span
           className={cn(
             "font-extrabold tracking-tight tabular-nums",
-            semDados ? "text-lg text-muted-foreground/70" : "text-3xl text-secondary",
+            semDados ? "text-lg text-muted-foreground/70" : "text-2xl text-secondary sm:text-3xl",
           )}
         >
           {valor}

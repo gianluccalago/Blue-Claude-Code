@@ -1,0 +1,28 @@
+# Blueprint de deploy do Blue Senior Living no Render (site estático).
+# Importe este repositório em Render > New > Blueprint e preencha as duas
+# variáveis do Supabase quando solicitado (sync:false = não versionadas).
+services:
+  - type: web
+    name: blue-senior-living
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    # SPA: todas as rotas (ex.: /app/master) reescrevem para index.html,
+    # senão dar refresh numa sub-rota retorna 404.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Credenciais do Supabase — preencha no painel do Render (build-time).
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
