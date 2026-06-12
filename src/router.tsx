@@ -17,6 +17,7 @@ import { CrmTarefas } from "@/routes/administracao/crm/CrmTarefas";
 import { CrmContatos } from "@/routes/administracao/crm/CrmContatos";
 import { CrmOrigens } from "@/routes/administracao/crm/CrmOrigens";
 import { CrmConfig } from "@/routes/administracao/crm/CrmConfig";
+import { CrmRelatorios } from "@/routes/administracao/crm/CrmRelatorios";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -407,6 +408,11 @@ const crmConfigRoute = createRoute({
   path: "crm-config",
   component: CrmConfig,
 });
+const crmRelatoriosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-relatorios",
+  component: CrmRelatorios,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -445,6 +451,7 @@ const routeTree = rootRoute.addChildren([
     crmContatosRoute,
     crmOrigensRoute,
     crmConfigRoute,
+    crmRelatoriosRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

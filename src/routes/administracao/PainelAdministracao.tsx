@@ -14,18 +14,26 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  ArrowRight,
+  CalendarCheck,
+  BadgeCheck,
 } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
+import { useResumoFunil } from "@/hooks/useCrm";
 import { formatarMoeda, formatarMesReferencia, mesAtual } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard, ProgressBar } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 
 export function PainelAdministracao() {
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  const base = `/app/${perfil ?? "administracao"}`;
   const mes = mesAtual();
   const demo = useDemonstrativoMes(mes);
   const custos = useCustosPessoalDoMes(mes);
+  const funil = useResumoFunil();
 
   if (demo.isLoading || custos.isLoading) return <LoadingState />;
   if (demo.isError) return <ErrorState error={demo.error} />;
@@ -101,6 +109,43 @@ export function PainelAdministracao() {
           valor={formatarMoeda(valorRecebido)}
         />
       </div>
+
+      {/* Funil comercial — atalho/visão rápida do CRM (admissões). */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="size-5 text-primary" /> Funil comercial
+          </CardTitle>
+          <Link
+            to={`${base}/crm` as string}
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+          >
+            Abrir pipeline <ArrowRight className="size-4" />
+          </Link>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              icon={TrendingUp}
+              tom="primary"
+              rotulo="Oportunidades ativas"
+              valor={funil.data?.oportunidadesAtivas ?? 0}
+            />
+            <StatCard
+              icon={CalendarCheck}
+              tom="secondary"
+              rotulo="Visitas agendadas na semana"
+              valor={funil.data?.visitasNaSemana ?? 0}
+            />
+            <StatCard
+              icon={BadgeCheck}
+              tom="success"
+              rotulo="Admissões no mês"
+              valor={funil.data?.admissoesNoMes ?? 0}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

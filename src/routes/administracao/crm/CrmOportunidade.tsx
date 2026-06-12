@@ -8,8 +8,10 @@ import {
 import {
   useOportunidade, useCrmEtapas, useEventos, useTarefasOportunidade,
   useMoverEtapa, useMarcarPerda, useMarcarAdmissao, useAnotar,
-  useCriarTarefa, useConcluirTarefa, useCrmMotivos,
+  useCriarTarefa, useConcluirTarefa, useCrmMotivos, useVincularResidente,
 } from "@/hooks/useCrm";
+import { useCriarResidente, type ResidenteValor } from "@/hooks/useResidentesGestao";
+import { ResidenteFicha } from "@/components/master/ResidenteFicha";
 import { QUALIFICACAO_LABEL, STATUS_LABEL, STATUS_VARIANTE, TIPOS_TAREFA, BASE_LEGAL_LABEL } from "@/lib/crm";
 import { idadeTexto } from "@/lib/sla";
 import { formatarMoeda } from "@/lib/mensalidade";
@@ -20,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import type { CrmTarefa } from "@/types/database";
+import type { CrmContato, CrmOportunidade as CrmOportunidadeRow, CrmTarefa, TipoSuite } from "@/types/database";
 
 export function CrmOportunidade() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
@@ -34,10 +36,13 @@ export function CrmOportunidade() {
   const mover = useMoverEtapa();
   const perda = useMarcarPerda();
   const admissao = useMarcarAdmissao();
+  const criarResidente = useCriarResidente();
+  const vincular = useVincularResidente();
 
   const [confirmarAdmissao, setConfirmarAdmissao] = useState(false);
   const [modalPerda, setModalPerda] = useState(false);
   const [motivoSel, setMotivoSel] = useState("");
+  const [criandoResidente, setCriandoResidente] = useState(false);
 
   if (!id) return <EmptyState label="Oportunidade não informada." />;
   if (detalhe.isLoading || etapas.isLoading) return <LoadingState />;
@@ -47,6 +52,38 @@ export function CrmOportunidade() {
   const { oportunidade: op, contato } = detalhe.data;
   const terminal = op.status === "ganha" || op.status === "perdida";
   const idxEtapaAtual = (etapas.data ?? []).findIndex((e) => e.nome === op.etapa);
+
+  async function criarCadastroResidente(valor: ResidenteValor) {
+    try {
+      const residenteId = await criarResidente.mutateAsync(valor);
+      await vincular.mutateAsync({ id: op.id, residenteId });
+      toast.success("Cadastro de residente criado e vinculado à oportunidade.");
+      setCriandoResidente(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível criar o cadastro.");
+    }
+  }
+
+  // Fluxo de admissão: cria o cadastro de residente pré-preenchido pela
+  // oportunidade. Ao salvar, grava residente_id (rastreabilidade lead→hóspede).
+  if (criandoResidente) {
+    return (
+      <div className="space-y-5">
+        <button
+          onClick={() => setCriandoResidente(false)}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+        >
+          <ArrowLeft className="size-4" /> Voltar à oportunidade
+        </button>
+        <ResidenteFicha
+          prefill={prefillResidente(op, contato)}
+          salvando={criarResidente.isPending || vincular.isPending}
+          onSalvar={criarCadastroResidente}
+          onCancelar={() => setCriandoResidente(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -111,6 +148,23 @@ export function CrmOportunidade() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Admissão ganha → oferta de criar o cadastro do residente */}
+      {op.status === "ganha" && !op.residente_id && (
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="min-w-0">
+              <p className="font-bold text-secondary">Admissão confirmada 🎉</p>
+              <p className="text-sm text-muted-foreground">
+                Crie o cadastro de residente a partir desta oportunidade (já pré-preenchido).
+              </p>
+            </div>
+            <Button variant="success" onClick={() => setCriandoResidente(true)}>
+              <BadgeCheck className="size-4" /> Criar cadastro de residente
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Painel lateral */}
@@ -212,6 +266,28 @@ export function CrmOportunidade() {
       )}
     </div>
   );
+}
+
+// Monta os valores iniciais do cadastro de residente a partir da oportunidade
+// e do contato (família). Campos não mapeados ficam vazios ("Não informado").
+const SUITES_VALIDAS: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
+function prefillResidente(op: CrmOportunidadeRow, contato: CrmContato | null): Partial<ResidenteValor> {
+  const suite = SUITES_VALIDAS.includes(op.tipo_suite_interesse as TipoSuite)
+    ? (op.tipo_suite_interesse as TipoSuite)
+    : null;
+  const responsavel = contato?.nome
+    ? `${contato.nome}${contato.relacao ? ` (${contato.relacao})` : ""}`
+    : null;
+  return {
+    nome: contato?.nome_idoso ?? "",
+    tipo_suite: suite,
+    grau_dependencia: contato?.grau_estimado ?? null,
+    grau_contratual: contato?.grau_estimado ?? null,
+    responsavel_legal: responsavel,
+    contato: contato?.telefones?.[0] ?? null,
+    mensalidade_valor: op.valor_mensalidade_estimado ?? null,
+    data_admissao: new Date().toISOString().slice(0, 10),
+  };
 }
 
 // ─── Subcomponentes ───────────────────────────────────────────────────────────

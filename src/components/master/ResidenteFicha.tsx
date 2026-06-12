@@ -25,8 +25,8 @@ const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const labelBase = "mb-1.5 block text-sm font-semibold text-secondary";
 
-function estadoInicial(r?: Residente): ResidenteValor {
-  return {
+function estadoInicial(r?: Residente, prefill?: Partial<ResidenteValor>): ResidenteValor {
+  const base: ResidenteValor = {
     nome: r?.nome ?? "",
     data_nascimento: r?.data_nascimento ?? null,
     grau_dependencia: r?.grau_dependencia ?? null,
@@ -51,6 +51,9 @@ function estadoInicial(r?: Residente): ResidenteValor {
     celular_proprio: r?.celular_proprio ?? null,
     foto_url: r?.foto_url ?? null,
   };
+  // Pré-preenchimento (ex.: admissão vinda do CRM) só se aplica na CRIAÇÃO.
+  if (!r && prefill) return { ...base, ...prefill };
+  return base;
 }
 
 function paraInt(s: string): number | null {
@@ -66,16 +69,19 @@ function paraDecimal(s: string): number | null {
 
 export function ResidenteFicha({
   inicial,
+  prefill,
   salvando,
   onSalvar,
   onCancelar,
 }: {
   inicial?: Residente;
+  /** Valores iniciais ao CRIAR (ignorado na edição). Usado pela admissão do CRM. */
+  prefill?: Partial<ResidenteValor>;
   salvando: boolean;
   onSalvar: (valor: ResidenteValor) => void;
   onCancelar: () => void;
 }) {
-  const [v, setV] = useState<ResidenteValor>(() => estadoInicial(inicial));
+  const [v, setV] = useState<ResidenteValor>(() => estadoInicial(inicial, prefill));
 
   function set<K extends keyof ResidenteValor>(campo: K, valor: ResidenteValor[K]) {
     setV((atual) => ({ ...atual, [campo]: valor }));

@@ -73,9 +73,14 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
 export function useCriarResidente() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: ResidenteValor) => {
-      const { error } = await supabase.from("residentes").insert(paraRegistro(v));
+    mutationFn: async (v: ResidenteValor): Promise<string> => {
+      const { data, error } = await supabase
+        .from("residentes")
+        .insert(paraRegistro(v))
+        .select("id")
+        .single();
       if (error) throw error;
+      return data.id;
     },
     onSuccess: () => invalidar(qc),
   });

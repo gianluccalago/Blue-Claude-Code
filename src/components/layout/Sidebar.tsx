@@ -46,6 +46,7 @@ import {
   Contact,
   Radio,
   Settings,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -150,6 +151,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/crm-origens": Radio,
   "/app/administracao/crm-config": Settings,
   "/app/master/crm-config": Settings,
+  "/app/administracao/crm-relatorios": BarChart3,
+  "/app/master/crm-relatorios": BarChart3,
   // Ficha do hóspede (item "Hóspedes" de cada perfil)
   "/app/medico/ficha": Users2,
   "/app/coordenacao/ficha": Users2,

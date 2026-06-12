@@ -646,5 +646,55 @@ export function useSalvarMotivo() {
   });
 }
 
+// ─── Resumo para o Painel da Administração ("Funil comercial") ────────────────
+
+export type ResumoFunil = {
+  oportunidadesAtivas: number;
+  visitasNaSemana: number;
+  admissoesNoMes: number;
+};
+
+/** KPIs do funil para o card "Funil comercial" do painel da Administração. */
+export function useResumoFunil() {
+  return useQuery({
+    queryKey: ["crm-resumo-funil"],
+    queryFn: async (): Promise<ResumoFunil> => {
+      const hoje = new Date();
+      const em7 = new Date(hoje);
+      em7.setDate(em7.getDate() + 7);
+      const hojeStr = hoje.toISOString().slice(0, 10);
+      const fim7Str = em7.toISOString().slice(0, 10);
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+
+      const [ativas, visitas, admissoes] = await Promise.all([
+        supabase
+          .from("crm_oportunidade")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["nova", "em_andamento", "pausada"]),
+        supabase
+          .from("crm_tarefa")
+          .select("id", { count: "exact", head: true })
+          .eq("concluida", false)
+          .ilike("tipo", "%visita%")
+          .gte("data", hojeStr)
+          .lte("data", fim7Str),
+        supabase
+          .from("crm_oportunidade")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ganha")
+          .gte("fechado_em", inicioMes),
+      ]);
+      if (ativas.error) throw ativas.error;
+      if (visitas.error) throw visitas.error;
+      if (admissoes.error) throw admissoes.error;
+      return {
+        oportunidadesAtivas: ativas.count ?? 0,
+        visitasNaSemana: visitas.count ?? 0,
+        admissoesNoMes: admissoes.count ?? 0,
+      };
+    },
+  });
+}
+
 // Reexport de tipos úteis às telas.
 export type { CrmEvento, CrmTarefa };
