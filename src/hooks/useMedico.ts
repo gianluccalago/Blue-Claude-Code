@@ -236,13 +236,28 @@ export type ItemEscaladoIntercorrencia = {
   residente: Residente;
   /** Instante do escalamento mais recente (pendencia_tratamento.tratado_em). */
   escaladoEm: string;
+  /** Quem escalou (dono da escalação). */
+  escaladoPor: string | null;
+  /** Se houve resolução médica do MESMO tipo+hóspede até 48h antes desta
+      ocorrência: o resolvido_em daquela resolução (selo REINCIDENTE). */
+  reincidenteDe: string | null;
 };
 
 export type ItemEscaladoEliminacao = {
   /** O registro eliminacao_tratamento com acao="escalado_medico" que originou o item. */
   escalacao: EliminacaoTratamento;
   residente: Residente;
+  /** Resolução médica do mesmo tipo+hóspede até 48h antes (selo REINCIDENTE). */
+  reincidenteDe: string | null;
 };
+
+/** Janela de reincidência pós-resolução (horas). */
+const JANELA_REINCIDENCIA_H = 48;
+
+function dentroDaJanela(resolvidoEm: string, novaOcorrenciaEm: string): boolean {
+  const dif = new Date(novaOcorrenciaEm).getTime() - new Date(resolvidoEm).getTime();
+  return dif > 0 && dif <= JANELA_REINCIDENCIA_H * 36e5;
+}
 
 /**
  * Busca todos os itens que foram escalados ao médico e ainda não resolvidos.
@@ -321,14 +336,46 @@ export function useEscaladosMedico() {
         intercorrencias = iData ?? [];
       }
 
+      // Intercorrências JÁ RESOLVIDAS (base do selo REINCIDENTE: nova
+      // ocorrência do mesmo tipo+hóspede em até 48h após a resolução).
+      const idsResolvidos = [...resolvidosInter];
+      let resolvidasInfo = new Map<string, { residente_id: string; tipo: string }>();
+      if (idsResolvidos.length > 0) {
+        const { data: rData, error: re } = await supabase
+          .from("intercorrencia")
+          .select("id, residente_id, tipo")
+          .in("id", idsResolvidos);
+        if (re) throw re;
+        resolvidasInfo = new Map((rData ?? []).map((r) => [r.id, r]));
+      }
+      const resolucoesInterc = resolucoes.filter((r) => r.tipo_origem === "intercorrencia");
+
+      function reincidenciaInterc(inter: Intercorrencia): string | null {
+        for (const r of resolucoesInterc) {
+          const original = resolvidasInfo.get(r.referencia_id);
+          if (!original) continue;
+          if (
+            original.residente_id === inter.residente_id &&
+            original.tipo === inter.tipo &&
+            dentroDaJanela(r.resolvido_em, inter.registrado_em)
+          ) {
+            return r.resolvido_em;
+          }
+        }
+        return null;
+      }
+
       const intercEscalados: ItemEscaladoIntercorrencia[] = intercorrencias
         .map((inter) => ({
           intercorrencia: inter,
           residente: residenteMap.get(inter.residente_id)!,
           escaladoEm: escalacoesPorInter.get(inter.id)?.tratado_em ?? "",
+          escaladoPor: escalacoesPorInter.get(inter.id)?.tratado_por ?? null,
+          reincidenteDe: reincidenciaInterc(inter),
         }))
         .filter((x) => !!x.residente)
-        .sort((a, b) => b.escaladoEm.localeCompare(a.escaladoEm));
+        // Fila puxada: a escalação mais ANTIGA primeiro.
+        .sort((a, b) => a.escaladoEm.localeCompare(b.escaladoEm));
 
       // Eliminação: mantém o mais recente por residente+tipo; filtra resolvidos.
       const elimMaisRecentePorChave = new Map<string, EliminacaoTratamento>();
@@ -339,14 +386,37 @@ export function useEscaladosMedico() {
         }
       }
 
+      // Reincidência de eliminação: resolução do mesmo hóspede+tipo até 48h
+      // antes desta nova escalação (as escalações resolvidas estão no array).
+      const elimResolvidasPorId = new Map(
+        elimEscalados.filter((e) => resolvidosElim.has(e.id)).map((e) => [e.id, e]),
+      );
+      const resolucoesElim = resolucoes.filter((r) => r.tipo_origem === "eliminacao");
+      function reincidenciaElim(e: EliminacaoTratamento): string | null {
+        for (const r of resolucoesElim) {
+          const original = elimResolvidasPorId.get(r.referencia_id);
+          if (!original) continue;
+          if (
+            original.residente_id === e.residente_id &&
+            original.tipo_alerta === e.tipo_alerta &&
+            dentroDaJanela(r.resolvido_em, e.tratado_em)
+          ) {
+            return r.resolvido_em;
+          }
+        }
+        return null;
+      }
+
       const elimPendentes: ItemEscaladoEliminacao[] = [...elimMaisRecentePorChave.values()]
         .filter((e) => !resolvidosElim.has(e.id))
         .map((e) => ({
           escalacao: e,
           residente: residenteMap.get(e.residente_id)!,
+          reincidenteDe: reincidenciaElim(e),
         }))
         .filter((x) => !!x.residente)
-        .sort((a, b) => b.escalacao.tratado_em.localeCompare(a.escalacao.tratado_em));
+        // Fila puxada: a escalação mais ANTIGA primeiro.
+        .sort((a, b) => a.escalacao.tratado_em.localeCompare(b.escalacao.tratado_em));
 
       return { intercEscalados, elimEscalados: elimPendentes };
     },

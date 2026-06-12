@@ -117,26 +117,62 @@ export function Escalas() {
 
   const turnosVagos = vagos7.data ?? [];
 
+  // Severidade do vago por PROXIMIDADE: o urgente não pode ter a mesma cor
+  // do crônico (gestão visual). ≤24h = vermelho, ≤72h = âmbar, além = neutro.
+  function severidadeVago(t: { inicio: string }): "vermelho" | "ambar" | "neutro" {
+    const horas = (new Date(t.inicio).getTime() - Date.now()) / 36e5;
+    if (horas <= 24) return "vermelho";
+    if (horas <= 72) return "ambar";
+    return "neutro";
+  }
+  const CORES_VAGO = {
+    vermelho: "border-destructive/50 bg-destructive/10 text-destructive",
+    ambar: "border-warning/50 bg-warning/10 text-warning-foreground",
+    neutro: "border-border bg-muted/40 text-secondary",
+  } as const;
+
   return (
     <div className="space-y-5">
-      {/* Faixa de furos de escala (próximos 7 dias) */}
+      {/* FILA "VAGOS A COBRIR" — ordenada por urgência (mais próximo primeiro) */}
       {turnosVagos.length > 0 && (
-        <button
-          onClick={() => {
-            const primeiro = turnosVagos[0];
-            setAncora(new Date(`${primeiro.data}T12:00:00`));
-            setVisao("semana");
-            setDiaDetalhe(primeiro.data);
-          }}
-          className="flex w-full items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-left transition-colors hover:bg-destructive/15"
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold text-destructive">
+        <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+          <p className="flex items-center gap-2 text-sm font-bold text-destructive">
             <AlertTriangle className="size-4 shrink-0" />
-            Próximos 7 dias: {turnosVagos.length} turno{turnosVagos.length > 1 ? "s" : ""} vago
-            {turnosVagos.length > 1 ? "s" : ""} a cobrir
-          </span>
-          <span className="text-xs font-semibold text-destructive underline">ver →</span>
-        </button>
+            Vagos a cobrir ({turnosVagos.length}) — por ordem de urgência
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {turnosVagos.slice(0, 8).map((t) => {
+              const sev = severidadeVago(t);
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setAncora(new Date(`${t.data}T12:00:00`));
+                    setVisao("semana");
+                    setDiaDetalhe(t.data);
+                  }}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors hover:opacity-80",
+                    CORES_VAGO[sev],
+                  )}
+                >
+                  {new Date(`${t.data}T12:00:00`).toLocaleDateString("pt-BR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "2-digit",
+                  })}{" "}
+                  · {t.tag === "noturno" ? "Noturno" : "Diurno"} ·{" "}
+                  {t.categoria === "enfermeiras" ? "Enfermagem" : "Cuidadoras"}
+                </button>
+              );
+            })}
+            {turnosVagos.length > 8 && (
+              <span className="self-center text-xs text-muted-foreground">
+                +{turnosVagos.length - 8} adiante
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Cabeçalho */}

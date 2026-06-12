@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope, AlertCircle } from "lucide-react";
+import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope, AlertCircle, Clock3, RotateCcw } from "lucide-react";
+import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
+import { formatarDataBR } from "@/lib/utils";
 import {
   useEscaladosMedico,
   useRegistrarResolucaoMedica,
@@ -164,7 +166,24 @@ function IntercorrenciaEscaladaCard({
             <AlertTriangle className="size-4" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-secondary">{item.intercorrencia.tipo}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-secondary">{item.intercorrencia.tipo}</span>
+              {/* Idade da escalação + selo de SLA estourado (fila puxada) */}
+              <span className="text-xs font-semibold text-muted-foreground">
+                escalada {idadeTexto(item.escaladoEm)}
+              </span>
+              {estourouSLA(item.escaladoEm, SLA_HORAS.pendenciaClinica) && (
+                <Badge variant="destructive" className="gap-1">
+                  <Clock3 className="size-3" /> atrasado
+                </Badge>
+              )}
+              {item.reincidenteDe && (
+                <Badge variant="destructive" className="gap-1">
+                  <RotateCcw className="size-3" /> REINCIDENTE após resolução de{" "}
+                  {formatarDataBR(item.reincidenteDe)}
+                </Badge>
+              )}
+            </div>
             <div className="text-sm font-semibold text-secondary">
               {item.residente.nome} · Quarto {item.residente.quarto ?? "—"}
             </div>
@@ -175,6 +194,7 @@ function IntercorrenciaEscaladaCard({
               <span>Registrada em {formatarDataHoraBR(item.intercorrencia.registrado_em)}</span>
               <span className="font-medium text-warning">
                 · Escalada em {formatarDataHoraBR(item.escaladoEm)}
+                {item.escaladoPor ? ` por ${item.escaladoPor}` : ""}
               </span>
             </div>
           </div>
@@ -260,7 +280,23 @@ function EliminacaoEscaladaCard({
             <Icone className="size-4" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-secondary">{item.residente.nome}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-secondary">{item.residente.nome}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                escalado {idadeTexto(item.escalacao.tratado_em)}
+              </span>
+              {estourouSLA(item.escalacao.tratado_em, SLA_HORAS.pendenciaClinica) && (
+                <Badge variant="destructive" className="gap-1">
+                  <Clock3 className="size-3" /> atrasado
+                </Badge>
+              )}
+              {item.reincidenteDe && (
+                <Badge variant="destructive" className="gap-1">
+                  <RotateCcw className="size-3" /> REINCIDENTE após resolução de{" "}
+                  {formatarDataBR(item.reincidenteDe)}
+                </Badge>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground">
               Quarto {item.residente.quarto ?? "—"}
             </div>
@@ -270,6 +306,7 @@ function EliminacaoEscaladaCard({
             )}
             <div className="mt-1 text-xs font-medium text-primary">
               Escalado em {formatarDataHoraBR(item.escalacao.tratado_em)}
+              {item.escalacao.tratado_por ? ` por ${item.escalacao.tratado_por}` : ""}
             </div>
           </div>
         </div>

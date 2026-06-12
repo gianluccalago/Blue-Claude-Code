@@ -4,6 +4,7 @@
 import { useState, useMemo } from "react";
 import {
   Wrench,
+  Clock3,
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
@@ -26,7 +27,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, formatarDataHoraBR, formatarDataBR, ouNaoInformado } from "@/lib/utils";
+import { cn, formatarDataHoraBR, formatarDataBR, ouNaoInformado, hojeISO } from "@/lib/utils";
+import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
 import type { ChamadoManutencao, StatusChamado, UrgenciaChamado } from "@/types/database";
 
 const inputClass =
@@ -67,6 +69,11 @@ function emergenciaAtiva(c: ChamadoManutencao): boolean {
   return c.urgencia === "emergencia" && c.status !== "resolvido";
 }
 
+/** Chamado não resolvido com prazo já passado (sobe ao topo da fila). */
+function prazoVencido(c: ChamadoManutencao): boolean {
+  return c.status !== "resolvido" && !!c.prazo && c.prazo < hojeISO();
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function Manutencao() {
@@ -96,11 +103,16 @@ export function Manutencao() {
         (filtroStatus === "todos" || c.status === filtroStatus) &&
         (filtroUrgencia === "todas" || c.urgencia === filtroUrgencia)
     );
+    // Fila puxada: EMERGÊNCIAS acima de tudo → depois PRAZO VENCIDO →
+    // demais da mais antiga para a mais nova (o que envelhece sobe).
     return [...filtrados].sort((a, b) => {
       const aE = emergenciaAtiva(a);
       const bE = emergenciaAtiva(b);
       if (aE !== bE) return aE ? -1 : 1;
-      return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
+      const aV = prazoVencido(a);
+      const bV = prazoVencido(b);
+      if (aV !== bV) return aV ? -1 : 1;
+      return new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime();
     });
   }, [chamados, filtroStatus, filtroUrgencia]);
 
@@ -239,6 +251,24 @@ function ChamadoCard({
               <Badge variant={STATUS_BADGE[chamado.status]} className="text-xs">
                 {STATUS_LABEL[chamado.status]}
               </Badge>
+              {chamado.status !== "resolvido" && (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  aberto {idadeTexto(chamado.criado_em)}
+                </span>
+              )}
+              {prazoVencido(chamado) && (
+                <Badge variant="destructive" className="text-xs gap-1">
+                  <Clock3 className="h-3 w-3" /> prazo vencido
+                </Badge>
+              )}
+              {chamado.status !== "resolvido" &&
+                !prazoVencido(chamado) &&
+                chamado.urgencia !== "emergencia" &&
+                estourouSLA(chamado.criado_em, SLA_HORAS.chamadoNaoUrgente) && (
+                  <Badge variant="destructive" className="text-xs gap-1">
+                    <Clock3 className="h-3 w-3" /> atrasado
+                  </Badge>
+                )}
             </div>
             <p className="text-xs text-muted-foreground truncate">{chamado.problema}</p>
           </div>
@@ -340,10 +370,17 @@ function AcoesChamado({ chamado }: { chamado: ChamadoManutencao }) {
 
   async function handleResolver() {
     setErro(null);
+    // Foto OBRIGATÓRIA ao resolver: evidência de que foi feito (jidoka —
+    // fim da resolução "no papel").
+    if (!foto) {
+      setErro("Anexe a foto de evidência para confirmar a resolução.");
+      return;
+    }
     try {
-      let fotoUrl: string | null = null;
-      if (foto) {
-        fotoUrl = await uploadFotoManutencao(foto, chamado.id);
+      const fotoUrl = await uploadFotoManutencao(foto, chamado.id);
+      if (!fotoUrl) {
+        setErro("Não foi possível enviar a foto. Tente novamente.");
+        return;
       }
       await resolver.mutateAsync({ id: chamado.id, fotoUrl });
       setModo("nenhum");
@@ -408,7 +445,7 @@ function AcoesChamado({ chamado }: { chamado: ChamadoManutencao }) {
     <div className="space-y-3 rounded-md border border-primary/20 bg-primary/5 p-3">
       <div>
         <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-secondary">
-          <Camera className="h-3.5 w-3.5" /> Foto de evidência (opcional)
+          <Camera className="h-3.5 w-3.5" /> Foto de evidência <span className="text-destructive">*</span>
         </label>
         <input
           type="file"
@@ -419,7 +456,7 @@ function AcoesChamado({ chamado }: { chamado: ChamadoManutencao }) {
       </div>
       {erro && <p className="text-xs text-destructive">{erro}</p>}
       <div className="flex gap-2">
-        <Button size="sm" disabled={resolver.isPending} onClick={handleResolver}>
+        <Button size="sm" disabled={!foto || resolver.isPending} onClick={handleResolver}>
           {resolver.isPending ? "Salvando…" : "Confirmar resolução"}
         </Button>
         <Button size="sm" variant="outline" onClick={() => { setModo("nenhum"); setErro(null); setFoto(null); }}>

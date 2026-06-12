@@ -12,7 +12,9 @@ import {
   Syringe,
   BellOff,
   History,
+  Clock3,
 } from "lucide-react";
+import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   useTratamentos,
@@ -94,19 +96,12 @@ export function PainelCoordenacao() {
   const resolData: ResolucaoMedica[] = resolucoes.data ?? [];
 
   // ----- Pendências abertas (sem tratamento "resolvido") -----
-  // Ordenação por gravidade: NÃO administrada > Parcial (escalado sobe ao topo).
-  function gravidadeMed(status: string, escalado: boolean): number {
-    if (escalado) return 0;
-    if (status === "nao") return 1;
-    return 2; // "parcial"
-  }
+  // Fila puxada: ordena da MAIS ANTIGA para a mais nova (o que envelhece
+  // primeiro é atacado primeiro); a idade + selo de SLA ficam no card.
   const medsAbertas = (medicacoes.data ?? [])
     .map((m) => ({ reg: m, estado: estadoDaPendencia(trat, "medicacao", m.id) }))
     .filter((x) => !x.estado.resolvido)
-    .sort((a, b) =>
-      gravidadeMed(a.reg.status, !!a.estado.escaladoEm) -
-      gravidadeMed(b.reg.status, !!b.estado.escaladoEm),
-    );
+    .sort((a, b) => a.reg.administrado_em.localeCompare(b.reg.administrado_em));
   const intercAbertas = (intercorrencias.data ?? [])
     .map((i) => ({
       reg: i,
@@ -116,8 +111,7 @@ export function PainelCoordenacao() {
       ) ?? null,
     }))
     .filter((x) => !x.estado.resolvido)
-    // Escalados (mas não resolvidos) aparecem por último para liberar foco no não-escalado.
-    .sort((a, b) => (!!a.estado.escaladoEm ? 1 : 0) - (!!b.estado.escaladoEm ? 1 : 0));
+    .sort((a, b) => a.reg.registrado_em.localeCompare(b.reg.registrado_em));
 
   // ----- Indicadores -----
   const inicioHoje = new Date();
@@ -214,6 +208,7 @@ export function PainelCoordenacao() {
                   }
                   rodape={`Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}
                   severidade={reg.status === "nao" ? "critico" : "atencao"}
+                  abertaEm={reg.administrado_em}
                   escaladoEm={estado.escaladoEm}
                   ocupado={registrar.isPending}
                   onResolver={() =>
@@ -240,6 +235,7 @@ export function PainelCoordenacao() {
                   detalhe={ouNaoInformado(reg.observacao)}
                   rodape={`Registrado por ${ouNaoInformado(reg.registrado_por)} · ${formatarDataHoraBR(reg.registrado_em)}`}
                   severidade="atencao"
+                  abertaEm={reg.registrado_em}
                   escaladoEm={estado.escaladoEm}
                   resolvidoPeloMedicoEm={resolucaoMedica?.resolvido_em ?? null}
                   resolvidoPeloMedicoObs={resolucaoMedica?.observacao ?? null}
@@ -375,6 +371,7 @@ function PendenciaCard({
   detalhe,
   rodape,
   severidade = "atencao",
+  abertaEm,
   escaladoEm,
   resolvidoPeloMedicoEm,
   resolvidoPeloMedicoObs,
@@ -387,6 +384,8 @@ function PendenciaCard({
   detalhe: string;
   rodape: string;
   severidade?: "critico" | "atencao";
+  /** Quando a pendência nasceu — alimenta idade + selo de SLA estourado. */
+  abertaEm: string;
   escaladoEm: string | null;
   resolvidoPeloMedicoEm?: string | null;
   resolvidoPeloMedicoObs?: string | null;
@@ -397,6 +396,7 @@ function PendenciaCard({
   const borderCls = severidade === "critico"
     ? "border-destructive/30 bg-destructive/5"
     : "border-warning/30 bg-warning/5";
+  const atrasada = estourouSLA(abertaEm, SLA_HORAS.pendenciaClinica);
   return (
     <div className={cn("flex flex-col gap-3 rounded-lg border p-4", borderCls)}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -406,6 +406,14 @@ function PendenciaCard({
               {severidade === "critico" ? "Crítico" : "Atenção"}
             </Badge>
             <span className="font-bold text-secondary">{titulo}</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              aberta {idadeTexto(abertaEm)}
+            </span>
+            {atrasada && (
+              <Badge variant="destructive" className="gap-1">
+                <Clock3 className="size-3" /> atrasado
+              </Badge>
+            )}
           </div>
           <div className="mt-1 text-sm font-semibold text-secondary">{hospede}</div>
           <div className="text-sm text-muted-foreground">{detalhe}</div>

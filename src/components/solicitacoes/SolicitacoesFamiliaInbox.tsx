@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import { MessageSquare, Reply, Forward, CornerDownRight } from "lucide-react";
+import { MessageSquare, Reply, Forward, CornerDownRight, Clock3 } from "lucide-react";
+import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
 import { getPerfil } from "@/data/profiles";
 import {
   DESTINOS_SOLICITACAO,
@@ -43,7 +44,13 @@ export function SolicitacoesFamiliaInbox() {
   if (solicitacoes.isLoading) return <LoadingState />;
   if (solicitacoes.isError) return <ErrorState error={solicitacoes.error} />;
 
-  const lista = solicitacoes.data ?? [];
+  // Fila puxada: abertas primeiro, da MAIS ANTIGA para a mais nova.
+  const lista = [...(solicitacoes.data ?? [])].sort((a, b) => {
+    const aAberta = a.status === "aberta" ? 0 : 1;
+    const bAberta = b.status === "aberta" ? 0 : 1;
+    if (aAberta !== bAberta) return aAberta - bAberta;
+    return a.criada_em.localeCompare(b.criada_em);
+  });
   if (lista.length === 0)
     return <EmptyState label="Nenhuma solicitação da família para este setor." />;
 
@@ -110,7 +117,18 @@ function SolicitacaoItem({
             {s.redirecionada_de && (
               <Badge variant="purple">Reencaminhada de {labelDestino(s.redirecionada_de)}</Badge>
             )}
-            {aberta ? <Badge variant="warning">Aberta</Badge> : <Badge variant="success">Respondida</Badge>}
+            {aberta ? (
+              <>
+                <Badge variant="warning">Aberta {idadeTexto(s.criada_em)}</Badge>
+                {estourouSLA(s.criada_em, SLA_HORAS.solicitacaoFamilia) && (
+                  <Badge variant="destructive" className="gap-1">
+                    <Clock3 className="size-3" /> atrasado
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <Badge variant="success">Respondida</Badge>
+            )}
           </div>
         </div>
         <p className="text-sm text-secondary/80">{s.mensagem}</p>
