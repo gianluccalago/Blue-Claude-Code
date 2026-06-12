@@ -480,6 +480,15 @@ function MapaPeriodo({
 
   if (loadDisp) return <LoadingState />;
 
+  // FILA do período: pendentes primeiro (estado pendente/feito), preservando
+  // a ordem alfabética dentro de cada grupo.
+  const fila = [...residentes].sort((a, b) => {
+    const aFeito = (dispPorResidente[a.id]?.length ?? 0) > 0 ? 1 : 0;
+    const bFeito = (dispPorResidente[b.id]?.length ?? 0) > 0 ? 1 : 0;
+    return aFeito - bFeito;
+  });
+  const feitos = fila.filter((r) => (dispPorResidente[r.id]?.length ?? 0) > 0).length;
+
   return (
     <div className="space-y-4">
       {/* Seletor de período */}
@@ -500,8 +509,15 @@ function MapaPeriodo({
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Badge variant="muted">{residentes.length} hóspedes</Badge>
+        <Badge variant={feitos === residentes.length ? "success" : "warning"}>
+          {feitos} dispensado{feitos !== 1 ? "s" : ""} neste período
+        </Badge>
+      </div>
+
       <div className="space-y-2">
-        {residentes.map((res) => (
+        {fila.map((res) => (
           <MapaHospede
             key={res.id}
             residente={res}

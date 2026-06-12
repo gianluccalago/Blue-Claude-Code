@@ -125,6 +125,31 @@ export function PainelCoordenacao() {
 
   const procedimentos = enfermagem.data ?? [];
 
+  // ----- Lote (3.4): resolver várias pendências de uma vez -----
+  // Chave: "medicacao:<id>" | "intercorrencia:<id>".
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [obsLote, setObsLote] = useState("");
+  function toggleSelecao(chave: string) {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
+      return next;
+    });
+  }
+  async function resolverSelecionadas() {
+    const obs = obsLote.trim() || null;
+    for (const chave of selecionadas) {
+      const [tipoOrigem, referenciaId] = chave.split(":") as [
+        "medicacao" | "intercorrencia",
+        string,
+      ];
+      await registrar.mutateAsync({ tipoOrigem, referenciaId, acao: "resolvido", observacao: obs });
+    }
+    setSelecionadas(new Set());
+    setObsLote("");
+  }
+
   async function handleSilenciarTodos() {
     for (const a of alertasElim) {
       await tratarAlerta.mutateAsync({
@@ -194,6 +219,25 @@ export function PainelCoordenacao() {
             <EmptyState label="Nenhuma pendência aberta. Tudo em dia!" />
           ) : (
             <>
+              {/* Barra de LOTE: resolve as selecionadas de uma vez */}
+              {selecionadas.size > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                  <Badge variant="secondary">{selecionadas.size} selecionada{selecionadas.size > 1 ? "s" : ""}</Badge>
+                  <input
+                    type="text"
+                    value={obsLote}
+                    onChange={(e) => setObsLote(e.target.value)}
+                    placeholder="Observação única (opcional)"
+                    className="h-9 min-w-[200px] flex-1 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <Button size="sm" variant="success" disabled={registrar.isPending} onClick={resolverSelecionadas}>
+                    <Check className="size-4" /> Resolver selecionadas
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelecionadas(new Set())}>
+                    Limpar
+                  </Button>
+                </div>
+              )}
               {medsAbertas.map(({ reg, estado }) => (
                 <PendenciaCard
                   key={reg.id}
@@ -209,6 +253,8 @@ export function PainelCoordenacao() {
                   rodape={`Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}
                   severidade={reg.status === "nao" ? "critico" : "atencao"}
                   abertaEm={reg.administrado_em}
+                  selecionado={selecionadas.has(`medicacao:${reg.id}`)}
+                  onToggleSelecao={() => toggleSelecao(`medicacao:${reg.id}`)}
                   escaladoEm={estado.escaladoEm}
                   ocupado={registrar.isPending}
                   onResolver={() =>
@@ -236,6 +282,8 @@ export function PainelCoordenacao() {
                   rodape={`Registrado por ${ouNaoInformado(reg.registrado_por)} · ${formatarDataHoraBR(reg.registrado_em)}`}
                   severidade="atencao"
                   abertaEm={reg.registrado_em}
+                  selecionado={selecionadas.has(`intercorrencia:${reg.id}`)}
+                  onToggleSelecao={() => toggleSelecao(`intercorrencia:${reg.id}`)}
                   escaladoEm={estado.escaladoEm}
                   resolvidoPeloMedicoEm={resolucaoMedica?.resolvido_em ?? null}
                   resolvidoPeloMedicoObs={resolucaoMedica?.observacao ?? null}
@@ -372,6 +420,8 @@ function PendenciaCard({
   rodape,
   severidade = "atencao",
   abertaEm,
+  selecionado = false,
+  onToggleSelecao,
   escaladoEm,
   resolvidoPeloMedicoEm,
   resolvidoPeloMedicoObs,
@@ -386,6 +436,9 @@ function PendenciaCard({
   severidade?: "critico" | "atencao";
   /** Quando a pendência nasceu — alimenta idade + selo de SLA estourado. */
   abertaEm: string;
+  /** Lote: seleção múltipla para resolver de uma vez. */
+  selecionado?: boolean;
+  onToggleSelecao?: () => void;
   escaladoEm: string | null;
   resolvidoPeloMedicoEm?: string | null;
   resolvidoPeloMedicoObs?: string | null;
@@ -438,7 +491,18 @@ function PendenciaCard({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {onToggleSelecao && (
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-2 text-xs font-semibold text-secondary">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={selecionado}
+              onChange={onToggleSelecao}
+            />
+            Lote
+          </label>
+        )}
         <Button variant="success" onClick={onResolver} disabled={ocupado}>
           <Check className="size-4" /> Marcar resolvido
         </Button>

@@ -96,6 +96,13 @@ export function Atividades() {
   if (errRes) return <ErrorState error={errRes} />;
   if (errAtv) return <ErrorState error={errAtv} />;
 
+  // Fila "registrar hoje": atividades de HOJE ainda sem execução (sempre
+  // calculada sobre o dia corrente, independente da data navegada).
+  const { data: execucoesDeHoje = [] } = useExecucoesDoDia(hojeISO());
+  const pendentesHoje = atividadesDoDia(atividades, hojeISO()).filter(
+    (a) => !execucoesDeHoje.some((e) => e.atividade_id === a.id),
+  );
+
   const atividadesHoje = atividadesDoDia(atividades, dataSelecionada).sort((a, b) =>
     a.horario.localeCompare(b.horario)
   );
@@ -126,6 +133,27 @@ export function Atividades() {
         </TabsList>
 
         <TabsContent value="agenda" className="space-y-4">
+          {/* FILA "REGISTRAR HOJE": atividades do dia ainda sem execução —
+              o que falta fazer não depende de navegar datas (fluxo puxado). */}
+          {pendentesHoje.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-warning/50 bg-warning/10 p-3">
+              <p className="text-sm font-bold text-warning-foreground">
+                Registrar hoje ({pendentesHoje.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {pendentesHoje.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setDataSelecionada(hojeISO())}
+                    className="rounded-lg border border-warning/40 bg-card px-3 py-2 text-xs font-semibold text-secondary transition-colors hover:bg-accent"
+                  >
+                    {a.titulo} · {a.horario?.slice(0, 5) ?? ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Navegação de data */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1.5">

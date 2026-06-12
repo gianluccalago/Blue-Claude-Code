@@ -3,10 +3,12 @@ import { Plus, LayoutTemplate, ChevronRight, Salad } from "lucide-react";
 import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
 import {
   useAdicionarPlanoItem,
+  useAdicionarPlanoItemEmLote,
   useEditarPlanoItem,
   useRemoverPlanoItem,
   useAplicarModelo,
 } from "@/hooks/usePlanos";
+import type { Residente } from "@/types/database";
 import { useModelos } from "@/hooks/useModelos";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { DietaInfo } from "@/components/nutricao/DietaInfo";
@@ -45,14 +47,29 @@ export function PlanosCuidado() {
         selecionadoId={hospedeId}
         onSelect={setSelecionadoId}
       />
-      {hospedeId && <PlanoDoHospede key={hospedeId} residenteId={hospedeId} />}
+      {hospedeId && (
+        <PlanoDoHospede
+          key={hospedeId}
+          residenteId={hospedeId}
+          outrosHospedes={(residentes.data ?? []).filter((r) => r.id !== hospedeId)}
+        />
+      )}
     </div>
   );
 }
 
-function PlanoDoHospede({ residenteId }: { residenteId: string }) {
+function PlanoDoHospede({
+  residenteId,
+  outrosHospedes,
+}: {
+  residenteId: string;
+  outrosHospedes: Residente[];
+}) {
   const itens = usePlanoItens(residenteId);
   const adicionar = useAdicionarPlanoItem(residenteId);
+  const adicionarLote = useAdicionarPlanoItemEmLote();
+  // Lote (3.4): outros hóspedes que receberão a MESMA tarefa ao salvar.
+  const [loteIds, setLoteIds] = useState<Set<string>>(new Set());
   const editar = useEditarPlanoItem(residenteId);
   const remover = useRemoverPlanoItem(residenteId);
   const aplicar = useAplicarModelo(residenteId);
@@ -142,15 +159,70 @@ function PlanoDoHospede({ residenteId }: { residenteId: string }) {
             </div>
           )}
 
-          {/* Formulário: adicionar tarefa */}
+          {/* Formulário: adicionar tarefa (com aplicação em lote opcional) */}
           {mostrarForm && (
-            <ItemTarefaForm
-              salvando={adicionar.isPending}
-              onCancelar={() => setMostrarForm(false)}
-              onSalvar={(valor) => {
-                adicionar.mutate(valor, { onSuccess: () => setMostrarForm(false) });
-              }}
-            />
+            <div className="space-y-3">
+              <ItemTarefaForm
+                salvando={adicionar.isPending || adicionarLote.isPending}
+                onCancelar={() => {
+                  setMostrarForm(false);
+                  setLoteIds(new Set());
+                }}
+                onSalvar={(valor) => {
+                  // Lote: grava para o hóspede atual + selecionados de uma vez.
+                  const ids = [residenteId, ...loteIds];
+                  if (ids.length > 1) {
+                    adicionarLote.mutate(
+                      { residenteIds: ids, valor },
+                      {
+                        onSuccess: () => {
+                          setMostrarForm(false);
+                          setLoteIds(new Set());
+                        },
+                      },
+                    );
+                  } else {
+                    adicionar.mutate(valor, { onSuccess: () => setMostrarForm(false) });
+                  }
+                }}
+              />
+              {outrosHospedes.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-sm font-semibold text-secondary">
+                    Aplicar também a outros hóspedes{" "}
+                    {loteIds.size > 0 && (
+                      <Badge variant="secondary" className="ml-1">{loteIds.size} selecionado{loteIds.size > 1 ? "s" : ""}</Badge>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {outrosHospedes.map((h) => {
+                      const marcado = loteIds.has(h.id);
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() =>
+                            setLoteIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(h.id)) next.delete(h.id);
+                              else next.add(h.id);
+                              return next;
+                            })
+                          }
+                          className={
+                            marcado
+                              ? "rounded-lg border border-primary bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                              : "rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-secondary hover:border-primary/50"
+                          }
+                        >
+                          {h.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Lista de itens */}

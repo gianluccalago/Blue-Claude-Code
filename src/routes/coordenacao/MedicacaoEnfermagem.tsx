@@ -1,20 +1,24 @@
 import { useMemo, useState } from "react";
-import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight, Clock3, Users } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   usePrescricoesEnfermagem,
   useAdministracoesEnfermagemHoje,
   useRegistrarAdministracaoEnfermagem,
   useRemoverAdministracaoEnfermagem,
+  usePrescricoesEnfermagemTodas,
+  useAdministracoesEnfermagemHojeTodas,
+  useRegistrarAdministracaoEnfermagemCasa,
 } from "@/hooks/useEnfermagem";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { ouNaoInformado, formatarHoraBR, horarioParaMinutos } from "@/lib/utils";
-import type { Administracao, PeriodoMedicacao, Prescricao } from "@/types/database";
+import { cn, ouNaoInformado, formatarHoraBR, horarioParaMinutos } from "@/lib/utils";
+import type { Administracao, PeriodoMedicacao, Prescricao, Residente } from "@/types/database";
 
 interface Confirmacao {
   titulo: string;
@@ -52,15 +56,188 @@ export function MedicacaoEnfermagem() {
   const anterior = indice > 0 ? lista[indice - 1] : null;
   const proximo = indice < lista.length - 1 ? lista[indice + 1] : null;
 
+  // Visão "AGORA" (heijunka): a casa inteira numa lista única — atrasados em
+  // vermelho + devidos no período corrente. Navegação por hóspede vira
+  // visão secundária (sem perder nada do fluxo atual).
+  return (
+    <Tabs defaultValue="agora">
+      <TabsList className="w-full justify-start">
+        <TabsTrigger value="agora" className="gap-1.5">
+          <Clock3 className="size-4" /> Agora (casa)
+        </TabsTrigger>
+        <TabsTrigger value="hospede" className="gap-1.5">
+          <Users className="size-4" /> Por hóspede
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="agora">
+        <VisaoAgora residentes={lista} />
+      </TabsContent>
+
+      <TabsContent value="hospede">
+        <VisaoPorHospede
+          lista={lista}
+          hospedeId={hospedeId}
+          indice={indice}
+          anterior={anterior}
+          proximo={proximo}
+          onSelect={setSelecionadoId}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+/** Visão da casa: itens de enfermagem atrasados + do período corrente. */
+function VisaoAgora({ residentes }: { residentes: Residente[] }) {
+  const prescricoes = usePrescricoesEnfermagemTodas();
+  const administracoes = useAdministracoesEnfermagemHojeTodas();
+  const registrar = useRegistrarAdministracaoEnfermagemCasa();
+
+  const nomePorId = useMemo(
+    () => new Map(residentes.map((r) => [r.id, r])),
+    [residentes],
+  );
+
+  // Período corrente = o último cujo horário-padrão já chegou (antes das
+  // 06:00 não há período corrente — só atrasados de ontem não entram, o
+  // recorte é o dia de hoje).
+  const agoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const indiceCorrente = (() => {
+    let idx = -1;
+    PERIODOS.forEach((p, i) => {
+      if ((horarioParaMinutos(p.horario) ?? 0) <= agoraMin) idx = i;
+    });
+    return idx;
+  })();
+
+  // prescricao_id já administrada hoje (independente do período do registro).
+  const administradasHoje = useMemo(
+    () => new Set((administracoes.data ?? []).map((a) => a.prescricao_id)),
+    [administracoes.data],
+  );
+
+  if (prescricoes.isLoading || administracoes.isLoading) return <LoadingState />;
+  if (prescricoes.isError) return <ErrorState error={prescricoes.error} />;
+
+  type ItemAgora = { prescricao: Prescricao; residente: Residente; atrasado: boolean };
+  const itens: ItemAgora[] = [];
+  for (const p of prescricoes.data ?? []) {
+    const idxPeriodo = PERIODOS.findIndex((x) => x.key === p.periodo);
+    if (idxPeriodo === -1 || idxPeriodo > indiceCorrente) continue; // ainda não venceu
+    if (administradasHoje.has(p.id)) continue; // já registrado hoje
+    const residente = nomePorId.get(p.residente_id);
+    if (!residente) continue;
+    itens.push({ prescricao: p, residente, atrasado: idxPeriodo < indiceCorrente });
+  }
+  // Atrasados primeiro; dentro do grupo, pela ordem do dia.
+  itens.sort((a, b) => {
+    if (a.atrasado !== b.atrasado) return a.atrasado ? -1 : 1;
+    const ia = PERIODOS.findIndex((x) => x.key === a.prescricao.periodo);
+    const ib = PERIODOS.findIndex((x) => x.key === b.prescricao.periodo);
+    return ia - ib;
+  });
+
+  const atrasados = itens.filter((i) => i.atrasado).length;
+
+  if (indiceCorrente === -1) {
+    return <EmptyState label="Antes das 06:00 — nenhum período de enfermagem vencido hoje." />;
+  }
+  if (itens.length === 0) {
+    return <EmptyState label="Tudo em dia: nenhum item de enfermagem pendente até agora." />;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="muted">{itens.length} pendente{itens.length !== 1 ? "s" : ""}</Badge>
+        {atrasados > 0 && (
+          <Badge variant="destructive">{atrasados} atrasado{atrasados !== 1 ? "s" : ""}</Badge>
+        )}
+        <span className="text-xs text-muted-foreground">
+          Período corrente: {PERIODOS[indiceCorrente].label} · {PERIODOS[indiceCorrente].horario}
+        </span>
+      </div>
+
+      {itens.map(({ prescricao: m, residente, atrasado }) => {
+        const periodo = PERIODOS.find((x) => x.key === m.periodo);
+        return (
+          <div
+            key={m.id}
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3",
+              atrasado ? "border-destructive/40 bg-destructive/5" : "border-border bg-card",
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                className={cn(
+                  "grid size-9 shrink-0 place-items-center rounded-lg",
+                  atrasado ? "bg-destructive/10 text-destructive" : "bg-nursing/10 text-nursing",
+                )}
+              >
+                <Syringe className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-secondary">
+                  {residente.nome}
+                  <span className="font-normal text-muted-foreground">
+                    {" "}· Quarto {ouNaoInformado(residente.quarto)}
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {m.medicamento} · {periodo?.label} {periodo?.horario}
+                  {atrasado && (
+                    <span className="ml-1.5 font-bold text-destructive">ATRASADO</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              disabled={registrar.isPending}
+              onClick={() =>
+                registrar.mutate({
+                  residenteId: residente.id,
+                  prescricaoId: m.id,
+                  periodo: m.periodo as PeriodoMedicacao,
+                })
+              }
+            >
+              <Check className="size-4" /> Registrar
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Visão original por hóspede (navegação ‹ › preservada). */
+function VisaoPorHospede({
+  lista,
+  hospedeId,
+  indice,
+  anterior,
+  proximo,
+  onSelect,
+}: {
+  lista: Residente[];
+  hospedeId: string | undefined;
+  indice: number;
+  anterior: Residente | null;
+  proximo: Residente | null;
+  onSelect: (id: string) => void;
+}) {
   return (
     <div className="space-y-6">
-      <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
+      <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={onSelect} />
 
       {/* Navegação prev/next */}
       {lista.length > 1 && (
         <div className="flex items-center justify-between gap-3">
           <button
-            onClick={() => anterior && setSelecionadoId(anterior.id)}
+            onClick={() => anterior && onSelect(anterior.id)}
             disabled={!anterior}
             className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -71,7 +248,7 @@ export function MedicacaoEnfermagem() {
             {indice + 1} / {lista.length}
           </span>
           <button
-            onClick={() => proximo && setSelecionadoId(proximo.id)}
+            onClick={() => proximo && onSelect(proximo.id)}
             disabled={!proximo}
             className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >

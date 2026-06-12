@@ -39,6 +39,31 @@ function invalidar(qc: ReturnType<typeof useQueryClient>, residenteId: string) {
   qc.invalidateQueries({ queryKey: ["plano-itens", residenteId] });
 }
 
+/**
+ * Adiciona a MESMA tarefa ao plano de VÁRIOS hóspedes de uma vez (lote —
+ * menos cliques para rotinas comuns, ex.: "hidratação 10:00" para 12 pessoas).
+ */
+export function useAdicionarPlanoItemEmLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { residenteIds: string[]; valor: ItemTarefaValor }) => {
+      const rows = args.residenteIds.map((residenteId) => ({
+        residente_id: residenteId,
+        tarefa: args.valor.tarefa,
+        horario: args.valor.horario,
+        responsavel: args.valor.responsavel,
+        tolerancia_minutos: args.valor.tolerancia_minutos,
+        ativa: true,
+      }));
+      const { error } = await supabase.from("plano_cuidado_item").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      for (const id of args.residenteIds) invalidar(qc, id);
+    },
+  });
+}
+
 /** Adiciona uma tarefa ao plano de cuidado (ativa=true). */
 export function useAdicionarPlanoItem(residenteId: string) {
   const qc = useQueryClient();

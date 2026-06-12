@@ -55,6 +55,63 @@ export function useAdministracoesEnfermagemHoje(residenteId: string | undefined)
   });
 }
 
+/** Prescrições de enfermagem ativas da CASA INTEIRA (visão "agora" do turno). */
+export function usePrescricoesEnfermagemTodas() {
+  return useQuery({
+    queryKey: ["prescricoes-enfermagem-todas"],
+    queryFn: async (): Promise<Prescricao[]> => {
+      const { data, error } = await supabase
+        .from("prescricao")
+        .select("*")
+        .eq("ativa", true)
+        .in("via", VIAS_ENFERMAGEM);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Administrações de enfermagem de HOJE da casa inteira (visão "agora"). */
+export function useAdministracoesEnfermagemHojeTodas() {
+  return useQuery({
+    queryKey: ["administracao-enfermagem-todas", hojeISO()],
+    queryFn: async (): Promise<Administracao[]> => {
+      const { data, error } = await supabase
+        .from("administracao")
+        .select("*")
+        .not("prescricao_id", "is", null)
+        .gte("administrado_em", inicioDoDiaISO());
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Registra administração a partir da visão da casa (residente nos args). */
+export function useRegistrarAdministracaoEnfermagemCasa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      residenteId: string;
+      prescricaoId: string;
+      periodo: PeriodoMedicacao;
+    }) => {
+      const { error } = await supabase.from("administracao").insert({
+        residente_id: args.residenteId,
+        periodo: args.periodo,
+        status: "sim",
+        administrado_por: ENFERMAGEM,
+        prescricao_id: args.prescricaoId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem-todas"] });
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", args.residenteId] });
+    },
+  });
+}
+
 /**
  * Registra UMA administração de enfermagem (cada toque = um novo registro;
  * o mesmo item pode ser administrado várias vezes no dia). Grava em
@@ -73,8 +130,10 @@ export function useRegistrarAdministracaoEnfermagem(residenteId: string) {
       });
       if (error) throw error;
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] });
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem-todas"] });
+    },
   });
 }
 
@@ -89,7 +148,9 @@ export function useRemoverAdministracaoEnfermagem(residenteId: string) {
       const { error } = await supabase.from("administracao").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] });
+      qc.invalidateQueries({ queryKey: ["administracao-enfermagem-todas"] });
+    },
   });
 }
