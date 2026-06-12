@@ -256,6 +256,9 @@ export interface Database {
           // Alergeno que casou com o medicamento e foi CONFIRMADO pelo médico
           // ao prescrever (trilha do alerta de alergia; null = sem conflito).
           alerta_alergia: string | null;
+          // Médico autor da prescrição (usuarios.id, perfil medico/master).
+          // A receita PDF assina SEMPRE com este médico — nunca quem exporta.
+          prescrito_por: string | null;
         };
         Insert: {
           id?: string;
@@ -270,6 +273,7 @@ export interface Database {
           posologia?: string | null;
           grupo_prescricao?: string | null;
           alerta_alergia?: string | null;
+          prescrito_por?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
         Relationships: [];

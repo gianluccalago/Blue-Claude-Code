@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { setUsuarioAtual } from "@/auth/usuarioAtual";
+import { setUsuarioAtual, setUsuarioAutenticado } from "@/auth/usuarioAtual";
 import type { Usuario } from "@/types/database";
 
 // ===========================================================================
@@ -76,6 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : null,
     );
   }, [usuarioEfetivo]);
+
+  // Identidade REAL (ignora Camaleão) — autoria legal (ex.: médico prescritor).
+  useEffect(() => {
+    setUsuarioAutenticado(
+      usuario
+        ? {
+            id: usuario.id,
+            nome: usuario.nome,
+            perfil: usuario.perfil,
+            residenteVinculado: usuario.residente_vinculado,
+            registro: usuario.registro_profissional,
+          }
+        : null,
+    );
+  }, [usuario]);
 
   useEffect(() => {
     let vivo = true;

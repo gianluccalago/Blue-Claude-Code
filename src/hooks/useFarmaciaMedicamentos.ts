@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { AssinanteReceita } from "@/lib/exportPrescricao";
 
 // ===========================================================================
 // Hooks do módulo de medicamentos da Farmácia:
 //  - quais residentes têm prescrição ativa (indicador da emissão em lote);
-//  - médicos geriatras do sistema (assinante das receitas do lote);
+//  - médico(s) PRESCRITOR(ES) de cada residente — transparência da autoria:
+//    a receita sai SEMPRE assinada pelo médico que prescreveu; a Farmácia
+//    apenas extrai o documento;
 //  - lançamento do custo da "caixinha" mensal, que grava na MESMA tabela
 //    `upselling` que a Administração lê (categoria "Medicamentos",
 //    lancado_por "Farmácia") — sem tabela nova nem duplicação.
@@ -29,19 +30,41 @@ export function useResidentesComPrescricao() {
   });
 }
 
-/** Médicos geriatras ativos — candidatos a assinar as receitas do lote. */
-export function useMedicosAssinantes() {
+export type PrescritoresDoResidente = {
+  /** Nomes dos médicos prescritores das prescrições ativas do residente. */
+  nomes: string[];
+  /** true se algum grupo de prescrição está sem médico (bloqueia a receita). */
+  semMedico: boolean;
+};
+
+/**
+ * Médico(s) PRESCRITOR(ES) por residente (prescrições ativas) — exibido na
+ * emissão em lote para deixar claro QUEM assina cada receita gerada.
+ */
+export function usePrescritoresPorResidente() {
   return useQuery({
-    queryKey: ["farmacia-medicos-assinantes"],
-    queryFn: async (): Promise<AssinanteReceita[]> => {
-      const { data, error } = await supabase
-        .from("usuarios")
-        .select("nome, registro_profissional")
-        .eq("perfil", "medico")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return (data ?? []).map((u) => ({ nome: u.nome, crm: u.registro_profissional ?? "" }));
+    queryKey: ["farmacia-prescritores-por-residente"],
+    queryFn: async (): Promise<Map<string, PrescritoresDoResidente>> => {
+      const [presc, usuarios] = await Promise.all([
+        supabase.from("prescricao").select("residente_id, prescrito_por").eq("ativa", true),
+        supabase.from("usuarios").select("id, nome"),
+      ]);
+      if (presc.error) throw presc.error;
+      if (usuarios.error) throw usuarios.error;
+
+      const nomePorId = new Map((usuarios.data ?? []).map((u) => [u.id, u.nome]));
+      const mapa = new Map<string, PrescritoresDoResidente>();
+      for (const p of presc.data ?? []) {
+        const reg = mapa.get(p.residente_id) ?? { nomes: [], semMedico: false };
+        if (!p.prescrito_por) {
+          reg.semMedico = true;
+        } else {
+          const nome = nomePorId.get(p.prescrito_por) ?? "Médico não encontrado";
+          if (!reg.nomes.includes(nome)) reg.nomes.push(nome);
+        }
+        mapa.set(p.residente_id, reg);
+      }
+      return mapa;
     },
   });
 }

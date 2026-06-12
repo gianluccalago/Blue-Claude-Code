@@ -34,6 +34,26 @@ const PADRAO: UsuarioAtual = {
 export const usuarioAtual: UsuarioAtual = { ...PADRAO };
 
 /**
+ * Identidade do usuário REALMENTE autenticado, IGNORANDO o Modo Camaleão.
+ * Quando o Master encarna outro perfil, `usuarioAtual` vira o encarnado, mas
+ * `usuarioAutenticado` continua sendo o Master. Usada onde a autoria legal
+ * importa: o médico prescritor de uma receita é SEMPRE o usuário real
+ * (se o Master prescreve via Camaleão, o prescritor é o Master — que também é
+ * médico —, nunca o perfil encarnado).
+ */
+export const usuarioAutenticado: UsuarioAtual = { ...PADRAO };
+
+/** Atualiza a identidade REAL (chamado pelo AuthProvider; ignora Camaleão). */
+export function setUsuarioAutenticado(u: UsuarioAtual | null) {
+  const v = u ?? PADRAO;
+  usuarioAutenticado.id = v.id;
+  usuarioAutenticado.nome = v.nome;
+  usuarioAutenticado.perfil = v.perfil;
+  usuarioAutenticado.residenteVinculado = v.residenteVinculado;
+  usuarioAutenticado.registro = v.registro;
+}
+
+/**
  * Identidade da família atual usada pelo Portal da Família. As telas leem
  * `residenteId` e `nome`. Sob autenticação, o residenteId vem do
  * residente_vinculado do usuário-família logado — garantindo que cada família

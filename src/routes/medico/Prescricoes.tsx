@@ -11,7 +11,12 @@ import {
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
 import { toast } from "sonner";
-import { exportarPrescricaoPDF, copiarPrescricao } from "@/lib/exportPrescricao";
+import {
+  exportarReceitasPDF,
+  copiarPrescricao,
+  PrescricaoSemMedicoError,
+  MSG_SEM_MEDICO,
+} from "@/lib/exportPrescricao";
 import { alergiaConflitante } from "@/lib/alergia";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -226,9 +231,16 @@ function ListaPrescricoes({
   async function handleExportPDF() {
     if (!hospede) return;
     try {
-      await exportarPrescricaoPDF(hospede, grupos);
-    } catch {
-      toast.error("Não foi possível gerar o PDF. Tente novamente.");
+      // A receita assina SEMPRE com o médico PRESCRITOR de cada grupo (uma
+      // receita por médico) — não com o usuário logado.
+      const n = await exportarReceitasPDF(hospede, grupos);
+      if (n > 1) toast.success(`${n} receitas geradas (uma por médico prescritor).`);
+    } catch (e) {
+      if (e instanceof PrescricaoSemMedicoError) {
+        toast.error(MSG_SEM_MEDICO);
+      } else {
+        toast.error("Não foi possível gerar o PDF. Tente novamente.");
+      }
     }
   }
 

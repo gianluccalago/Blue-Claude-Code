@@ -316,6 +316,10 @@ insert into prescricao (residente_id, medicamento, dose, via, periodo, horario, 
 ('5eed0010-0000-4000-8000-000000000006','AAS','100mg','oral','almoco','12:00','1 comprimido','1x/dia',true),
 ('5eed0010-0000-4000-8000-000000000006','Enoxaparina','40mg','injetavel','noite','20:00','1 ampola','1x/dia à noite',true);
 
+-- Autoria (0040): receitas da simulação assinam com o médico da simulação.
+update prescricao set prescrito_por = '5eed0020-0000-4000-8000-000000000006'
+  where residente_id::text like '5eed0010%' and prescrito_por is null;
+
 -- ----------------------------------------------------------------------------
 -- 5) PLANOS DE CUIDADO (R1–R6 variando por grau; R7 sem plano)
 -- ----------------------------------------------------------------------------

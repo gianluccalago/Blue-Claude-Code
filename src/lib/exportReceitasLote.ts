@@ -1,56 +1,60 @@
 import type { Residente } from "@/types/database";
 import type { GrupoPrescricao } from "@/hooks/useMedico";
-import { gerarPrescricaoBlob, type AssinanteReceita } from "@/lib/exportPrescricao";
+import {
+  gerarReceitasDoHospede,
+  baixarBlob,
+  PrescricaoSemMedicoError,
+  MSG_SEM_MEDICO,
+} from "@/lib/exportPrescricao";
 import { hojeISO } from "@/lib/utils";
 
 // ===========================================================================
-// Emissão EM LOTE das receitas (Farmácia) — reúsa o MESMO gerador de PDF do
-// Médico (gerarPrescricaoBlob → layout idêntico) e empacota os PDFs num único
-// .zip via JSZip (carregado sob demanda). Falha de um hóspede NÃO interrompe o
-// lote: o nome do hóspede que falhou é reportado.
+// Emissão EM LOTE das receitas (Farmácia) — reúsa a MESMA função de geração do
+// Médico (gerarReceitasDoHospede) e empacota os PDFs num único .zip via JSZip.
+//
+// AUTORIA: a Farmácia apenas EXTRAI — cada receita sai assinada pelo MÉDICO
+// PRESCRITOR registrado na prescrição, nunca por quem dispara o lote. Hóspede
+// com prescrições de médicos diferentes gera um PDF por médico. Prescrição sem
+// médico identificado NÃO é emitida (entra na lista de falhas com o motivo).
 // ===========================================================================
 
 export type ItemReceita = { hospede: Residente; grupos: GrupoPrescricao[] };
 
+export type FalhaReceita = { hospede: string; motivo: string };
+
 export type ResultadoLote = {
   /** Quantos PDFs foram gerados com sucesso e entraram no arquivo. */
   gerados: number;
-  /** Nomes dos hóspedes cujo PDF falhou (o lote seguiu sem eles). */
-  falhas: string[];
+  /** Hóspedes cujas receitas falharam (o lote seguiu sem eles), com o motivo. */
+  falhas: FalhaReceita[];
 };
 
-/** Dispara o download de um Blob no navegador. */
-function baixarBlob(blob: Blob, nomeArquivo: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nomeArquivo;
-  a.click();
-  URL.revokeObjectURL(url);
+function motivoDe(e: unknown): string {
+  if (e instanceof PrescricaoSemMedicoError) return MSG_SEM_MEDICO;
+  return "erro ao gerar o PDF";
 }
 
 /**
- * Gera o PDF de cada hóspede e baixa um único .zip com todos. Se houver apenas
- * um item, ainda assim zipa (use `exportarReceitaUnica` para baixar o PDF solto).
+ * Gera os PDFs de cada hóspede (um por médico prescritor) e baixa um único
+ * .zip. Falha de um hóspede NÃO interrompe o lote.
  */
-export async function exportarReceitasLoteZip(
-  itens: ItemReceita[],
-  assinante: AssinanteReceita,
-): Promise<ResultadoLote> {
+export async function exportarReceitasLoteZip(itens: ItemReceita[]): Promise<ResultadoLote> {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
-  const falhas: string[] = [];
+  const falhas: FalhaReceita[] = [];
   let gerados = 0;
 
   for (const { hospede, grupos } of itens) {
     // Pula quem não tem prescrição ativa — não gera PDF vazio.
     if (grupos.length === 0) continue;
     try {
-      const { blob, nomeArquivo } = await gerarPrescricaoBlob(hospede, grupos, assinante);
-      zip.file(nomeArquivo, blob);
-      gerados++;
-    } catch {
-      falhas.push(hospede.nome);
+      const receitas = await gerarReceitasDoHospede(hospede, grupos);
+      for (const r of receitas) {
+        zip.file(r.nomeArquivo, r.blob);
+        gerados++;
+      }
+    } catch (e) {
+      falhas.push({ hospede: hospede.nome, motivo: motivoDe(e) });
     }
   }
 
@@ -62,11 +66,12 @@ export async function exportarReceitasLoteZip(
   return { gerados, falhas };
 }
 
-/** Baixa o PDF de um único hóspede direto (sem zipar). */
-export async function exportarReceitaUnica(
-  item: ItemReceita,
-  assinante: AssinanteReceita,
-): Promise<void> {
-  const { blob, nomeArquivo } = await gerarPrescricaoBlob(item.hospede, item.grupos, assinante);
-  baixarBlob(blob, nomeArquivo);
+/**
+ * Baixa direto (sem zipar) as receitas de um único hóspede — uma por médico
+ * prescritor. Retorna quantos PDFs foram baixados.
+ */
+export async function exportarReceitaUnica(item: ItemReceita): Promise<number> {
+  const receitas = await gerarReceitasDoHospede(item.hospede, item.grupos);
+  for (const r of receitas) baixarBlob(r.blob, r.nomeArquivo);
+  return receitas.length;
 }

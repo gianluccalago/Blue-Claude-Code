@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { usuarioAtual } from "@/auth/usuarioAtual";
+import { usuarioAtual, usuarioAutenticado } from "@/auth/usuarioAtual";
 import type {
   AvaliacaoIVCF,
   EliminacaoTratamento,
@@ -20,8 +20,27 @@ export type GrupoPrescricao = {
   dose: string | null;
   via: ViaMedicacao;
   posologia: string | null;
+  /** Médico AUTOR da prescrição (usuarios.id) — quem assina a receita PDF. */
+  prescritoPor: string | null;
   linhas: Prescricao[];
 };
+
+/**
+ * Médico prescritor da prescrição criada AGORA: o usuário REALMENTE autenticado
+ * (ignora o Camaleão — se o Master prescreve encarnando o médico, o prescritor
+ * é o Master, que também é médico). Só perfis medico/master podem constar como
+ * prescritor; qualquer outro caso retorna null e a receita fica bloqueada até
+ * um médico ser atribuído.
+ */
+function prescritorAtualId(): string | null {
+  if (usuarioAutenticado.perfil === "medico" || usuarioAutenticado.perfil === "master") {
+    return usuarioAutenticado.id;
+  }
+  console.warn(
+    `Prescrição criada por usuário sem perfil médico (${usuarioAutenticado.perfil}); prescrito_por ficará vazio.`,
+  );
+  return null;
+}
 
 export type MedicamentoConhecido = {
   medicamento: string;
@@ -103,10 +122,13 @@ export async function fetchPrescricoesAtivasAgrupadas(
         dose: l.dose,
         via: l.via,
         posologia: l.posologia,
+        prescritoPor: l.prescrito_por,
         linhas: [],
       });
     }
-    mapaGrupo.get(chave)!.linhas.push(l);
+    const g = mapaGrupo.get(chave)!;
+    g.linhas.push(l);
+    if (!g.prescritoPor && l.prescrito_por) g.prescritoPor = l.prescrito_por;
   }
 
   return Array.from(mapaGrupo.values());
@@ -140,6 +162,7 @@ export function useCriarPrescricao() {
     mutationFn: async (args: NovaPrescricaoArgs) => {
       const grupoPrescricao = crypto.randomUUID();
       const medicamento = args.medicamento.trim().toUpperCase();
+      const prescritoPor = prescritorAtualId();
       const linhas = args.periodos.map((p) => ({
         residente_id: args.residenteId,
         medicamento,
@@ -151,6 +174,7 @@ export function useCriarPrescricao() {
         grupo_prescricao: grupoPrescricao,
         ativa: true,
         alerta_alergia: args.alertaAlergia ?? null,
+        prescrito_por: prescritoPor,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;
@@ -180,6 +204,20 @@ export function useEditarPrescricao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: EditarPrescricaoArgs) => {
+      // Quem edita (médico/master) passa a ser o prescritor das novas linhas;
+      // se o editor não for médico, preserva o prescritor original do grupo.
+      let prescritoPor = prescritorAtualId();
+      if (!prescritoPor) {
+        const { data: anterior } = await supabase
+          .from("prescricao")
+          .select("prescrito_por")
+          .eq("grupo_prescricao", args.grupoPrescricao)
+          .not("prescrito_por", "is", null)
+          .limit(1)
+          .maybeSingle();
+        prescritoPor = anterior?.prescrito_por ?? null;
+      }
+
       const { error: suspErr } = await supabase
         .from("prescricao")
         .update({ ativa: false })
@@ -198,6 +236,7 @@ export function useEditarPrescricao() {
         grupo_prescricao: args.grupoPrescricao,
         ativa: true,
         alerta_alergia: args.alertaAlergia ?? null,
+        prescrito_por: prescritoPor,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;
