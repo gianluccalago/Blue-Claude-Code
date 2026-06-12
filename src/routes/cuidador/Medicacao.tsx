@@ -190,6 +190,8 @@ function PeriodoMedicacaoView({
   liberado: boolean;
 }) {
   const registrar = useRegistrarAdministracao(residenteId);
+  // Hooks SEMPRE antes de qualquer early return (ordem estável de hooks).
+  const [escolhendoMotivo, setEscolhendoMotivo] = useState(false);
 
   const orais = useMemo(() => prescricoes.filter((m) => m.via === "oral"), [prescricoes]);
   const enfermagem = useMemo(() => prescricoes.filter((m) => m.via !== "oral"), [prescricoes]);
@@ -197,8 +199,6 @@ function PeriodoMedicacaoView({
   if (prescricoes.length === 0) {
     return <EmptyState label="Sem prescrições ativas para este período." />;
   }
-
-  const [escolhendoMotivo, setEscolhendoMotivo] = useState(false);
 
   async function confirmarTodas() {
     await registrar.mutateAsync({ periodo, status: "sim" });

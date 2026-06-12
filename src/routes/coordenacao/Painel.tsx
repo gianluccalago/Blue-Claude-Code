@@ -67,6 +67,11 @@ export function PainelCoordenacao() {
   const tratarAlerta = useRegistrarEliminacaoTratamento();
   const resolucoes = useResolucoesMedicas();
 
+  // Lote (3.4): hooks SEMPRE antes dos early returns (ordem estável de hooks).
+  // Chave: "medicacao:<id>" | "intercorrencia:<id>".
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [obsLote, setObsLote] = useState("");
+
   const carregando =
     residentes.isLoading ||
     tratamentos.isLoading ||
@@ -126,9 +131,6 @@ export function PainelCoordenacao() {
   const procedimentos = enfermagem.data ?? [];
 
   // ----- Lote (3.4): resolver várias pendências de uma vez -----
-  // Chave: "medicacao:<id>" | "intercorrencia:<id>".
-  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
-  const [obsLote, setObsLote] = useState("");
   function toggleSelecao(chave: string) {
     setSelecionadas((prev) => {
       const next = new Set(prev);
