@@ -31,8 +31,8 @@ insert into usuarios (id, nome, email, perfil, ativo, funcao, vinculo, registro_
   ('b0000000-0000-0000-0000-000000000009','Mariana Souza','mariana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
   ('b0000000-0000-0000-0000-000000000010','Joana Ribeiro','joana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
   ('b0000000-0000-0000-0000-000000000011','Beatriz Lima','beatriz@blueseniorliving.com.br','cuidador',true,'Cuidadora','PJ',null,false),
-  ('b0000000-0000-0000-0000-000000000012','Enf. Carla Mendes','carla@blueseniorliving.com.br','enfermagem',true,'Enfermeira','CLT','COREN-SP 123456',true),
-  ('b0000000-0000-0000-0000-000000000013','Téc. Patrícia Gomes','patricia.tec@blueseniorliving.com.br','enfermagem',true,'Técnica de Enfermagem','CLT','COREN-SP 654321',true)
+  ('b0000000-0000-0000-0000-000000000012','Carla Mendes','carla@blueseniorliving.com.br','enfermagem',true,'Enfermeira','CLT','COREN-SP 123456',true),
+  ('b0000000-0000-0000-0000-000000000013','Patrícia Gomes','patricia.tec@blueseniorliving.com.br','enfermagem',true,'Técnica de Enfermagem','CLT','COREN-SP 654321',true)
 on conflict (id) do nothing;
 
 -- Fim.

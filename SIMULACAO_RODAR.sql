@@ -253,7 +253,7 @@ values
 ('5eed0020-0000-4000-8000-000000000003','SIM-Carla (Cuidadora)','sim.carla@blue.local','cuidador',true,'Cuidadora','CLT',null,true,null,'mensal_fixo',2100,null,null),
 ('5eed0020-0000-4000-8000-000000000004','SIM-Patrícia (Cuidadora PJ)','sim.patricia@blue.local','cuidador',true,'Cuidadora','PJ',null,false,null,'por_plantao',null,180,220),
 ('5eed0020-0000-4000-8000-000000000005','SIM-Rosa (Enfermeira)','sim.rosa@blue.local','enfermagem',true,'Enfermeira','CLT','COREN-PR 654321',true,null,'mensal_fixo',3500,null,null),
-('5eed0020-0000-4000-8000-000000000006','SIM-Dr. Geraldo (Médico)','sim.medico@blue.local','medico',true,'Médico Geriatra','PJ','CRM-PR 12345',true,null,null,null,null,null),
+('5eed0020-0000-4000-8000-000000000006','SIM-Geraldo (Médico)','sim.medico@blue.local','medico',true,'Médico Geriatra','PJ','CRM-PR 12345',true,null,null,null,null,null),
 ('5eed0020-0000-4000-8000-000000000007','SIM-Marta (Coordenação)','sim.coord@blue.local','coordenacao',true,'Coordenadora','CLT','COREN-PR 111222',true,null,'mensal_fixo',5200,null,null),
 ('5eed0020-0000-4000-8000-000000000008','SIM-Paulo (Farmácia)','sim.farmacia@blue.local','farmacia',true,'Farmacêutico','CLT','CRF-PR 333',true,null,null,null,null,null),
 ('5eed0020-0000-4000-8000-000000000009','SIM-João (Hotelaria)','sim.hotelaria@blue.local','hotelaria',true,'Hotelaria','CLT',null,true,null,null,null,null,null),

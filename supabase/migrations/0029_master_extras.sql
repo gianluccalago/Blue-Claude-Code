@@ -32,8 +32,8 @@ alter table usuarios add constraint usuarios_perfil_check check (perfil in
 
 -- ---------- Usuários de teste p/ os perfis sem seed (login das telas) ----------
 insert into usuarios (id, nome, email, perfil, ativo) values
-  ('b0000000-0000-0000-0000-000000000014','Nut. Camila Nutrição','nutri@blueseniorliving.com.br','nutricionista',true),
-  ('b0000000-0000-0000-0000-000000000015','Sr. Hélio Hotelaria','hotelaria@blueseniorliving.com.br','hotelaria',true)
+  ('b0000000-0000-0000-0000-000000000014','Camila Rocha','nutri@blueseniorliving.com.br','nutricionista',true),
+  ('b0000000-0000-0000-0000-000000000015','Hélio Barbosa','hotelaria@blueseniorliving.com.br','hotelaria',true)
 on conflict (id) do nothing;
 
 -- ---------- Vínculo da família de teste ao seu residente ----------

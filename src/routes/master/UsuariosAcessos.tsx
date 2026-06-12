@@ -290,6 +290,7 @@ function UsuarioCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-secondary">{u.nome}</span>
+            {u.funcao && <Badge variant="secondary">{u.funcao}</Badge>}
             <Badge variant="default">{PERFIL_LABEL[u.perfil]}</Badge>
             {u.ativo ? <Badge variant="success">Ativo</Badge> : <Badge variant="muted">Inativo</Badge>}
           </div>
@@ -297,8 +298,7 @@ function UsuarioCard({
             <span className="inline-flex items-center gap-1">
               <Mail className="size-3.5" /> {ouNaoInformado(u.email)}
             </span>
-            {u.funcao && <span className="font-semibold text-secondary/90">{u.funcao}</span>}
-            {u.vinculo && <span>· {u.vinculo}</span>}
+            {u.vinculo && <span>{u.vinculo}</span>}
             {u.registro_profissional && (
               <span className="inline-flex items-center gap-1">
                 <BadgeCheck className="size-3.5" /> {u.registro_profissional}

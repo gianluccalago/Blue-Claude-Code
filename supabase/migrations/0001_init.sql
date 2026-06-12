@@ -249,34 +249,34 @@ end $$;
 -- ---------- RESIDENTES ----------
 insert into residentes (id, nome, data_nascimento, grau_dependencia, modulo, andar, quarto,
   responsavel_legal, contato, alergias, proteses, historia_vida, data_admissao) values
-('a0000000-0000-0000-0000-000000000001','Profª Alzira Bittencourt','1938-03-12','III',1,2,'1-2-04',
+('a0000000-0000-0000-0000-000000000001','Alzira Bittencourt','1938-03-12','III',1,2,'1-2-04',
   'Marcos Bittencourt (filho)','(11) 99812-4455','Dipirona','Dentária total superior',
   'Professora de história aposentada, lecionou por 40 anos. Adora música clássica e jardinagem.','2023-06-10'),
-('a0000000-0000-0000-0000-000000000002','Sr. Otávio Lemos','1935-09-28','III',1,2,'1-2-06',
+('a0000000-0000-0000-0000-000000000002','Otávio Lemos','1935-09-28','III',1,2,'1-2-06',
   'Helena Lemos (filha)','(11) 99744-1290','Penicilina','Prótese de quadril (direita)',
   'Engenheiro civil aposentado, construiu pontes pelo interior. Torcedor fanático, gosta de dominó.','2023-02-22'),
-('a0000000-0000-0000-0000-000000000003','Dona Iracema Nunes','1941-12-05','II',1,1,'1-1-02',
+('a0000000-0000-0000-0000-000000000003','Iracema Nunes','1941-12-05','II',1,1,'1-1-02',
   'Paulo Nunes (sobrinho)','(11) 99655-7788',null,'Óculos',
   'Costureira durante toda a vida, criou quatro filhos. Gosta de novelas e tricô.','2024-01-15'),
-('a0000000-0000-0000-0000-000000000004','Sr. Benedito Faria','1933-07-19','III',2,1,'2-1-08',
+('a0000000-0000-0000-0000-000000000004','Benedito Faria','1933-07-19','III',2,1,'2-1-08',
   'Sandra Faria (filha)','(11) 99533-2211','Frutos do mar','Marca-passo',
   'Ferroviário aposentado. Conta histórias das antigas estações. Aprecia café forte pela manhã.','2023-11-03'),
-('a0000000-0000-0000-0000-000000000005','Dona Cecília Andrade','1944-05-30','I',2,2,'2-2-03',
+('a0000000-0000-0000-0000-000000000005','Cecília Andrade','1944-05-30','I',2,2,'2-2-03',
   'Roberto Andrade (filho)','(11) 99420-6677',null,null,
   'Pianista e professora de música. Ainda toca no salão aos domingos.','2024-03-08'),
-('a0000000-0000-0000-0000-000000000006','Sr. Walter Krause','1937-10-14','II',1,1,'1-1-05',
+('a0000000-0000-0000-0000-000000000006','Walter Krause','1937-10-14','II',1,1,'1-1-05',
   'Mônica Krause (esposa)','(11) 99388-9900','Sulfa','Aparelho auditivo (bilateral)',
   'Comerciante, dono de uma padaria tradicional do bairro. Madrugador, gosta de pão fresco.','2023-09-17');
 
 -- ---------- USUÁRIOS (um por perfil) ----------
 insert into usuarios (id, nome, email, perfil, ativo) values
-('b0000000-0000-0000-0000-000000000001','Dr. Eduardo Master','master@blueseniorliving.com.br','master',true),
-('b0000000-0000-0000-0000-000000000002','Dra. Helena Geriatra','medico@blueseniorliving.com.br','medico',true),
-('b0000000-0000-0000-0000-000000000003','Enf. Patrícia Coordenação','coordenacao@blueseniorliving.com.br','coordenacao',true),
-('b0000000-0000-0000-0000-000000000004','Ana Paula','anapaula@blueseniorliving.com.br','cuidador',true),
-('b0000000-0000-0000-0000-000000000005','Dra. Renata Fisio','multi@blueseniorliving.com.br','multidisciplinar',true),
-('b0000000-0000-0000-0000-000000000006','Farm. Lucas Farmácia','farmacia@blueseniorliving.com.br','farmacia',true),
-('b0000000-0000-0000-0000-000000000007','Cláudia Administração','admin@blueseniorliving.com.br','administracao',true),
+('b0000000-0000-0000-0000-000000000001','Eduardo Nogueira','master@blueseniorliving.com.br','master',true),
+('b0000000-0000-0000-0000-000000000002','Helena Marques','medico@blueseniorliving.com.br','medico',true),
+('b0000000-0000-0000-0000-000000000003','Patrícia Antunes','coordenacao@blueseniorliving.com.br','coordenacao',true),
+('b0000000-0000-0000-0000-000000000004','Ana Paula Dias','anapaula@blueseniorliving.com.br','cuidador',true),
+('b0000000-0000-0000-0000-000000000005','Renata Vidal','multi@blueseniorliving.com.br','multidisciplinar',true),
+('b0000000-0000-0000-0000-000000000006','Lucas Pereira','farmacia@blueseniorliving.com.br','farmacia',true),
+('b0000000-0000-0000-0000-000000000007','Cláudia Ferreira','admin@blueseniorliving.com.br','administracao',true),
 ('b0000000-0000-0000-0000-000000000008','Família Bittencourt','familia@blueseniorliving.com.br','familia',true);
 
 -- ---------- PROFISSIONAIS DE ESCALA (módulo de Escalas) ----------
@@ -289,8 +289,8 @@ insert into usuarios (id, nome, email, perfil, ativo, funcao, vinculo, registro_
 ('b0000000-0000-0000-0000-000000000009','Mariana Souza','mariana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
 ('b0000000-0000-0000-0000-000000000010','Joana Ribeiro','joana@blueseniorliving.com.br','cuidador',true,'Cuidadora','CLT',null,true),
 ('b0000000-0000-0000-0000-000000000011','Beatriz Lima','beatriz@blueseniorliving.com.br','cuidador',true,'Cuidadora','PJ',null,false),
-('b0000000-0000-0000-0000-000000000012','Enf. Carla Mendes','carla@blueseniorliving.com.br','enfermagem',true,'Enfermeira','CLT','COREN-SP 123456',true),
-('b0000000-0000-0000-0000-000000000013','Téc. Patrícia Gomes','patricia.tec@blueseniorliving.com.br','enfermagem',true,'Técnica de Enfermagem','CLT','COREN-SP 654321',true);
+('b0000000-0000-0000-0000-000000000012','Carla Mendes','carla@blueseniorliving.com.br','enfermagem',true,'Enfermeira','CLT','COREN-SP 123456',true),
+('b0000000-0000-0000-0000-000000000013','Patrícia Gomes','patricia.tec@blueseniorliving.com.br','enfermagem',true,'Técnica de Enfermagem','CLT','COREN-SP 654321',true);
 
 -- ---------- VÍNCULOS cuidador_residente (Ana Paula -> Alzira, Otávio) ----------
 insert into cuidador_residente (cuidador_id, residente_id) values
