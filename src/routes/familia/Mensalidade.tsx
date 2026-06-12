@@ -89,17 +89,21 @@ export function Mensalidade() {
             <EmptyState label="Nenhum extra lançado neste mês." />
           ) : (
             <div className="space-y-2">
+              {/* 5.6: o extra é narrado como CUIDADO (descrição em primeiro
+                  plano), não como cobrança fria — apenas apresentação. */}
               {demonstrativo.itensUpselling.map((u, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3"
                 >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">{u.categoria}</Badge>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-secondary">
+                      {u.descricao?.trim() || u.categoria}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <Badge variant="muted">{u.categoria}</Badge>
                       <span className="text-xs text-muted-foreground">{formatarDataBR(u.data)}</span>
                     </div>
-                    {u.descricao && <p className="mt-1 text-sm text-secondary">{u.descricao}</p>}
                   </div>
                   <p className="text-lg font-bold tabular-nums text-secondary">{formatarMoeda(u.valor)}</p>
                 </div>

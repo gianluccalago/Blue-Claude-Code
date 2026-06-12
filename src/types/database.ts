@@ -340,6 +340,10 @@ export interface Database {
           detalhes: string | null;
           ciente_por: string | null;
           ciente_em: string | null;
+          // 5.5: desfecho do compromisso ("como foi"), visível à família.
+          como_foi: string | null;
+          como_foi_por: string | null;
+          como_foi_em: string | null;
         };
         Insert: {
           id?: string;
@@ -351,6 +355,9 @@ export interface Database {
           detalhes?: string | null;
           ciente_por?: string | null;
           ciente_em?: string | null;
+          como_foi?: string | null;
+          como_foi_por?: string | null;
+          como_foi_em?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["compromisso_externo"]["Insert"]>;
         Relationships: [];
@@ -993,6 +1000,9 @@ export interface Database {
           redirecionada_de: string | null;
           criada_em: string;
           respondida_em: string | null;
+          // 5.3: quando o setor de destino abriu o item ("Em análise por X").
+          em_analise_em: string | null;
+          em_analise_por: string | null;
         };
         Insert: {
           id?: string;
@@ -1007,6 +1017,8 @@ export interface Database {
           redirecionada_de?: string | null;
           criada_em?: string;
           respondida_em?: string | null;
+          em_analise_em?: string | null;
+          em_analise_por?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["solicitacao_familia"]["Insert"]>;
         Relationships: [];

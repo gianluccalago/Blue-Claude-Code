@@ -32,3 +32,29 @@ export function useDarCiencia(residenteIds: string[]) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["compromissos", residenteIds] }),
   });
 }
+
+/**
+ * Desfecho do compromisso (5.5): "como foi a consulta", preenchido por
+ * Coordenação/cuidador designado após a data — fecha o ciclo com a família
+ * (aparece no portal junto ao compromisso).
+ */
+export function useRegistrarComoFoi(residenteIds: string[]) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { compromissoId: string; comoFoi: string }) => {
+      const { error } = await supabase
+        .from("compromisso_externo")
+        .update({
+          como_foi: args.comoFoi.trim(),
+          como_foi_por: CUIDADOR_ATUAL.nome,
+          como_foi_em: new Date().toISOString(),
+        })
+        .eq("id", args.compromissoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["compromissos", residenteIds] });
+      qc.invalidateQueries({ queryKey: ["compromissos-familia"] });
+    },
+  });
+}

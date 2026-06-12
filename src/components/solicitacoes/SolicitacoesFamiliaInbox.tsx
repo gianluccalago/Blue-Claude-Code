@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { MessageSquare, Reply, Forward, CornerDownRight, Clock3 } from "lucide-react";
 import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
@@ -6,6 +6,7 @@ import { getPerfil } from "@/data/profiles";
 import {
   DESTINOS_SOLICITACAO,
   labelDestino,
+  useMarcarEmAnalise,
   useRedirecionarSolicitacao,
   useResponderSolicitacao,
   useSolicitacoesPorDestino,
@@ -39,6 +40,19 @@ export function SolicitacoesFamiliaInbox() {
   const destino = PERFIL_PARA_DESTINO[perfil ?? ""];
   const respondidoPorPadrao = getPerfil(perfil)?.nome ?? "Equipe";
   const solicitacoes = useSolicitacoesPorDestino(destino);
+  const marcarEmAnalise = useMarcarEmAnalise();
+
+  // 5.3: ao abrir a caixa, as abertas ainda não vistas viram "Em análise por
+  // [setor]" — a família vê a prontidão sem clique extra da equipe.
+  const idsNaoVistas = (solicitacoes.data ?? [])
+    .filter((s) => s.status === "aberta" && !s.em_analise_em)
+    .map((s) => s.id)
+    .join(",");
+  useEffect(() => {
+    if (!destino || !idsNaoVistas) return;
+    marcarEmAnalise.mutate({ ids: idsNaoVistas.split(","), setor: labelDestino(destino) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destino, idsNaoVistas]);
 
   if (!destino) return <EmptyState label="Este perfil não possui caixa de solicitações da família." />;
   if (solicitacoes.isLoading) return <LoadingState />;

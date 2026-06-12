@@ -92,6 +92,52 @@ export type ResponderSolicitacaoInput = {
   respondidoPor: string;
 };
 
+/**
+ * Espelho ao cuidador (5.4): solicitações RESPONDIDAS dos hóspedes designados
+ * — quem está com a pessoa sabe o que foi combinado com a família (leitura).
+ */
+export function useSolicitacoesRespondidasDosHospedes(residenteIds: string[]) {
+  return useQuery({
+    queryKey: ["solicitacoes-respondidas-hospedes", [...residenteIds].sort().join(",")],
+    enabled: residenteIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("solicitacao_familia")
+        .select("*")
+        .in("residente_id", residenteIds)
+        .eq("status", "respondida")
+        .order("respondida_em", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Marca solicitações abertas como "EM ANÁLISE" quando o setor de destino abre
+ * a caixa (5.3): a família passa a ver "Em análise por [setor]" em vez de só
+ * "aberta" — prontidão percebida sem nenhum clique extra da equipe.
+ */
+export function useMarcarEmAnalise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { ids: string[]; setor: string }) => {
+      if (args.ids.length === 0) return;
+      const { error } = await supabase
+        .from("solicitacao_familia")
+        .update({ em_analise_em: new Date().toISOString(), em_analise_por: args.setor })
+        .in("id", args.ids)
+        .is("em_analise_em", null);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY_DESTINO });
+      qc.invalidateQueries({ queryKey: keyFamilia() });
+    },
+  });
+}
+
 /** O destinatário responde a solicitação (status -> respondida). */
 export function useResponderSolicitacao() {
   const qc = useQueryClient();

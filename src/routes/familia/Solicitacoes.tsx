@@ -205,13 +205,24 @@ function SolicitacaoCard({
             <Badge variant="muted">{labelDestino(s.destino)}</Badge>
             {s.status === "respondida" ? (
               <Badge variant="success">{respostaNova ? "Resposta nova" : "Respondida"}</Badge>
+            ) : s.em_analise_em ? (
+              <Badge variant="secondary">Em análise por {s.em_analise_por ?? labelDestino(s.destino)}</Badge>
             ) : (
-              <Badge variant="warning">Aberta</Badge>
+              <Badge variant="warning">Recebida</Badge>
             )}
           </div>
         </div>
         <p className="text-sm text-secondary/80">{s.mensagem}</p>
         <p className="text-xs text-muted-foreground">Enviada em {formatarDataHoraBR(s.criada_em)}</p>
+
+        {/* Prontidão percebida (Fred Lee): a família sabe que alguém está cuidando. */}
+        {s.status !== "respondida" && (
+          <p className="rounded-md bg-accent/50 px-3 py-2 text-sm text-secondary/90">
+            {s.em_analise_em
+              ? `Sua solicitação está em análise por ${s.em_analise_por ?? labelDestino(s.destino)}.`
+              : "Recebemos sua solicitação — nossa equipe está cuidando disso."}
+          </p>
+        )}
 
         {s.status === "respondida" && s.resposta && (
           <div className="mt-2 flex items-start gap-2 rounded-md bg-accent/60 px-3 py-2 text-sm text-secondary">
@@ -363,6 +374,17 @@ function CompromissoCard({
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
+        {/* 5.5: desfecho registrado pela equipe — fecha o ciclo com a família */}
+        {c.como_foi && (
+          <div className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-secondary">
+            <p className="font-semibold text-success">Compromisso realizado</p>
+            <p>{c.como_foi}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {c.como_foi_por ?? "Equipe"}
+              {c.como_foi_em ? ` · ${formatarDataBR(c.como_foi_em)}` : ""}
+            </p>
+          </div>
+        )}
         <label className="flex items-center gap-1.5 text-sm font-semibold text-secondary">
           <Info className="size-4 text-primary" /> Detalhes / instruções
         </label>

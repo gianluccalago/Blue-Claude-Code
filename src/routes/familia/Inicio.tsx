@@ -8,13 +8,117 @@ import {
   Wallet,
   MessageSquare,
   ArrowRight,
+  Sun,
+  UtensilsCrossed,
+  Sparkles,
 } from "lucide-react";
-import { useResidenteFamilia } from "@/hooks/useFamilia";
+import { useResidenteFamilia, useFotosResidente } from "@/hooks/useFamilia";
 import { useSolicitacoesFamilia } from "@/hooks/useSolicitacoes";
+import { useAceitacaoResidenteHoje } from "@/hooks/useMaster";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
-import { calcularIdade, ouNaoInformado } from "@/lib/utils";
+import { calcularIdade, ouNaoInformado, hojeISO } from "@/lib/utils";
+
+// ---------------------------------------------------------------------------
+// Card "O dia de [nome]" — agrega APENAS dados já capturados (aceitação
+// alimentar e atividades com foto), em linguagem humana e calorosa.
+// REGRA DE SOBRIEDADE: nunca expõe intercorrências, eliminações ou medicação;
+// se o dia teve ocorrência grave, este card mostra só o neutro — a
+// comunicação sensível é humana, fora do app.
+// ---------------------------------------------------------------------------
+
+/** Frase calorosa por nível de aceitação (sem jargão clínico). */
+const FRASE_ACEITACAO: Record<string, string> = {
+  "Tudo": "comeu muito bem",
+  "Quase tudo": "comeu bem",
+  "Metade": "comeu metade",
+  "Pouco": "aceitou um pouquinho",
+  "Nada": "não quis desta vez — a equipe acompanha de perto",
+};
+
+function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: string }) {
+  const aceitacao = useAceitacaoResidenteHoje(residenteId);
+  const fotos = useFotosResidente();
+
+  const primeiroNome = nome.split(" ")[0];
+  const refeicoes = aceitacao.data ?? [];
+
+  // Atividade mais recente de hoje (ou de ontem, como fallback caloroso).
+  const ontem = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const fotoDoDia =
+    (fotos.data ?? []).find((f) => f.data === hojeISO()) ??
+    (fotos.data ?? []).find((f) => f.data === ontem) ??
+    null;
+
+  const temConteudo = refeicoes.length > 0 || fotoDoDia;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sun className="size-5 text-warning" /> O dia de {primeiroNome}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!temConteudo ? (
+          // Estado vazio acolhedor — nunca uma tela fria.
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            O dia de hoje ainda está sendo registrado pela equipe. Volte mais
+            tarde para ver como {primeiroNome} está aproveitando o dia. 💙
+          </p>
+        ) : (
+          <>
+            {refeicoes.length > 0 && (
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
+                  <UtensilsCrossed className="size-4" />
+                </div>
+                <div className="text-sm leading-relaxed text-secondary">
+                  {refeicoes.map(({ refeicao, nivel }) => (
+                    <p key={refeicao}>
+                      <span className="font-semibold">{refeicao}:</span>{" "}
+                      {FRASE_ACEITACAO[nivel] ?? nivel.toLowerCase()}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fotoDoDia && (
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-relaxed text-secondary">
+                    {fotoDoDia.data === hojeISO() ? "Hoje" : "Ontem"} {primeiroNome} participou de{" "}
+                    <span className="font-semibold">{fotoDoDia.atividadeTitulo}</span>.
+                  </p>
+                  <img
+                    src={fotoDoDia.fotoUrl}
+                    alt={fotoDoDia.atividadeTitulo}
+                    className="mt-2 max-h-56 w-full rounded-lg border object-cover"
+                  />
+                  {/* 5.2: a descrição geral da execução vira LEGENDA da foto */}
+                  {fotoDoDia.descricaoGeral && (
+                    <p className="mt-1.5 text-sm italic text-muted-foreground">
+                      "{fotoDoDia.descricaoGeral}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 const ATALHOS = [
   { to: "/app/familia/fotos", label: "Fotos", descricao: "Fotos das atividades do hóspede", icon: ImageIcon },
@@ -33,6 +137,17 @@ export function Inicio() {
   if (residente.isError) return <ErrorState error={residente.error} />;
 
   const r = residente.data;
+
+  return <InicioConteudo r={r} respondidas={respondidas} />;
+}
+
+function InicioConteudo({
+  r,
+  respondidas,
+}: {
+  r: ReturnType<typeof useResidenteFamilia>["data"];
+  respondidas: number;
+}) {
 
   return (
     <div className="space-y-6">
@@ -63,6 +178,9 @@ export function Inicio() {
           </div>
         </div>
       </div>
+
+      {/* O DIA DE [NOME] — narrativa do cuidado com dados já capturados */}
+      {r && <CardDiaDoHospede residenteId={r.id} nome={r.nome} />}
 
       <Card>
         <CardHeader>

@@ -1,7 +1,9 @@
-import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen, ArrowRight } from "lucide-react";
+import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen, ArrowRight, MessageSquare } from "lucide-react";
 import { Link, useParams } from "@tanstack/react-router";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
+import { useSolicitacoesRespondidasDosHospedes } from "@/hooks/useSolicitacoes";
+import { formatarDataBR } from "@/lib/utils";
 import { DietaResumo } from "@/components/nutricao/DietaResumo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +21,50 @@ export function Hospedes() {
     return <EmptyState label="Você não possui hóspedes designados." />;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      {data.map((h) => (
-        <HospedeCard key={h.id} hospede={h} perfil={perfil ?? "cuidador"} />
-      ))}
+    <div className="space-y-6">
+      <div className="grid gap-5 lg:grid-cols-2">
+        {data.map((h) => (
+          <HospedeCard key={h.id} hospede={h} perfil={perfil ?? "cuidador"} />
+        ))}
+      </div>
+      {/* 5.4: combinados com a família — leitura, seção discreta */}
+      <CombinadosComAFamilia hospedes={data} />
     </div>
+  );
+}
+
+/**
+ * Espelho ao cuidador: solicitações da família já RESPONDIDAS sobre os
+ * hóspedes designados — quem está com a pessoa sabe o que foi combinado.
+ */
+function CombinadosComAFamilia({ hospedes }: { hospedes: Residente[] }) {
+  const ids = hospedes.map((h) => h.id);
+  const respondidas = useSolicitacoesRespondidasDosHospedes(ids);
+  const nomePorId = new Map(hospedes.map((h) => [h.id, h.nome]));
+  const lista = respondidas.data ?? [];
+  if (lista.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <MessageSquare className="size-4 text-primary" /> Combinados com a família
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {lista.map((s) => (
+          <div key={s.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-sm">
+            <p className="font-semibold text-secondary">
+              {nomePorId.get(s.residente_id) ?? "Hóspede"} · {s.assunto}
+            </p>
+            <p className="text-secondary/80">{s.resposta}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {s.respondida_por ?? "Equipe"} · {s.respondida_em ? formatarDataBR(s.respondida_em) : ""}
+            </p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
