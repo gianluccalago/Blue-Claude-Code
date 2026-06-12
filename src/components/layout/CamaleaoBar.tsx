@@ -115,7 +115,7 @@ export function CamaleaoBar() {
         <div className="relative">
           <button
             onClick={() => setAberto((v) => !v)}
-            className="flex h-8 min-w-[200px] items-center gap-2 rounded-md border border-input bg-card px-2 text-xs text-muted-foreground transition-colors hover:border-primary/50"
+            className="flex h-8 min-w-[200px] items-center gap-2 rounded-md border border-secondary/20 bg-secondary/10 px-2 text-xs text-secondary/70 transition-colors hover:border-secondary/35 hover:bg-secondary/15 hover:text-secondary"
           >
             <Search className="size-3.5 shrink-0" />
             <span className="flex-1 text-left">Buscar usuário…</span>
