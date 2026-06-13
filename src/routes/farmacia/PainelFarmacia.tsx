@@ -139,10 +139,15 @@ export function PainelFarmacia() {
       );
 
       if (semEstoque.length > 0) {
-        const res = residentes.find((r) => r.id === resId);
+        // Usa o nome do join na query de prescrições; fallback para residentes
+        // (evita mostrar UUID quando o find chega antes do cache dos residentes).
+        const residenteNome =
+          semEstoque[0]?.residente_nome ??
+          residentes.find((r) => r.id === resId)?.nome ??
+          resId;
         result.push({
           residenteId: resId,
-          residenteNome: res?.nome ?? resId,
+          residenteNome,
           medicamentos: semEstoque.map((p) => p.medicamento),
         });
       }
