@@ -9,6 +9,7 @@ import {
   Building2,
   BedDouble,
   Users,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
 import type { PerfilUsuario } from "@/types/database";
@@ -39,6 +40,7 @@ export type PerfilSeletor =
   | "nutricionista"
   | "farmacia"
   | "administracao"
+  | "direcao"
   | "hotelaria"
   | "familia";
 
@@ -125,6 +127,12 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     cargosSugeridos: ["Administradora", "Administrador", "Financeiro", "Recepcionista"],
   },
   {
+    value: "direcao",
+    label: "Direção",
+    icon: Briefcase,
+    cargosSugeridos: ["Diretor", "Diretora", "Diretor Executivo", "Sócio-Diretor"],
+  },
+  {
     value: "hotelaria",
     label: "Hotelaria",
     icon: BedDouble,
@@ -149,6 +157,7 @@ export const PERFIL_LABEL: Record<PerfilUsuario, string> = {
   nutricionista: "Nutricionista",
   farmacia: "Farmácia",
   administracao: "Administração",
+  direcao: "Direção",
   hotelaria: "Hotelaria",
   familia: "Família / Hóspede",
 };

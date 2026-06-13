@@ -63,6 +63,7 @@ const DESTINO_POR_PERFIL: Record<string, DestinoSolicitacao> = {
   coordenacao: "coordenacao",
   medico: "medico",
   administracao: "administracao",
+  direcao: "administracao",
 };
 
 // Ícone por rota — puramente visual (não altera navegação nem dados).
@@ -140,18 +141,28 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/custos-pessoal": Banknote,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
-  // CRM comercial (Administração e Master)
-  "/app/administracao/crm": TrendingUp,
+  // Direção (mesma operação da Administração + CRM)
+  "/app/direcao": LayoutDashboard,
+  "/app/direcao/tabela-precos": Tags,
+  "/app/direcao/mensalidades": Wallet,
+  "/app/direcao/upselling": Receipt,
+  "/app/direcao/demonstrativo": FileSpreadsheet,
+  "/app/direcao/remuneracao-equipe": Coins,
+  "/app/direcao/custos-pessoal": Banknote,
+  "/app/direcao/profissionais": UserCog,
+  "/app/direcao/solicitacoes-familia": MessageSquare,
+  // CRM comercial (Direção e Master)
+  "/app/direcao/crm": TrendingUp,
   "/app/master/crm": TrendingUp,
-  "/app/administracao/crm-tarefas": ListChecks,
+  "/app/direcao/crm-tarefas": ListChecks,
   "/app/master/crm-tarefas": ListChecks,
-  "/app/administracao/crm-contatos": Contact,
+  "/app/direcao/crm-contatos": Contact,
   "/app/master/crm-contatos": Contact,
-  "/app/administracao/crm-origens": Radio,
+  "/app/direcao/crm-origens": Radio,
   "/app/master/crm-origens": Radio,
-  "/app/administracao/crm-config": Settings,
+  "/app/direcao/crm-config": Settings,
   "/app/master/crm-config": Settings,
-  "/app/administracao/crm-relatorios": BarChart3,
+  "/app/direcao/crm-relatorios": BarChart3,
   "/app/master/crm-relatorios": BarChart3,
   // Ficha do hóspede (item "Hóspedes" de cada perfil)
   "/app/medico/ficha": Users2,
@@ -161,6 +172,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/farmacia/ficha": Users2,
   "/app/hotelaria/ficha": Users2,
   "/app/administracao/ficha": Users2,
+  "/app/direcao/ficha": Users2,
   // Família
   "/app/familia": Home,
   "/app/familia/fotos": Image,

@@ -13,6 +13,7 @@ const PERFIS_FICHA_COMPLETA: ReadonlySet<PerfilUsuario> = new Set([
   "master",
   "coordenacao",
   "administracao",
+  "direcao",
   "medico",
 ]);
 
@@ -20,11 +21,12 @@ const PERFIS_EDITA_FICHA: ReadonlySet<PerfilUsuario> = new Set([
   "master",
   "coordenacao",
   "administracao",
+  "direcao",
 ]);
 
 // Financeiro (mensalidade/status de pagamento) é dado SENSÍVEL: só gestão
-// administrativa e Master. Nem clínica (médico/coordenação) vê valores.
-const PERFIS_VE_FINANCEIRO: ReadonlySet<PerfilUsuario> = new Set(["master", "administracao"]);
+// administrativa, Direção e Master. Nem clínica (médico/coordenação) vê valores.
+const PERFIS_VE_FINANCEIRO: ReadonlySet<PerfilUsuario> = new Set(["master", "administracao", "direcao"]);
 
 /** Ficha completa (plano de saúde/contatos/clínico) vs assistencial. */
 export function fichaCompleta(perfil: PerfilUsuario | undefined): boolean {

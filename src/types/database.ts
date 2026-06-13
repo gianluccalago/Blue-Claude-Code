@@ -16,6 +16,7 @@ export type PerfilUsuario =
   | "nutricionista"
   | "farmacia"
   | "administracao"
+  | "direcao"
   | "familia";
 
 export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";

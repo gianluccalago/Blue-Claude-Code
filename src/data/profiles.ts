@@ -10,6 +10,7 @@ import {
   Building2,
   BedDouble,
   Users,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
 
@@ -209,7 +210,6 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Hóspedes", to: "/app/administracao/ficha" },
-      { label: "CRM", to: "/app/administracao/crm" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Upselling", to: "/app/administracao/upselling" },
@@ -218,6 +218,30 @@ export const PERFIS: PerfilDef[] = [
       { label: "Custos de pessoal", to: "/app/administracao/custos-pessoal" },
       { label: "Profissionais", to: "/app/administracao/profissionais" },
       { label: "Solicitações da família", to: "/app/administracao/solicitacoes-familia" },
+    ],
+    emConstrucao: false,
+  },
+  {
+    // DIREÇÃO: mesma operação da Administração + o módulo CRM (comercial).
+    // É o único perfil, junto do Master, com acesso ao funil de admissão.
+    id: "direcao",
+    nome: "Direção",
+    descricao: "Gestão executiva, financeiro e CRM comercial",
+    icon: Briefcase,
+    cor: "bg-secondary text-secondary-foreground",
+    rotaInicial: "/app/direcao",
+    menu: [
+      { label: "Painel da Direção", to: "/app/direcao" },
+      { label: "Hóspedes", to: "/app/direcao/ficha" },
+      { label: "CRM", to: "/app/direcao/crm" },
+      { label: "Tabela de preços", to: "/app/direcao/tabela-precos" },
+      { label: "Mensalidades", to: "/app/direcao/mensalidades" },
+      { label: "Upselling", to: "/app/direcao/upselling" },
+      { label: "Demonstrativo mensal", to: "/app/direcao/demonstrativo" },
+      { label: "Remuneração da equipe", to: "/app/direcao/remuneracao-equipe" },
+      { label: "Custos de pessoal", to: "/app/direcao/custos-pessoal" },
+      { label: "Profissionais", to: "/app/direcao/profissionais" },
+      { label: "Solicitações da família", to: "/app/direcao/solicitacoes-familia" },
     ],
     emConstrucao: false,
   },

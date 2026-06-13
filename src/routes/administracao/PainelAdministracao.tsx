@@ -30,10 +30,11 @@ import { LoadingState, ErrorState } from "@/components/states";
 export function PainelAdministracao() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   const base = `/app/${perfil ?? "administracao"}`;
+  // CRM (funil comercial) pertence à Direção; a Administração não o vê.
+  const temCrm = perfil === "direcao";
   const mes = mesAtual();
   const demo = useDemonstrativoMes(mes);
   const custos = useCustosPessoalDoMes(mes);
-  const funil = useResumoFunil();
 
   if (demo.isLoading || custos.isLoading) return <LoadingState />;
   if (demo.isError) return <ErrorState error={demo.error} />;
@@ -110,42 +111,8 @@ export function PainelAdministracao() {
         />
       </div>
 
-      {/* Funil comercial — atalho/visão rápida do CRM (admissões). */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="size-5 text-primary" /> Funil comercial
-          </CardTitle>
-          <Link
-            to={`${base}/crm` as string}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-          >
-            Abrir pipeline <ArrowRight className="size-4" />
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard
-              icon={TrendingUp}
-              tom="primary"
-              rotulo="Oportunidades ativas"
-              valor={funil.data?.oportunidadesAtivas ?? 0}
-            />
-            <StatCard
-              icon={CalendarCheck}
-              tom="secondary"
-              rotulo="Visitas agendadas na semana"
-              valor={funil.data?.visitasNaSemana ?? 0}
-            />
-            <StatCard
-              icon={BadgeCheck}
-              tom="success"
-              rotulo="Admissões no mês"
-              valor={funil.data?.admissoesNoMes ?? 0}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Funil comercial — só Direção (CRM). A Administração não vê. */}
+      {temCrm && <FunilComercialCard base={base} />}
 
       <Card>
         <CardHeader>
@@ -181,5 +148,52 @@ export function PainelAdministracao() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Card "Funil comercial" do painel — exclusivo da Direção (única, junto do
+ * Master, com acesso ao CRM). Isolado num componente para que o hook de CRM
+ * só seja consultado quando o card é renderizado (a Administração não tem RLS
+ * de CRM e nem deve disparar a query).
+ */
+function FunilComercialCard({ base }: { base: string }) {
+  const funil = useResumoFunil();
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="size-5 text-primary" /> Funil comercial
+        </CardTitle>
+        <Link
+          to={`${base}/crm` as string}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+        >
+          Abrir pipeline <ArrowRight className="size-4" />
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            icon={TrendingUp}
+            tom="primary"
+            rotulo="Oportunidades ativas"
+            valor={funil.data?.oportunidadesAtivas ?? 0}
+          />
+          <StatCard
+            icon={CalendarCheck}
+            tom="secondary"
+            rotulo="Visitas agendadas na semana"
+            valor={funil.data?.visitasNaSemana ?? 0}
+          />
+          <StatCard
+            icon={BadgeCheck}
+            tom="success"
+            rotulo="Admissões no mês"
+            valor={funil.data?.admissoesNoMes ?? 0}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

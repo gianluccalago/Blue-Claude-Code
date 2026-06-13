@@ -97,8 +97,9 @@ function AppIndex() {
   if (perfil === "master") return <PainelEstrategico />;
   // Coordenação: a "Visão geral" é o painel da coordenação.
   if (perfil === "coordenacao") return <PainelCoordenacao />;
-  // Administração: a "Visão geral" é o painel da administração.
-  if (perfil === "administracao") return <PainelAdministracao />;
+  // Administração e Direção: a "Visão geral" é o painel da administração
+  // (Direção é a mesma operação + CRM; o card "Funil comercial" só aparece p/ ela).
+  if (perfil === "administracao" || perfil === "direcao") return <PainelAdministracao />;
   // Família: o "Início" é o resumo curado do hóspede.
   if (perfil === "familia") return <FamiliaInicio />;
   // Perfil com telas reais (cuidador) abre direto sua rota inicial.

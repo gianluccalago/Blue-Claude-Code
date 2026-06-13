@@ -23,6 +23,8 @@ const PERFIL_PARA_DESTINO: Record<string, DestinoSolicitacao | undefined> = {
   coordenacao: "coordenacao",
   medico: "medico",
   administracao: "administracao",
+  // Direção compartilha a caixa da Administração (mesmo destino de família).
+  direcao: "administracao",
 };
 
 const textareaBase =
