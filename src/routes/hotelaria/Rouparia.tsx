@@ -1,6 +1,7 @@
 /**
- * Rouparia — Hotelaria (BLOCO H3, mínimo)
- * Saldo em trânsito (lavanderia) por categoria, com limite de alerta.
+ * Rouparia — LAVANDERIA (antes Hotelaria, BLOCO H3).
+ * Saldo em trânsito por categoria, com limite de alerta. Reusa a rota flat
+ * /rouparia e a tabela rouparia_transito (dados preservados na migração).
  */
 import { useState } from "react";
 import { toast } from "sonner";
