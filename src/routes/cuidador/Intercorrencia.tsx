@@ -5,10 +5,19 @@ import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useRegistrarIntercorrencia } from "@/hooks/useIntercorrencia";
 import { HospedeIdentidade } from "@/components/cuidador/HospedeIdentidade";
+import { AmbulanciaFields } from "@/components/intercorrencia/AmbulanciaFields";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
+import type { DadosAmbulancia } from "@/lib/ambulancia";
+
+const AMBULANCIA_VAZIA: DadosAmbulancia = {
+  medico: "",
+  tempoRespostaMin: null,
+  desfecho: null,
+  hospitalDestino: "",
+};
 
 const TIPOS = [
   "Queda",
@@ -46,6 +55,8 @@ export function Intercorrencia() {
   const [foto, setFoto] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
+  const [ambulanciaAcionada, setAmbulanciaAcionada] = useState(false);
+  const [ambulancia, setAmbulancia] = useState<DadosAmbulancia>(AMBULANCIA_VAZIA);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -92,12 +103,20 @@ export function Intercorrencia() {
   async function enviar() {
     if (!tipo) return;
     const textoFinal = gerarTexto();
-    await registrar.mutateAsync({ residenteId: hospedeSel, tipo, observacao: textoFinal, foto });
+    await registrar.mutateAsync({
+      residenteId: hospedeSel,
+      tipo,
+      observacao: textoFinal,
+      foto,
+      ambulancia: ambulanciaAcionada ? ambulancia : null,
+    });
     toast.success("Intercorrência registrada e equipe notificada.");
     setTipo(null);
     setSubTipo(null);
     setObservacao("");
     removerFoto();
+    setAmbulanciaAcionada(false);
+    setAmbulancia(AMBULANCIA_VAZIA);
   }
 
   return (
@@ -215,6 +234,16 @@ export function Intercorrencia() {
                 className="hidden"
               />
             </div>
+          </Campo>
+
+          {/* Chamado de ambulância (opcional) */}
+          <Campo titulo="Ambulância (opcional)">
+            <AmbulanciaFields
+              acionada={ambulanciaAcionada}
+              onAcionadaChange={setAmbulanciaAcionada}
+              valor={ambulancia}
+              onChange={(patch) => setAmbulancia((a) => ({ ...a, ...patch }))}
+            />
           </Campo>
 
           {/* Preview do texto gerado */}

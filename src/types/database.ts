@@ -65,6 +65,9 @@ export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro" | "transfe
 export type TipoRemuneracao = "mensal_fixo" | "por_plantao";
 export type StatusPagamentoPessoal = "pendente" | "pago";
 export type DestinoSolicitacao = "coordenacao" | "medico" | "administracao";
+
+/** Desfecho do atendimento da ambulância (SAMU/privada) numa intercorrência. */
+export type DesfechoAmbulancia = "removido_hospital" | "medicado_local";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -345,6 +348,12 @@ export interface Database {
           registrado_por: string | null;
           registrado_em: string;
           foto_url: string | null;
+          // Chamado de ambulância (SAMU/privada) atrelado à intercorrência.
+          ambulancia_acionada: boolean;
+          ambulancia_medico: string | null;
+          ambulancia_tempo_resposta_min: number | null;
+          ambulancia_desfecho: DesfechoAmbulancia | null;
+          ambulancia_hospital_destino: string | null;
         };
         Insert: {
           id?: string;
@@ -354,6 +363,11 @@ export interface Database {
           registrado_por?: string | null;
           registrado_em?: string;
           foto_url?: string | null;
+          ambulancia_acionada?: boolean;
+          ambulancia_medico?: string | null;
+          ambulancia_tempo_resposta_min?: number | null;
+          ambulancia_desfecho?: DesfechoAmbulancia | null;
+          ambulancia_hospital_destino?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["intercorrencia"]["Insert"]>;
         Relationships: [];

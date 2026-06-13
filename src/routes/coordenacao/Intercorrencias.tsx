@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, Stethoscope, CircleDashed } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Check, Stethoscope, CircleDashed, Ambulance, Pencil } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useTratamentos, useResolucoesMedicas } from "@/hooks/useCoordenacao";
+import { useRegistrarAmbulancia } from "@/hooks/useIntercorrencia";
+import { AmbulanciaFields } from "@/components/intercorrencia/AmbulanciaFields";
+import {
+  DESFECHO_AMBULANCIA_LABEL,
+  formatarTempoResposta,
+  type DadosAmbulancia,
+} from "@/lib/ambulancia";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 import type { Intercorrencia, PendenciaTratamento, Residente, ResolucaoMedica } from "@/types/database";
@@ -227,6 +236,92 @@ function IntercorrenciaCard({
         <div className="mt-1 text-xs text-muted-foreground">
           Registrado por {ouNaoInformado(i.registrado_por)} · {formatarDataHoraBR(i.registrado_em)}
         </div>
+
+        <BlocoAmbulancia intercorrencia={i} />
+      </div>
+    </div>
+  );
+}
+
+// ── Chamado de ambulância: exibição + edição (detalhes costumam chegar depois) ──
+function BlocoAmbulancia({ intercorrencia: i }: { intercorrencia: Intercorrencia }) {
+  const registrar = useRegistrarAmbulancia();
+  const [editando, setEditando] = useState(false);
+  const [acionada, setAcionada] = useState(i.ambulancia_acionada);
+  const [dados, setDados] = useState<DadosAmbulancia>({
+    medico: i.ambulancia_medico ?? "",
+    tempoRespostaMin: i.ambulancia_tempo_resposta_min,
+    desfecho: i.ambulancia_desfecho,
+    hospitalDestino: i.ambulancia_hospital_destino ?? "",
+  });
+
+  async function salvar() {
+    try {
+      await registrar.mutateAsync({ id: i.id, ambulancia: acionada ? dados : null });
+      toast.success(acionada ? "Chamado de ambulância salvo." : "Chamado de ambulância removido.");
+      setEditando(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
+    }
+  }
+
+  if (editando) {
+    return (
+      <div className="mt-3 rounded-lg border border-border bg-card p-3">
+        <AmbulanciaFields
+          acionada={acionada}
+          onAcionadaChange={setAcionada}
+          valor={dados}
+          onChange={(patch) => setDados((d) => ({ ...d, ...patch }))}
+        />
+        <div className="mt-3 flex gap-2">
+          <Button size="sm" onClick={salvar} disabled={registrar.isPending}>
+            {registrar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setEditando(false)} disabled={registrar.isPending}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!i.ambulancia_acionada) {
+    return (
+      <button
+        onClick={() => setEditando(true)}
+        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-destructive hover:underline"
+      >
+        <Ambulance className="size-3.5" /> Registrar chamado de ambulância
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-sm font-bold text-destructive">
+          <Ambulance className="size-4" /> Ambulância acionada
+        </span>
+        <button
+          onClick={() => setEditando(true)}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-secondary hover:underline"
+        >
+          <Pencil className="size-3" /> Editar
+        </button>
+      </div>
+      <div className="mt-1.5 grid gap-x-4 gap-y-1 text-sm text-secondary sm:grid-cols-2">
+        <span>Médico: <strong>{ouNaoInformado(i.ambulancia_medico)}</strong></span>
+        <span>Tempo de resposta: <strong>{formatarTempoResposta(i.ambulancia_tempo_resposta_min)}</strong></span>
+        <span className="sm:col-span-2">
+          Desfecho:{" "}
+          <strong>
+            {i.ambulancia_desfecho ? DESFECHO_AMBULANCIA_LABEL[i.ambulancia_desfecho] : "Não informado"}
+          </strong>
+          {i.ambulancia_desfecho === "removido_hospital" && i.ambulancia_hospital_destino && (
+            <> — {i.ambulancia_hospital_destino}</>
+          )}
+        </span>
       </div>
     </div>
   );
