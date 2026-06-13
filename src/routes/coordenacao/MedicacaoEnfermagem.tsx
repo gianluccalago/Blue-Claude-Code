@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight, Clock3, Users } from "lucide-react";
+import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight, Clock3, Users, ClipboardCheck } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   usePrescricoesEnfermagem,
@@ -9,6 +9,9 @@ import {
   usePrescricoesEnfermagemTodas,
   useAdministracoesEnfermagemHojeTodas,
   useRegistrarAdministracaoEnfermagemCasa,
+  useProcedimentosEnfermagemHoje,
+  useRegistrarProcedimentoEnfermagem,
+  useRemoverProcedimentoEnfermagem,
 } from "@/hooks/useEnfermagem";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -41,6 +44,20 @@ const VIA_LABEL: Record<string, string> = {
   insulina: "Insulina",
   sonda: "Sonda",
 };
+
+const inputBase =
+  "h-10 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+// Procedimentos comuns de enfermagem (sugestões; o campo aceita texto livre).
+const PROCEDIMENTOS_COMUNS = [
+  "Curativo",
+  "Troca de curativo",
+  "Cuidados com sonda nasoenteral",
+  "Cuidados com gastrostomia",
+  "Sondagem vesical",
+  "Aspiração de vias aéreas",
+  "Glicemia capilar",
+];
 
 export function MedicacaoEnfermagem() {
   const residentes = useResidentes();
@@ -286,9 +303,6 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
   if (prescricoes.isLoading) return <LoadingState />;
 
   const todas = prescricoes.data ?? [];
-  if (todas.length === 0) {
-    return <EmptyState label="Sem prescrições de enfermagem ativas para este hóspede." />;
-  }
 
   // Só exibe os períodos que possuem itens de enfermagem.
   const periodosComItens = PERIODOS.map((p) => ({
@@ -304,6 +318,9 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
 
   return (
     <div className="space-y-6">
+      {periodosComItens.length === 0 && (
+        <EmptyState label="Sem medicação de enfermagem (injetável/insulina/sonda) ativa para este hóspede." />
+      )}
       {periodosComItens.map((p) => (
         <Card key={p.key}>
           <CardHeader>
@@ -336,6 +353,9 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
         </Card>
       ))}
 
+      {/* Procedimentos (curativo, sonda…) — item próprio, separado da medicação. */}
+      <ProcedimentosEnfermagem residenteId={residenteId} />
+
       <ConfirmDialog
         aberto={!!confirmacao}
         titulo={confirmacao?.titulo ?? ""}
@@ -349,6 +369,107 @@ function EnfermagemDoHospede({ residenteId }: { residenteId: string }) {
         onCancelar={() => setConfirmacao(null)}
       />
     </div>
+  );
+}
+
+/**
+ * Procedimentos de enfermagem (curativo, sonda e afins). NÃO é medicação e
+ * nunca via oral (VO é das cuidadoras). A enfermagem registra a EXECUÇÃO; o
+ * histórico do dia fica logo abaixo, com desfazer.
+ */
+function ProcedimentosEnfermagem({ residenteId }: { residenteId: string }) {
+  const hoje = useProcedimentosEnfermagemHoje(residenteId);
+  const registrar = useRegistrarProcedimentoEnfermagem(residenteId);
+  const remover = useRemoverProcedimentoEnfermagem(residenteId);
+  const [procedimento, setProcedimento] = useState("");
+  const [observacao, setObservacao] = useState("");
+
+  const valido = procedimento.trim().length > 0;
+  async function salvar() {
+    if (!valido) return;
+    await registrar.mutateAsync({ procedimento: procedimento.trim(), observacao });
+    setProcedimento("");
+    setObservacao("");
+  }
+
+  const lista = hoje.data ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ClipboardCheck className="size-5 text-nursing" /> Procedimentos (curativo, sonda)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Registro da execução de procedimentos de enfermagem — não é medicação e nunca via oral
+          (VO é das cuidadoras).
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {PROCEDIMENTOS_COMUNS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setProcedimento(p)}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                procedimento === p
+                  ? "border-nursing bg-nursing/10 text-nursing"
+                  : "bg-background hover:border-nursing/50",
+              )}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <input
+          value={procedimento}
+          onChange={(e) => setProcedimento(e.target.value)}
+          placeholder="Procedimento (escolha acima ou digite)"
+          className={inputBase}
+        />
+        <input
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+          placeholder="Observação (opcional)"
+          className={inputBase}
+        />
+        <Button onClick={salvar} disabled={!valido || registrar.isPending}>
+          <Check className="size-4" /> Registrar procedimento
+        </Button>
+
+        <div className="border-t pt-3">
+          {lista.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CircleDashed className="size-4" /> Nenhum procedimento registrado hoje.
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {lista.map((p) => (
+                <li key={p.id} className="flex items-start justify-between gap-2 text-sm">
+                  <span className="min-w-0">
+                    <span className="font-semibold text-secondary">{p.procedimento}</span>
+                    {p.observacao && <span className="text-muted-foreground"> · {p.observacao}</span>}
+                    <span className="block text-xs text-muted-foreground">
+                      {ouNaoInformado(p.registrado_por)} · {formatarHoraBR(p.registrado_em)}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => remover.mutate(p.id)}
+                    disabled={remover.isPending}
+                    aria-label="Desfazer este procedimento"
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

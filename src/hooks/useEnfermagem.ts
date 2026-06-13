@@ -1,17 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { hojeISO, inicioDoDiaISO } from "@/lib/utils";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 import type {
   Administracao,
   PeriodoMedicacao,
   Prescricao,
+  ProcedimentoEnfermagem,
   ViaMedicacao,
 } from "@/types/database";
 
 /** Quem administra nesta tela (sem login ainda). */
 const ENFERMAGEM = "Enfermagem";
 
-/** Vias exclusivas da enfermagem (o cuidador não administra). */
+/**
+ * Vias EXCLUSIVAS da enfermagem: injetável, insulina (SC) e sonda. A via ORAL
+ * (VO) é exclusiva das cuidadoras e NUNCA entra aqui — a medicação de
+ * enfermagem filtra estritamente por estas vias. "Procedimentos" (curativo,
+ * cuidados com sonda…) não são uma via estruturada e são tratados à parte, na
+ * tabela procedimento_enfermagem (ver hooks no fim deste arquivo).
+ */
 const VIAS_ENFERMAGEM: ViaMedicacao[] = ["injetavel", "insulina", "sonda"];
 
 /** Prescrições ativas de enfermagem (injetável/insulina/sonda) do residente. */
@@ -151,6 +159,65 @@ export function useRemoverAdministracaoEnfermagem(residenteId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["administracao-enfermagem", residenteId] });
       qc.invalidateQueries({ queryKey: ["administracao-enfermagem-todas"] });
+    },
+  });
+}
+
+// ─── PROCEDIMENTOS de enfermagem (curativo, sonda e afins) ──────────────────────
+// Abordagem: "procedimento" NÃO é uma via estruturada da prescrição (não dá para
+// reaproveitar a via como "injetavel/insulina/sonda"). Então a enfermagem
+// REGISTRA A EXECUÇÃO de procedimentos como item próprio em procedimento_enfermagem
+// — separado da medicação e sem nunca tocar na via ORAL.
+
+const PROCEDIMENTOS_KEY = "procedimentos-enfermagem";
+
+/** Procedimentos de enfermagem registrados HOJE para o residente. */
+export function useProcedimentosEnfermagemHoje(residenteId: string | undefined) {
+  return useQuery({
+    queryKey: [PROCEDIMENTOS_KEY, residenteId, hojeISO()],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<ProcedimentoEnfermagem[]> => {
+      const { data, error } = await supabase
+        .from("procedimento_enfermagem")
+        .select("*")
+        .eq("residente_id", residenteId!)
+        .gte("registrado_em", inicioDoDiaISO())
+        .order("registrado_em", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Registra a execução de um procedimento (curativo, troca de sonda…). */
+export function useRegistrarProcedimentoEnfermagem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { procedimento: string; observacao?: string | null }) => {
+      const { error } = await supabase.from("procedimento_enfermagem").insert({
+        residente_id: residenteId,
+        procedimento: args.procedimento,
+        observacao: args.observacao?.trim() || null,
+        registrado_por: usuarioAtual.nome,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [PROCEDIMENTOS_KEY, residenteId] });
+    },
+  });
+}
+
+/** Desfaz um registro de procedimento (delete pelo id). */
+export function useRemoverProcedimentoEnfermagem(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("procedimento_enfermagem").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [PROCEDIMENTOS_KEY, residenteId] });
     },
   });
 }

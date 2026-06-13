@@ -916,6 +916,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["configuracao"]["Insert"]>;
         Relationships: [];
       };
+      procedimento_enfermagem: {
+        Row: {
+          id: string;
+          residente_id: string;
+          procedimento: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          procedimento: string;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["procedimento_enfermagem"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_mensalidade: {
         Row: {
           id: string;
@@ -1282,6 +1302,7 @@ export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"
 export type TarefaRegistro = Database["public"]["Tables"]["tarefa_registro"]["Row"];
 export type Prescricao = Database["public"]["Tables"]["prescricao"]["Row"];
 export type Administracao = Database["public"]["Tables"]["administracao"]["Row"];
+export type ProcedimentoEnfermagem = Database["public"]["Tables"]["procedimento_enfermagem"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
