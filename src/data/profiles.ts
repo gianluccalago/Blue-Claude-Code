@@ -52,6 +52,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Usuários e acessos", to: "/app/master/usuarios" },
       { label: "Hóspedes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
+      { label: "Serviços", to: "/app/master/servicos" },
       { label: "CRM", to: "/app/master/crm" },
       { label: "Profissionais", to: "/app/master/profissionais" },
       { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao" },
@@ -241,6 +242,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Hóspedes", to: "/app/administracao/ficha" },
+      { label: "Serviços", to: "/app/administracao/servicos" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Cobrança", to: "/app/administracao/cobranca" },

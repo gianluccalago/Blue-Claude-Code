@@ -98,6 +98,30 @@ export function useAtribuirResponsavel() {
   });
 }
 
+/**
+ * Sinaliza (ou retira) a PRIORIZAÇÃO da gestão num chamado — "cobrado pela
+ * gestão". Usado pela Administração/Master na supervisão; é só um empurrão, não
+ * resolve o chamado.
+ */
+export function useCobrarChamado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; cobrar: boolean }) => {
+      const { error } = await supabase
+        .from("chamado_manutencao")
+        .update({
+          cobrado_gestao: args.cobrar,
+          cobrado_em: args.cobrar ? new Date().toISOString() : null,
+        })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CHAMADOS_KEY });
+    },
+  });
+}
+
 /** Resolve o chamado, gravando a foto de evidência (se houver) e o horário de resolução. */
 export function useResolverChamado() {
   const qc = useQueryClient();

@@ -17,6 +17,7 @@ import {
   Plus,
   X,
   Check,
+  Megaphone,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -256,9 +257,15 @@ function ChamadoCard({
 }) {
   const [expandido, setExpandido] = useState(false);
   const destaque = emergenciaAtiva(chamado);
+  const priorizado = chamado.cobrado_gestao && chamado.status !== "resolvido";
 
   return (
-    <Card className={cn(destaque && "border-destructive bg-destructive/5")}>
+    <Card
+      className={cn(
+        destaque && "border-destructive bg-destructive/5",
+        !destaque && priorizado && "border-primary bg-primary/5",
+      )}
+    >
       <CardContent className="p-0">
         <button
           className="w-full flex items-center gap-3 p-4 text-left"
@@ -296,6 +303,11 @@ function ChamadoCard({
                 <span className="text-xs font-semibold text-muted-foreground">
                   aberto {idadeTexto(chamado.criado_em)}
                 </span>
+              )}
+              {priorizado && (
+                <Badge variant="default" className="text-xs gap-1">
+                  <Megaphone className="h-3 w-3" /> priorizado pela gestão
+                </Badge>
               )}
               {prazoVencido(chamado) && (
                 <Badge variant="destructive" className="text-xs gap-1">

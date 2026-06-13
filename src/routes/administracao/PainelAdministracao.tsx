@@ -17,11 +17,14 @@ import {
   ArrowRight,
   CalendarCheck,
   BadgeCheck,
+  Wrench,
+  Megaphone,
 } from "lucide-react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { useResumoFunil } from "@/hooks/useCrm";
+import { useChamadosManutencao } from "@/hooks/useManutencao";
 import { formatarMoeda, formatarMesReferencia, mesAtual } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard, ProgressBar } from "@/components/dashboard/primitives";
@@ -111,6 +114,9 @@ export function PainelAdministracao() {
         />
       </div>
 
+      {/* Supervisão de Serviços — Administração (a Direção não tem essa tela). */}
+      {perfil === "administracao" && <ResumoServicosCard base={base} />}
+
       {/* Funil comercial — só Direção (CRM). A Administração não vê. */}
       {temCrm && <FunilComercialCard base={base} />}
 
@@ -148,6 +154,44 @@ export function PainelAdministracao() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Card "Serviços" do painel da Administração — resumo dos três serviços
+ * operacionais (chamados por destino, emergências, priorizados) com atalho para
+ * a supervisão. Hook próprio para só consultar quando o card é renderizado.
+ */
+function ResumoServicosCard({ base }: { base: string }) {
+  const chamados = useChamadosManutencao();
+  const abertos = (chamados.data ?? []).filter((c) => c.status !== "resolvido");
+  const sg = abertos.filter((c) => c.destino === "servicos_gerais").length;
+  const ht = abertos.filter((c) => c.destino === "hotelaria").length;
+  const emergencias = abertos.filter((c) => c.urgencia === "emergencia").length;
+  const priorizados = abertos.filter((c) => c.cobrado_gestao).length;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="flex items-center gap-2">
+          <Wrench className="size-5 text-primary" /> Serviços
+        </CardTitle>
+        <Link
+          to={`${base}/servicos` as string}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+        >
+          Abrir supervisão <ArrowRight className="size-4" />
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <StatCard icon={Wrench} tom={sg > 0 ? "warning" : "success"} rotulo="Serviços Gerais (abertos)" valor={sg} />
+          <StatCard icon={BedDouble} tom={ht > 0 ? "warning" : "success"} rotulo="Hotelaria (abertos)" valor={ht} />
+          <StatCard icon={AlertTriangle} tom={emergencias > 0 ? "destructive" : "success"} destaque={emergencias > 0} rotulo="Emergências" valor={emergencias} />
+          <StatCard icon={Megaphone} tom="secondary" rotulo="Priorizados" valor={priorizados} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

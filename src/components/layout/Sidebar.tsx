@@ -137,6 +137,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/lavanderia/rouparia": Shirt,
   // Administração
   "/app/administracao": LayoutDashboard,
+  "/app/administracao/servicos": Wrench,
+  "/app/master/servicos": Wrench,
   "/app/administracao/tabela-precos": Tags,
   "/app/administracao/mensalidades": Wallet,
   "/app/administracao/cobranca": CreditCard,

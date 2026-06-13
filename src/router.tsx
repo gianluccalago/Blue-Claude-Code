@@ -59,6 +59,7 @@ import { PainelCobranca } from "@/routes/administracao/PainelCobranca";
 import { Upselling } from "@/routes/administracao/Upselling";
 import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
 import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
+import { PainelServicos } from "@/routes/administracao/PainelServicos";
 import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
 import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
@@ -271,6 +272,11 @@ const tabelaPrecosRoute = createRoute({
   path: "tabela-precos",
   component: TabelaPrecos,
 });
+const servicosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "servicos",
+  component: PainelServicos,
+});
 const mensalidadesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "mensalidades",
@@ -478,6 +484,7 @@ const routeTree = rootRoute.addChildren([
     acompanhamentoNutricionalRoute,
     evolucaoNutricionalRoute,
     tabelaPrecosRoute,
+    servicosRoute,
     mensalidadesRoute,
     cobrancaRoute,
     upsellingRoute,
