@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { hojeISO } from "@/lib/utils";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import type { InspecaoSuite, InspecaoItem, TipoInspecao, StatusItemInspecao } from "@/types/database";
+import type {
+  InspecaoSuite,
+  InspecaoItem,
+  TipoInspecao,
+  StatusItemInspecao,
+  DestinoChamado,
+} from "@/types/database";
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +71,8 @@ export type ItemInspecaoInput = {
   item: string;
   status: StatusItemInspecao;
   observacao: string | null;
+  /** Destino do chamado gerado se for não conforme (default: serviços gerais). */
+  destino?: DestinoChamado;
 };
 
 /**
@@ -107,6 +115,11 @@ export function useSalvarInspecao() {
         .select("id, item, status, observacao");
       if (errI) throw errI;
 
+      // Destino escolhido por item na inspeção (default: serviços gerais).
+      const destinoPorItem = new Map<string, DestinoChamado>(
+        args.itens.map((it) => [it.item, it.destino ?? "servicos_gerais"]),
+      );
+
       const naoConformes = (itensSalvos ?? []).filter((it) => it.status === "nao_conforme");
       for (const item of naoConformes) {
         const { data: existente, error: errCheck } = await supabase
@@ -124,6 +137,7 @@ export function useSalvarInspecao() {
           urgencia: "media",
           aberto_por: usuarioAtual.nome,
           perfil_solicitante: "hotelaria",
+          destino: destinoPorItem.get(item.item) ?? "servicos_gerais",
           inspecao_item_id: item.id,
         });
         if (errChamado) throw errChamado;

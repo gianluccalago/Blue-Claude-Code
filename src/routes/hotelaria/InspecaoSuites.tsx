@@ -31,7 +31,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
-import type { InspecaoSuite, InspecaoItem, Residente, TipoInspecao, StatusItemInspecao } from "@/types/database";
+import { DESTINO_CHAMADO } from "@/lib/manutencao";
+import type {
+  InspecaoSuite,
+  InspecaoItem,
+  Residente,
+  TipoInspecao,
+  StatusItemInspecao,
+  DestinoChamado,
+} from "@/types/database";
 
 // ─── Itens por tipo de inspeção ───────────────────────────────────────────────
 
@@ -305,6 +313,8 @@ function FormInspecao({
   const [tipo, setTipo] = useState<TipoInspecao>("diaria");
   const [respostas, setRespostas] = useState<Record<string, StatusItemInspecao | undefined>>({});
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
+  // Destino do chamado gerado por cada item não conforme (default: serviços gerais).
+  const [destinos, setDestinos] = useState<Record<string, DestinoChamado>>({});
   const [erro, setErro] = useState<string | null>(null);
   const salvar = useSalvarInspecao();
 
@@ -327,6 +337,7 @@ function FormInspecao({
     setTipo(t);
     setRespostas({});
     setObservacoes({});
+    setDestinos({});
     setErro(null);
   }
 
@@ -341,6 +352,7 @@ function FormInspecao({
         item: it,
         status: respostas[it]!,
         observacao: observacoes[it] || null,
+        destino: respostas[it] === "nao_conforme" ? (destinos[it] ?? "servicos_gerais") : undefined,
       }));
       await salvar.mutateAsync({
         residenteId: residente.id,
@@ -470,17 +482,45 @@ function FormInspecao({
                   </div>
                 </div>
 
-                {/* Campo de observação — aparece apenas ao marcar não conforme */}
+                {/* Observação + destino do chamado — só ao marcar não conforme */}
                 {isNaoConforme && (
-                  <textarea
-                    rows={2}
-                    placeholder="Descreva o problema (opcional)"
-                    value={observacoes[item] ?? ""}
-                    onChange={(e) =>
-                      setObservacoes((prev) => ({ ...prev, [item]: e.target.value }))
-                    }
-                    className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+                  <div className="space-y-2">
+                    <textarea
+                      rows={2}
+                      placeholder="Descreva o problema (opcional)"
+                      value={observacoes[item] ?? ""}
+                      onChange={(e) =>
+                        setObservacoes((prev) => ({ ...prev, [item]: e.target.value }))
+                      }
+                      className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                        Direcionar o chamado para
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {DESTINO_CHAMADO.map((d) => {
+                          const ativo = (destinos[item] ?? "servicos_gerais") === d.value;
+                          return (
+                            <button
+                              key={d.value}
+                              type="button"
+                              title={d.dica}
+                              onClick={() => setDestinos((prev) => ({ ...prev, [item]: d.value }))}
+                              className={cn(
+                                "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                                ativo
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "bg-background hover:border-primary/50",
+                              )}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
