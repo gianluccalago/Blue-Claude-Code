@@ -7,6 +7,7 @@ import { FotoUploader } from "@/components/FotoUploader";
 import { uploadFotoResidente } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
+import { montarQuarto, parseQuarto, type LetraQuarto } from "@/lib/quarto";
 import {
   ResponsavelFinanceiroFields,
   type RespFinValor,
@@ -106,6 +107,24 @@ export function ResidenteFicha({
     setV((atual) => ({ ...atual, [campo]: valor }));
   }
 
+  // ── Número do quarto (Bloco-Andar-Suíte-Letra) ──────────────────────────────
+  // Bloco↔modulo e Andar↔andar reaproveitam as colunas; suíte e letra vivem na
+  // string `quarto`. Estado local p/ suíte/letra; bloco/andar saem de v.modulo/
+  // v.andar. Qualquer mudança remonta os três campos em sincronia.
+  const partesIniciais = parseQuarto(inicial?.quarto);
+  const [suite, setSuite] = useState<number | null>(partesIniciais.suite);
+  const [letra, setLetra] = useState<LetraQuarto>(partesIniciais.letra ?? "A");
+
+  function setParteQuarto(patch: Partial<{ bloco: number | null; andar: number | null; suite: number | null; letra: LetraQuarto }>) {
+    const bloco = patch.bloco !== undefined ? patch.bloco : v.modulo;
+    const andar = patch.andar !== undefined ? patch.andar : v.andar;
+    const s = patch.suite !== undefined ? patch.suite : suite;
+    const l = patch.letra !== undefined ? patch.letra : letra;
+    if (patch.suite !== undefined) setSuite(patch.suite);
+    if (patch.letra !== undefined) setLetra(patch.letra);
+    setV((atual) => ({ ...atual, modulo: bloco, andar, quarto: montarQuarto(bloco, andar, s, l) }));
+  }
+
   const idade = calcularIdade(v.data_nascimento);
   const permanencia = tempoDePermanencia(v.data_admissao);
   const nivelContratual = grauNivel(v.grau_contratual);
@@ -159,14 +178,26 @@ export function ResidenteFicha({
           <Campo rotulo={`Data de nascimento${idade !== null ? ` · ${idade} anos` : ""}`}>
             <input type="date" value={v.data_nascimento ?? ""} onChange={(e) => set("data_nascimento", e.target.value || null)} className={inputBase} />
           </Campo>
-          <Campo rotulo="Módulo">
-            <input value={v.modulo ?? ""} onChange={(e) => set("modulo", paraInt(e.target.value))} inputMode="numeric" className={inputBase} placeholder="—" />
+          <Campo rotulo="Bloco (1–5)">
+            <input value={v.modulo ?? ""} onChange={(e) => setParteQuarto({ bloco: paraInt(e.target.value) })} inputMode="numeric" className={inputBase} placeholder="—" />
           </Campo>
-          <Campo rotulo="Andar">
-            <input value={v.andar ?? ""} onChange={(e) => set("andar", paraInt(e.target.value))} inputMode="numeric" className={inputBase} placeholder="—" />
+          <Campo rotulo="Andar (1–3)">
+            <input value={v.andar ?? ""} onChange={(e) => setParteQuarto({ andar: paraInt(e.target.value) })} inputMode="numeric" className={inputBase} placeholder="—" />
           </Campo>
-          <Campo rotulo="Quarto">
-            <input value={v.quarto ?? ""} onChange={(e) => set("quarto", e.target.value)} className={inputBase} placeholder="ex: 1-2-04" />
+          <Campo rotulo="Suíte (1–99)">
+            <input value={suite ?? ""} onChange={(e) => setParteQuarto({ suite: paraInt(e.target.value) })} inputMode="numeric" className={inputBase} placeholder="—" />
+          </Campo>
+          <Campo rotulo="Letra (A/B/C)">
+            <select value={letra} onChange={(e) => setParteQuarto({ letra: e.target.value as LetraQuarto })} className={inputBase}>
+              <option value="A">A — simples / 1º leito</option>
+              <option value="B">B — 2º leito (duplo)</option>
+              <option value="C">C — 3º leito (triplo)</option>
+            </select>
+          </Campo>
+          <Campo rotulo="Número do quarto">
+            <div className="flex h-11 items-center rounded-md border border-dashed border-input bg-muted/30 px-3 text-sm font-semibold tabular-nums text-secondary">
+              {v.quarto ?? "—"}
+            </div>
           </Campo>
           <Campo rotulo="Tipo de suíte">
             <select value={v.tipo_suite ?? ""} onChange={(e) => set("tipo_suite", (e.target.value || null) as TipoSuite | null)} className={inputBase}>
