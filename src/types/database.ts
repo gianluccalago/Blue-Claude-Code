@@ -54,6 +54,9 @@ export type PerfilSolicitanteChamado =
   | "cuidador"
   | "coordenacao"
   | "master";
+
+/** Destino do chamado de manutenção: quem o trata/gere. */
+export type DestinoChamado = "hotelaria" | "servicos_gerais";
 export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
@@ -692,10 +695,15 @@ export interface Database {
           status: StatusChamado;
           aberto_por: string;
           perfil_solicitante: PerfilSolicitanteChamado;
+          // Quem trata o chamado: Hotelaria ou Serviços Gerais.
+          destino: DestinoChamado;
           responsavel: string | null;
           prazo: string | null;
           foto_url: string | null;
           inspecao_item_id: string | null;
+          // Sinalização da gestão (Administração/Master): "priorizado/cobrado".
+          cobrado_gestao: boolean;
+          cobrado_em: string | null;
           criado_em: string;
           resolvido_em: string | null;
         };
@@ -708,10 +716,13 @@ export interface Database {
           status?: StatusChamado;
           aberto_por: string;
           perfil_solicitante: PerfilSolicitanteChamado;
+          destino?: DestinoChamado;
           responsavel?: string | null;
           prazo?: string | null;
           foto_url?: string | null;
           inspecao_item_id?: string | null;
+          cobrado_gestao?: boolean;
+          cobrado_em?: string | null;
           criado_em?: string;
           resolvido_em?: string | null;
         };

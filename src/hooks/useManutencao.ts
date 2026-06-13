@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { uploadFotoManutencao } from "@/lib/storage";
 import type {
   ChamadoManutencao,
+  DestinoChamado,
   PerfilSolicitanteChamado,
   StatusChamado,
   UrgenciaChamado,
@@ -36,36 +37,37 @@ export type CriarChamadoInput = {
   urgencia: UrgenciaChamado;
   abertoPor: string;
   perfilSolicitante: PerfilSolicitanteChamado;
-  /** Foto do problema (opcional) — enviada após a criação do chamado. */
+  /** Quem trata o chamado: Hotelaria ou Serviços Gerais. */
+  destino: DestinoChamado;
+  /** Foto do problema (opcional). */
   foto?: File | null;
 };
 
-/** Abre um novo chamado de manutenção, com upload opcional de foto do problema. */
+/**
+ * Abre um novo chamado de manutenção, com upload opcional de foto.
+ * O id é gerado no cliente para subir a foto ANTES do insert e gravar tudo de
+ * uma vez — sem RETURNING nem update pós-insert. Isso mantém o INSERT compatível
+ * com a RLS por destino (quem abre não precisa de SELECT do chamado criado).
+ */
 export function useCriarChamado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: CriarChamadoInput) => {
-      const { data, error } = await supabase
-        .from("chamado_manutencao")
-        .insert({
-          local: args.local,
-          residente_id: args.residenteId,
-          problema: args.problema,
-          urgencia: args.urgencia,
-          aberto_por: args.abertoPor,
-          perfil_solicitante: args.perfilSolicitante,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      const id = data.id as string;
+      const id = crypto.randomUUID();
+      const fotoUrl = args.foto ? await uploadFotoManutencao(args.foto, id) : null;
 
-      if (args.foto) {
-        const fotoUrl = await uploadFotoManutencao(args.foto, id);
-        if (fotoUrl) {
-          await supabase.from("chamado_manutencao").update({ foto_url: fotoUrl }).eq("id", id);
-        }
-      }
+      const { error } = await supabase.from("chamado_manutencao").insert({
+        id,
+        local: args.local,
+        residente_id: args.residenteId,
+        problema: args.problema,
+        urgencia: args.urgencia,
+        aberto_por: args.abertoPor,
+        perfil_solicitante: args.perfilSolicitante,
+        destino: args.destino,
+        foto_url: fotoUrl,
+      });
+      if (error) throw error;
 
       return id;
     },

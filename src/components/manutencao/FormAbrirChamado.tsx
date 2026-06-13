@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Wrench, AlertCircle, Check, Building2, BedDouble, Camera } from "lucide-react";
 import { useCriarChamado } from "@/hooks/useManutencao";
+import { DESTINO_CHAMADO } from "@/lib/manutencao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PerfilSolicitanteChamado, Residente, UrgenciaChamado } from "@/types/database";
+import type {
+  DestinoChamado,
+  PerfilSolicitanteChamado,
+  Residente,
+  UrgenciaChamado,
+} from "@/types/database";
 
 const inputClass =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -34,11 +40,14 @@ export function FormAbrirChamado({
   residentes,
   perfilSolicitante,
   abertoPorPadrao,
+  destinoPadrao = "servicos_gerais",
   onConcluido,
 }: {
   residentes: Residente[];
   perfilSolicitante: PerfilSolicitanteChamado;
   abertoPorPadrao: string;
+  /** Destino sugerido (ex.: a própria fila ao abrir de dentro da gestão). */
+  destinoPadrao?: DestinoChamado;
   onConcluido?: () => void;
 }) {
   const criar = useCriarChamado();
@@ -50,6 +59,7 @@ export function FormAbrirChamado({
   const [localComum, setLocalComum] = useState("");
   const [problema, setProblema] = useState("");
   const [urgencia, setUrgencia] = useState<UrgenciaChamado>("media");
+  const [destino, setDestino] = useState<DestinoChamado>(destinoPadrao);
   const [abertoPor, setAbertoPor] = useState(abertoPorPadrao);
   const [foto, setFoto] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -74,12 +84,14 @@ export function FormAbrirChamado({
         urgencia,
         abertoPor: abertoPor.trim(),
         perfilSolicitante,
+        destino,
         foto,
       });
       setProblema("");
       setLocalComum("");
       setResidenteId("");
       setUrgencia("media");
+      setDestino(destinoPadrao);
       setFoto(null);
       setSucesso(true);
       setTimeout(() => setSucesso(false), 3000);
@@ -175,6 +187,31 @@ export function FormAbrirChamado({
             placeholder="Descreva o problema encontrado…"
             className="w-full resize-none rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+        </div>
+
+        {/* Destino — quem trata o chamado (obrigatório) */}
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-secondary">
+            Direcionar para
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {DESTINO_CHAMADO.map((d) => (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => setDestino(d.value)}
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  destino === d.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-background hover:border-primary/50",
+                )}
+              >
+                <span className="block text-sm font-semibold text-secondary">{d.label}</span>
+                <span className="block text-xs text-muted-foreground">{d.dica}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div>

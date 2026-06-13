@@ -25,6 +25,7 @@ import {
   useResolverChamado,
 } from "@/hooks/useManutencao";
 import { uploadFotoManutencao } from "@/lib/storage";
+import { destinoDoPerfil, DESTINO_CHAMADO_LABEL } from "@/lib/manutencao";
 import { FormAbrirChamado } from "@/components/manutencao/FormAbrirChamado";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,14 @@ export function Manutencao() {
     ? (perfil as PerfilSolicitanteChamado)
     : "servicos_gerais";
 
+  // Fila desta tela: só os chamados do DESTINO do perfil (Hotelaria ou Serviços
+  // Gerais). Defesa também no cliente, além da RLS (cobre o Camaleão do Master).
+  const destinoAtivo = destinoDoPerfil(perfil);
+  const visiveis = useMemo(
+    () => (destinoAtivo ? chamados.filter((c) => c.destino === destinoAtivo) : chamados),
+    [chamados, destinoAtivo],
+  );
+
   const [filtroStatus, setFiltroStatus] = useState<StatusChamado | "todos">("todos");
   const [filtroUrgencia, setFiltroUrgencia] = useState<UrgenciaChamado | "todas">("todas");
   const [novoChamado, setNovoChamado] = useState(false);
@@ -118,14 +127,14 @@ export function Manutencao() {
 
   const contadores = useMemo(() => {
     return {
-      abertos: chamados.filter((c) => c.status === "aberto").length,
-      emAndamento: chamados.filter((c) => c.status === "em_andamento").length,
-      emergencias: chamados.filter((c) => emergenciaAtiva(c)).length,
+      abertos: visiveis.filter((c) => c.status === "aberto").length,
+      emAndamento: visiveis.filter((c) => c.status === "em_andamento").length,
+      emergencias: visiveis.filter((c) => emergenciaAtiva(c)).length,
     };
-  }, [chamados]);
+  }, [visiveis]);
 
   const ordenados = useMemo(() => {
-    const filtrados = chamados.filter(
+    const filtrados = visiveis.filter(
       (c) =>
         (filtroStatus === "todos" || c.status === filtroStatus) &&
         (filtroUrgencia === "todas" || c.urgencia === filtroUrgencia)
@@ -141,7 +150,7 @@ export function Manutencao() {
       if (aV !== bV) return aV ? -1 : 1;
       return new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime();
     });
-  }, [chamados, filtroStatus, filtroUrgencia]);
+  }, [visiveis, filtroStatus, filtroUrgencia]);
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
@@ -151,7 +160,11 @@ export function Manutencao() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Manutenção</h1>
-          <p className="text-sm text-muted-foreground">Chamados de manutenção</p>
+          <p className="text-sm text-muted-foreground">
+            {destinoAtivo
+              ? `Chamados direcionados a ${DESTINO_CHAMADO_LABEL[destinoAtivo]}`
+              : "Chamados de manutenção"}
+          </p>
         </div>
         <Button size="sm" className="gap-1.5 shrink-0" onClick={() => setNovoChamado((v) => !v)}>
           {novoChamado ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -164,6 +177,7 @@ export function Manutencao() {
           residentes={residentes}
           perfilSolicitante={perfilSolicitante}
           abertoPorPadrao={usuarioEfetivo?.nome ?? "Serviços Gerais"}
+          destinoPadrao={destinoAtivo ?? "servicos_gerais"}
           onConcluido={() => setNovoChamado(false)}
         />
       )}
