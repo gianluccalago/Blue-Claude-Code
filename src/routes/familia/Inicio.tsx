@@ -11,8 +11,10 @@ import {
   Sun,
   UtensilsCrossed,
   Sparkles,
+  Phone,
 } from "lucide-react";
 import { useResidenteFamilia, useFotosResidente } from "@/hooks/useFamilia";
+import { useTelefonePlantao } from "@/hooks/useConfiguracao";
 import { useSolicitacoesFamilia } from "@/hooks/useSolicitacoes";
 import { useAceitacaoResidenteHoje } from "@/hooks/useMaster";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +38,41 @@ const FRASE_ACEITACAO: Record<string, string> = {
   "Pouco": "aceitou um pouquinho",
   "Nada": "não quis desta vez — a equipe acompanha de perto",
 };
+
+/**
+ * Contato do plantão para a família: número FIXO do aparelho da casa (com a
+ * enfermagem de plantão). Em destaque, com aviso de uso consciente — emergência
+ * ou falar com o hóspede; o dia a dia é pelo app.
+ */
+function CardPlantao({ primeiroNome }: { primeiroNome: string }) {
+  const telefone = useTelefonePlantao();
+  const numero = telefone.data ?? null;
+  const numeroLimpo = numero ? numero.replace(/\D/g, "") : "";
+  return (
+    <Card className="border-destructive/30 bg-destructive/5">
+      <CardContent className="space-y-2 py-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+          <Phone className="size-4" /> Contato direto com o plantão
+        </div>
+        {numero ? (
+          <a
+            href={`tel:${numeroLimpo}`}
+            className="block text-2xl font-extrabold tracking-tight text-secondary hover:underline"
+          >
+            {numero}
+          </a>
+        ) : (
+          <p className="text-2xl font-extrabold text-muted-foreground">Não informado</p>
+        )}
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Use este número apenas para <strong>emergências</strong> ou para falar diretamente com{" "}
+          <strong>{primeiroNome}</strong>. Para solicitações e dúvidas do dia a dia, utilize o
+          aplicativo — assim garantimos o melhor atendimento.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: string }) {
   const aceitacao = useAceitacaoResidenteHoje(residenteId);
@@ -181,6 +218,9 @@ function InicioConteudo({
 
       {/* O DIA DE [NOME] — narrativa do cuidado com dados já capturados */}
       {r && <CardDiaDoHospede residenteId={r.id} nome={r.nome} />}
+
+      {/* Contato direto com o plantão (número fixo do aparelho da casa) */}
+      {r && <CardPlantao primeiroNome={r.nome.split(" ")[0]} />}
 
       <Card>
         <CardHeader>

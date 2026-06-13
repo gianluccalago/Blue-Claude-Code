@@ -900,6 +900,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tabela_preco"]["Insert"]>;
         Relationships: [];
       };
+      configuracao: {
+        Row: {
+          chave: string;
+          valor: string | null;
+          atualizado_em: string;
+          atualizado_por: string | null;
+        };
+        Insert: {
+          chave: string;
+          valor?: string | null;
+          atualizado_em?: string;
+          atualizado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["configuracao"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_mensalidade: {
         Row: {
           id: string;

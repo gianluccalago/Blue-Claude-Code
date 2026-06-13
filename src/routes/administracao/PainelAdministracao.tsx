@@ -5,6 +5,8 @@
  * receita prevista (mensalidades + upselling), inadimplência e
  * recebido vs. pendente.
  */
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   BedDouble,
@@ -19,14 +21,21 @@ import {
   BadgeCheck,
   Wrench,
   Megaphone,
+  Phone,
 } from "lucide-react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { useResumoFunil } from "@/hooks/useCrm";
 import { useChamadosManutencao } from "@/hooks/useManutencao";
+import {
+  useTelefonePlantao,
+  useSalvarConfiguracao,
+  CHAVE_TELEFONE_PLANTAO,
+} from "@/hooks/useConfiguracao";
 import { formatarMoeda, formatarMesReferencia, mesAtual } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatCard, ProgressBar } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
 
@@ -117,6 +126,9 @@ export function PainelAdministracao() {
       {/* Supervisão de Serviços — Administração (a Direção não tem essa tela). */}
       {perfil === "administracao" && <ResumoServicosCard base={base} />}
 
+      {/* Telefone do plantão exibido à família (config editável). */}
+      {perfil === "administracao" && <TelefonePlantaoCard />}
+
       {/* Funil comercial — só Direção (CRM). A Administração não vê. */}
       {temCrm && <FunilComercialCard base={base} />}
 
@@ -154,6 +166,54 @@ export function PainelAdministracao() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Editor do TELEFONE DO PLANTÃO mostrado à família (número fixo do aparelho da
+ * casa, não a escala). Editável por Master/Administração (RLS reforça).
+ */
+function TelefonePlantaoCard() {
+  const atual = useTelefonePlantao();
+  const salvar = useSalvarConfiguracao();
+  const [valor, setValor] = useState<string | null>(null);
+  const texto = valor ?? atual.data ?? "";
+
+  async function handleSalvar() {
+    try {
+      await salvar.mutateAsync({ chave: CHAVE_TELEFONE_PLANTAO, valor: texto.trim() });
+      setValor(null);
+      toast.success("Telefone do plantão atualizado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Phone className="size-5 text-primary" /> Telefone do plantão (família)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Número FIXO do aparelho da casa que fica com a enfermagem de plantão (passa de mão
+          entre os plantões). Aparece em destaque no portal da família.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={texto}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder="(41) 0000-0000"
+            className="h-11 w-56 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <Button onClick={handleSalvar} disabled={salvar.isPending || atual.isLoading}>
+            {salvar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
