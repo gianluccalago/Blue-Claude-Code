@@ -24,8 +24,13 @@ import {
   useMarcarPagamento,
   useMarcarPagamentosLote,
   usePagamentosDoMes,
+  useSalvarResponsavelFinanceiro,
   useTabelaPreco,
 } from "@/hooks/useMensalidades";
+import {
+  ResponsavelFinanceiroFields,
+  type RespFinValor,
+} from "@/components/financeiro/ResponsavelFinanceiroFields";
 import {
   OCUPACOES,
   TIPOS_SUITE,
@@ -75,7 +80,7 @@ export function Mensalidades() {
   let totalPendente = 0;
   let countInadimplentes = 0;
   for (const r of residentes.data) {
-    const pago = pagamentoMap.get(r.id)?.status === "pago";
+    const pago = pagamentoMap.get(r.id)?.status === "paga";
     if (!pago) {
       totalPendente += valorDe(r);
       if (mesEhPassado) countInadimplentes++;
@@ -83,7 +88,7 @@ export function Mensalidades() {
   }
 
   // Pendentes do mês — base para a seleção em lote.
-  const pendentes = residentes.data.filter((r) => pagamentoMap.get(r.id)?.status !== "pago");
+  const pendentes = residentes.data.filter((r) => pagamentoMap.get(r.id)?.status !== "paga");
 
   function toggleSelecionado(id: string) {
     setSelecionados((prev) => {
@@ -185,7 +190,7 @@ export function Mensalidades() {
 
       <div className="space-y-4">
         {residentes.data.map((r) => {
-          const pago = pagamentoMap.get(r.id)?.status === "pago";
+          const pago = pagamentoMap.get(r.id)?.status === "paga";
           return (
             <ResidenteMensalidade
               key={r.id}
@@ -229,7 +234,7 @@ function ResidenteMensalidade({
   const [erro, setErro] = useState<string | null>(null);
 
   const valorVigente = r.mensalidade_valor ?? valorSugerido;
-  const pago = pagamento?.status === "pago";
+  const pago = pagamento?.status === "paga";
   const vencido = !pago && mesEhPassado;
 
   async function handleTogglePagamento() {
@@ -285,6 +290,7 @@ function ResidenteMensalidade({
               onSalvo={() => setEditando(false)}
               onCancelar={() => setEditando(false)}
             />
+            <ResponsavelFinanceiroEditor residente={r} />
             {/* Trilha de auditoria — somente leitura */}
             <HistoricoAlteracoes tabelaOrigem="residentes" registroId={r.id} />
           </div>
@@ -334,6 +340,47 @@ function ResidenteMensalidade({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ResponsavelFinanceiroEditor({ residente: r }: { residente: Residente }) {
+  const salvar = useSalvarResponsavelFinanceiro(r.id);
+  const [v, setV] = useState<RespFinValor>({
+    nome: r.resp_fin_nome ?? "",
+    cpf: r.resp_fin_cpf ?? "",
+    email: r.resp_fin_email ?? "",
+    telefone: r.resp_fin_telefone ?? "",
+    relacao: r.resp_fin_relacao ?? "",
+  });
+
+  function set(campo: keyof RespFinValor, valor: string) {
+    setV((atual) => ({ ...atual, [campo]: valor }));
+  }
+  const t = (s: string) => (s.trim() === "" ? null : s.trim());
+
+  async function handleSalvar() {
+    try {
+      await salvar.mutateAsync({
+        nome: t(v.nome),
+        cpf: t(v.cpf),
+        email: t(v.email),
+        telefone: t(v.telefone),
+        relacao: t(v.relacao),
+      });
+      toast.success("Responsável financeiro salvo.");
+    } catch (e) {
+      toast.error(extrairErro(e));
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+      <p className="text-sm font-semibold text-secondary">Responsável financeiro (quem paga)</p>
+      <ResponsavelFinanceiroFields valor={v} onChange={set} />
+      <Button onClick={handleSalvar} disabled={salvar.isPending}>
+        {salvar.isPending ? "Salvando…" : "Salvar responsável financeiro"}
+      </Button>
+    </div>
   );
 }
 

@@ -34,6 +34,13 @@ export interface ResidenteValor {
   historia_vida: string | null;
   celular_proprio: string | null;
   foto_url: string | null;
+  // Responsável financeiro (quem paga). asaas_customer_id NÃO entra aqui:
+  // é reservado p/ a futura integração e nunca editado manualmente.
+  resp_fin_nome: string | null;
+  resp_fin_cpf: string | null;
+  resp_fin_email: string | null;
+  resp_fin_telefone: string | null;
+  resp_fin_relacao: string | null;
 }
 
 function paraRegistro(v: ResidenteValor) {
@@ -63,6 +70,11 @@ function paraRegistro(v: ResidenteValor) {
     historia_vida: t(v.historia_vida),
     celular_proprio: t(v.celular_proprio),
     foto_url: t(v.foto_url),
+    resp_fin_nome: t(v.resp_fin_nome),
+    resp_fin_cpf: t(v.resp_fin_cpf),
+    resp_fin_email: t(v.resp_fin_email),
+    resp_fin_telefone: t(v.resp_fin_telefone),
+    resp_fin_relacao: t(v.resp_fin_relacao),
   };
 }
 

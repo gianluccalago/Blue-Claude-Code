@@ -55,6 +55,7 @@ import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
 import { Atividades } from "@/routes/multidisciplinar/Atividades";
 import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
 import { Mensalidades } from "@/routes/administracao/Mensalidades";
+import { PainelCobranca } from "@/routes/administracao/PainelCobranca";
 import { Upselling } from "@/routes/administracao/Upselling";
 import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
 import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
@@ -275,6 +276,11 @@ const mensalidadesRoute = createRoute({
   path: "mensalidades",
   component: Mensalidades,
 });
+const cobrancaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "cobranca",
+  component: PainelCobranca,
+});
 const upsellingRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "upselling",
@@ -473,6 +479,7 @@ const routeTree = rootRoute.addChildren([
     evolucaoNutricionalRoute,
     tabelaPrecosRoute,
     mensalidadesRoute,
+    cobrancaRoute,
     upsellingRoute,
     demonstrativoRoute,
     remuneracaoEquipeRoute,

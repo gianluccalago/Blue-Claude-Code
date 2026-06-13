@@ -2,7 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
-import type { Ocupacao, PagamentoMensalidade, TabelaPreco, TipoSuite } from "@/types/database";
+import type {
+  FormaPagamento,
+  Ocupacao,
+  PagamentoMensalidade,
+  StatusPagamentoMensalidade,
+  TabelaPreco,
+  TipoSuite,
+} from "@/types/database";
 
 // ─── Tabela de preços ───────────────────────────────────────────────────────────
 
@@ -129,13 +136,16 @@ export function useMarcarPagamento() {
   return useMutation({
     mutationFn: async (args: MarcarPagamentoInput) => {
       if (args.pago) {
+        const agora = new Date();
         const { error } = await supabase.from("pagamento_mensalidade").upsert(
           {
             residente_id: args.residenteId,
             mes_referencia: args.mes,
             valor: args.valor,
-            status: "pago",
-            pago_em: new Date().toISOString(),
+            status: "paga",
+            pago_em: agora.toISOString(),
+            valor_pago: args.valor,
+            data_pagamento: agora.toISOString().slice(0, 10),
             registrado_por: ADMIN_ATUAL.nome,
           },
           { onConflict: "residente_id,mes_referencia" },
@@ -166,12 +176,15 @@ export function useMarcarPagamentosLote() {
     mutationFn: async (args: MarcarPagamentosLoteInput) => {
       if (args.itens.length === 0) return;
       const agora = new Date().toISOString();
+      const hoje = agora.slice(0, 10);
       const linhas = args.itens.map((i) => ({
         residente_id: i.residenteId,
         mes_referencia: args.mes,
         valor: i.valor,
-        status: "pago" as const,
+        status: "paga" as const,
         pago_em: agora,
+        valor_pago: i.valor,
+        data_pagamento: hoje,
         registrado_por: ADMIN_ATUAL.nome,
       }));
       const { error } = await supabase
@@ -181,5 +194,82 @@ export function useMarcarPagamentosLote() {
     },
     onSuccess: (_r, args) =>
       qc.invalidateQueries({ queryKey: ["pagamentos-mensalidade", args.mes] }),
+  });
+}
+
+// ─── Cobrança (controle MANUAL do status) ────────────────────────────────────
+// Atualiza o status estruturado da cobrança e os campos manuais. SEM integração:
+// é a Administração que move o status (ex.: "enviada" ao mandar o boleto por
+// fora, "paga" ao confirmar). A cobrança automática futura exigirá um backend
+// (ex.: Supabase Edge Function) — inexistente neste ambiente.
+
+export type AtualizarCobrancaInput = {
+  residenteId: string;
+  mes: string;
+  valor: number;
+  status: StatusPagamentoMensalidade;
+  dataVencimento?: string | null;
+  formaPagamento?: FormaPagamento | null;
+  valorPago?: number | null;
+  dataPagamento?: string | null;
+};
+
+/** Upsert do registro de cobrança do mês com status + campos manuais. */
+export function useAtualizarCobranca() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: AtualizarCobrancaInput) => {
+      const pago = args.status === "paga";
+      const hoje = new Date().toISOString().slice(0, 10);
+      const { error } = await supabase.from("pagamento_mensalidade").upsert(
+        {
+          residente_id: args.residenteId,
+          mes_referencia: args.mes,
+          valor: args.valor,
+          status: args.status,
+          data_vencimento: args.dataVencimento ?? null,
+          forma_pagamento: args.formaPagamento ?? null,
+          // Ao marcar paga, registra valor/data do pagamento (se não vierem).
+          valor_pago: pago ? args.valorPago ?? args.valor : args.valorPago ?? null,
+          data_pagamento: pago ? args.dataPagamento ?? hoje : args.dataPagamento ?? null,
+          pago_em: pago ? new Date().toISOString() : null,
+          registrado_por: ADMIN_ATUAL.nome,
+        },
+        { onConflict: "residente_id,mes_referencia" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => qc.invalidateQueries({ queryKey: ["pagamentos-mensalidade", args.mes] }),
+  });
+}
+
+// ─── Responsável financeiro (quem paga) ──────────────────────────────────────
+
+export type ResponsavelFinanceiroInput = {
+  nome: string | null;
+  cpf: string | null;
+  email: string | null;
+  telefone: string | null;
+  relacao: string | null;
+};
+
+/** Salva os dados do responsável financeiro de um hóspede (controle manual). */
+export function useSalvarResponsavelFinanceiro(residenteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: ResponsavelFinanceiroInput) => {
+      const { error } = await supabase
+        .from("residentes")
+        .update({
+          resp_fin_nome: v.nome,
+          resp_fin_cpf: v.cpf,
+          resp_fin_email: v.email,
+          resp_fin_telefone: v.telefone,
+          resp_fin_relacao: v.relacao,
+        })
+        .eq("id", residenteId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["residentes"] }),
   });
 }

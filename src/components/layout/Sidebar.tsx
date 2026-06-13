@@ -47,6 +47,7 @@ import {
   Radio,
   Settings,
   BarChart3,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -135,6 +136,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao": LayoutDashboard,
   "/app/administracao/tabela-precos": Tags,
   "/app/administracao/mensalidades": Wallet,
+  "/app/administracao/cobranca": CreditCard,
   "/app/administracao/upselling": Receipt,
   "/app/administracao/demonstrativo": FileSpreadsheet,
   "/app/administracao/remuneracao-equipe": Coins,

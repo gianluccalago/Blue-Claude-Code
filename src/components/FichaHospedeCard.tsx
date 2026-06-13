@@ -32,6 +32,7 @@ import {
   formatarDataBR,
 } from "@/lib/utils";
 import { mesAtual, formatarMoeda } from "@/lib/mensalidade";
+import { statusEfetivoCobranca, STATUS_COBRANCA_LABEL, STATUS_COBRANCA_VARIANTE } from "@/lib/cobranca";
 import type { PerfilUsuario, Residente } from "@/types/database";
 
 /**
@@ -302,7 +303,8 @@ function ResumoClinicoCompleto({
 function ResumoFinanceiro({ residente: r }: { residente: Residente }) {
   const pagamentos = usePagamentosDoMes(mesAtual());
   const pag = (pagamentos.data ?? []).find((p) => p.residente_id === r.id);
-  const pago = pag?.status === "pago";
+  const statusEfetivo = statusEfetivoCobranca(pag);
+  const temRespFin = r.resp_fin_nome || r.resp_fin_cpf || r.resp_fin_email || r.resp_fin_telefone;
 
   return (
     <Secao icon={Wallet} titulo="Financeiro (resumo)">
@@ -313,11 +315,31 @@ function ResumoFinanceiro({ residente: r }: { residente: Residente }) {
           {pagamentos.isLoading ? (
             <p className="text-sm text-muted-foreground">carregando…</p>
           ) : (
-            <Badge variant={pago ? "success" : "warning"} className="mt-0.5">
-              {pago ? "Pago" : "Pendente"}
+            <Badge variant={STATUS_COBRANCA_VARIANTE[statusEfetivo]} className="mt-0.5">
+              {STATUS_COBRANCA_LABEL[statusEfetivo]}
             </Badge>
           )}
         </div>
+      </div>
+
+      {/* Responsável financeiro (quem paga) */}
+      <div className="mt-4 border-t border-border/60 pt-3">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Users className="size-3.5" /> Responsável financeiro
+        </p>
+        {temRespFin ? (
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <Linha
+              rotulo="Nome"
+              valor={`${ouNaoInformado(r.resp_fin_nome)}${r.resp_fin_relacao ? ` · ${r.resp_fin_relacao}` : ""}`}
+            />
+            <Linha rotulo="CPF" valor={ouNaoInformado(r.resp_fin_cpf)} />
+            <Linha rotulo="E-mail" valor={ouNaoInformado(r.resp_fin_email)} />
+            <Linha rotulo="Telefone" valor={ouNaoInformado(r.resp_fin_telefone)} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Não informado.</p>
+        )}
       </div>
     </Secao>
   );

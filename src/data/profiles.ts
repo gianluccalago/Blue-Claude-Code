@@ -212,6 +212,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Hóspedes", to: "/app/administracao/ficha" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
+      { label: "Cobrança", to: "/app/administracao/cobranca" },
       { label: "Upselling", to: "/app/administracao/upselling" },
       { label: "Demonstrativo mensal", to: "/app/administracao/demonstrativo" },
       { label: "Remuneração da equipe", to: "/app/administracao/remuneracao-equipe" },

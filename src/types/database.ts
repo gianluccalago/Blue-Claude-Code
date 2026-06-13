@@ -49,7 +49,19 @@ export type StatusChamado = "aberto" | "em_andamento" | "resolvido";
 export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" | "master";
 export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
-export type StatusPagamentoMensalidade = "pendente" | "pago";
+// Status de cobrança da mensalidade — controle MANUAL (a Administração move o
+// status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
+// vencimento passado), mas também pode ser gravada. Migra do antigo
+// pago→paga / pendente→em_aberto (ver 0044).
+export type StatusPagamentoMensalidade =
+  | "em_aberto"
+  | "enviada"
+  | "paga"
+  | "vencida"
+  | "cancelada";
+
+/** Forma de pagamento registrada manualmente (sem integração). */
+export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro" | "transferencia";
 export type TipoRemuneracao = "mensal_fixo" | "por_plantao";
 export type StatusPagamentoPessoal = "pendente" | "pago";
 export type DestinoSolicitacao = "coordenacao" | "medico" | "administracao";
@@ -105,6 +117,14 @@ export interface Database {
           data_admissao: string | null;
           foto_url: string | null;
           celular_proprio: string | null;
+          // Responsável FINANCEIRO (quem paga — em geral o filho, não o idoso).
+          resp_fin_nome: string | null;
+          resp_fin_cpf: string | null;
+          resp_fin_email: string | null;
+          resp_fin_telefone: string | null;
+          resp_fin_relacao: string | null;
+          // RESERVADO: id do cliente na plataforma de cobrança (ex.: Asaas). NULL por ora.
+          asaas_customer_id: string | null;
         };
         Insert: {
           id?: string;
@@ -133,6 +153,12 @@ export interface Database {
           data_admissao?: string | null;
           foto_url?: string | null;
           celular_proprio?: string | null;
+          resp_fin_nome?: string | null;
+          resp_fin_cpf?: string | null;
+          resp_fin_email?: string | null;
+          resp_fin_telefone?: string | null;
+          resp_fin_relacao?: string | null;
+          asaas_customer_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["residentes"]["Insert"]>;
         Relationships: [];
@@ -849,6 +875,13 @@ export interface Database {
           pago_em: string | null;
           registrado_por: string;
           criado_em: string;
+          // Cobrança (controle manual; reservado p/ futura integração).
+          data_vencimento: string | null;
+          forma_pagamento: FormaPagamento | null;
+          valor_pago: number | null;
+          data_pagamento: string | null;
+          // RESERVADO: id da cobrança na plataforma externa (ex.: Asaas). NULL por ora.
+          id_cobranca_externa: string | null;
         };
         Insert: {
           id?: string;
@@ -859,6 +892,11 @@ export interface Database {
           pago_em?: string | null;
           registrado_por: string;
           criado_em?: string;
+          data_vencimento?: string | null;
+          forma_pagamento?: FormaPagamento | null;
+          valor_pago?: number | null;
+          data_pagamento?: string | null;
+          id_cobranca_externa?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["pagamento_mensalidade"]["Insert"]>;
         Relationships: [];

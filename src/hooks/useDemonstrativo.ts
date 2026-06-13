@@ -3,6 +3,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import { usePagamentosDoMes, useTabelaPreco } from "@/hooks/useMensalidades";
 import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
 import { chavePreco } from "@/lib/mensalidade";
+import { ehPago } from "@/lib/cobranca";
 import type { PagamentoMensalidade, Residente } from "@/types/database";
 
 export interface LinhaDemonstrativo {
@@ -48,7 +49,7 @@ export function useDemonstrativoMes(mes: string) {
         mensalidade,
         upselling: upsellingTotal,
         total: mensalidade + upsellingTotal,
-        pago: pagamento?.status === "pago",
+        pago: ehPago(pagamento?.status),
         pagamento,
       };
     });

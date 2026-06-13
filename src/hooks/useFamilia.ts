@@ -188,7 +188,7 @@ export function useDemonstrativoFamilia(mes: string) {
       mensalidade,
       upselling: upsellingTotal,
       total: mensalidade + upsellingTotal,
-      pago: pagamento?.status === "pago",
+      pago: pagamento?.status === "paga",
       itensUpselling: itens.map((i) => ({
         categoria: i.categoria,
         descricao: i.descricao,

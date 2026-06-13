@@ -7,7 +7,21 @@ import { FotoUploader } from "@/components/FotoUploader";
 import { uploadFotoResidente } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
+import {
+  ResponsavelFinanceiroFields,
+  type RespFinValor,
+} from "@/components/financeiro/ResponsavelFinanceiroFields";
 import type { GrauDependencia, Ocupacao, Residente, TipoSuite } from "@/types/database";
+
+// Mapeia os campos do componente de responsável financeiro para as chaves de
+// ResidenteValor (salvas junto com a ficha).
+const CAMPO_RESP_FIN: Record<keyof RespFinValor, keyof ResidenteValor> = {
+  nome: "resp_fin_nome",
+  cpf: "resp_fin_cpf",
+  email: "resp_fin_email",
+  telefone: "resp_fin_telefone",
+  relacao: "resp_fin_relacao",
+};
 
 /** Tipos de suíte (alinhado à tabela de preços da Administração). */
 const TIPOS_SUITE: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
@@ -50,6 +64,11 @@ function estadoInicial(r?: Residente, prefill?: Partial<ResidenteValor>): Reside
     historia_vida: r?.historia_vida ?? null,
     celular_proprio: r?.celular_proprio ?? null,
     foto_url: r?.foto_url ?? null,
+    resp_fin_nome: r?.resp_fin_nome ?? null,
+    resp_fin_cpf: r?.resp_fin_cpf ?? null,
+    resp_fin_email: r?.resp_fin_email ?? null,
+    resp_fin_telefone: r?.resp_fin_telefone ?? null,
+    resp_fin_relacao: r?.resp_fin_relacao ?? null,
   };
   // Pré-preenchimento (ex.: admissão vinda do CRM) só se aplica na CRIAÇÃO.
   if (!r && prefill) return { ...base, ...prefill };
@@ -236,13 +255,27 @@ export function ResidenteFicha({
             <input value={v.mensalidade_valor ?? ""} onChange={(e) => set("mensalidade_valor", paraDecimal(e.target.value))} inputMode="decimal" className={inputBase} placeholder="0,00" />
           </Campo>
           <Campo rotulo="Status do mês">
-            {/* LEITURA: o status (em dia/inadimplente) virá do módulo de
-                mensalidades quando existir; por ora não há fonte. */}
+            {/* LEITURA: o status (em dia/inadimplente) é gerido na tela de
+                Mensalidades / Painel de Cobrança. */}
             <div className="flex h-11 items-center text-sm font-medium text-muted-foreground">
-              Não informado — módulo de mensalidades
+              Veja em Mensalidades / Cobrança
             </div>
           </Campo>
         </div>
+      </Secao>
+
+      {/* RESPONSÁVEL FINANCEIRO (quem paga — em geral o filho, não o idoso) */}
+      <Secao icon={Users} titulo="Responsável financeiro (quem paga)">
+        <ResponsavelFinanceiroFields
+          valor={{
+            nome: v.resp_fin_nome ?? "",
+            cpf: v.resp_fin_cpf ?? "",
+            email: v.resp_fin_email ?? "",
+            telefone: v.resp_fin_telefone ?? "",
+            relacao: v.resp_fin_relacao ?? "",
+          }}
+          onChange={(campo, valor) => set(CAMPO_RESP_FIN[campo], valor || null)}
+        />
       </Secao>
 
       {/* HISTÓRIA DE VIDA */}

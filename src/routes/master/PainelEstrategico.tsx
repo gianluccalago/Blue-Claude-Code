@@ -165,13 +165,13 @@ export function PainelEstrategico() {
   const resultadoBruto = receitaPrevista - custoPessoal;
   // Inadimplência: residentes com mensalidade que NÃO têm pagamento "pago" no mês.
   const pagosIds = new Set(
-    (pagamentos.data ?? []).filter((p) => p.status === "pago").map((p) => p.residente_id),
+    (pagamentos.data ?? []).filter((p) => p.status === "paga").map((p) => p.residente_id),
   );
   const comMensalidade = listaResidentes.filter((r) => (r.mensalidade_valor ?? 0) > 0);
   const inadimplentes = comMensalidade.filter((r) => !pagosIds.has(r.id));
   const valorInadimplente = inadimplentes.reduce((s, r) => s + (r.mensalidade_valor ?? 0), 0);
   const recebido = (pagamentos.data ?? [])
-    .filter((p) => p.status === "pago")
+    .filter((p) => p.status === "paga")
     .reduce((s, p) => s + (p.valor ?? 0), 0);
 
   // ----- OPERACIONAL: manutenção e hotelaria (tempo real) -----
