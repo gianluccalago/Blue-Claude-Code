@@ -21,10 +21,10 @@ function extrairErro(e: unknown): string {
 }
 
 export function TabelaPrecos() {
-  // Edição é exclusiva do Master (a Administração/Direção veem em leitura).
-  // A trava real está na RLS (escrita só Master); aqui é a trava de interface.
+  // Edição é do Master e da Direção (a Administração vê em leitura). A trava
+  // real está na RLS (escrita só master/direcao); aqui é a trava de interface.
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
-  const podeEditar = perfil === "master";
+  const podeEditar = perfil === "master" || perfil === "direcao";
   const { data, isLoading, isError, error } = useTabelaPreco();
   const atualizar = useAtualizarPreco();
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -73,8 +73,8 @@ export function TabelaPrecos() {
             <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               <Lock className="mt-0.5 size-4 shrink-0" />
               <span>
-                Somente leitura. A edição da tabela de preços é exclusiva do <strong>Master</strong>;
-                a Administração continua usando estes valores nas mensalidades.
+                Somente leitura. A edição da tabela de preços é do <strong>Master</strong> e da{" "}
+                <strong>Direção</strong>; a Administração continua usando estes valores nas mensalidades.
               </span>
             </div>
           )}
