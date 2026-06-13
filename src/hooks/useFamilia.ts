@@ -179,8 +179,9 @@ export function useDemonstrativoFamilia(mes: string) {
   const demonstrativo: DemonstrativoFamilia | null = useMemo(() => {
     const r = residente.data;
     if (!r) return null;
-    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau), p.valor]));
-    const mensalidade = r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
+    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
+    const mensalidade =
+      r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
     const itens = upselling.data ?? [];
     const upsellingTotal = itens.reduce((acc, i) => acc + i.valor, 0);
     const pagamento = (pagamentos.data ?? []).find((p) => p.residente_id === r.id);

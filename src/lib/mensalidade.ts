@@ -5,9 +5,32 @@ export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay"
 export const GRAUS: GrauDependencia[] = ["I", "II", "III"];
 
 export const OCUPACOES: { value: Ocupacao; label: string }[] = [
-  { value: "individual", label: "Individual" },
-  { value: "dupla", label: "Dupla" },
+  { value: "simples", label: "Simples" },
+  { value: "duplo", label: "Duplo" },
+  { value: "triplo", label: "Triplo" },
 ];
+
+export const OCUPACAO_LABEL: Record<Ocupacao, string> = {
+  simples: "Simples",
+  duplo: "Duplo",
+  triplo: "Triplo",
+};
+
+/**
+ * Ocupações VÁLIDAS por tipo de suíte. Long Stay permite triplo; os demais
+ * (Suíte, Suíte Premium, Apartamento) vão até duplo. Tipo nulo → padrão (até
+ * duplo). Total de combinações tipo×grau×ocupação = 27.
+ */
+export function ocupacoesValidas(tipoSuite: TipoSuite | null): Ocupacao[] {
+  return tipoSuite === "Long Stay"
+    ? ["simples", "duplo", "triplo"]
+    : ["simples", "duplo"];
+}
+
+/** Ocupação efetiva p/ buscar preço/sugestão (padrão "simples" quando vazia). */
+export function ocupacaoOuPadrao(ocupacao: Ocupacao | null | undefined): Ocupacao {
+  return ocupacao ?? "simples";
+}
 
 /** Formata um valor numérico como moeda BRL, ou "Não informado" se nulo/NaN. */
 export function formatarMoeda(valor: number | null | undefined): string {
@@ -45,7 +68,11 @@ export function intervaloDoMes(mes: string): { inicio: string; fim: string } {
   return { inicio, fim };
 }
 
-/** Chave para consultar a tabela de preços por tipo de suíte + grau. */
-export function chavePreco(tipoSuite: string | null, grau: string | null): string {
-  return `${tipoSuite ?? ""}|${grau ?? ""}`;
+/** Chave da tabela de preços por tipo de suíte × grau × ocupação. */
+export function chavePreco(
+  tipoSuite: string | null,
+  grau: string | null,
+  ocupacao: string | null,
+): string {
+  return `${tipoSuite ?? ""}|${grau ?? ""}|${ocupacao ?? "simples"}`;
 }

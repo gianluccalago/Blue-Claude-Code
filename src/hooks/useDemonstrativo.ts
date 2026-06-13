@@ -33,7 +33,7 @@ export function useDemonstrativoMes(mes: string) {
   const linhas: LinhaDemonstrativo[] = useMemo(() => {
     if (!residentes.data) return [];
 
-    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau), p.valor]));
+    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
     const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
     const upsellingPorResidente = new Map<string, number>();
     for (const item of upselling.data ?? []) {
@@ -41,7 +41,8 @@ export function useDemonstrativoMes(mes: string) {
     }
 
     return residentes.data.map((r) => {
-      const mensalidade = r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
+      const mensalidade =
+        r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
       const pagamento = pagamentoMap.get(r.id);
       const upsellingTotal = upsellingPorResidente.get(r.id) ?? 0;
       return {

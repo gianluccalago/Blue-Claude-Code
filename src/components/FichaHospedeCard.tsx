@@ -32,7 +32,7 @@ import {
   ouNaoInformado,
   formatarDataBR,
 } from "@/lib/utils";
-import { mesAtual, formatarMoeda } from "@/lib/mensalidade";
+import { mesAtual, formatarMoeda, OCUPACAO_LABEL } from "@/lib/mensalidade";
 import { statusEfetivoCobranca, STATUS_COBRANCA_LABEL, STATUS_COBRANCA_VARIANTE } from "@/lib/cobranca";
 import type { PerfilUsuario, Residente } from "@/types/database";
 
@@ -84,7 +84,7 @@ export function FichaHospedeCard({
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {idade !== null && <Badge variant="secondary">{idade} anos</Badge>}
               {r.tipo_suite && <Badge variant="muted">{r.tipo_suite}</Badge>}
-              {r.ocupacao && <Badge variant="muted">{r.ocupacao === "dupla" ? "Dupla" : "Individual"}</Badge>}
+              {r.ocupacao && <Badge variant="muted">{OCUPACAO_LABEL[r.ocupacao]}</Badge>}
             </div>
             {/* Grau contratual × real (IVCF) com destaque na divergência. */}
             <GrauContratualReal

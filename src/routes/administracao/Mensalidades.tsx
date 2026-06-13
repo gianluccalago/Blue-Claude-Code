@@ -33,6 +33,8 @@ import {
 } from "@/components/financeiro/ResponsavelFinanceiroFields";
 import {
   OCUPACOES,
+  OCUPACAO_LABEL,
+  ocupacoesValidas,
   TIPOS_SUITE,
   chavePreco,
   deslocarMes,
@@ -69,12 +71,17 @@ export function Mensalidades() {
   if (!residentes.data || residentes.data.length === 0)
     return <EmptyState label="Nenhum residente cadastrado." />;
 
-  const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau), p.valor]));
+  const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
   const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
   const mesEhPassado = mes < mesAtual();
 
+  // Sugestão = tipo × grau × OCUPAÇÃO do hóspede (ajuste individual continua editável).
+  function precoSugerido(r: Residente): number | null {
+    return precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? null;
+  }
+
   function valorDe(r: Residente): number {
-    return r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? 0;
+    return r.mensalidade_valor ?? precoSugerido(r) ?? 0;
   }
 
   let totalPendente = 0;
@@ -197,7 +204,7 @@ export function Mensalidades() {
               residente={r}
               mes={mes}
               mesEhPassado={mesEhPassado}
-              valorSugerido={precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia)) ?? null}
+              valorSugerido={precoSugerido(r)}
               pagamento={pagamentoMap.get(r.id)}
               selecionavel={!pago}
               selecionado={selecionados.has(r.id)}
@@ -271,9 +278,7 @@ function ResidenteMensalidade({
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Badge variant="secondary">{r.tipo_suite ?? "Não informado"}</Badge>
             <Badge variant="muted">Grau {r.grau_dependencia ?? "—"}</Badge>
-            <Badge variant="outline">
-              {r.ocupacao === "dupla" ? "Dupla" : r.ocupacao === "individual" ? "Individual" : "Não informado"}
-            </Badge>
+            <Badge variant="outline">{r.ocupacao ? OCUPACAO_LABEL[r.ocupacao] : "Não informado"}</Badge>
           </div>
           </div>
         </div>
@@ -397,6 +402,14 @@ function FormAjuste({
 }) {
   const [tipoSuite, setTipoSuite] = useState<TipoSuite | "">(r.tipo_suite ?? "");
   const [ocupacao, setOcupacao] = useState<Ocupacao | "">(r.ocupacao ?? "");
+
+  // Só as ocupações válidas para o tipo (Long Stay permite triplo; demais até duplo).
+  const ocupacoesDoTipo = ocupacoesValidas(tipoSuite || null);
+  function escolherTipo(t: TipoSuite) {
+    setTipoSuite(t);
+    // Se a ocupação atual não vale para o novo tipo (ex.: triplo fora do Long Stay), zera.
+    if (ocupacao && !ocupacoesValidas(t).includes(ocupacao)) setOcupacao("");
+  }
   const [valor, setValor] = useState(String(r.mensalidade_valor ?? valorSugerido ?? ""));
   const [ajusteObs, setAjusteObs] = useState(r.mensalidade_ajuste_obs ?? "");
   const [erro, setErro] = useState<string | null>(null);
@@ -428,7 +441,7 @@ function FormAjuste({
               <button
                 key={t}
                 type="button"
-                onClick={() => setTipoSuite(t)}
+                onClick={() => escolherTipo(t)}
                 className={cn(
                   "rounded px-3 py-1.5 text-sm font-medium transition-colors",
                   tipoSuite === t
@@ -445,7 +458,7 @@ function FormAjuste({
         <div className="space-y-1.5">
           <p className="text-sm font-semibold text-secondary">Ocupação</p>
           <div className="flex flex-wrap gap-2">
-            {OCUPACOES.map((o) => (
+            {OCUPACOES.filter((o) => ocupacoesDoTipo.includes(o.value)).map((o) => (
               <button
                 key={o.value}
                 type="button"

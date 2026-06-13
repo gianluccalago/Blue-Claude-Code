@@ -28,7 +28,7 @@ export type TagTurno = "diurno" | "noturno";
 
 export type GrauDependencia = "I" | "II" | "III";
 /** Ocupação da suíte. */
-export type OcupacaoSuite = "individual" | "dupla";
+export type OcupacaoSuite = "simples" | "duplo" | "triplo";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
 // 6 períodos de medicação, cada um com horário padrão (ver PERIODOS nas telas).
 // "jejum" (06:00) e "noite" (20:00) são separados (antes eram "noite/jejum").
@@ -58,7 +58,8 @@ export type PerfilSolicitanteChamado =
 /** Destino do chamado de manutenção: quem o trata/gere. */
 export type DestinoChamado = "hotelaria" | "servicos_gerais";
 export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
-export type Ocupacao = "individual" | "dupla";
+/** Ocupação do quarto = preço por nº de leitos (simples/duplo/triplo). */
+export type Ocupacao = "simples" | "duplo" | "triplo";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
 // vencimento passado), mas também pode ser gravada. Migra do antigo
@@ -886,12 +887,14 @@ export interface Database {
           id: string;
           tipo_suite: TipoSuite;
           grau: GrauDependencia;
+          ocupacao: Ocupacao;
           valor: number;
         };
         Insert: {
           id?: string;
           tipo_suite: TipoSuite;
           grau: GrauDependencia;
+          ocupacao?: Ocupacao;
           valor: number;
         };
         Update: Partial<Database["public"]["Tables"]["tabela_preco"]["Insert"]>;

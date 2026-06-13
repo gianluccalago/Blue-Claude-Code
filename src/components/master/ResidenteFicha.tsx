@@ -8,6 +8,7 @@ import { uploadFotoResidente } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
 import { montarQuarto, parseQuarto, type LetraQuarto } from "@/lib/quarto";
+import { ocupacoesValidas, OCUPACAO_LABEL } from "@/lib/mensalidade";
 import {
   ResponsavelFinanceiroFields,
   type RespFinValor,
@@ -107,6 +108,18 @@ export function ResidenteFicha({
     setV((atual) => ({ ...atual, [campo]: valor }));
   }
 
+  // Troca de tipo de suíte: se a ocupação atual não vale para o novo tipo
+  // (ex.: "triplo" fora do Long Stay), limpa a ocupação.
+  function escolherTipoSuite(tipo: TipoSuite | null) {
+    setV((atual) => {
+      const ocupacaoOk =
+        atual.ocupacao && ocupacoesValidas(tipo).includes(atual.ocupacao)
+          ? atual.ocupacao
+          : null;
+      return { ...atual, tipo_suite: tipo, ocupacao: ocupacaoOk };
+    });
+  }
+
   // ── Número do quarto (Bloco-Andar-Suíte-Letra) ──────────────────────────────
   // Bloco↔modulo e Andar↔andar reaproveitam as colunas; suíte e letra vivem na
   // string `quarto`. Estado local p/ suíte/letra; bloco/andar saem de v.modulo/
@@ -200,7 +213,7 @@ export function ResidenteFicha({
             </div>
           </Campo>
           <Campo rotulo="Tipo de suíte">
-            <select value={v.tipo_suite ?? ""} onChange={(e) => set("tipo_suite", (e.target.value || null) as TipoSuite | null)} className={inputBase}>
+            <select value={v.tipo_suite ?? ""} onChange={(e) => escolherTipoSuite((e.target.value || null) as TipoSuite | null)} className={inputBase}>
               <option value="">Não informado</option>
               {TIPOS_SUITE.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -210,8 +223,9 @@ export function ResidenteFicha({
           <Campo rotulo="Ocupação">
             <select value={v.ocupacao ?? ""} onChange={(e) => set("ocupacao", (e.target.value || null) as Ocupacao | null)} className={inputBase}>
               <option value="">Não informado</option>
-              <option value="individual">Individual</option>
-              <option value="dupla">Dupla</option>
+              {ocupacoesValidas(v.tipo_suite ?? null).map((o) => (
+                <option key={o} value={o}>{OCUPACAO_LABEL[o]}</option>
+              ))}
             </select>
           </Campo>
           <Campo rotulo={`Data de admissão · ${permanencia}`}>
