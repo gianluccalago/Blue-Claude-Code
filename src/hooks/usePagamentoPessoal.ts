@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import { intervaloDoMes } from "@/lib/mensalidade";
+import { horasEfetivasTurno } from "@/lib/turnos";
 import { useTurnos } from "@/hooks/useTurnos";
 import type {
   PagamentoPessoal,
@@ -87,6 +88,8 @@ export interface LinhaPagamentoPessoal {
   realizadoDiurno: number;
   previstoNoturno: number;
   realizadoNoturno: number;
+  /** Carga horária EFETIVA dos plantões realizados (12h PJ contam 11h). */
+  horasEfetivas: number;
   valorCalculado: number;
   valorFinal: number;
   status: StatusPagamentoPessoal;
@@ -124,6 +127,7 @@ export function useCustosPessoalDoMes(mes: string) {
         let realizadoDiurno = 0;
         let previstoNoturno = 0;
         let realizadoNoturno = 0;
+        let horasEfetivas = 0;
         let valorCalculado = 0;
 
         if (u.tipo_remuneracao === "mensal_fixo") {
@@ -139,6 +143,8 @@ export function useCustosPessoalDoMes(mes: string) {
               previstoNoturno++;
               if (realizado) realizadoNoturno++;
             }
+            // Carga horária efetiva: só os plantões realizados; 12h PJ contam 11h.
+            if (realizado) horasEfetivas += horasEfetivasTurno(t, u.tipo_remuneracao);
           }
           valorCalculado =
             realizadoDiurno * (u.valor_plantao_diurno ?? 0) + realizadoNoturno * (u.valor_plantao_noturno ?? 0);
@@ -151,6 +157,7 @@ export function useCustosPessoalDoMes(mes: string) {
           realizadoDiurno,
           previstoNoturno,
           realizadoNoturno,
+          horasEfetivas,
           valorCalculado,
           valorFinal: pagamento?.valor_final ?? valorCalculado,
           status: pagamento?.status ?? "pendente",

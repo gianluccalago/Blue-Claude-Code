@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { exportarPagamentoPessoalExcel } from "@/lib/exportPagamentoPessoal";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
+import { formatarHoras } from "@/lib/turnos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +190,13 @@ function ProfissionalCusto({ linha, mes }: { linha: LinhaPagamentoPessoal; mes: 
               <p className="font-semibold text-secondary">Noturno</p>
               <p className="text-muted-foreground">
                 Previsto {linha.previstoNoturno} / Realizado {linha.realizadoNoturno}
+              </p>
+            </div>
+            <div className="rounded-md bg-muted/30 p-3 text-sm sm:col-span-2">
+              <p className="font-semibold text-secondary">Carga horária efetiva (realizada)</p>
+              <p className="text-muted-foreground">
+                {formatarHoras(linha.horasEfetivas)} no mês ·{" "}
+                <span className="text-xs">plantões de 12h contam 11h (1h de almoço); não muda o pagamento</span>
               </p>
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">
