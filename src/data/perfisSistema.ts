@@ -8,6 +8,8 @@ import {
   Pill,
   Building2,
   BedDouble,
+  Wrench,
+  Shirt,
   Users,
   Briefcase,
   type LucideIcon,
@@ -17,7 +19,7 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 // MASTER-3 · Metadados dos perfis do sistema para a gestão de usuários.
 //
-// Este módulo descreve OS 10 PERFIS que o Master cria/edita e os campos
+// Este módulo descreve OS 12 PERFIS que o Master cria/edita e os campos
 // condicionais de cada um. É a base da autenticação que será ligada depois:
 // o email será o login e cada perfil cairá direto nas suas telas (sem a tela
 // de seleção de perfil). Mantém compatibilidade com o schema atual — o grupo
@@ -27,7 +29,7 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 
 /**
- * Valor do SELETOR de perfil no formulário (10 opções). Para o grupo de
+ * Valor do SELETOR de perfil no formulário (12 opções). Para o grupo de
  * cuidados usamos "cuidador" como base; o perfil real ('cuidador' ou
  * 'enfermagem') é derivado da função na hora de salvar.
  */
@@ -42,6 +44,8 @@ export type PerfilSeletor =
   | "administracao"
   | "direcao"
   | "hotelaria"
+  | "servicos_gerais"
+  | "lavanderia"
   | "familia";
 
 export interface ConfigPerfil {
@@ -66,7 +70,7 @@ export interface ConfigPerfil {
   vinculaResidente?: boolean;
 }
 
-/** Os 10 perfis, na ordem do seletor. */
+/** Os 12 perfis, na ordem do seletor. */
 export const PERFIS_SISTEMA: ConfigPerfil[] = [
   { value: "master", label: "Master", icon: Shield, cargosSugeridos: ["Diretor Geral", "Administrador"] },
   {
@@ -136,7 +140,19 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     value: "hotelaria",
     label: "Hotelaria",
     icon: BedDouble,
-    cargosSugeridos: ["Supervisor de Hotelaria", "Governanta", "Camareira", "Manutenção", "Cozinha"],
+    cargosSugeridos: ["Supervisor de Hotelaria", "Governanta", "Camareira", "Cozinha"],
+  },
+  {
+    value: "servicos_gerais",
+    label: "Serviços Gerais",
+    icon: Wrench,
+    cargosSugeridos: ["Manutenção Predial", "Técnico de Manutenção", "Zelador", "Eletricista", "Encanador"],
+  },
+  {
+    value: "lavanderia",
+    label: "Lavanderia",
+    icon: Shirt,
+    cargosSugeridos: ["Lavanderia", "Rouparia", "Auxiliar de Lavanderia", "Passadeira"],
   },
   { value: "familia", label: "Família / Hóspede", icon: Users, vinculaResidente: true },
 ];
@@ -159,6 +175,8 @@ export const PERFIL_LABEL: Record<PerfilUsuario, string> = {
   administracao: "Administração",
   direcao: "Direção",
   hotelaria: "Hotelaria",
+  servicos_gerais: "Serviços Gerais",
+  lavanderia: "Lavanderia",
   familia: "Família / Hóspede",
 };
 

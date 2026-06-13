@@ -132,6 +132,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/hotelaria/inspecao-suites": ClipboardCheck,
   "/app/hotelaria/manutencao": Wrench,
   "/app/hotelaria/rouparia": Shirt,
+  // Serviços Gerais (manutenção) e Lavanderia (rouparia) — perfis derivados
+  "/app/servicos_gerais/manutencao": Wrench,
+  "/app/lavanderia/rouparia": Shirt,
   // Administração
   "/app/administracao": LayoutDashboard,
   "/app/administracao/tabela-precos": Tags,

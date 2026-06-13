@@ -9,6 +9,8 @@ export type PerfilUsuario =
   | "master"
   | "medico"
   | "hotelaria"
+  | "servicos_gerais"
+  | "lavanderia"
   | "coordenacao"
   | "cuidador"
   | "enfermagem"
@@ -46,7 +48,12 @@ export type TipoInspecao = "diaria" | "preventiva";
 export type StatusItemInspecao = "conforme" | "nao_conforme";
 export type UrgenciaChamado = "baixa" | "media" | "alta" | "emergencia";
 export type StatusChamado = "aberto" | "em_andamento" | "resolvido";
-export type PerfilSolicitanteChamado = "hotelaria" | "cuidador" | "coordenacao" | "master";
+export type PerfilSolicitanteChamado =
+  | "hotelaria"
+  | "servicos_gerais"
+  | "cuidador"
+  | "coordenacao"
+  | "master";
 export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o

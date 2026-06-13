@@ -47,8 +47,13 @@ const GRUPOS: { key: GrupoKey; label: string; icon: LucideIcon; perfis: PerfilUs
     icon: Stethoscope,
     perfis: ["medico", "coordenacao", "enfermagem", "cuidador", "multidisciplinar", "nutricionista"],
   },
-  { key: "administrativo", label: "Administrativo", icon: Building2, perfis: ["administracao", "master"] },
-  { key: "operacional", label: "Operacional", icon: Wrench, perfis: ["farmacia", "hotelaria"] },
+  { key: "administrativo", label: "Administrativo", icon: Building2, perfis: ["administracao", "direcao", "master"] },
+  {
+    key: "operacional",
+    label: "Operacional",
+    icon: Wrench,
+    perfis: ["farmacia", "hotelaria", "servicos_gerais", "lavanderia"],
+  },
 ];
 
 function grupoDoPerfil(perfil: PerfilUsuario): GrupoKey | null {

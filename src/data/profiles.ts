@@ -9,6 +9,8 @@ import {
   Pill,
   Building2,
   BedDouble,
+  Wrench,
+  Shirt,
   Users,
   Briefcase,
   type LucideIcon,
@@ -197,6 +199,34 @@ export const PERFIS: PerfilDef[] = [
       { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
       { label: "Manutenção", to: "/app/hotelaria/manutencao" },
       { label: "Rouparia", to: "/app/hotelaria/rouparia" },
+    ],
+    emConstrucao: false,
+  },
+  {
+    // SERVIÇOS GERAIS: manutenção predial/corretiva. Herdou da Hotelaria o
+    // módulo de chamados de manutenção (reusa a rota flat /manutencao).
+    id: "servicos_gerais",
+    nome: "Serviços Gerais",
+    descricao: "Manutenção predial e corretiva",
+    icon: Wrench,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/servicos_gerais/manutencao",
+    menu: [
+      { label: "Manutenção", to: "/app/servicos_gerais/manutencao" },
+    ],
+    emConstrucao: false,
+  },
+  {
+    // LAVANDERIA: rouparia/enxoval. Herdou da Hotelaria o módulo de rouparia
+    // (reusa a rota flat /rouparia e a tabela rouparia_transito).
+    id: "lavanderia",
+    nome: "Lavanderia",
+    descricao: "Rouparia e enxoval",
+    icon: Shirt,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/lavanderia/rouparia",
+    menu: [
+      { label: "Rouparia", to: "/app/lavanderia/rouparia" },
     ],
     emConstrucao: false,
   },
