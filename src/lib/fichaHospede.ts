@@ -28,6 +28,10 @@ const PERFIS_EDITA_FICHA: ReadonlySet<PerfilUsuario> = new Set([
 // administrativa, Direção e Master. Nem clínica (médico/coordenação) vê valores.
 const PERFIS_VE_FINANCEIRO: ReadonlySet<PerfilUsuario> = new Set(["master", "administracao", "direcao"]);
 
+// Perfis puramente ADMINISTRATIVOS: gerem o hóspede pelo lado de gestão/
+// financeiro, sem atuar no cuidado. Para eles o alerta de alergia é só ruído.
+const PERFIS_ADMINISTRATIVO: ReadonlySet<PerfilUsuario> = new Set(["administracao", "direcao"]);
+
 /** Ficha completa (plano de saúde/contatos/clínico) vs assistencial. */
 export function fichaCompleta(perfil: PerfilUsuario | undefined): boolean {
   return !!perfil && PERFIS_FICHA_COMPLETA.has(perfil);
@@ -36,6 +40,15 @@ export function fichaCompleta(perfil: PerfilUsuario | undefined): boolean {
 /** Pode ver o resumo FINANCEIRO (mensalidade/status) — só Administração e Master. */
 export function podeVerFinanceiro(perfil: PerfilUsuario | undefined): boolean {
   return !!perfil && PERFIS_VE_FINANCEIRO.has(perfil);
+}
+
+/**
+ * O alerta de ALERGIA é segurança CLÍNICA/ASSISTENCIAL: só faz sentido para
+ * quem lida com cuidado/medicação. Some nos perfis administrativos puros
+ * (Administração/Direção). Default seguro: mostra quando o perfil é desconhecido.
+ */
+export function podeVerAlergias(perfil: PerfilUsuario | undefined): boolean {
+  return !perfil || !PERFIS_ADMINISTRATIVO.has(perfil);
 }
 
 /** Pode editar os dados cadastrais e enviar foto do hóspede. */

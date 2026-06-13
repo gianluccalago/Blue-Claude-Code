@@ -23,7 +23,7 @@ import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente } from "@/lib/storage";
-import { fichaCompleta, podeVerFinanceiro } from "@/lib/fichaHospede";
+import { fichaCompleta, podeVerFinanceiro, podeVerAlergias } from "@/lib/fichaHospede";
 import {
   calcularIdade,
   grauNivel,
@@ -40,8 +40,9 @@ import type { PerfilUsuario, Residente } from "@/types/database";
  * Família). A visibilidade segue o perfil logado: gestão/clínica veem a ficha
  * COMPLETA (financeiro, plano de saúde, contatos); perfis assistenciais veem a
  * versão operacional (sem financeiro/plano detalhado/contatos financeiros).
- * Alergias SEMPRE em destaque (segurança). Edição/foto só para quem tem
- * permissão (Master/Coordenação/Administração) via props.
+ * Alergias em destaque para perfis assistenciais/clínicos (segurança); some
+ * nos administrativos puros. Edição/foto só para quem tem permissão
+ * (Master/Coordenação/Administração) via props.
  */
 export function FichaHospedeCard({
   residente: r,
@@ -98,8 +99,9 @@ export function FichaHospedeCard({
         </CardContent>
       </Card>
 
-      {/* ALERGIAS — SEMPRE em destaque (segurança clínica) */}
-      <BannerAlergias alergias={r.alergias} />
+      {/* ALERGIAS — destaque de segurança CLÍNICA: some nos perfis
+          administrativos puros (Administração/Direção), onde é só ruído. */}
+      {podeVerAlergias(perfil) && <BannerAlergias alergias={r.alergias} />}
 
       {/* IDENTIFICAÇÃO E CONTATOS */}
       <Secao icon={Phone} titulo="Identificação e contatos">
