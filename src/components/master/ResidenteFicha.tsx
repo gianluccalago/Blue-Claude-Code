@@ -25,7 +25,7 @@ const CAMPO_RESP_FIN: Record<keyof RespFinValor, keyof ResidenteValor> = {
 };
 
 /** Tipos de suíte (alinhado à tabela de preços da Administração). */
-const TIPOS_SUITE: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
+const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"];
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 

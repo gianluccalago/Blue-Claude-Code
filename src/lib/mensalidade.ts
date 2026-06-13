@@ -1,6 +1,6 @@
 import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
 
-export const TIPOS_SUITE: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
+export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"];
 
 export const GRAUS: GrauDependencia[] = ["I", "II", "III"];
 

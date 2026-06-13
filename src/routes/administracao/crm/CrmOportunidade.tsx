@@ -270,7 +270,7 @@ export function CrmOportunidade() {
 
 // Monta os valores iniciais do cadastro de residente a partir da oportunidade
 // e do contato (família). Campos não mapeados ficam vazios ("Não informado").
-const SUITES_VALIDAS: TipoSuite[] = ["Suíte Modular", "Suíte", "Long Stay", "Apartamento"];
+const SUITES_VALIDAS: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"];
 function prefillResidente(op: CrmOportunidadeRow, contato: CrmContato | null): Partial<ResidenteValor> {
   const suite = SUITES_VALIDAS.includes(op.tipo_suite_interesse as TipoSuite)
     ? (op.tipo_suite_interesse as TipoSuite)

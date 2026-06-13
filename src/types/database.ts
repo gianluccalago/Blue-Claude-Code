@@ -57,7 +57,7 @@ export type PerfilSolicitanteChamado =
 
 /** Destino do chamado de manutenção: quem o trata/gere. */
 export type DestinoChamado = "hotelaria" | "servicos_gerais";
-export type TipoSuite = "Suíte Modular" | "Suíte" | "Long Stay" | "Apartamento";
+export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
 export type Ocupacao = "individual" | "dupla";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
