@@ -1,8 +1,8 @@
 /**
  * Painel da Hotelaria — visão do dia (BLOCO H4)
- * Foco da Hotelaria (reduzida): Inspeção de suítes (H1). A Manutenção passou a
- * ser de Serviços Gerais e a Rouparia, da Lavanderia. Alertas e contadores são
- * calculados ao abrir a tela (sem polling).
+ * Foco da Hotelaria: Inspeção de suítes + os chamados de Manutenção DIRECIONADOS
+ * a ela (governança/limpeza). A manutenção predial é de Serviços Gerais e a
+ * rouparia, da Lavanderia. Contadores calculados ao abrir a tela (sem polling).
  */
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
@@ -11,11 +11,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Wrench,
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
+import { useChamadosManutencao } from "@/hooks/useManutencao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Medalhao } from "@/components/dashboard/primitives";
@@ -39,9 +41,11 @@ function statusDaSuite(residenteId: string, inspecoesHoje: InspecaoSuite[]): Sta
 export function PainelHotelaria() {
   const { data: residentes = [], isLoading: loadRes, error: errRes } = useResidentes();
   const { data: inspecoesHoje = [], isLoading: loadInsp, error: errInsp } = useInspecoesHoje();
+  // A RLS já entrega só os chamados com destino 'hotelaria' para este perfil.
+  const { data: chamados = [], isLoading: loadCham, error: errCham } = useChamadosManutencao();
 
-  const isLoading = loadRes || loadInsp;
-  const anyError = errRes || errInsp;
+  const isLoading = loadRes || loadInsp || loadCham;
+  const anyError = errRes || errInsp || errCham;
 
   // ── 1. Suítes — inspeção do dia ───────────────────────────────────────────
   const suitesComQuarto = useMemo(() => residentes.filter((r) => r.quarto), [residentes]);
@@ -75,6 +79,12 @@ export function PainelHotelaria() {
     [suitesComQuarto, inspecoesHoje]
   );
 
+  // ── 2. Manutenção da Hotelaria — chamados em aberto/andamento ──────────────
+  const chamadosAbertos = useMemo(
+    () => chamados.filter((c) => c.status !== "resolvido").length,
+    [chamados]
+  );
+
   if (isLoading) return <LoadingState />;
   if (anyError) return <ErrorState error={anyError} />;
 
@@ -88,7 +98,7 @@ export function PainelHotelaria() {
       </div>
 
       {/* ── 4. Visão geral do dia ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <ResumoCard
           label="Suítes pendentes"
           value={suitesPendentes}
@@ -102,6 +112,13 @@ export function PainelHotelaria() {
           cor={suitesNaoConformes > 0 ? "border-l-destructive" : "border-l-success"}
           icon={suitesNaoConformes > 0 ? AlertTriangle : CheckCircle2}
           destaque={suitesNaoConformes > 0 ? "destructive" : undefined}
+        />
+        <ResumoCard
+          label="Manutenção (sua fila)"
+          value={chamadosAbertos}
+          cor={chamadosAbertos > 0 ? "border-l-warning" : "border-l-success"}
+          icon={chamadosAbertos > 0 ? Wrench : CheckCircle2}
+          destaque={chamadosAbertos > 0 ? "amber" : undefined}
         />
       </div>
 
@@ -174,6 +191,30 @@ export function PainelHotelaria() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ── 2. Manutenção da Hotelaria (chamados direcionados a ela) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wrench className="h-4 w-4 text-primary" />
+              Manutenção — sua fila
+            </CardTitle>
+            <Link to="/app/hotelaria/manutencao">
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                Ver manutenção <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {chamadosAbertos === 0
+              ? "Nenhum chamado em aberto direcionado à Hotelaria."
+              : `${chamadosAbertos} chamado(s) em aberto/andamento direcionados à Hotelaria (governança/limpeza). A manutenção predial é de Serviços Gerais.`}
+          </p>
         </CardContent>
       </Card>
     </div>

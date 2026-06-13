@@ -197,6 +197,9 @@ export const PERFIS: PerfilDef[] = [
       { label: "Painel da Hotelaria", to: "/app/hotelaria/visao-dia" },
       { label: "Hóspedes", to: "/app/hotelaria/ficha" },
       { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
+      // Manutenção da Hotelaria: só os chamados direcionados a ela (governança/
+      // limpeza). A predial/corretiva é de Serviços Gerais.
+      { label: "Manutenção", to: "/app/hotelaria/manutencao" },
     ],
     emConstrucao: false,
   },
