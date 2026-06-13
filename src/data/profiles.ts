@@ -197,7 +197,6 @@ export const PERFIS: PerfilDef[] = [
       { label: "Painel da Hotelaria", to: "/app/hotelaria/visao-dia" },
       { label: "Hóspedes", to: "/app/hotelaria/ficha" },
       { label: "Inspeção de suítes", to: "/app/hotelaria/inspecao-suites" },
-      { label: "Manutenção", to: "/app/hotelaria/manutencao" },
       { label: "Rouparia", to: "/app/hotelaria/rouparia" },
     ],
     emConstrucao: false,

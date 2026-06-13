@@ -1,7 +1,10 @@
 /**
- * Manutenção — gestão de chamados (Hotelaria, BLOCO H2).
+ * Manutenção — gestão de chamados. Pertence a SERVIÇOS GERAIS (antes Hotelaria);
+ * reusa a rota flat /manutencao, então funciona sob qualquer $perfil habilitado.
  */
 import { useState, useMemo } from "react";
+import { useParams } from "@tanstack/react-router";
+import { useAuth } from "@/auth/AuthProvider";
 import {
   Wrench,
   Clock3,
@@ -29,7 +32,21 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, formatarDataBR, ouNaoInformado, hojeISO } from "@/lib/utils";
 import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
-import type { ChamadoManutencao, StatusChamado, UrgenciaChamado } from "@/types/database";
+import type {
+  ChamadoManutencao,
+  PerfilSolicitanteChamado,
+  StatusChamado,
+  UrgenciaChamado,
+} from "@/types/database";
+
+// Perfis válidos como solicitante do chamado (bate com o check do banco).
+const SOLICITANTES_VALIDOS: PerfilSolicitanteChamado[] = [
+  "servicos_gerais",
+  "hotelaria",
+  "coordenacao",
+  "cuidador",
+  "master",
+];
 
 const inputClass =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -77,8 +94,18 @@ function prazoVencido(c: ChamadoManutencao): boolean {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function Manutencao() {
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  const { usuarioEfetivo } = useAuth();
   const { data: chamados = [], isLoading, error } = useChamadosManutencao();
   const { data: residentes = [] } = useResidentes();
+
+  // Quem abre o chamado a partir desta tela é o perfil/usuário logado (em geral
+  // Serviços Gerais); cai para um valor seguro se o perfil não for solicitante.
+  const perfilSolicitante: PerfilSolicitanteChamado = SOLICITANTES_VALIDOS.includes(
+    perfil as PerfilSolicitanteChamado,
+  )
+    ? (perfil as PerfilSolicitanteChamado)
+    : "servicos_gerais";
 
   const [filtroStatus, setFiltroStatus] = useState<StatusChamado | "todos">("todos");
   const [filtroUrgencia, setFiltroUrgencia] = useState<UrgenciaChamado | "todas">("todas");
@@ -135,8 +162,8 @@ export function Manutencao() {
       {novoChamado && (
         <FormAbrirChamado
           residentes={residentes}
-          perfilSolicitante="hotelaria"
-          abertoPorPadrao="Hotelaria"
+          perfilSolicitante={perfilSolicitante}
+          abertoPorPadrao={usuarioEfetivo?.nome ?? "Serviços Gerais"}
           onConcluido={() => setNovoChamado(false)}
         />
       )}
