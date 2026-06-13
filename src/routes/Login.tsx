@@ -3,6 +3,7 @@ import { Navigate } from "@tanstack/react-router";
 import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { Logo } from "@/components/Logo";
+import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/data/profiles";
 
@@ -107,7 +108,7 @@ export function Login() {
               <HeroLogo />
             </div>
             <div className="mt-4 hidden size-16 place-items-center rounded-2xl bg-brand-gradient text-white shadow-glow-primary lg:grid">
-              <HeartPulse className="size-8" />
+              <BrandMark className="h-10" />
             </div>
             <h1 className="mt-5 text-2xl font-extrabold tracking-tight text-secondary">Bem-vindo de volta</h1>
             <p className="mt-1.5 text-muted-foreground">Entre com seu e-mail e senha</p>
