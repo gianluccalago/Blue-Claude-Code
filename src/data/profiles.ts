@@ -52,6 +52,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Usuários e acessos", to: "/app/master/usuarios" },
       { label: "Hóspedes", to: "/app/master/residentes" },
       { label: "Equipe", to: "/app/master/equipe" },
+      { label: "Tabela de preços", to: "/app/master/tabela-precos" },
       { label: "Serviços", to: "/app/master/servicos" },
       { label: "CRM", to: "/app/master/crm" },
       { label: "Profissionais", to: "/app/master/profissionais" },

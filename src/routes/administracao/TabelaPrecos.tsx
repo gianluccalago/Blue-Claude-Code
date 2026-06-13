@@ -6,7 +6,8 @@
  * mensalidade dos hóspedes na tela "Mensalidades".
  */
 import { useState } from "react";
-import { AlertCircle, CheckCircle2, DollarSign } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
+import { AlertCircle, CheckCircle2, DollarSign, Lock } from "lucide-react";
 import { useAtualizarPreco, useTabelaPreco } from "@/hooks/useMensalidades";
 import { GRAUS, TIPOS_SUITE, OCUPACAO_LABEL, ocupacoesValidas, chavePreco } from "@/lib/mensalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,10 @@ function extrairErro(e: unknown): string {
 }
 
 export function TabelaPrecos() {
+  // Edição é exclusiva do Master (a Administração/Direção veem em leitura).
+  // A trava real está na RLS (escrita só Master); aqui é a trava de interface.
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  const podeEditar = perfil === "master";
   const { data, isLoading, isError, error } = useTabelaPreco();
   const atualizar = useAtualizarPreco();
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -64,6 +69,16 @@ export function TabelaPrecos() {
             mas podem ser ajustados individualmente por hóspede.
           </p>
 
+          {!podeEditar && (
+            <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              <Lock className="mt-0.5 size-4 shrink-0" />
+              <span>
+                Somente leitura. A edição da tabela de preços é exclusiva do <strong>Master</strong>;
+                a Administração continua usando estes valores nas mensalidades.
+              </span>
+            </div>
+          )}
+
           {TIPOS_SUITE.map((tipo) => (
             <div key={tipo} className="space-y-3 rounded-lg border bg-muted/20 p-4">
               <p className="text-sm font-bold text-secondary">{tipo}</p>
@@ -86,10 +101,12 @@ export function TabelaPrecos() {
                               type="number"
                               step="0.01"
                               value={valorAtual}
+                              readOnly={!podeEditar}
+                              disabled={!podeEditar}
                               onChange={(e) =>
                                 setEdits((prev) => ({ ...prev, [item.id]: e.target.value }))
                               }
-                              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground"
                             />
                           </div>
                         </div>
@@ -112,9 +129,11 @@ export function TabelaPrecos() {
             </div>
           )}
 
-          <Button onClick={handleSalvar} disabled={!houveAlteracao || atualizar.isPending}>
-            {atualizar.isPending ? "Salvando…" : "Salvar alterações"}
-          </Button>
+          {podeEditar && (
+            <Button onClick={handleSalvar} disabled={!houveAlteracao || atualizar.isPending}>
+              {atualizar.isPending ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
