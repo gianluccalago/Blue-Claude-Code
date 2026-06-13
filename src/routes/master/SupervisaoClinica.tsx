@@ -298,13 +298,13 @@ export function SupervisaoClinica() {
                         Quarto {l.quarto ?? "—"}
                       </div>
                     </div>
-                    <Celula rotulo="Grau" className="sm:col-span-2">
+                    <Celula rotulo="Grau real × contratual" className="sm:col-span-2">
                       {l.grau ? (
                         <span className="flex items-center gap-1">
-                          <Badge variant="muted">{l.grau}</Badge>
+                          <Badge variant="muted" title="Grau real (IVCF)">{l.grau}</Badge>
                           {l.divergeGrau && (
-                            <Badge variant="destructive" title={`Contrato: ${l.grauContratual}`}>
-                              ≠ {l.grauContratual}
+                            <Badge variant="destructive" title={`Grau contratual: ${l.grauContratual}`}>
+                              ≠ contratual {l.grauContratual}
                             </Badge>
                           )}
                         </span>

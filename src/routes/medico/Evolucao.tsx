@@ -21,7 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
+import { GrauContratualReal } from "@/components/GrauContratualReal";
+import { cn, formatarDataHoraBR, formatarDataBR, ouNaoInformado } from "@/lib/utils";
 import type { AvaliacaoIVCF, Evolucao, Residente } from "@/types/database";
 
 // ─── Tipos IVCF ──────────────────────────────────────────────────────────────
@@ -223,6 +224,19 @@ export function EvolucaoMedico() {
 
       {residenteId && residente && (
         <>
+          {/* Contexto do hóspede: entrada + grau contratual × real (IVCF) — o
+              médico vê o contratual vs. o real ao avaliar. */}
+          <div className="rounded-lg border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">
+              Entrada no Blue: {formatarDataBR(residente.data_admissao)}
+            </p>
+            <GrauContratualReal
+              className="mt-1.5"
+              contratual={residente.grau_contratual}
+              real={residente.grau_dependencia}
+            />
+          </div>
+
           {/* Botões de ação */}
           <div className="flex flex-wrap gap-3">
             <Button

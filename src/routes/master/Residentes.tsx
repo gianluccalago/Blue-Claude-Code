@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, grauNivel, ouNaoInformado } from "@/lib/utils";
+import { cn, grauNivel, ouNaoInformado, formatarDataBR } from "@/lib/utils";
 import type { Residente } from "@/types/database";
 import type { ReactNode } from "react";
 
@@ -164,8 +164,9 @@ export function Residentes() {
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                         <span>Quarto {ouNaoInformado(r.quarto)}</span>
                         <span>· Suíte {ouNaoInformado(r.tipo_suite)}</span>
-                        <Badge variant="muted">Atual {r.grau_dependencia ?? "—"}</Badge>
-                        <Badge variant="outline">Contrato {r.grau_contratual ?? "—"}</Badge>
+                        <span>· Entrada {formatarDataBR(r.data_admissao)}</span>
+                        <Badge variant="outline">Contratual {r.grau_contratual ?? "—"}</Badge>
+                        <Badge variant="muted">Real (IVCF) {r.grau_dependencia ?? "sem avaliação"}</Badge>
                       </div>
                     </div>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

@@ -28,6 +28,7 @@ import {
   useAceitacaoResidenteHoje,
 } from "@/hooks/useMaster";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { GrauContratualReal } from "@/components/GrauContratualReal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
@@ -177,10 +178,6 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
           <Campo rotulo="Nome" valor={hospede.nome} />
           <Campo rotulo="Quarto" valor={ouNaoInformado(hospede.quarto)} />
-          <Campo
-            rotulo="Grau atual"
-            valor={hospede.grau_dependencia ? `Grau ${hospede.grau_dependencia}` : "Não informado"}
-          />
           {/* Tipo de suíte e ocupação agora vêm da ficha (MASTER · Residentes). */}
           <Campo
             rotulo="Tipo de suíte"
@@ -200,12 +197,17 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
             rotulo="Idade"
             valor={idade !== null ? `${idade} anos` : "Não informado"}
           />
-          <Campo rotulo="Admissão" valor={formatarDataBR(hospede.data_admissao)} />
+          <Campo rotulo="Entrada no Blue" valor={formatarDataBR(hospede.data_admissao)} />
           <Campo rotulo="Responsável legal" valor={ouNaoInformado(hospede.responsavel_legal)} />
           <Campo rotulo="Contato" valor={ouNaoInformado(hospede.contato)} />
           <Campo rotulo="Alergias" valor={ouNaoInformado(hospede.alergias)} />
           <Campo rotulo="Próteses" valor={ouNaoInformado(hospede.proteses)} />
         </div>
+        <GrauContratualReal
+          className="mt-4"
+          contratual={hospede.grau_contratual}
+          real={hospede.grau_dependencia}
+        />
         <div className="mt-4">
           <div className="text-xs font-semibold text-muted-foreground">História de vida</div>
           <p className="mt-1 text-sm text-secondary">{ouNaoInformado(hospede.historia_vida)}</p>

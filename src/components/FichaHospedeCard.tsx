@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   Pencil,
   AlertTriangle,
+  CalendarDays,
   Phone,
   Users,
   HeartPulse,
@@ -24,9 +25,9 @@ import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente } from "@/lib/storage";
 import { fichaCompleta, podeVerFinanceiro, podeVerAlergias } from "@/lib/fichaHospede";
+import { GrauContratualReal } from "@/components/GrauContratualReal";
 import {
   calcularIdade,
-  grauNivel,
   tempoDePermanencia,
   ouNaoInformado,
   formatarDataBR,
@@ -59,10 +60,6 @@ export function FichaHospedeCard({
 
   const idade = calcularIdade(r.data_nascimento);
   const permanencia = tempoDePermanencia(r.data_admissao);
-  const nivelContratual = grauNivel(r.grau_contratual);
-  const nivelAtual = grauNivel(r.grau_dependencia);
-  const divergeGrau =
-    nivelContratual !== null && nivelAtual !== null && Math.abs(nivelContratual - nivelAtual) >= 1;
 
   return (
     <div className="space-y-5">
@@ -88,13 +85,13 @@ export function FichaHospedeCard({
               {idade !== null && <Badge variant="secondary">{idade} anos</Badge>}
               {r.tipo_suite && <Badge variant="muted">{r.tipo_suite}</Badge>}
               {r.ocupacao && <Badge variant="muted">{r.ocupacao === "dupla" ? "Dupla" : "Individual"}</Badge>}
-              {r.grau_dependencia && <Badge variant="secondary">Grau {r.grau_dependencia}</Badge>}
-              {divergeGrau && (
-                <Badge variant="destructive" className="gap-1">
-                  <AlertTriangle className="size-3" /> grau contratual {r.grau_contratual} × atual {r.grau_dependencia}
-                </Badge>
-              )}
             </div>
+            {/* Grau contratual × real (IVCF) com destaque na divergência. */}
+            <GrauContratualReal
+              className="mt-2"
+              contratual={r.grau_contratual}
+              real={r.grau_dependencia}
+            />
           </div>
         </CardContent>
       </Card>
@@ -106,6 +103,11 @@ export function FichaHospedeCard({
       {/* IDENTIFICAÇÃO E CONTATOS */}
       <Secao icon={Phone} titulo="Identificação e contatos">
         <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          <Linha
+            rotulo="Entrada no Blue"
+            valor={`${formatarDataBR(r.data_admissao)} · ${permanencia}`}
+            icon={CalendarDays}
+          />
           <Linha rotulo="Celular do hóspede" valor={ouNaoInformado(r.celular_proprio)} />
           <Linha
             rotulo="Contato de emergência"

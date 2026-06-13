@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronDown, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatarDataBR } from "@/lib/utils";
+import { GrauContratualReal } from "@/components/GrauContratualReal";
 import type { Residente } from "@/types/database";
 
 export function HospedeSelector({
@@ -49,8 +50,14 @@ export function HospedeSelector({
                 {h.nome}
               </div>
               <div className="text-xs text-muted-foreground">
-                Quarto {h.quarto ?? "—"} · Grau {h.grau_dependencia ?? "—"}
+                Quarto {h.quarto ?? "—"} · Entrada {formatarDataBR(h.data_admissao)}
               </div>
+              <GrauContratualReal
+                compact
+                className="mt-0.5"
+                contratual={h.grau_contratual}
+                real={h.grau_dependencia}
+              />
             </button>
           );
         })}
@@ -139,8 +146,14 @@ export function HospedeSelector({
                         {h.nome}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Quarto {h.quarto ?? "—"} · Grau {h.grau_dependencia ?? "—"}
+                        Quarto {h.quarto ?? "—"} · Entrada {formatarDataBR(h.data_admissao)}
                       </div>
+                      <GrauContratualReal
+                        compact
+                        className="mt-0.5"
+                        contratual={h.grau_contratual}
+                        real={h.grau_dependencia}
+                      />
                     </div>
                     {ativo && (
                       <span className="size-2 shrink-0 rounded-full bg-primary" />
