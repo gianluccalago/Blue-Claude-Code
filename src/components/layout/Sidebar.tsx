@@ -1,5 +1,6 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LogOut,
@@ -53,19 +54,10 @@ import {
 import { Logo } from "@/components/Logo";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
-import { useSolicitacoesPorDestino } from "@/hooks/useSolicitacoes";
+import { useNotificacoes, type Badge as BadgeNotif } from "@/hooks/useNotificacoes";
 import { useFotoResidente, useDefinirMinhaFoto } from "@/hooks/useUsuarioFoto";
 import { uploadFotoUsuario } from "@/lib/storage";
 import type { PerfilDef } from "@/data/profiles";
-import type { DestinoSolicitacao } from "@/types/database";
-
-// Cada perfil que recebe solicitações da família mapeia para um destino.
-const DESTINO_POR_PERFIL: Record<string, DestinoSolicitacao> = {
-  coordenacao: "coordenacao",
-  medico: "medico",
-  administracao: "administracao",
-  direcao: "administracao",
-};
 
 // Ícone por rota — puramente visual (não altera navegação nem dados).
 const ICONE_POR_ROTA: Record<string, LucideIcon> = {
@@ -194,6 +186,44 @@ function iconeDaRota(to: string): LucideIcon {
   return ICONE_POR_ROTA[to] ?? Sparkles;
 }
 
+// Cores semânticas do badge: vermelho (crítico/atrasado/emergência), âmbar
+// (atenção) e neutro/azul (pendência comum). Tokens do tema, sem cor crua.
+const TOM_BADGE: Record<BadgeNotif["tom"], string> = {
+  destructive: "bg-destructive text-white",
+  warning: "bg-warning text-white",
+  primary: "bg-brand-gradient text-white shadow-glow-primary",
+};
+
+/**
+ * Badge de notificação de um item de menu. NÚMERO (count) ou PONTO (dot).
+ * Acessível: o badge não é o único indicador (o texto do item segue legível) e
+ * tem aria-label descritivo ("3 pendências").
+ */
+function BadgeSidebar({ badge }: { badge: BadgeNotif }) {
+  const rotulo = `${badge.count} ${badge.count === 1 ? "pendência" : "pendências"}`;
+  if (badge.dot) {
+    return (
+      <span
+        role="status"
+        aria-label={rotulo}
+        className={cn("size-2.5 shrink-0 rounded-full", TOM_BADGE[badge.tom])}
+      />
+    );
+  }
+  return (
+    <span
+      role="status"
+      aria-label={rotulo}
+      className={cn(
+        "grid min-w-[20px] shrink-0 place-items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
+        TOM_BADGE[badge.tom],
+      )}
+    >
+      {badge.count > 99 ? "99+" : badge.count}
+    </span>
+  );
+}
+
 /** Iniciais do usuário para o avatar (até 2 letras). */
 function iniciais(nome: string | undefined | null): string {
   if (!nome) return "?";
@@ -281,13 +311,16 @@ export function Sidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { usuarioEfetivo, sair } = useAuth();
   const Icon = perfil.icon;
 
-  // Contador de solicitações abertas (SLA visível no menu).
-  const destino = DESTINO_POR_PERFIL[perfil.id];
-  const solicitacoes = useSolicitacoesPorDestino(destino);
-  const abertas = (solicitacoes.data ?? []).filter((s) => s.status === "aberta").length;
+  // Notificações (badges) do perfil. Recalcula ao TROCAR DE TELA (sem realtime):
+  // a cada mudança de rota, invalida a chave para refazer as contagens.
+  const badges = useNotificacoes(perfil.id);
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+  }, [pathname, queryClient]);
 
   async function logout() {
     await sair();
@@ -350,7 +383,7 @@ export function Sidebar({
         <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {perfil.menu.map((item) => {
             const ativo = pathname === item.to;
-            const mostrarBadge = item.to.endsWith("/solicitacoes-familia") && abertas > 0;
+            const badge = badges[item.to];
             const ItemIcon = iconeDaRota(item.to);
             return (
               <Link
@@ -382,11 +415,7 @@ export function Sidebar({
                   <ItemIcon className="size-4" />
                 </span>
                 <span className="flex-1 truncate">{item.label}</span>
-                {mostrarBadge && (
-                  <span className="grid min-w-[20px] shrink-0 place-items-center rounded-full bg-brand-gradient px-1.5 py-0.5 text-[11px] font-bold text-white shadow-glow-primary">
-                    {abertas}
-                  </span>
-                )}
+                {badge && <BadgeSidebar badge={badge} />}
               </Link>
             );
           })}
