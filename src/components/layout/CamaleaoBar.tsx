@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { Eye, LogOut, Glasses, Loader2, Search, ChevronDown } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,10 @@ import type { PerfilUsuario, Usuario } from "@/types/database";
 export function CamaleaoBar() {
   const { ehMaster, impersonado, usuario, personificar } = useAuth();
   const navigate = useNavigate();
+  // Perfil da ROTA atual: o Master pode "entrar" em outro perfil tanto
+  // personificando um usuário (impersonado) quanto navegando direto — os
+  // cards/avisos do painel estratégico levam a rotas de outro $perfil.
+  const { perfil: perfilRota } = useParams({ strict: false }) as { perfil?: string };
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
 
@@ -69,17 +73,29 @@ export function CamaleaoBar() {
     navigate({ to: "/app/master" });
   }
 
-  if (impersonado) {
+  // Perfil que o Master está visitando: por personificação OU por navegação
+  // direta para uma rota de outro perfil (links do painel). Em ambos os casos
+  // mostramos a barra de retorno ao Master.
+  const perfilVisitado: PerfilUsuario | undefined =
+    impersonado?.perfil ??
+    (perfilRota && perfilRota !== "master" ? (perfilRota as PerfilUsuario) : undefined);
+
+  if (perfilVisitado) {
+    const rotuloPerfil = PERFIL_LABEL[perfilVisitado] ?? perfilVisitado;
     return (
       <div className="relative z-[25] flex flex-wrap items-center justify-between gap-2 border-b border-warning/40 bg-gradient-to-r from-warning/20 to-warning/5 px-6 py-2.5 text-sm">
         <span className="flex items-center gap-2 font-semibold text-warning-foreground">
           <span className="grid size-7 place-items-center rounded-lg bg-warning/25">
             <Eye className="size-4" />
           </span>
-          Modo Camaleão — vendo como <span className="font-bold">{impersonado.nome}</span>
-          <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">
-            {PERFIL_LABEL[impersonado.perfil] ?? impersonado.perfil}
-          </span>
+          {impersonado ? (
+            <>
+              Modo Camaleão — vendo como <span className="font-bold">{impersonado.nome}</span>
+            </>
+          ) : (
+            <>Modo Camaleão — navegando como</>
+          )}
+          <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">{rotuloPerfil}</span>
         </span>
         <button
           onClick={voltarAoMaster}
