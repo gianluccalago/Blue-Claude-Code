@@ -1202,6 +1202,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["cozinha_escala"]["Insert"]>;
         Relationships: [];
       };
+      config_refeicao_equipe: {
+        Row: {
+          id: string;
+          refeicoes_equipe_por_dia: number;
+          custo_medio_refeicao_fallback: number;
+          vigente_desde: string;
+          atualizado_por: string | null;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          refeicoes_equipe_por_dia: number;
+          custo_medio_refeicao_fallback: number;
+          vigente_desde?: string;
+          atualizado_por?: string | null;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["config_refeicao_equipe"]["Insert"]>;
+        Relationships: [];
+      };
       desperdicio: {
         Row: {
           id: string;
@@ -1673,6 +1693,7 @@ export type Desperdicio = Database["public"]["Tables"]["desperdicio"]["Row"];
 export type RegistroPeso = Database["public"]["Tables"]["registro_peso"]["Row"];
 export type CozinhaFuncionario = Database["public"]["Tables"]["cozinha_funcionario"]["Row"];
 export type CozinhaEscala = Database["public"]["Tables"]["cozinha_escala"]["Row"];
+export type ConfigRefeicaoEquipe = Database["public"]["Tables"]["config_refeicao_equipe"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];

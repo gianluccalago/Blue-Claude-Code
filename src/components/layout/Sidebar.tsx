@@ -27,6 +27,7 @@ import {
   TrendingDown,
   Scale,
   ChefHat,
+  Soup,
   Activity,
   Wallet,
   Receipt,
@@ -130,6 +131,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/nutricionista/desperdicio": TrendingDown,
   "/app/nutricionista/peso": Scale,
   "/app/nutricionista/escala-cozinha": ChefHat,
+  "/app/nutricionista/refeicoes-equipe": Soup,
+  "/app/administracao/refeicoes-equipe": Soup,
+  "/app/master/refeicoes-equipe": Soup,
   "/app/nutricionista/acompanhamento-nutricional": Apple,
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia
