@@ -23,18 +23,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
+import { usuarioAtual } from "@/auth/usuarioAtual";
 import type { BaixaResgate, EstoqueResgate } from "@/types/database";
 
 // ─── Contexto de perfil ───────────────────────────────────────────────────────
 
-type PerfilResgate = "farmacia" | "coordenacao" | "medico";
+type PerfilResgate = "farmacia" | "coordenacao" | "medico" | "enfermeira";
 
 function usePerfilResgate() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   const p = (perfil ?? "farmacia") as PerfilResgate;
   const isFarmacia = p === "farmacia";
-  const adminPor =
-    p === "medico" ? "Médico" : p === "coordenacao" ? "Coordenação" : "Farmácia";
+  // O registro sai no NOME de quem está logado (não um rótulo de cargo).
+  const adminPor = usuarioAtual.nome;
   return { perfil: p, isFarmacia, adminPor };
 }
 
@@ -285,7 +286,7 @@ function FormBaixa({
         quantidade,
         motivo: motivo.trim(),
         administradoPor: adminPor,
-        perfilResponsavel: perfil as "farmacia" | "coordenacao" | "medico",
+        perfilResponsavel: perfil as "farmacia" | "coordenacao" | "medico" | "enfermeira",
         quantidadeAtualAntes: itemSelecionado?.quantidade_atual ?? 0,
       });
       // Reset

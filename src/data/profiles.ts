@@ -103,6 +103,29 @@ export const PERFIS: PerfilDef[] = [
     emConstrucao: false,
   },
   {
+    // ENFERMEIRA: versão OPERACIONAL (reduzida) da Coordenação. Mesmo poder de
+    // ação no assistencial do dia (pendências/alertas, medicação de enfermagem,
+    // baixa de resgate), mas SEM chefia: planos só leitura; sem escalas,
+    // modelos, profissionais, solicitações da família, NPS nem financeiro.
+    // Reaproveita as telas/rotas flat da Coordenação.
+    id: "enfermeira",
+    nome: "Enfermeira",
+    descricao: "Assistencial do dia (sem funções de gestão)",
+    icon: Stethoscope,
+    cor: "bg-primary text-primary-foreground",
+    rotaInicial: "/app/enfermeira",
+    menu: [
+      { label: "Visão geral", to: "/app/enfermeira" },
+      { label: "Hóspedes", to: "/app/enfermeira/ficha" },
+      { label: "Medicação (enfermagem)", to: "/app/enfermeira/medicacao-enfermagem" },
+      { label: "Intercorrências", to: "/app/enfermeira/intercorrencias" },
+      { label: "Planos de cuidado", to: "/app/enfermeira/planos" },
+      { label: "Estoque de resgate", to: "/app/enfermeira/resgate" },
+      { label: "Abrir chamado de manutenção", to: "/app/enfermeira/chamado-manutencao" },
+    ],
+    emConstrucao: false,
+  },
+  {
     id: "cuidador",
     nome: "Cuidadores",
     descricao: "Registro diário à beira do leito",

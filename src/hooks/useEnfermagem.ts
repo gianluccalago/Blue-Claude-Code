@@ -10,9 +10,6 @@ import type {
   ViaMedicacao,
 } from "@/types/database";
 
-/** Quem administra nesta tela (sem login ainda). */
-const ENFERMAGEM = "Enfermagem";
-
 /**
  * Vias EXCLUSIVAS da enfermagem: injetável, insulina (SC) e sonda. A via ORAL
  * (VO) é exclusiva das cuidadoras e NUNCA entra aqui — a medicação de
@@ -108,7 +105,7 @@ export function useRegistrarAdministracaoEnfermagemCasa() {
         residente_id: args.residenteId,
         periodo: args.periodo,
         status: "sim",
-        administrado_por: ENFERMAGEM,
+        administrado_por: usuarioAtual.nome,
         prescricao_id: args.prescricaoId,
       });
       if (error) throw error;
@@ -133,7 +130,7 @@ export function useRegistrarAdministracaoEnfermagem(residenteId: string) {
         residente_id: residenteId,
         periodo: args.periodo,
         status: "sim",
-        administrado_por: ENFERMAGEM,
+        administrado_por: usuarioAtual.nome,
         prescricao_id: args.prescricaoId,
       });
       if (error) throw error;

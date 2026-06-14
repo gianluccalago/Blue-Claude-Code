@@ -77,7 +77,7 @@ export function useRegistrarBaixaResgate() {
       quantidade: number;
       motivo: string;
       administradoPor: string;
-      perfilResponsavel: "farmacia" | "coordenacao" | "medico";
+      perfilResponsavel: "farmacia" | "coordenacao" | "medico" | "enfermeira";
       quantidadeAtualAntes: number;
     }) => {
       const { error: errB } = await supabase.from("baixa_resgate").insert({

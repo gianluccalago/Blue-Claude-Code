@@ -14,6 +14,7 @@ export type PerfilUsuario =
   | "coordenacao"
   | "cuidador"
   | "enfermagem"
+  | "enfermeira"
   | "multidisciplinar"
   | "nutricionista"
   | "farmacia"
@@ -563,7 +564,7 @@ export interface Database {
           quantidade: number;
           motivo: string;
           administrado_por: string;
-          perfil_responsavel: "farmacia" | "coordenacao" | "medico";
+          perfil_responsavel: "farmacia" | "coordenacao" | "medico" | "enfermeira";
           registrado_em: string;
         };
         Insert: {
@@ -573,7 +574,7 @@ export interface Database {
           quantidade: number;
           motivo: string;
           administrado_por: string;
-          perfil_responsavel: "farmacia" | "coordenacao" | "medico";
+          perfil_responsavel: "farmacia" | "coordenacao" | "medico" | "enfermeira";
           registrado_em?: string;
         };
         Update: Partial<Database["public"]["Tables"]["baixa_resgate"]["Insert"]>;

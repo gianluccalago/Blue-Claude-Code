@@ -99,8 +99,9 @@ function AppIndex() {
   const def = getPerfil(perfil);
   // Master: a "Visão geral" inicial é o Painel estratégico (cockpit do CEO).
   if (perfil === "master") return <PainelEstrategico />;
-  // Coordenação: a "Visão geral" é o painel da coordenação.
-  if (perfil === "coordenacao") return <PainelCoordenacao />;
+  // Coordenação (e Enfermeira, sua versão reduzida): "Visão geral" = painel de
+  // pendências/alertas, com AÇÃO PLENA nos dois perfis.
+  if (perfil === "coordenacao" || perfil === "enfermeira") return <PainelCoordenacao />;
   // Administração e Direção: a "Visão geral" é o painel da administração
   // (Direção é a mesma operação + CRM; o card "Funil comercial" só aparece p/ ela).
   if (perfil === "administracao" || perfil === "direcao") return <PainelAdministracao />;

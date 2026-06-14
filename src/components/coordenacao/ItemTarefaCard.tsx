@@ -19,8 +19,9 @@ export function ItemTarefaCard({
   horario: string | null;
   responsavel: string | null;
   toleranciaMinutos: number;
-  onEditar: () => void;
-  onRemover: () => void;
+  /** Sem onEditar/onRemover → cartão somente leitura (esconde as ações). */
+  onEditar?: () => void;
+  onRemover?: () => void;
   disabled?: boolean;
 }) {
   return (
@@ -40,24 +41,30 @@ export function ItemTarefaCard({
           </span>
         </div>
       </div>
-      <div className="flex shrink-0 gap-1">
-        <button
-          onClick={onEditar}
-          disabled={disabled}
-          className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-secondary"
-          aria-label="Editar"
-        >
-          <Pencil className="size-4" />
-        </button>
-        <button
-          onClick={onRemover}
-          disabled={disabled}
-          className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          aria-label="Remover"
-        >
-          <Trash2 className="size-4" />
-        </button>
-      </div>
+      {(onEditar || onRemover) && (
+        <div className="flex shrink-0 gap-1">
+          {onEditar && (
+            <button
+              onClick={onEditar}
+              disabled={disabled}
+              className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-secondary"
+              aria-label="Editar"
+            >
+              <Pencil className="size-4" />
+            </button>
+          )}
+          {onRemover && (
+            <button
+              onClick={onRemover}
+              disabled={disabled}
+              className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Remover"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

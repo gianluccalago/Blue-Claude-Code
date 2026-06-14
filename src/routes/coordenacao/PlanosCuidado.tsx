@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, LayoutTemplate, ChevronRight, Salad } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
+import { Plus, LayoutTemplate, ChevronRight, Salad, Lock } from "lucide-react";
 import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
 import {
   useAdicionarPlanoItem,
@@ -32,6 +33,10 @@ interface Confirmacao {
 
 export function PlanosCuidado() {
   const residentes = useResidentes();
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  // Criar/editar/remover o plano é da Coordenação (e Master). A Enfermeira só
+  // VISUALIZA. A RLS reforça (escrita em plano_cuidado_item só master/coordenacao).
+  const podeEditar = perfil === "coordenacao" || perfil === "master";
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   const hospedeId = selecionadoId ?? residentes.data?.[0]?.id;
 
@@ -42,6 +47,12 @@ export function PlanosCuidado() {
 
   return (
     <div className="space-y-6">
+      {!podeEditar && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          <Lock className="mt-0.5 size-4 shrink-0" />
+          <span>Somente leitura. A edição do plano de cuidado é da Coordenação.</span>
+        </div>
+      )}
       <HospedeSelector
         hospedes={residentes.data}
         selecionadoId={hospedeId}
@@ -51,6 +62,7 @@ export function PlanosCuidado() {
         <PlanoDoHospede
           key={hospedeId}
           residenteId={hospedeId}
+          podeEditar={podeEditar}
           outrosHospedes={(residentes.data ?? []).filter((r) => r.id !== hospedeId)}
         />
       )}
@@ -60,9 +72,11 @@ export function PlanosCuidado() {
 
 function PlanoDoHospede({
   residenteId,
+  podeEditar,
   outrosHospedes,
 }: {
   residenteId: string;
+  podeEditar: boolean;
   outrosHospedes: Residente[];
 }) {
   const itens = usePlanoItens(residenteId);
@@ -93,29 +107,31 @@ function PlanoDoHospede({
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>Plano de cuidado</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setMostrarModelos((v) => !v);
-                setMostrarForm(false);
-              }}
-            >
-              <LayoutTemplate className="size-4" /> Aplicar modelo de rotina
-            </Button>
-            <Button
-              onClick={() => {
-                setMostrarForm((v) => !v);
-                setMostrarModelos(false);
-              }}
-            >
-              <Plus className="size-4" /> Adicionar tarefa
-            </Button>
-          </div>
+          {podeEditar && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMostrarModelos((v) => !v);
+                  setMostrarForm(false);
+                }}
+              >
+                <LayoutTemplate className="size-4" /> Aplicar modelo de rotina
+              </Button>
+              <Button
+                onClick={() => {
+                  setMostrarForm((v) => !v);
+                  setMostrarModelos(false);
+                }}
+              >
+                <Plus className="size-4" /> Adicionar tarefa
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Painel: aplicar modelo de rotina */}
-          {mostrarModelos && (
+          {podeEditar && mostrarModelos && (
             <div className="space-y-2 rounded-lg border border-primary/30 bg-accent/40 p-4">
               <p className="text-sm font-semibold text-secondary">
                 Escolha um modelo para adicionar ao plano deste hóspede:
@@ -160,7 +176,7 @@ function PlanoDoHospede({
           )}
 
           {/* Formulário: adicionar tarefa (com aplicação em lote opcional) */}
-          {mostrarForm && (
+          {podeEditar && mostrarForm && (
             <div className="space-y-3">
               <ItemTarefaForm
                 salvando={adicionar.isPending || adicionarLote.isPending}
@@ -231,7 +247,7 @@ function PlanoDoHospede({
           ) : (
             <div className="space-y-3">
               {lista.map((item) =>
-                editandoId === item.id ? (
+                podeEditar && editandoId === item.id ? (
                   <EditarItemForm
                     key={item.id}
                     horarioInicial={item.horario}
@@ -253,15 +269,18 @@ function PlanoDoHospede({
                     responsavel={item.responsavel}
                     toleranciaMinutos={item.tolerancia_minutos}
                     disabled={ocupado}
-                    onEditar={() => setEditandoId(item.id)}
-                    onRemover={() =>
-                      setConfirmacao({
-                        titulo: "Remover esta tarefa?",
-                        descricao: item.tarefa,
-                        textoConfirmar: "Sim, remover",
-                        variante: "destructive",
-                        acao: () => remover.mutate(item.id),
-                      })
+                    onEditar={podeEditar ? () => setEditandoId(item.id) : undefined}
+                    onRemover={
+                      podeEditar
+                        ? () =>
+                            setConfirmacao({
+                              titulo: "Remover esta tarefa?",
+                              descricao: item.tarefa,
+                              textoConfirmar: "Sim, remover",
+                              variante: "destructive",
+                              acao: () => remover.mutate(item.id),
+                            })
+                        : undefined
                     }
                   />
                 ),

@@ -88,6 +88,14 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/coordenacao/escalas": CalendarDays,
   "/app/coordenacao/solicitacoes-familia": MessageSquare,
   "/app/coordenacao/chamado-manutencao": Wrench,
+  // Enfermeira (Coordenação reduzida) — reusa as telas da Coordenação
+  "/app/enfermeira": LayoutDashboard,
+  "/app/enfermeira/ficha": Users2,
+  "/app/enfermeira/medicacao-enfermagem": Syringe,
+  "/app/enfermeira/intercorrencias": AlertTriangle,
+  "/app/enfermeira/planos": ClipboardList,
+  "/app/enfermeira/resgate": PackageOpen,
+  "/app/enfermeira/chamado-manutencao": Wrench,
   // Cuidador
   "/app/cuidador/checklist": ClipboardCheck,
   "/app/cuidador/medicacao": Pill,

@@ -19,7 +19,7 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 // MASTER-3 · Metadados dos perfis do sistema para a gestão de usuários.
 //
-// Este módulo descreve OS 12 PERFIS que o Master cria/edita e os campos
+// Este módulo descreve OS 13 PERFIS que o Master cria/edita e os campos
 // condicionais de cada um. É a base da autenticação que será ligada depois:
 // o email será o login e cada perfil cairá direto nas suas telas (sem a tela
 // de seleção de perfil). Mantém compatibilidade com o schema atual — o grupo
@@ -29,14 +29,16 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 
 /**
- * Valor do SELETOR de perfil no formulário (12 opções). Para o grupo de
+ * Valor do SELETOR de perfil no formulário (13 opções). Para o grupo de
  * cuidados usamos "cuidador" como base; o perfil real ('cuidador' ou
- * 'enfermagem') é derivado da função na hora de salvar.
+ * 'enfermagem') é derivado da função na hora de salvar. "enfermeira" é um
+ * perfil PRÓPRIO (Coordenação reduzida) — não confundir com o grupo de ponta.
  */
 export type PerfilSeletor =
   | "master"
   | "medico"
   | "coordenacao"
+  | "enfermeira"
   | "cuidador"
   | "multidisciplinar"
   | "nutricionista"
@@ -70,7 +72,7 @@ export interface ConfigPerfil {
   vinculaResidente?: boolean;
 }
 
-/** Os 12 perfis, na ordem do seletor. */
+/** Os 13 perfis, na ordem do seletor. */
 export const PERFIS_SISTEMA: ConfigPerfil[] = [
   { value: "master", label: "Master", icon: Shield, cargosSugeridos: ["Diretor Geral", "Administrador"] },
   {
@@ -85,6 +87,13 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     label: "Coordenação Assistencial",
     icon: ClipboardList,
     cargosSugeridos: ["Coordenadora Assistencial", "Coordenador Assistencial", "Enfermeira Coordenadora"],
+  },
+  {
+    value: "enfermeira",
+    label: "Enfermeira (assistencial)",
+    icon: Stethoscope,
+    cargosSugeridos: ["Enfermeira", "Enfermeiro", "Enfermeira de Plantão"],
+    registroLabel: "Registro (COREN)",
   },
   {
     value: "cuidador",
@@ -169,6 +178,7 @@ export const PERFIL_LABEL: Record<PerfilUsuario, string> = {
   coordenacao: "Coordenação Assistencial",
   cuidador: "Cuidador(a)",
   enfermagem: "Enfermagem",
+  enfermeira: "Enfermeira",
   multidisciplinar: "Equipe Multidisciplinar",
   nutricionista: "Nutricionista",
   farmacia: "Farmácia",

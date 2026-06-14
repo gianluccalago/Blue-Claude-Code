@@ -45,7 +45,7 @@ const GRUPOS: { key: GrupoKey; label: string; icon: LucideIcon; perfis: PerfilUs
     key: "assistencial",
     label: "Assistencial",
     icon: Stethoscope,
-    perfis: ["medico", "coordenacao", "enfermagem", "cuidador", "multidisciplinar", "nutricionista"],
+    perfis: ["medico", "coordenacao", "enfermeira", "enfermagem", "cuidador", "multidisciplinar", "nutricionista"],
   },
   { key: "administrativo", label: "Administrativo", icon: Building2, perfis: ["administracao", "direcao", "master"] },
   {

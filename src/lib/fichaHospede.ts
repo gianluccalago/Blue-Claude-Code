@@ -12,6 +12,7 @@ import type { PerfilUsuario } from "@/types/database";
 const PERFIS_FICHA_COMPLETA: ReadonlySet<PerfilUsuario> = new Set([
   "master",
   "coordenacao",
+  "enfermeira",
   "administracao",
   "direcao",
   "medico",
