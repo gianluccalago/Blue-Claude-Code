@@ -34,6 +34,7 @@ import {
 } from "@/hooks/useMaster";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
+import { formatarQuarto } from "@/lib/quarto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
@@ -186,7 +187,7 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
       <Secao icon={User} titulo="Identificação">
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
           <Campo rotulo="Nome" valor={hospede.nome} />
-          <Campo rotulo="Quarto" valor={ouNaoInformado(hospede.quarto)} />
+          <Campo rotulo="Quarto" valor={ouNaoInformado(formatarQuarto(hospede.quarto))} />
           {/* Tipo de suíte e ocupação agora vêm da ficha (MASTER · Residentes). */}
           <Campo
             rotulo="Tipo de suíte"

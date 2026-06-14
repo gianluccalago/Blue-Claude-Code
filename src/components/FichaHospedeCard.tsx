@@ -31,6 +31,7 @@ import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente } from "@/lib/storage";
 import { fichaCompleta, podeVerFinanceiro, podeVerAlergias } from "@/lib/fichaHospede";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
+import { formatarQuarto } from "@/lib/quarto";
 import {
   calcularIdade,
   tempoDePermanencia,
@@ -77,7 +78,7 @@ export function FichaHospedeCard({
               <div className="min-w-0">
                 <h2 className="text-2xl font-extrabold tracking-tight text-secondary">{r.nome}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Quarto {ouNaoInformado(r.quarto)} · {permanencia}
+                  Quarto {ouNaoInformado(formatarQuarto(r.quarto))} · {permanencia}
                 </p>
               </div>
               {podeEditar && onEditar && (
