@@ -68,6 +68,7 @@ import { Insumos } from "@/routes/nutricionista/Insumos";
 import { Pratos } from "@/routes/nutricionista/Pratos";
 import { Cardapios } from "@/routes/nutricionista/Cardapios";
 import { Desperdicio } from "@/routes/nutricionista/Desperdicio";
+import { Peso } from "@/routes/nutricionista/Peso";
 import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
 import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
@@ -326,6 +327,11 @@ const desperdicioRoute = createRoute({
   path: "desperdicio",
   component: Desperdicio,
 });
+const pesoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "peso",
+  component: Peso,
+});
 const mensalidadesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "mensalidades",
@@ -542,6 +548,7 @@ const routeTree = rootRoute.addChildren([
     pratosRoute,
     cardapiosRoute,
     desperdicioRoute,
+    pesoRoute,
     mensalidadesRoute,
     cobrancaRoute,
     upsellingRoute,

@@ -158,6 +158,7 @@ export interface Database {
           andar: number | null;
           quarto: string | null;
           cpf: string | null;
+          altura_m: number | null;
           tipo_suite: TipoSuite | null;
           ocupacao: Ocupacao | null;
           responsavel_legal: string | null;
@@ -194,6 +195,7 @@ export interface Database {
           andar?: number | null;
           quarto?: string | null;
           cpf?: string | null;
+          altura_m?: number | null;
           tipo_suite?: TipoSuite | null;
           ocupacao?: Ocupacao | null;
           responsavel_legal?: string | null;
@@ -1122,6 +1124,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["prato_insumo"]["Insert"]>;
         Relationships: [];
       };
+      registro_peso: {
+        Row: {
+          id: string;
+          residente_id: string;
+          peso_kg: number;
+          altura_m: number | null;
+          imc: number | null;
+          data: string;
+          registrado_por: string | null;
+          observacao: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          peso_kg: number;
+          altura_m?: number | null;
+          imc?: number | null;
+          data?: string;
+          registrado_por?: string | null;
+          observacao?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["registro_peso"]["Insert"]>;
+        Relationships: [];
+      };
       desperdicio: {
         Row: {
           id: string;
@@ -1590,6 +1618,7 @@ export type PratoInsumo = Database["public"]["Tables"]["prato_insumo"]["Row"];
 export type Cardapio = Database["public"]["Tables"]["cardapio"]["Row"];
 export type CardapioItem = Database["public"]["Tables"]["cardapio_item"]["Row"];
 export type Desperdicio = Database["public"]["Tables"]["desperdicio"]["Row"];
+export type RegistroPeso = Database["public"]["Tables"]["registro_peso"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];

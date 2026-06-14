@@ -25,6 +25,7 @@ import {
   Salad,
   UtensilsCrossed,
   TrendingDown,
+  Scale,
   Activity,
   Wallet,
   Receipt,
@@ -126,6 +127,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/nutricionista/pratos": UtensilsCrossed,
   "/app/nutricionista/cardapios": CalendarDays,
   "/app/nutricionista/desperdicio": TrendingDown,
+  "/app/nutricionista/peso": Scale,
   "/app/nutricionista/acompanhamento-nutricional": Apple,
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia

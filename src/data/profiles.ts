@@ -196,6 +196,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Pratos", to: "/app/nutricionista/pratos" },
       { label: "Cardápios", to: "/app/nutricionista/cardapios" },
       { label: "Desperdício", to: "/app/nutricionista/desperdicio" },
+      { label: "Peso e IMC", to: "/app/nutricionista/peso" },
       { label: "Acompanhamento", to: "/app/nutricionista/acompanhamento-nutricional" },
       { label: "Evolução nutricional", to: "/app/nutricionista/evolucao-nutricional" },
       { label: "Pesquisa NPS", to: "/app/nutricionista/pesquisa-nps" },

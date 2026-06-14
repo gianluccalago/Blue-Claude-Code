@@ -12,6 +12,9 @@ import {
   CalendarClock,
   Wallet,
   CircleDot,
+  Scale,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
 import { usePrescricoes } from "@/hooks/useMedicacao";
@@ -20,6 +23,8 @@ import { useCompromissos } from "@/hooks/useCompromissos";
 import { useTratamentos, estadoDaPendencia } from "@/hooks/useCoordenacao";
 import { useAvaliacoesIVCF, useEvolucoes } from "@/hooks/useMedico";
 import { useDietaAtiva, useEvolucaoNutricional } from "@/hooks/useNutricao";
+import { useUltimosPesos } from "@/hooks/usePeso";
+import { resumoPeso, CLASSIFICACAO_IMC_LABEL, CLASSIFICACAO_IMC_VARIANTE } from "@/lib/imc";
 import { useHistoricoParticipacao } from "@/hooks/useAtividades";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { formatarMoeda, mesAtual } from "@/lib/mensalidade";
@@ -116,6 +121,7 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
   const evolMedica = useEvolucoes(residenteId);
   const evolNutri = useEvolucaoNutricional(residenteId);
   const atividades = useHistoricoParticipacao(residenteId);
+  const pesos = useUltimosPesos(residenteId);
   const mesRef = mesAtual();
   const upselling = useLancamentosDoMes(residenteId, mesRef);
 
@@ -132,6 +138,7 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
     evolMedica.isLoading ||
     evolNutri.isLoading ||
     atividades.isLoading ||
+    pesos.isLoading ||
     upselling.isLoading;
 
   const erro =
@@ -147,6 +154,7 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
     evolMedica.error ??
     evolNutri.error ??
     atividades.error ??
+    pesos.error ??
     upselling.error;
 
   const alertas = useMemo(
@@ -168,6 +176,7 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
   const ultimaEvolMedica = (evolMedica.data ?? [])[0] ?? null;
   const ultimaEvolNutri = (evolNutri.data ?? [])[0] ?? null;
   const atividadesRecentes = (atividades.data ?? []).filter((a) => a.presente).slice(0, 5);
+  const peso = resumoPeso(pesos.data ?? []);
   const upsellingMes = upselling.data ?? [];
   const totalUpselling = upsellingMes.reduce((s, u) => s + (u.valor ?? 0), 0);
 
@@ -349,6 +358,65 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
             <span className="text-sm text-muted-foreground">
               {formatarDataBR(ultimaIvcf.registrado_em)} ·{" "}
               {ouNaoInformado(ultimaIvcf.registrado_por)}
+            </span>
+          </div>
+        )}
+      </Secao>
+
+      {/* PESO E IMC (módulo Nutrição · N6) — sinal clínico com tendência */}
+      <Secao
+        icon={Scale}
+        titulo="Peso e IMC"
+        acessorio={
+          peso.emRisco ? (
+            <Badge variant="destructive">
+              {peso.perdaRelevante
+                ? "Perda relevante"
+                : peso.tendenciaQueda
+                  ? "Tendência de queda"
+                  : "Baixo peso"}
+            </Badge>
+          ) : undefined
+        }
+      >
+        {!peso.ultimo ? (
+          <SemDados nota="nenhuma pesagem registrada para este hóspede" />
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-3xl font-extrabold tabular-nums text-secondary">
+              {peso.ultimo.peso_kg} <span className="text-base font-semibold text-muted-foreground">kg</span>
+            </span>
+            {peso.ultimo.imc !== null && (
+              <span className="text-sm text-muted-foreground">IMC {peso.ultimo.imc}</span>
+            )}
+            {peso.classificacao && (
+              <Badge variant={CLASSIFICACAO_IMC_VARIANTE[peso.classificacao]}>
+                {CLASSIFICACAO_IMC_LABEL[peso.classificacao]}
+              </Badge>
+            )}
+            {peso.variacaoKg !== null && peso.variacaoKg !== 0 && (
+              <span
+                className={
+                  peso.variacaoKg < 0
+                    ? "inline-flex items-center gap-0.5 text-sm font-semibold text-destructive"
+                    : "inline-flex items-center gap-0.5 text-sm font-semibold text-success"
+                }
+              >
+                {peso.variacaoKg < 0 ? (
+                  <TrendingDown className="size-4" />
+                ) : (
+                  <TrendingUp className="size-4" />
+                )}
+                {peso.variacaoKg > 0 ? "+" : ""}
+                {peso.variacaoKg} kg
+                {peso.variacaoPct !== null && ` (${peso.variacaoPct > 0 ? "+" : ""}${peso.variacaoPct}%)`}
+                {peso.anterior && (
+                  <span className="font-normal text-muted-foreground"> vs. {formatarDataBR(peso.anterior.data)}</span>
+                )}
+              </span>
+            )}
+            <span className="w-full text-xs text-muted-foreground">
+              Última pesagem {formatarDataBR(peso.ultimo.data)} · {ouNaoInformado(peso.ultimo.registrado_por)}
             </span>
           </div>
         )}

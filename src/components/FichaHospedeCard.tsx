@@ -13,6 +13,9 @@ import {
   Activity,
   Wallet,
   Layers,
+  Scale,
+  TrendingDown,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FotoUploader } from "@/components/FotoUploader";
 import { useDietaAtiva } from "@/hooks/useNutricao";
+import { useUltimosPesos } from "@/hooks/usePeso";
+import { resumoPeso, CLASSIFICACAO_IMC_LABEL, CLASSIFICACAO_IMC_VARIANTE } from "@/lib/imc";
 import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
@@ -244,11 +249,69 @@ function ResumoClinico({
           )}
         </ItemResumo>
 
+        {/* Peso/IMC e tendência (leitura) — sinal clínico, vem da Nutri (N6). */}
+        <ItemPeso residenteId={residenteId} />
+
         {/* Prescrições e IVCF: só na ficha completa (perfis clínicos/gestão).
             Os hooks ficam neste filho para nem consultar quando oculto. */}
         {completa && <ResumoClinicoCompleto residenteId={residenteId} grauAtual={grauAtual} />}
       </div>
     </Secao>
+  );
+}
+
+function ItemPeso({ residenteId }: { residenteId: string }) {
+  const pesos = useUltimosPesos(residenteId);
+  const registros = pesos.data ?? [];
+  const resumo = resumoPeso(registros);
+
+  return (
+    <ItemResumo icon={Scale} titulo="Peso e IMC">
+      {pesos.isLoading ? (
+        <span className="text-muted-foreground">carregando…</span>
+      ) : !resumo.ultimo ? (
+        <span className="text-muted-foreground">Não informado</span>
+      ) : (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-semibold tabular-nums">{resumo.ultimo.peso_kg} kg</span>
+          {resumo.ultimo.imc !== null && (
+            <span className="text-muted-foreground">· IMC {resumo.ultimo.imc}</span>
+          )}
+          {resumo.classificacao && (
+            <Badge variant={CLASSIFICACAO_IMC_VARIANTE[resumo.classificacao]}>
+              {CLASSIFICACAO_IMC_LABEL[resumo.classificacao]}
+            </Badge>
+          )}
+          {resumo.variacaoKg !== null && resumo.variacaoKg !== 0 && (
+            <span
+              className={
+                resumo.variacaoKg < 0
+                  ? "inline-flex items-center gap-0.5 font-semibold text-destructive"
+                  : "inline-flex items-center gap-0.5 font-semibold text-success"
+              }
+            >
+              {resumo.variacaoKg < 0 ? (
+                <TrendingDown className="size-3.5" />
+              ) : (
+                <TrendingUp className="size-3.5" />
+              )}
+              {resumo.variacaoKg > 0 ? "+" : ""}
+              {resumo.variacaoKg} kg
+              {resumo.variacaoPct !== null && ` (${resumo.variacaoPct > 0 ? "+" : ""}${resumo.variacaoPct}%)`}
+            </span>
+          )}
+          {resumo.emRisco && (
+            <Badge variant="destructive">
+              {resumo.perdaRelevante
+                ? "Perda relevante"
+                : resumo.tendenciaQueda
+                  ? "Tendência de queda"
+                  : "Baixo peso"}
+            </Badge>
+          )}
+        </span>
+      )}
+    </ItemResumo>
   );
 }
 
