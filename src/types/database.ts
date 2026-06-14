@@ -122,6 +122,14 @@ export type RefeicaoCardapio =
 
 /** Refeição no registro de desperdício (refeições + "geral do dia"). */
 export type RefeicaoDesperdicio = RefeicaoCardapio | "geral_dia";
+
+// Escala da cozinha (BLOCO N5) — independente da escala assistencial e do ponto.
+/** Função na cozinha. */
+export type FuncaoCozinha = "cozinheiro" | "auxiliar";
+/** Grupo de rodízio: paridade do dia em que a pessoa trabalha. */
+export type GrupoCozinha = "par" | "impar";
+/** Turnos fixos da cozinha. */
+export type TurnoCozinha = "06:30-18:30" | "09:30-21:30" | "08:00-20:00";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -1150,6 +1158,50 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["registro_peso"]["Insert"]>;
         Relationships: [];
       };
+      cozinha_funcionario: {
+        Row: {
+          id: string;
+          nome: string;
+          funcao: FuncaoCozinha;
+          grupo: GrupoCozinha;
+          turno_padrao: TurnoCozinha;
+          ativo: boolean;
+          observacao: string | null;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          funcao: FuncaoCozinha;
+          grupo: GrupoCozinha;
+          turno_padrao: TurnoCozinha;
+          ativo?: boolean;
+          observacao?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["cozinha_funcionario"]["Insert"]>;
+        Relationships: [];
+      };
+      cozinha_escala: {
+        Row: {
+          id: string;
+          funcionario_id: string;
+          data: string;
+          inicio: string;
+          fim: string;
+          presente: boolean | null;
+          observacao: string | null;
+        };
+        Insert: {
+          id?: string;
+          funcionario_id: string;
+          data: string;
+          inicio: string;
+          fim: string;
+          presente?: boolean | null;
+          observacao?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["cozinha_escala"]["Insert"]>;
+        Relationships: [];
+      };
       desperdicio: {
         Row: {
           id: string;
@@ -1619,6 +1671,8 @@ export type Cardapio = Database["public"]["Tables"]["cardapio"]["Row"];
 export type CardapioItem = Database["public"]["Tables"]["cardapio_item"]["Row"];
 export type Desperdicio = Database["public"]["Tables"]["desperdicio"]["Row"];
 export type RegistroPeso = Database["public"]["Tables"]["registro_peso"]["Row"];
+export type CozinhaFuncionario = Database["public"]["Tables"]["cozinha_funcionario"]["Row"];
+export type CozinhaEscala = Database["public"]["Tables"]["cozinha_escala"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
