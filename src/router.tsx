@@ -67,6 +67,7 @@ import { AtendimentosPrecificar } from "@/routes/administracao/AtendimentosPreci
 import { Insumos } from "@/routes/nutricionista/Insumos";
 import { Pratos } from "@/routes/nutricionista/Pratos";
 import { Cardapios } from "@/routes/nutricionista/Cardapios";
+import { Desperdicio } from "@/routes/nutricionista/Desperdicio";
 import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
 import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
@@ -320,6 +321,11 @@ const cardapiosRoute = createRoute({
   path: "cardapios",
   component: Cardapios,
 });
+const desperdicioRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "desperdicio",
+  component: Desperdicio,
+});
 const mensalidadesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "mensalidades",
@@ -535,6 +541,7 @@ const routeTree = rootRoute.addChildren([
     insumosRoute,
     pratosRoute,
     cardapiosRoute,
+    desperdicioRoute,
     mensalidadesRoute,
     cobrancaRoute,
     upsellingRoute,

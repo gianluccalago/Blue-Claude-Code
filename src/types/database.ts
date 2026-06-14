@@ -119,6 +119,9 @@ export type RefeicaoCardapio =
   | "lanche_tarde"
   | "jantar"
   | "ceia";
+
+/** Refeição no registro de desperdício (refeições + "geral do dia"). */
+export type RefeicaoDesperdicio = RefeicaoCardapio | "geral_dia";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -1119,6 +1122,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["prato_insumo"]["Insert"]>;
         Relationships: [];
       };
+      desperdicio: {
+        Row: {
+          id: string;
+          data: string;
+          refeicao: RefeicaoDesperdicio;
+          peso_kg: number;
+          custo_estimado: number;
+          metodo_estimativa: string | null;
+          registrado_por: string | null;
+          observacao: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          data?: string;
+          refeicao: RefeicaoDesperdicio;
+          peso_kg: number;
+          custo_estimado?: number;
+          metodo_estimativa?: string | null;
+          registrado_por?: string | null;
+          observacao?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["desperdicio"]["Insert"]>;
+        Relationships: [];
+      };
       cardapio: {
         Row: {
           id: string;
@@ -1560,6 +1589,7 @@ export type Prato = Database["public"]["Tables"]["prato"]["Row"];
 export type PratoInsumo = Database["public"]["Tables"]["prato_insumo"]["Row"];
 export type Cardapio = Database["public"]["Tables"]["cardapio"]["Row"];
 export type CardapioItem = Database["public"]["Tables"]["cardapio_item"]["Row"];
+export type Desperdicio = Database["public"]["Tables"]["desperdicio"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
