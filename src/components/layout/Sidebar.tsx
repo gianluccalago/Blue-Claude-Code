@@ -131,6 +131,12 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao": LayoutDashboard,
   "/app/administracao/servicos": Wrench,
   "/app/master/servicos": Wrench,
+  // Pesquisa NPS (aplicação) e Resultados NPS (análise)
+  "/app/coordenacao/pesquisa-nps": ClipboardList,
+  "/app/multidisciplinar/pesquisa-nps": ClipboardList,
+  "/app/nutricionista/pesquisa-nps": ClipboardList,
+  "/app/master/resultados-nps": BarChart3,
+  "/app/administracao/resultados-nps": BarChart3,
   "/app/administracao/tabela-precos": Tags,
   "/app/master/tabela-precos": Tags,
   "/app/administracao/mensalidades": Wallet,

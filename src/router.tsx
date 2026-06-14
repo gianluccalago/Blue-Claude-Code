@@ -60,6 +60,8 @@ import { Upselling } from "@/routes/administracao/Upselling";
 import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
 import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
 import { PainelServicos } from "@/routes/administracao/PainelServicos";
+import { PesquisaNps } from "@/routes/nps/PesquisaNps";
+import { ResultadosNps } from "@/routes/nps/ResultadosNps";
 import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
 import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
@@ -277,6 +279,16 @@ const servicosRoute = createRoute({
   path: "servicos",
   component: PainelServicos,
 });
+const pesquisaNpsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "pesquisa-nps",
+  component: PesquisaNps,
+});
+const resultadosNpsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "resultados-nps",
+  component: ResultadosNps,
+});
 const mensalidadesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "mensalidades",
@@ -485,6 +497,8 @@ const routeTree = rootRoute.addChildren([
     evolucaoNutricionalRoute,
     tabelaPrecosRoute,
     servicosRoute,
+    pesquisaNpsRoute,
+    resultadosNpsRoute,
     mensalidadesRoute,
     cobrancaRoute,
     upsellingRoute,

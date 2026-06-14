@@ -79,6 +79,9 @@ export type DestinoSolicitacao = "coordenacao" | "medico" | "administracao";
 
 /** Desfecho do atendimento da ambulância (SAMU/privada) numa intercorrência. */
 export type DesfechoAmbulancia = "removido_hospital" | "medicado_local";
+
+/** Quem respondeu a pesquisa de NPS. */
+export type RespondenteNps = "familiar" | "idoso";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -936,6 +939,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["procedimento_enfermagem"]["Insert"]>;
         Relationships: [];
       };
+      nps_pesquisa: {
+        Row: {
+          id: string;
+          residente_id: string;
+          respondente: RespondenteNps;
+          aplicada_por: string | null;
+          perfil_aplicador: string | null;
+          data: string;
+          observacao_geral: string | null;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          respondente: RespondenteNps;
+          aplicada_por?: string | null;
+          perfil_aplicador?: string | null;
+          data?: string;
+          observacao_geral?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["nps_pesquisa"]["Insert"]>;
+        Relationships: [];
+      };
+      nps_resposta: {
+        Row: {
+          id: string;
+          pesquisa_id: string;
+          dimensao: string;
+          nota: number;
+          comentario: string | null;
+        };
+        Insert: {
+          id?: string;
+          pesquisa_id: string;
+          dimensao: string;
+          nota: number;
+          comentario?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["nps_resposta"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_mensalidade: {
         Row: {
           id: string;
@@ -1303,6 +1346,8 @@ export type TarefaRegistro = Database["public"]["Tables"]["tarefa_registro"]["Ro
 export type Prescricao = Database["public"]["Tables"]["prescricao"]["Row"];
 export type Administracao = Database["public"]["Tables"]["administracao"]["Row"];
 export type ProcedimentoEnfermagem = Database["public"]["Tables"]["procedimento_enfermagem"]["Row"];
+export type NpsPesquisa = Database["public"]["Tables"]["nps_pesquisa"]["Row"];
+export type NpsResposta = Database["public"]["Tables"]["nps_resposta"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
