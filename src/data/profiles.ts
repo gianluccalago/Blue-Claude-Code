@@ -192,6 +192,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Dietas", to: "/app/nutricionista/dietas" },
       { label: "Hóspedes", to: "/app/nutricionista/ficha" },
+      { label: "Insumos", to: "/app/nutricionista/insumos" },
       { label: "Acompanhamento", to: "/app/nutricionista/acompanhamento-nutricional" },
       { label: "Evolução nutricional", to: "/app/nutricionista/evolucao-nutricional" },
       { label: "Pesquisa NPS", to: "/app/nutricionista/pesquisa-nps" },

@@ -120,6 +120,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/atendimentos-precificar": Stethoscope,
   // Nutricionista
   "/app/nutricionista/dietas": Salad,
+  "/app/nutricionista/insumos": Apple,
   "/app/nutricionista/acompanhamento-nutricional": Apple,
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia

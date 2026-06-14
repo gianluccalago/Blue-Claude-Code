@@ -25,8 +25,9 @@ export function FichaHospedeScreen() {
   const perfil = usuarioEfetivo?.perfil;
   const restrito = perfil === "cuidador" || perfil === "enfermagem";
 
-  // Ambos os hooks são chamados sempre (regras de hooks); usamos um conforme o perfil.
-  const designados = useHospedesDesignados(usuarioAtual.id);
+  // Ambos os hooks são chamados sempre (regras de hooks); a designação só é
+  // CONSULTADA para os perfis de ponta — Nutricionista/demais veem todos.
+  const designados = useHospedesDesignados(usuarioAtual.id, restrito);
   const todos = useResidentes();
   const fonte = restrito ? designados : todos;
 

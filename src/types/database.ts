@@ -88,6 +88,11 @@ export type RespondenteNps = "familiar" | "idoso";
 export type TipoAtendimentoIndividual = "fisioterapia" | "terapia_ocupacional" | "educacao_fisica";
 /** Avaliação de cobrança do atendimento individual (decidida pela Administração). */
 export type StatusCobrancaAtendimento = "pendente_avaliacao" | "cobrado" | "nao_cobrar";
+
+/** Categoria do insumo (Nutricionista). */
+export type CategoriaInsumo = "supermercado" | "hortifruti" | "carnes" | "panificacao";
+/** Unidade de medida do insumo. */
+export type UnidadeInsumo = "kg" | "g" | "L" | "ml" | "unidade" | "duzia" | "pacote";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -986,6 +991,68 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["nps_resposta"]["Insert"]>;
         Relationships: [];
       };
+      fornecedor: {
+        Row: {
+          id: string;
+          nome: string;
+          categoria_principal: string;
+          contato: string | null;
+          ativo: boolean;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          categoria_principal: string;
+          contato?: string | null;
+          ativo?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["fornecedor"]["Insert"]>;
+        Relationships: [];
+      };
+      insumo: {
+        Row: {
+          id: string;
+          nome: string;
+          categoria: CategoriaInsumo;
+          unidade: UnidadeInsumo;
+          custo_unitario: number;
+          fornecedor_id: string | null;
+          observacao: string | null;
+          ativo: boolean;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          categoria: CategoriaInsumo;
+          unidade: UnidadeInsumo;
+          custo_unitario?: number;
+          fornecedor_id?: string | null;
+          observacao?: string | null;
+          ativo?: boolean;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["insumo"]["Insert"]>;
+        Relationships: [];
+      };
+      insumo_preco_historico: {
+        Row: {
+          id: string;
+          insumo_id: string;
+          custo_unitario: number;
+          vigente_desde: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          insumo_id: string;
+          custo_unitario: number;
+          vigente_desde: string;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["insumo_preco_historico"]["Insert"]>;
+        Relationships: [];
+      };
       atendimento_individual: {
         Row: {
           id: string;
@@ -1384,6 +1451,9 @@ export type ProcedimentoEnfermagem = Database["public"]["Tables"]["procedimento_
 export type NpsPesquisa = Database["public"]["Tables"]["nps_pesquisa"]["Row"];
 export type NpsResposta = Database["public"]["Tables"]["nps_resposta"]["Row"];
 export type AtendimentoIndividual = Database["public"]["Tables"]["atendimento_individual"]["Row"];
+export type Fornecedor = Database["public"]["Tables"]["fornecedor"]["Row"];
+export type Insumo = Database["public"]["Tables"]["insumo"]["Row"];
+export type InsumoPrecoHistorico = Database["public"]["Tables"]["insumo_preco_historico"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];

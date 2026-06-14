@@ -2,10 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Residente } from "@/types/database";
 
-/** Residentes designados a um cuidador (via cuidador_residente). */
-export function useHospedesDesignados(cuidadorId: string) {
+/**
+ * Residentes designados a um cuidador (via cuidador_residente). Só faz sentido
+ * para perfis de ponta (cuidador/enfermagem); os demais (ex.: Nutricionista,
+ * que coordena a casa inteira) NÃO têm designação e veem todos — por isso o
+ * `enabled` evita até disparar a consulta de designação para eles.
+ */
+export function useHospedesDesignados(cuidadorId: string, enabled = true) {
   return useQuery({
     queryKey: ["hospedes", cuidadorId],
+    enabled: enabled && !!cuidadorId,
     queryFn: async (): Promise<Residente[]> => {
       const { data: links, error: linkErr } = await supabase
         .from("cuidador_residente")
