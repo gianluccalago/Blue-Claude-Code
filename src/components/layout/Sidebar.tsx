@@ -116,6 +116,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/enfermagem/chamado-manutencao": Wrench,
   // Multidisciplinar
   "/app/multidisciplinar/atividades": Activity,
+  "/app/multidisciplinar/atendimentos": Stethoscope,
+  "/app/administracao/atendimentos-precificar": Stethoscope,
   // Nutricionista
   "/app/nutricionista/dietas": Salad,
   "/app/nutricionista/acompanhamento-nutricional": Apple,

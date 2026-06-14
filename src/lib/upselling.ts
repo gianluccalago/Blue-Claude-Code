@@ -4,6 +4,7 @@ export const CATEGORIAS_UPSELLING: CategoriaUpselling[] = [
   "Medicamentos",
   "Manicure/cabeleireiro",
   "Fisioterapia avulsa",
+  "Terapia avulsa",
   "Acompanhamento externo",
   "Equipamentos",
   "Passeios",

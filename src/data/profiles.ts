@@ -176,6 +176,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/multidisciplinar/atividades",
     menu: [
       { label: "Atividades", to: "/app/multidisciplinar/atividades" },
+      { label: "Atendimentos individuais", to: "/app/multidisciplinar/atendimentos" },
       { label: "Hóspedes", to: "/app/multidisciplinar/ficha" },
       { label: "Pesquisa NPS", to: "/app/multidisciplinar/pesquisa-nps" },
     ],
@@ -276,6 +277,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },
       { label: "Cobrança", to: "/app/administracao/cobranca" },
       { label: "Upselling", to: "/app/administracao/upselling" },
+      { label: "Atendimentos a precificar", to: "/app/administracao/atendimentos-precificar" },
       { label: "Demonstrativo mensal", to: "/app/administracao/demonstrativo" },
       { label: "Remuneração da equipe", to: "/app/administracao/remuneracao-equipe" },
       { label: "Custos de pessoal", to: "/app/administracao/custos-pessoal" },

@@ -83,6 +83,11 @@ export type DesfechoAmbulancia = "removido_hospital" | "medicado_local";
 
 /** Quem respondeu a pesquisa de NPS. */
 export type RespondenteNps = "familiar" | "idoso";
+
+/** Tipo de atendimento individual da Equipe Multidisciplinar. */
+export type TipoAtendimentoIndividual = "fisioterapia" | "terapia_ocupacional" | "educacao_fisica";
+/** Avaliação de cobrança do atendimento individual (decidida pela Administração). */
+export type StatusCobrancaAtendimento = "pendente_avaliacao" | "cobrado" | "nao_cobrar";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -94,6 +99,7 @@ export type CategoriaUpselling =
   | "Deslocamentos"
   | "Lavanderia extra"
   | "Compras pessoais"
+  | "Terapia avulsa"
   | "Outros";
 
 export interface ItemDispensacaoJson {
@@ -980,6 +986,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["nps_resposta"]["Insert"]>;
         Relationships: [];
       };
+      atendimento_individual: {
+        Row: {
+          id: string;
+          residente_id: string;
+          tipo: TipoAtendimentoIndividual;
+          data: string;
+          evolucao: string | null;
+          realizado_por: string | null;
+          perfil_realizador: string | null;
+          status_cobranca: StatusCobrancaAtendimento;
+          upselling_id: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          tipo: TipoAtendimentoIndividual;
+          data?: string;
+          evolucao?: string | null;
+          realizado_por?: string | null;
+          perfil_realizador?: string | null;
+          status_cobranca?: StatusCobrancaAtendimento;
+          upselling_id?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["atendimento_individual"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_mensalidade: {
         Row: {
           id: string;
@@ -1349,6 +1383,7 @@ export type Administracao = Database["public"]["Tables"]["administracao"]["Row"]
 export type ProcedimentoEnfermagem = Database["public"]["Tables"]["procedimento_enfermagem"]["Row"];
 export type NpsPesquisa = Database["public"]["Tables"]["nps_pesquisa"]["Row"];
 export type NpsResposta = Database["public"]["Tables"]["nps_resposta"]["Row"];
+export type AtendimentoIndividual = Database["public"]["Tables"]["atendimento_individual"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
