@@ -91,14 +91,16 @@ export function Atividades() {
   const [novaAtividade, setNovaAtividade] = useState(false);
 
   const { data: execucoes = [], isLoading: loadExec, error: errExec } = useExecucoesDoDia(dataSelecionada);
+  // "Registrar hoje" usa as execuções do dia corrente (independente da data
+  // navegada). Este hook fica ANTES de qualquer return condicional — senão a
+  // ordem de hooks muda entre renders (React #310).
+  const { data: execucoesDeHoje = [] } = useExecucoesDoDia(hojeISO());
 
   if (loadRes || loadAtv) return <LoadingState />;
   if (errRes) return <ErrorState error={errRes} />;
   if (errAtv) return <ErrorState error={errAtv} />;
 
-  // Fila "registrar hoje": atividades de HOJE ainda sem execução (sempre
-  // calculada sobre o dia corrente, independente da data navegada).
-  const { data: execucoesDeHoje = [] } = useExecucoesDoDia(hojeISO());
+  // Fila "registrar hoje": atividades de HOJE ainda sem execução.
   const pendentesHoje = atividadesDoDia(atividades, hojeISO()).filter(
     (a) => !execucoesDeHoje.some((e) => e.atividade_id === a.id),
   );
