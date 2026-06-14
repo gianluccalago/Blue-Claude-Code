@@ -123,6 +123,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/nutricionista/dietas": Salad,
   "/app/nutricionista/insumos": Apple,
   "/app/nutricionista/pratos": UtensilsCrossed,
+  "/app/nutricionista/cardapios": CalendarDays,
   "/app/nutricionista/acompanhamento-nutricional": Apple,
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia

@@ -101,6 +101,24 @@ export type CategoriaPrato =
   | "sobremesa"
   | "cafe_lanche"
   | "outro";
+
+/** Tipo de restrição do cardápio (linha de servir do buffet). */
+export type TipoRestricaoCardapio =
+  | "livre"
+  | "diabetico"
+  | "celiaco"
+  | "hipossodica"
+  | "pastosa"
+  | "outro";
+
+/** Refeição do dia. */
+export type RefeicaoCardapio =
+  | "cafe_manha"
+  | "lanche_manha"
+  | "almoco"
+  | "lanche_tarde"
+  | "jantar"
+  | "ceia";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -1101,6 +1119,42 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["prato_insumo"]["Insert"]>;
         Relationships: [];
       };
+      cardapio: {
+        Row: {
+          id: string;
+          data: string;
+          tipo_restricao: TipoRestricaoCardapio;
+          observacao: string | null;
+          criado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          data: string;
+          tipo_restricao: TipoRestricaoCardapio;
+          observacao?: string | null;
+          criado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["cardapio"]["Insert"]>;
+        Relationships: [];
+      };
+      cardapio_item: {
+        Row: {
+          id: string;
+          cardapio_id: string;
+          refeicao: RefeicaoCardapio;
+          prato_id: string;
+        };
+        Insert: {
+          id?: string;
+          cardapio_id: string;
+          refeicao: RefeicaoCardapio;
+          prato_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["cardapio_item"]["Insert"]>;
+        Relationships: [];
+      };
       atendimento_individual: {
         Row: {
           id: string;
@@ -1504,6 +1558,8 @@ export type Insumo = Database["public"]["Tables"]["insumo"]["Row"];
 export type InsumoPrecoHistorico = Database["public"]["Tables"]["insumo_preco_historico"]["Row"];
 export type Prato = Database["public"]["Tables"]["prato"]["Row"];
 export type PratoInsumo = Database["public"]["Tables"]["prato_insumo"]["Row"];
+export type Cardapio = Database["public"]["Tables"]["cardapio"]["Row"];
+export type CardapioItem = Database["public"]["Tables"]["cardapio_item"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
