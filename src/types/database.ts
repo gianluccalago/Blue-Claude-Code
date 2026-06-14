@@ -93,6 +93,14 @@ export type StatusCobrancaAtendimento = "pendente_avaliacao" | "cobrado" | "nao_
 export type CategoriaInsumo = "supermercado" | "hortifruti" | "carnes" | "panificacao";
 /** Unidade de medida do insumo. */
 export type UnidadeInsumo = "kg" | "g" | "L" | "ml" | "unidade" | "duzia" | "pacote";
+/** Categoria do prato (ficha técnica). */
+export type CategoriaPrato =
+  | "prato_principal"
+  | "guarnicao"
+  | "salada"
+  | "sobremesa"
+  | "cafe_lanche"
+  | "outro";
 export type StatusSolicitacaoFamilia = "aberta" | "respondida";
 export type CategoriaUpselling =
   | "Medicamentos"
@@ -1053,6 +1061,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["insumo_preco_historico"]["Insert"]>;
         Relationships: [];
       };
+      prato: {
+        Row: {
+          id: string;
+          nome: string;
+          categoria: CategoriaPrato;
+          rendimento_porcoes: number;
+          modo_preparo: string | null;
+          observacao: string | null;
+          ativo: boolean;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          categoria: CategoriaPrato;
+          rendimento_porcoes?: number;
+          modo_preparo?: string | null;
+          observacao?: string | null;
+          ativo?: boolean;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["prato"]["Insert"]>;
+        Relationships: [];
+      };
+      prato_insumo: {
+        Row: {
+          id: string;
+          prato_id: string;
+          insumo_id: string;
+          quantidade: number;
+        };
+        Insert: {
+          id?: string;
+          prato_id: string;
+          insumo_id: string;
+          quantidade: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["prato_insumo"]["Insert"]>;
+        Relationships: [];
+      };
       atendimento_individual: {
         Row: {
           id: string;
@@ -1454,6 +1502,8 @@ export type AtendimentoIndividual = Database["public"]["Tables"]["atendimento_in
 export type Fornecedor = Database["public"]["Tables"]["fornecedor"]["Row"];
 export type Insumo = Database["public"]["Tables"]["insumo"]["Row"];
 export type InsumoPrecoHistorico = Database["public"]["Tables"]["insumo_preco_historico"]["Row"];
+export type Prato = Database["public"]["Tables"]["prato"]["Row"];
+export type PratoInsumo = Database["public"]["Tables"]["prato_insumo"]["Row"];
 export type Intercorrencia = Database["public"]["Tables"]["intercorrencia"]["Row"];
 export type CompromissoExterno = Database["public"]["Tables"]["compromisso_externo"]["Row"];
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];

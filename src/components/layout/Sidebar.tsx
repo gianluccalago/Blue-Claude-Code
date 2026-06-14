@@ -23,6 +23,7 @@ import {
   Users2,
   Apple,
   Salad,
+  UtensilsCrossed,
   Activity,
   Wallet,
   Receipt,
@@ -121,6 +122,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   // Nutricionista
   "/app/nutricionista/dietas": Salad,
   "/app/nutricionista/insumos": Apple,
+  "/app/nutricionista/pratos": UtensilsCrossed,
   "/app/nutricionista/acompanhamento-nutricional": Apple,
   "/app/nutricionista/evolucao-nutricional": FileText,
   // Farmácia
