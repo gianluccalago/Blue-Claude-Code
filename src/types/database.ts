@@ -1158,6 +1158,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["registro_peso"]["Insert"]>;
         Relationships: [];
       };
+      baixa_viagem: {
+        Row: {
+          id: string;
+          residente_id: string;
+          dias: number;
+          mes_referencia: string;
+          itens: ItemDispensacaoJson[];
+          data: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          registrado_em: string;
+          estornado: boolean;
+          estornado_por: string | null;
+          estornado_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          dias: number;
+          mes_referencia: string;
+          itens: ItemDispensacaoJson[];
+          data?: string;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          registrado_em?: string;
+          estornado?: boolean;
+          estornado_por?: string | null;
+          estornado_em?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["baixa_viagem"]["Insert"]>;
+        Relationships: [];
+      };
       cozinha_funcionario: {
         Row: {
           id: string;
@@ -1691,6 +1723,7 @@ export type Cardapio = Database["public"]["Tables"]["cardapio"]["Row"];
 export type CardapioItem = Database["public"]["Tables"]["cardapio_item"]["Row"];
 export type Desperdicio = Database["public"]["Tables"]["desperdicio"]["Row"];
 export type RegistroPeso = Database["public"]["Tables"]["registro_peso"]["Row"];
+export type BaixaViagem = Database["public"]["Tables"]["baixa_viagem"]["Row"];
 export type CozinhaFuncionario = Database["public"]["Tables"]["cozinha_funcionario"]["Row"];
 export type CozinhaEscala = Database["public"]["Tables"]["cozinha_escala"]["Row"];
 export type ConfigRefeicaoEquipe = Database["public"]["Tables"]["config_refeicao_equipe"]["Row"];

@@ -14,6 +14,7 @@ import {
   CalendarX,
   ArrowRight,
   CheckCircle2,
+  UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
   useTodasPrescricoesAtivas,
   useResidentesComProvisionamento,
 } from "@/hooks/usePainelFarmacia";
+import { entrouNoMes, DIA_REFERENCIA_CICLO } from "@/lib/farmaciaCiclo";
 import type { EstoqueHospede } from "@/types/database";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -156,11 +158,23 @@ export function PainelFarmacia() {
     return result.sort((a, b) => a.residenteNome.localeCompare(b.residenteNome, "pt-BR"));
   }, [resComProv, estoqueHospede, prescricoes, residentes]);
 
-  // ── 4. Ciclo mensal ───────────────────────────────────────────────────────
+  // ── 4. Ciclo ÚNICO mensal ─────────────────────────────────────────────────
   const provSet = useMemo(() => new Set(resComProv), [resComProv]);
-  const resSemProv = useMemo(
+  const semProvTodos = useMemo(
     () => residentes.filter((r) => !provSet.has(r.id)),
     [residentes, provSet]
+  );
+  // Hóspedes que ENTRARAM no mês corrente e ainda não têm provisionamento:
+  // alinham-se ao ciclo único no PRÓXIMO pedido cheio. O início é coberto pela
+  // família (em geral já têm a medicação). NÃO são pendência urgente do mês.
+  const aguardandoPrimeiroCiclo = useMemo(
+    () => semProvTodos.filter((r) => entrouNoMes(r.data_admissao, mesRef)),
+    [semProvTodos, mesRef]
+  );
+  // Pendência REAL de provisionamento (já estavam na casa e seguem sem estoque).
+  const resSemProv = useMemo(
+    () => semProvTodos.filter((r) => !entrouNoMes(r.data_admissao, mesRef)),
+    [semProvTodos, mesRef]
   );
   const resComProvLista = useMemo(
     () => residentes.filter((r) => provSet.has(r.id)),
@@ -345,14 +359,40 @@ export function PainelFarmacia() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {dia >= 20 && resSemProv.length > 0 && (
+          {dia >= DIA_REFERENCIA_CICLO && resSemProv.length > 0 && (
             <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/40 p-3 text-sm text-warning-foreground">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
-                Dia {dia} — prazo de provisionamento (referência: dia 20) com{" "}
+                Dia {dia} — prazo de provisionamento (referência: dia {DIA_REFERENCIA_CICLO}) com{" "}
                 <strong>{resSemProv.length}</strong> hóspede{resSemProv.length !== 1 ? "s" : ""} pendente
                 {resSemProv.length !== 1 ? "s" : ""}.
               </span>
+            </div>
+          )}
+
+          {/* Entradas no mês — aguardando o PRÓXIMO ciclo (não é pendência). */}
+          {aguardandoPrimeiroCiclo.length > 0 && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-secondary">
+                <UserPlus className="h-4 w-4 text-primary" />
+                Aguardando primeiro ciclo ({aguardandoPrimeiroCiclo.length})
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Entraram este mês — entram no próximo pedido cheio (referência dia {DIA_REFERENCIA_CICLO}).
+                O início é coberto pela família. Não é pendência de provisionamento do mês.
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {aguardandoPrimeiroCiclo.map((r) => (
+                  <li key={r.id}>
+                    <Link to="/app/farmacia/estoque" search={{ hospede: r.id }}>
+                      <Badge variant="outline" className="cursor-pointer gap-1 border-primary/40 text-secondary">
+                        <UserPlus className="h-3 w-3 text-primary" />
+                        {r.nome}
+                      </Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

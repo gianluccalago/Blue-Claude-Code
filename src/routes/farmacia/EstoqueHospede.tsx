@@ -11,6 +11,10 @@ import {
   Copy,
   Pencil,
   PackagePlus,
+  UserPlus,
+  Plane,
+  RotateCcw,
+  Clock,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -19,13 +23,27 @@ import {
   useProvisionarEstoque,
   type ItemProvisionamento,
 } from "@/hooks/useFarmacia";
+import {
+  useBaixasViagemDoHospede,
+  useRegistrarBaixaViagem,
+  useEstornarBaixaViagem,
+} from "@/hooks/useViagem";
+import {
+  calcularPorDias,
+  diasAteProximoCiclo,
+  paraItensJson,
+  entrouNoMes,
+  DIA_REFERENCIA_CICLO,
+  type ItemCalculadoPorDias,
+} from "@/lib/farmaciaCiclo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LembreteProvisionamento } from "@/components/farmacia/LembreteProvisionamento";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn } from "@/lib/utils";
-import type { EstoqueHospede, Prescricao } from "@/types/database";
+import { cn, hojeISO, formatarDataBR, ouNaoInformado } from "@/lib/utils";
+import type { BaixaViagem, EstoqueHospede, ItemDispensacaoJson, Prescricao, Residente } from "@/types/database";
 
 // ─── Helpers de mês ───────────────────────────────────────────────────────────
 
@@ -198,6 +216,7 @@ export function EstoqueHospedeScreen() {
       {/* ── Conteúdo para o hóspede selecionado ────────────────── */}
       {residenteId && (
         <ConteudoEstoque
+          residente={(residentes ?? []).find((r) => r.id === residenteId) ?? null}
           residenteId={residenteId}
           mesRef={mesRef}
           modoProvisionamento={modoProvisionamento}
@@ -212,12 +231,14 @@ export function EstoqueHospedeScreen() {
 // ─── Conteúdo do estoque ──────────────────────────────────────────────────────
 
 function ConteudoEstoque({
+  residente,
   residenteId,
   mesRef,
   modoProvisionamento,
   onAbrirProvisionamento,
   onFecharProvisionamento,
 }: {
+  residente: Residente | null;
   residenteId: string;
   mesRef: string;
   modoProvisionamento: boolean;
@@ -226,6 +247,8 @@ function ConteudoEstoque({
 }) {
   const estoque = useEstoqueHospede(residenteId, mesRef);
   const prescricoes = usePrescricoesParaFarmacia(residenteId);
+  // Ação especial discreta aberta no momento (entrada proporcional ou viagem).
+  const [acaoEspecial, setAcaoEspecial] = useState<"entrada" | "viagem" | null>(null);
 
   const isLoading = estoque.isLoading || prescricoes.isLoading;
   const erro = estoque.error ?? prescricoes.error;
@@ -234,7 +257,10 @@ function ConteudoEstoque({
   if (erro) return <ErrorState error={erro} />;
 
   const itensEstoque = estoque.data ?? [];
-  const semPrescricoes = (prescricoes.data ?? []).length === 0;
+  const listaPrescricoes = prescricoes.data ?? [];
+  const semPrescricoes = listaPrescricoes.length === 0;
+  // Entrou no mês corrente e ainda sem provisionamento → sugere entrada proporcional.
+  const novoNoMes = entrouNoMes(residente?.data_admissao, mesRef) && itensEstoque.length === 0;
 
   return (
     <>
@@ -297,7 +323,439 @@ function ConteudoEstoque({
           onConcluido={onFecharProvisionamento}
         />
       )}
+
+      {/* ── Ações pontuais (discretas) ─────────────────────────────────────
+          Entrada proporcional (hóspede que entrou no meio do mês) e baixa para
+          viagem. São casos eventuais — ficam fora do fluxo principal do ciclo. */}
+      {!modoProvisionamento && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
+              Ações pontuais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {novoNoMes && acaoEspecial !== "entrada" && (
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                <UserPlus className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p className="text-muted-foreground">
+                  Hóspede entrou este mês e ainda não tem provisionamento. Por padrão entra no{" "}
+                  <strong className="text-secondary">próximo ciclo cheio</strong> (família cobre o início).
+                  Se necessário, gere uma cobertura proporcional até o próximo ciclo.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={acaoEspecial === "entrada" ? "default" : "outline"}
+                size="sm"
+                disabled={semPrescricoes}
+                onClick={() => setAcaoEspecial((a) => (a === "entrada" ? null : "entrada"))}
+                className="gap-2"
+              >
+                <UserPlus className="size-4" /> Provisionar entrada proporcional
+              </Button>
+              <Button
+                variant={acaoEspecial === "viagem" ? "default" : "outline"}
+                size="sm"
+                disabled={semPrescricoes}
+                onClick={() => setAcaoEspecial((a) => (a === "viagem" ? null : "viagem"))}
+                className="gap-2"
+              >
+                <Plane className="size-4" /> Baixa para viagem
+              </Button>
+            </div>
+
+            {acaoEspecial === "entrada" && (
+              <FormEntradaProporcional
+                residenteId={residenteId}
+                mesRef={mesRef}
+                prescricoes={listaPrescricoes}
+                estoqueExistente={itensEstoque}
+                onConcluido={() => setAcaoEspecial(null)}
+              />
+            )}
+            {acaoEspecial === "viagem" && (
+              <FormBaixaViagem
+                residenteId={residenteId}
+                mesRef={mesRef}
+                prescricoes={listaPrescricoes}
+                onConcluido={() => setAcaoEspecial(null)}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Histórico de baixas por viagem (com estorno) */}
+      <HistoricoViagem residenteId={residenteId} />
     </>
+  );
+}
+
+// ─── Linha de item editável (entrada proporcional / viagem) ──────────────────
+
+function LinhaItemEditavel({
+  item,
+  quantidade,
+  onChange,
+}: {
+  item: ItemCalculadoPorDias;
+  quantidade: number;
+  onChange: (v: number) => void;
+}) {
+  const ajustado = quantidade !== item.quantidade;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+      <div className="min-w-0 flex-1">
+        <span className="font-semibold text-secondary">{item.medicamento}</span>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          Sugerido: <span className="font-medium text-secondary">{item.quantidade} {item.unidade}</span> · {item.detalhes}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(quantidade - 1)}
+          className="grid size-8 place-items-center rounded-md border border-input bg-card text-muted-foreground hover:bg-muted disabled:opacity-40"
+          disabled={quantidade <= 0}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min={0}
+          value={quantidade}
+          onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+          className={cn(
+            "w-20 rounded-md border px-2 py-1.5 text-center text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            ajustado ? "border-warning/40 bg-warning/5 text-warning" : "border-input bg-card text-secondary",
+          )}
+        />
+        <button
+          type="button"
+          onClick={() => onChange(quantidade + 1)}
+          className="grid size-8 place-items-center rounded-md border border-input bg-card text-muted-foreground hover:bg-muted"
+        >
+          +
+        </button>
+        <span className="min-w-[4rem] text-sm text-muted-foreground">{item.unidade}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Form: entrada proporcional (cobertura até o próximo ciclo) ───────────────
+
+function FormEntradaProporcional({
+  residenteId,
+  mesRef,
+  prescricoes,
+  estoqueExistente,
+  onConcluido,
+}: {
+  residenteId: string;
+  mesRef: string;
+  prescricoes: Prescricao[];
+  estoqueExistente: EstoqueHospede[];
+  onConcluido: () => void;
+}) {
+  const provisionar = useProvisionarEstoque();
+  const [dias, setDias] = useState(() => diasAteProximoCiclo());
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Proporcional usa TODAS as vias (igual ao provisionamento do ciclo), × dias.
+  const itens = useMemo(() => calcularPorDias(prescricoes, dias), [prescricoes, dias]);
+  const [quantidades, setQuantidades] = useState<Record<string, number>>({});
+  // Re-sincroniza as quantidades quando os dias mudam (mantém ajustes manuais? não —
+  // ao mudar os dias, recalcula a base; o farmacêutico revisa de novo).
+  useEffect(() => {
+    setQuantidades(Object.fromEntries(itens.map((i) => [i.medicamento, i.quantidade])));
+  }, [itens]);
+
+  const estoqueMap = useMemo(
+    () => new Map(estoqueExistente.map((e) => [e.medicamento, e])),
+    [estoqueExistente],
+  );
+
+  async function confirmar() {
+    setErro(null);
+    const linhas: ItemProvisionamento[] = itens.map((i) => {
+      const existente = estoqueMap.get(i.medicamento) ?? null;
+      return {
+        medicamento: i.medicamento,
+        quantidadeProvisionada: quantidades[i.medicamento] ?? i.quantidade,
+        unidade: i.unidade,
+        quantidadeAtualExistente: existente?.quantidade_atual ?? null,
+      };
+    });
+    try {
+      await provisionar.mutateAsync({ residenteId, mesReferencia: mesRef, itens: linhas });
+      toast.success("Entrada proporcional provisionada no estoque do mês.");
+      onConcluido();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível salvar.");
+    }
+  }
+
+  if (itens.length === 0) {
+    return <EmptyState label="Nenhuma prescrição ativa para calcular a entrada." />;
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="space-y-1">
+          <span className="block text-xs font-semibold text-secondary">Dias até o próximo ciclo</span>
+          <input
+            type="number"
+            min={1}
+            value={dias}
+            onChange={(e) => setDias(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            className="h-10 w-28 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Referência: dia {DIA_REFERENCIA_CICLO}. Sugestão = prescrição diária × dias restantes (editável).
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {itens.map((i) => (
+          <LinhaItemEditavel
+            key={i.medicamento}
+            item={i}
+            quantidade={quantidades[i.medicamento] ?? i.quantidade}
+            onChange={(v) => setQuantidades((p) => ({ ...p, [i.medicamento]: Math.max(0, v) }))}
+          />
+        ))}
+      </div>
+
+      {erro && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" /> {erro}
+        </div>
+      )}
+
+      <div className="flex gap-2 border-t border-primary/20 pt-3">
+        <Button size="sm" onClick={confirmar} disabled={provisionar.isPending}>
+          <CheckCircle2 className="size-4" /> {provisionar.isPending ? "Salvando…" : "Gravar no estoque"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onConcluido} disabled={provisionar.isPending}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Form: baixa para viagem ─────────────────────────────────────────────────
+
+function FormBaixaViagem({
+  residenteId,
+  mesRef,
+  prescricoes,
+  onConcluido,
+}: {
+  residenteId: string;
+  mesRef: string;
+  prescricoes: Prescricao[];
+  onConcluido: () => void;
+}) {
+  const registrar = useRegistrarBaixaViagem();
+  const [dias, setDias] = useState(7);
+  const [dataInicio, setDataInicio] = useState(hojeISO());
+  const [observacao, setObservacao] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Viagem: só via ORAL (o hóspede leva os comprimidos), dose diária × dias.
+  const itens = useMemo(() => calcularPorDias(prescricoes, dias, { apenasOral: true }), [prescricoes, dias]);
+  const [quantidades, setQuantidades] = useState<Record<string, number>>({});
+  useEffect(() => {
+    setQuantidades(Object.fromEntries(itens.map((i) => [i.medicamento, i.quantidade])));
+  }, [itens]);
+
+  async function confirmar() {
+    setErro(null);
+    const linhas: ItemDispensacaoJson[] = paraItensJson(itens, quantidades);
+    if (linhas.length === 0) {
+      setErro("Nenhum item com quantidade para baixar.");
+      return;
+    }
+    try {
+      await registrar.mutateAsync({
+        residenteId,
+        mesReferencia: mesRef,
+        dias,
+        data: dataInicio,
+        itens: linhas,
+        observacao: observacao.trim() || null,
+      });
+      toast.success("Baixa de viagem registrada — estoque debitado.");
+      onConcluido();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível registrar.");
+    }
+  }
+
+  if (itens.length === 0) {
+    return <EmptyState label="Sem prescrições orais ativas para calcular a viagem." />;
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-secondary/30 bg-muted/20 p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="space-y-1">
+          <span className="block text-xs font-semibold text-secondary">Dias da viagem</span>
+          <input
+            type="number"
+            min={1}
+            value={dias}
+            onChange={(e) => setDias(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            className="h-10 w-24 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-xs font-semibold text-secondary">Início da viagem</span>
+          <input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            className="h-10 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Só medicação <strong>oral</strong>. Quantidade = dose diária × dias (editável).
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {itens.map((i) => (
+          <LinhaItemEditavel
+            key={i.medicamento}
+            item={i}
+            quantidade={quantidades[i.medicamento] ?? i.quantidade}
+            onChange={(v) => setQuantidades((p) => ({ ...p, [i.medicamento]: Math.max(0, v) }))}
+          />
+        ))}
+      </div>
+
+      <label className="block space-y-1">
+        <span className="text-xs font-semibold text-secondary">Observação (opcional)</span>
+        <input
+          type="text"
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+          placeholder="Ex.: viagem à casa da filha"
+          className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </label>
+
+      {erro && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" /> {erro}
+        </div>
+      )}
+
+      <div className="flex gap-2 border-t pt-3">
+        <Button size="sm" onClick={confirmar} disabled={registrar.isPending}>
+          <Plane className="size-4" /> {registrar.isPending ? "Registrando…" : "Registrar baixa de viagem"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onConcluido} disabled={registrar.isPending}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Histórico de baixas por viagem (com estorno) ────────────────────────────
+
+function HistoricoViagem({ residenteId }: { residenteId: string }) {
+  const baixas = useBaixasViagemDoHospede(residenteId);
+  const estornar = useEstornarBaixaViagem();
+  const [aEstornar, setAEstornar] = useState<BaixaViagem | null>(null);
+
+  const lista = baixas.data ?? [];
+  if (baixas.isLoading || lista.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Plane className="size-4 text-secondary" /> Baixas por viagem
+          <Badge variant="muted" className="ml-1">{lista.length}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {lista.map((b) => {
+          const itens = b.itens as ItemDispensacaoJson[];
+          return (
+            <div
+              key={b.id}
+              className={cn(
+                "rounded-lg border p-3",
+                b.estornado ? "border-border/60 bg-muted/30 opacity-70" : "bg-card",
+              )}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant="outline" className="gap-1">
+                    <Clock className="size-3" /> {formatarDataBR(b.data)}
+                  </Badge>
+                  <span className="font-semibold text-secondary">{b.dias} dia{b.dias !== 1 ? "s" : ""}</span>
+                  {b.estornado && <Badge variant="muted">Estornada</Badge>}
+                </div>
+                {!b.estornado && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-destructive"
+                    disabled={estornar.isPending}
+                    onClick={() => setAEstornar(b)}
+                  >
+                    <RotateCcw className="size-3.5" /> Estornar
+                  </Button>
+                )}
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {itens.map((i) => (
+                  <Badge key={i.medicamento} variant="secondary" className="text-xs">
+                    {i.medicamento} · {i.quantidade} {i.unidade}
+                  </Badge>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Registrado por {ouNaoInformado(b.registrado_por)}
+                {b.observacao ? ` · ${b.observacao}` : ""}
+                {b.estornado ? ` · estorno por ${ouNaoInformado(b.estornado_por)}` : ""}
+              </p>
+            </div>
+          );
+        })}
+      </CardContent>
+
+      <ConfirmDialog
+        aberto={!!aEstornar}
+        titulo="Estornar baixa de viagem?"
+        descricao="As quantidades voltam ao estoque do mês. O registro fica marcado como estornado."
+        textoConfirmar="Estornar"
+        varianteConfirmar="warning"
+        onConfirmar={async () => {
+          const b = aEstornar;
+          setAEstornar(null);
+          if (!b) return;
+          try {
+            await estornar.mutateAsync(b);
+            toast.success("Baixa estornada — estoque devolvido.");
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Não foi possível estornar.");
+          }
+        }}
+        onCancelar={() => setAEstornar(null)}
+      />
+    </Card>
   );
 }
 

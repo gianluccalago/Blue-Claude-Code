@@ -14,10 +14,12 @@ import {
   Users,
   Pill,
   PackageMinus,
+  Plane,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { usePrescricoesParaFarmacia, useEstoqueHospede } from "@/hooks/useFarmacia";
 import { useEstoqueTodosMes } from "@/hooks/usePainelFarmacia";
+import { useViagensAtivasNaData } from "@/hooks/useViagem";
 import {
   hojeISODate,
   useDispensacoesDoHospede,
@@ -157,6 +159,10 @@ function Dispensar({
   const estoque = useEstoqueHospede(residenteId, data.slice(0, 7));
   const confirmar = useConfirmarDispensacao();
   const desfazer = useDesfazerDispensacao();
+  // Em viagem nesta data: a medicação já saiu de uma vez (baixa de viagem). Não
+  // se espera dispensação diária — mostra aviso discreto, mas NÃO bloqueia.
+  const viagensAtivas = useViagensAtivasNaData(data);
+  const emViagem = viagensAtivas.data?.has(residenteId) ?? false;
 
   // Prescrições orais do período selecionado
   const itensDoZiploc: ItemDispensacaoJson[] = useMemo(() => {
@@ -228,6 +234,17 @@ function Dispensar({
 
   return (
     <div className="space-y-4">
+      {/* Aviso discreto: hóspede em viagem (medicação já entregue de uma vez) */}
+      {emViagem && (
+        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-secondary">
+          <Plane className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>
+            Hóspede <strong>em viagem</strong> nesta data — a medicação foi entregue de uma vez (baixa de viagem).
+            Não é necessário dispensar no dia a dia.
+          </span>
+        </div>
+      )}
+
       {/* Seletor de período */}
       <div className="flex flex-wrap gap-2">
         {PERIODOS.map((p) => (
@@ -455,7 +472,12 @@ function MapaPeriodo({
 
   const { data: todasDispensacoes = [], isLoading: loadDisp } = useDispensacoesDodia(data);
   const { data: estoqueTodos = [] } = useEstoqueTodosMes(data.slice(0, 7));
+  const { data: emViagemSet } = useViagensAtivasNaData(data);
   const confirmar = useConfirmarDispensacao();
+
+  // Hóspedes em viagem nesta data: levaram a medicação de uma vez. Não entram
+  // na conta de "pendentes" do período (não geramos alerta de não dispensado).
+  const emViagem = useMemo(() => emViagemSet ?? new Set<string>(), [emViagemSet]);
 
   // residenteId → (medicamento → saldo do mês), para o aviso de insuficiência.
   const saldoPorResidente = useMemo(() => {
@@ -480,14 +502,17 @@ function MapaPeriodo({
 
   if (loadDisp) return <LoadingState />;
 
-  // FILA do período: pendentes primeiro (estado pendente/feito), preservando
-  // a ordem alfabética dentro de cada grupo.
-  const fila = [...residentes].sort((a, b) => {
-    const aFeito = (dispPorResidente[a.id]?.length ?? 0) > 0 ? 1 : 0;
-    const bFeito = (dispPorResidente[b.id]?.length ?? 0) > 0 ? 1 : 0;
-    return aFeito - bFeito;
-  });
+  // FILA do período: pendentes primeiro, depois dispensados, e por último os
+  // hóspedes em viagem (rank: pendente 0 < feito 1 < viagem 2).
+  const rank = (id: string) => {
+    if (emViagem.has(id) && (dispPorResidente[id]?.length ?? 0) === 0) return 2;
+    return (dispPorResidente[id]?.length ?? 0) > 0 ? 1 : 0;
+  };
+  const fila = [...residentes].sort((a, b) => rank(a.id) - rank(b.id));
   const feitos = fila.filter((r) => (dispPorResidente[r.id]?.length ?? 0) > 0).length;
+  const viajando = fila.filter((r) => emViagem.has(r.id) && (dispPorResidente[r.id]?.length ?? 0) === 0).length;
+  // "Esperados" exclui quem está em viagem — não conta como pendência.
+  const esperados = residentes.length - viajando;
 
   return (
     <div className="space-y-4">
@@ -511,9 +536,14 @@ function MapaPeriodo({
 
       <div className="flex flex-wrap gap-2 text-xs">
         <Badge variant="muted">{residentes.length} hóspedes</Badge>
-        <Badge variant={feitos === residentes.length ? "success" : "warning"}>
-          {feitos} dispensado{feitos !== 1 ? "s" : ""} neste período
+        <Badge variant={feitos >= esperados ? "success" : "warning"}>
+          {feitos} de {esperados} dispensado{esperados !== 1 ? "s" : ""} neste período
         </Badge>
+        {viajando > 0 && (
+          <Badge variant="outline" className="gap-1 border-primary/40 text-secondary">
+            <Plane className="size-3 text-primary" /> {viajando} em viagem
+          </Badge>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -524,6 +554,7 @@ function MapaPeriodo({
             periodoKey={periodoKey}
             dispensacoes={dispPorResidente[res.id] ?? []}
             saldoPorMed={saldoPorResidente.get(res.id)}
+            emViagem={emViagem.has(res.id)}
             confirmando={confirmandoId === res.id}
             erro={erros[res.id]}
             onConfirmar={async (itens) => {
@@ -554,6 +585,7 @@ function MapaHospede({
   periodoKey,
   dispensacoes,
   saldoPorMed,
+  emViagem,
   confirmando,
   erro,
   onConfirmar,
@@ -562,6 +594,7 @@ function MapaHospede({
   periodoKey: PeriodoMedicacao;
   dispensacoes: Dispensacao[];
   saldoPorMed: Map<string, number> | undefined;
+  emViagem: boolean;
   confirmando: boolean;
   erro: string | undefined;
   onConfirmar: (itens: ItemDispensacaoJson[]) => void;
@@ -596,6 +629,24 @@ function MapaHospede({
   const jaDispensado = dispensacoes.length > 0;
 
   if (isLoading) return <div className="h-12 animate-pulse rounded-lg bg-accent" />;
+
+  // Em viagem e ainda sem dispensação no período: linha discreta "Em viagem".
+  // NÃO conta como pendente — o hóspede levou a medicação de uma vez.
+  if (emViagem && !jaDispensado) {
+    return (
+      <Card className="opacity-70">
+        <CardContent className="flex items-center gap-3 p-3">
+          <div className="mt-0.5 shrink-0 rounded-full bg-primary/10 p-1.5 text-primary">
+            <Plane className="h-4 w-4" />
+          </div>
+          <p className="flex-1 text-sm font-medium">{residente.nome}</p>
+          <Badge variant="outline" className="gap-1 border-primary/40 text-secondary text-xs">
+            <Plane className="h-3 w-3 text-primary" /> Em viagem
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Sem itens orais no período: ainda mostra o hóspede (linha discreta) para a
   // farmacêutica saber que não pulou ninguém.
