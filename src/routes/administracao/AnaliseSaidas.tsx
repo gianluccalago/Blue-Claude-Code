@@ -12,15 +12,25 @@ import {
   Download,
   ArrowUpDown,
   PieChart,
+  BarChart3,
+  Grid3x3,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useResidentesInativos } from "@/hooks/useCicloVida";
 import { mesesPermanencia, formatarMeses, tempoPermanencia, MOTIVOS_SAIDA } from "@/lib/cicloVida";
+import {
+  anosDeSaida,
+  contagemAnoMotivo,
+  matrizTempoMotivo,
+  resumoMacro,
+} from "@/lib/analiseSaidas";
 import { exportarSaidasExcel } from "@/lib/exportSaidas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard, ProgressBar } from "@/components/dashboard/primitives";
+import { BarrasAgrupadas, PALETA_BARRAS, type SerieAgrupada } from "@/components/dashboard/BarrasAgrupadas";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { formatarDataBR, ouNaoInformado } from "@/lib/utils";
 import type { Residente } from "@/types/database";
@@ -30,6 +40,19 @@ type Ordenacao = { campo: "saida" | "permanencia"; dir: "asc" | "desc" };
 
 function anoDe(dataISO: string | null): string | null {
   return dataISO ? dataISO.slice(0, 4) : null;
+}
+
+const MOTIVO_CURTO: Record<string, string> = {
+  Falecimento: "Falec.",
+  "Retorno para casa": "Retorno",
+  "Mudança para outro residencial": "Mudança",
+  Inadimplência: "Inadimpl.",
+  "Aumento de grau (incompatível)": "Aum. grau",
+  "Curta permanência": "Curta perm.",
+  Outro: "Outro",
+};
+function abreviarMotivo(m: string): string {
+  return MOTIVO_CURTO[m] ?? m;
 }
 
 export function AnaliseSaidas() {
@@ -112,6 +135,22 @@ export function AnaliseSaidas() {
     });
     return arr;
   }, [saidas, ordem]);
+
+  // ── Análises adicionais ───────────────────────────────────────────────────
+  // Evolução por ANO (todos os anos, independe do filtro): séries = motivos.
+  const anosTodos = useMemo(() => anosDeSaida(todos), [todos]);
+  const seriesAno: SerieAgrupada[] = useMemo(
+    () =>
+      contagemAnoMotivo(todos, anosTodos, [...MOTIVOS_SAIDA]).map((s, i) => ({
+        label: s.motivo,
+        corClasse: PALETA_BARRAS[i % PALETA_BARRAS.length],
+        valores: s.valores,
+      })),
+    [todos, anosTodos],
+  );
+  // Matriz e macro respeitam o período (saidas filtradas).
+  const matriz = useMemo(() => matrizTempoMotivo(saidas, [...MOTIVOS_SAIDA]), [saidas]);
+  const macro = useMemo(() => resumoMacro(saidas), [saidas]);
 
   if (!PERFIS_GESTAO.has(perfil ?? "")) {
     return <EmptyState label="Acesso restrito à gestão (Administração, Direção e Master)." />;
@@ -213,6 +252,92 @@ export function AnaliseSaidas() {
                     </span>
                   </div>
                   <ProgressBar valor={maxCount > 0 ? (m.count / maxCount) * 100 : 0} tom="primary" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Gráfico — evolução por ANO (barras agrupadas por motivo) */}
+          {anosTodos.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="size-4 text-secondary" /> Evolução por ano (todos os anos)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BarrasAgrupadas categorias={anosTodos} series={seriesAno} />
+                <p className="mt-2 text-xs text-muted-foreground">Eixo Y = nº de saídas · séries = motivos.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Matriz — tempo de permanência × motivo */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Grid3x3 className="size-4 text-secondary" /> Matriz tempo de casa × motivo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <th className="pb-2 pr-3">Tempo de casa</th>
+                    {MOTIVOS_SAIDA.map((m) => (
+                      <th key={m} className="pb-2 px-2 text-center" title={m}>{abreviarMotivo(m)}</th>
+                    ))}
+                    <th className="pb-2 pl-2 text-right">Total</th>
+                    <th className="pb-2 pl-2 text-right">%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {matriz.map((linha) => (
+                    <tr key={linha.faixa} className="text-secondary">
+                      <td className="py-2.5 pr-3 font-medium">{linha.faixa}</td>
+                      {MOTIVOS_SAIDA.map((m) => (
+                        <td key={m} className="py-2.5 px-2 text-center tabular-nums">
+                          {linha.porMotivo[m] > 0 ? linha.porMotivo[m] : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      ))}
+                      <td className="py-2.5 pl-2 text-right font-bold tabular-nums">{linha.total}</td>
+                      <td className="py-2.5 pl-2 text-right tabular-nums text-muted-foreground">{linha.pct}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold text-secondary">
+                    <td className="pt-2 pr-3">Total</td>
+                    {MOTIVOS_SAIDA.map((m) => {
+                      const col = matriz.reduce((s, l) => s + l.porMotivo[m], 0);
+                      return (
+                        <td key={m} className="pt-2 px-2 text-center tabular-nums">{col || ""}</td>
+                      );
+                    })}
+                    <td className="pt-2 pl-2 text-right tabular-nums">{saidas.length}</td>
+                    <td className="pt-2 pl-2 text-right tabular-nums">100%</td>
+                  </tr>
+                </tfoot>
+              </table>
+              <p className="mt-2 text-xs text-muted-foreground">% = participação da faixa no total de saídas do período.</p>
+            </CardContent>
+          </Card>
+
+          {/* Resumo por macro-grupo */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Layers className="size-4 text-secondary" /> Resumo por macro-grupo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {macro.map((g) => (
+                <div key={g.label} className="space-y-1">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="font-medium text-secondary">{g.label}</span>
+                    <span className="tabular-nums text-muted-foreground">{g.count} ({g.pct}%)</span>
+                  </div>
+                  <ProgressBar valor={g.pct} tom="secondary" />
                 </div>
               ))}
             </CardContent>
