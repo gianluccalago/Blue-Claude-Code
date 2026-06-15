@@ -46,6 +46,7 @@ import { Manutencao } from "@/routes/hotelaria/Manutencao";
 import { Enxoval } from "@/routes/lavanderia/Enxoval";
 import { MapaSuites } from "@/routes/administracao/MapaSuites";
 import { HospedesInativos } from "@/routes/administracao/HospedesInativos";
+import { AnaliseSaidas } from "@/routes/administracao/AnaliseSaidas";
 import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
@@ -230,6 +231,11 @@ const hospedesInativosRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "hospedes-inativos",
   component: HospedesInativos,
+});
+const analiseSaidasRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "analise-saidas",
+  component: AnaliseSaidas,
 });
 const visaoDiaHotelariaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -552,6 +558,7 @@ const routeTree = rootRoute.addChildren([
     enxovalRoute,
     mapaSuitesRoute,
     hospedesInativosRoute,
+    analiseSaidasRoute,
     visaoDiaHotelariaRoute,
     chamadoManutencaoRoute,
     painelFarmaciaRoute,
