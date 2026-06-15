@@ -10,6 +10,8 @@ import { usuarioAtual } from "@/auth/usuarioAtual";
 // ===========================================================================
 
 export const CHAVE_TELEFONE_PLANTAO = "telefone_plantao";
+/** Total de suítes da casa (capacidade) — base da taxa de ocupação. */
+export const CHAVE_TOTAL_SUITES = "total_suites";
 
 /** Lê um valor de configuração por chave. */
 export function useConfiguracao(chave: string) {

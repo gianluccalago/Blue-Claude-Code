@@ -5,10 +5,8 @@ import {
   BedDouble,
   Layers,
   Wallet,
-  TrendingUp,
-  Coins,
-  Receipt,
-  AlertCircle,
+  ArrowUpRight,
+  ArrowDownRight,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -38,9 +36,7 @@ import {
   useAceitacaoBaixaRecente,
   useUltimasAvaliacoesIVCF,
 } from "@/hooks/useMaster";
-import { usePagamentosDoMes } from "@/hooks/useMensalidades";
-import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
-import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
+import { useResumoMes } from "@/hooks/useIndicadoresGestao";
 import { useChamadosManutencao } from "@/hooks/useManutencao";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,11 +83,11 @@ export function PainelEstrategico() {
   const alertasElim = useAlertasEliminacaoPainel();
   const aderencia = useAderenciaHoje();
   const aceitacao = useAceitacaoBaixaRecente();
-  // Financeiro do mês selecionado + clínico/operacional reais (pós-unificação).
+  // Síntese financeira: vem de useResumoMes (MESMA fonte do Painel da
+  // Administração). O Master mostra só o RESULTADO; o detalhe (faturamento,
+  // recebido, inadimplência, custo) fica na Administração — sem duplicar.
   const mesRef = mesRefDe(mes);
-  const pagamentos = usePagamentosDoMes(mesRef);
-  const upselling = useUpsellingTodosDoMes(mesRef);
-  const custos = useCustosPessoalDoMes(mesRef);
+  const resumo = useResumoMes(mesRef);
   const ivcf = useUltimasAvaliacoesIVCF();
   const chamados = useChamadosManutencao();
   const inspecoes = useInspecoesHoje();
@@ -104,9 +100,7 @@ export function PainelEstrategico() {
     alertasElim.isLoading ||
     aderencia.isLoading ||
     aceitacao.isLoading ||
-    pagamentos.isLoading ||
-    upselling.isLoading ||
-    custos.isLoading ||
+    resumo.isLoading ||
     ivcf.isLoading ||
     chamados.isLoading ||
     inspecoes.isLoading;
@@ -119,8 +113,7 @@ export function PainelEstrategico() {
     alertasElim.error ??
     aderencia.error ??
     aceitacao.error ??
-    pagamentos.error ??
-    upselling.error ??
+    resumo.error ??
     chamados.error ??
     inspecoes.error;
 
@@ -156,23 +149,9 @@ export function PainelEstrategico() {
   // ----- OPERACIONAL: aderência da equipe ao plano (hoje) -----
   const ad = calcularAderencia(aderencia.data?.itens ?? [], aderencia.data?.registros ?? []);
 
-  // ----- FINANCEIRO (mês selecionado) -----
-  const receitaMensalidades = listaResidentes.reduce((s, r) => s + (r.mensalidade_valor ?? 0), 0);
-  const totalUpselling = (upselling.data ?? []).reduce((s, u) => s + (u.valor ?? 0), 0);
-  const receitaPrevista = receitaMensalidades + totalUpselling;
-  const custoPessoal = (custos.linhas ?? []).reduce((s, l) => s + (l.valorFinal ?? 0), 0);
-  const temCusto = (custos.linhas ?? []).length > 0;
-  const resultadoBruto = receitaPrevista - custoPessoal;
-  // Inadimplência: residentes com mensalidade que NÃO têm pagamento "pago" no mês.
-  const pagosIds = new Set(
-    (pagamentos.data ?? []).filter((p) => p.status === "paga").map((p) => p.residente_id),
-  );
-  const comMensalidade = listaResidentes.filter((r) => (r.mensalidade_valor ?? 0) > 0);
-  const inadimplentes = comMensalidade.filter((r) => !pagosIds.has(r.id));
-  const valorInadimplente = inadimplentes.reduce((s, r) => s + (r.mensalidade_valor ?? 0), 0);
-  const recebido = (pagamentos.data ?? [])
-    .filter((p) => p.status === "paga")
-    .reduce((s, p) => s + (p.valor ?? 0), 0);
+  // ----- SÍNTESE FINANCEIRA (mês selecionado) — fonte: useResumoMes -----
+  // O Master mostra só o resultado; o detalhe vive na Administração.
+  const temFinanceiro = resumo.faturamento > 0 || resumo.custoPessoal > 0;
 
   // ----- OPERACIONAL: manutenção e hotelaria (tempo real) -----
   const chamadosAbertos = (chamados.data ?? []).filter((c) => c.status !== "resolvido");
@@ -248,18 +227,24 @@ export function PainelEstrategico() {
           <Metric
             icon={BedDouble}
             rotulo="Residentes ativos"
-            valor={ocupacao.totalAtivos}
-            // "Ativos" = residentes cadastrados. Ainda não há campo de saída/
-            // desligamento na ficha (residentes); todos contam como ativos.
+            valor={resumo.ativos}
+            nota={resumo.capacidade ? `de ${resumo.capacidade} suítes` : "capacidade não cadastrada"}
           />
           <Metric
             icon={Building2}
             rotulo="Taxa de ocupação"
-            // SEM DADOS: não há cadastro do total de suítes da casa. Quando
-            // existir (módulo Administração / cadastro da estrutura), a taxa
-            // será residentes ativos / total de suítes.
-            valor={null}
-            nota="total de suítes não cadastrado"
+            // Real quando a capacidade (total de suítes) está cadastrada na
+            // Administração; senão "sem dados" (nunca número fictício).
+            valor={resumo.taxaOcupacao == null ? null : `${resumo.taxaOcupacao}%`}
+            nota={resumo.taxaOcupacao == null ? "total de suítes não cadastrado" : undefined}
+          />
+          <Metric icon={ArrowUpRight} rotulo="Entradas no mês" valor={resumo.entradas} />
+          <Metric
+            icon={ArrowDownRight}
+            rotulo="Saídas no mês"
+            valor={resumo.saidas}
+            destaque={resumo.saidas > 0}
+            to="/app/master/analise-saidas"
           />
           <Metric
             icon={Layers}
@@ -284,51 +269,24 @@ export function PainelEstrategico() {
         </div>
       </section>
 
-      {/* BLOCO FINANCEIRO (mês selecionado) */}
+      {/* SÍNTESE FINANCEIRA — só o RESULTADO (detalhe na Administração) */}
       <section className="space-y-3">
-        <SectionTitle
-          icon={Wallet}
-          titulo={`Financeiro · ${labelMes(mes)}`}
-          tom="estrategico"
-        />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <Metric
-            icon={TrendingUp}
-            rotulo="Receita prevista"
-            valor={<ValorMoeda v={receitaPrevista} />}
-            nota={`Mensalidades ${formatarMoeda(receitaMensalidades)} + upselling ${formatarMoeda(totalUpselling)}`}
-          />
-          <Metric
-            icon={Coins}
-            rotulo="Custo de pessoal"
-            valor={temCusto ? <ValorMoeda v={custoPessoal} /> : null}
-            to="/app/administracao/custos-pessoal"
-            nota={temCusto ? "mensal fixo + por plantão realizado" : "remuneração não cadastrada"}
-          />
+        <SectionTitle icon={Wallet} titulo={`Resultado · ${labelMes(mes)}`} tom="estrategico" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Metric
             icon={Wallet}
-            rotulo="Resultado bruto"
-            valor={temCusto ? <ValorMoeda v={resultadoBruto} destaque /> : null}
-            nota="receita prevista − custo de pessoal"
+            rotulo="Resultado do mês"
+            valor={temFinanceiro ? <ValorMoeda v={resumo.resultado} destaque /> : null}
+            destaque
+            to="/app/administracao"
+            nota={temFinanceiro ? "faturamento − custos · ver detalhe na Administração" : "sem lançamentos financeiros no mês"}
           />
           <Metric
-            icon={AlertCircle}
-            rotulo="Inadimplência"
-            valor={inadimplentes.length}
-            destaque={inadimplentes.length > 0}
-            to="/app/administracao/mensalidades"
-            nota={
-              comMensalidade.length === 0
-                ? "nenhuma mensalidade cadastrada"
-                : `${inadimplentes.length} de ${comMensalidade.length} · ${formatarMoeda(valorInadimplente)} em aberto`
-            }
-          />
-          <Metric
-            icon={Receipt}
-            rotulo="Recebido vs. previsto"
-            valor={<ValorMoeda v={recebido} />}
-            to="/app/administracao/mensalidades"
-            nota={`Recebido de ${formatarMoeda(receitaMensalidades)} previstos`}
+            icon={ArrowUpRight}
+            rotulo="Faturamento do mês"
+            valor={temFinanceiro ? <ValorMoeda v={resumo.faturamento} /> : null}
+            to="/app/administracao/demonstrativo"
+            nota={temFinanceiro ? "mensalidades + upselling" : "sem dados"}
           />
         </div>
       </section>
