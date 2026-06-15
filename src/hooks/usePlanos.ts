@@ -3,12 +3,19 @@ import { supabase } from "@/lib/supabase";
 import type { PlanoCuidadoItem, Residente } from "@/types/database";
 import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
 
-/** Todos os residentes (para o seletor da Coordenação). */
+/**
+ * Residentes ATIVOS (presentes na casa). O hóspede inativado por saída some de
+ * TODAS as telas operacionais — este é o hook central que garante o filtro.
+ * O histórico de inativos vive em useResidentesInativos (somente gestão).
+ */
 export function useResidentes() {
   return useQuery({
     queryKey: ["residentes"],
     queryFn: async (): Promise<Residente[]> => {
-      const { data, error } = await supabase.from("residentes").select("*");
+      const { data, error } = await supabase
+        .from("residentes")
+        .select("*")
+        .eq("status_hospede", "ativo");
       if (error) throw error;
       const residentes = data ?? [];
       residentes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));

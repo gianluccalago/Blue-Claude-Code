@@ -22,7 +22,12 @@ export function useHospedesDesignados(cuidadorId: string, enabled = true) {
       const ids = (links ?? []).map((l) => l.residente_id);
       if (ids.length === 0) return [];
 
-      const { data, error } = await supabase.from("residentes").select("*").in("id", ids);
+      // Só ATIVOS: hóspede inativado some da designação do cuidador/enfermagem.
+      const { data, error } = await supabase
+        .from("residentes")
+        .select("*")
+        .in("id", ids)
+        .eq("status_hospede", "ativo");
       if (error) throw error;
 
       const residentes = data ?? [];

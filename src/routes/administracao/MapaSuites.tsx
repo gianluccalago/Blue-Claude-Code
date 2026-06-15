@@ -3,20 +3,22 @@
  * Visão tabular dos hóspedes ATIVOS, ordenada por TEMPO DE CASA (entrada mais
  * antiga primeiro). Mensalidade + upsellings FIXOS (recorrentes) = total.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Map as MapIcon, Users, Wallet, Sparkles, Download, AlertTriangle } from "lucide-react";
+import { Map as MapIcon, Users, Wallet, Sparkles, Download, AlertTriangle, LogOut } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
+import { useRegistrarSaida } from "@/hooks/useCicloVida";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard/primitives";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { formatarMoeda, mesAtual, formatarMesReferencia } from "@/lib/mensalidade";
-import { formatarDataBR } from "@/lib/utils";
+import { formatarDataBR, hojeISO } from "@/lib/utils";
 import { formatarQuarto } from "@/lib/quarto";
+import { MOTIVOS_SAIDA } from "@/lib/cicloVida";
 import { exportarMapaSuitesExcel, type LinhaMapa } from "@/lib/exportMapaSuites";
 import type { Residente } from "@/types/database";
 
@@ -31,9 +33,13 @@ const PERFIS_GESTAO = new Set(["administracao", "direcao", "master"]);
 
 export function MapaSuites() {
   const { usuarioEfetivo } = useAuth();
+  const perfil = usuarioEfetivo?.perfil;
+  // Registrar saída: só Master e Direção.
+  const podeRegistrarSaida = perfil === "master" || perfil === "direcao";
   const residentes = useResidentes();
   const mes = mesAtual();
   const upsell = useUpsellingTodosDoMes(mes);
+  const [saindo, setSaindo] = useState<Residente | null>(null);
 
   // Upselling FIXO (recorrente) por hóspede no mês.
   const fixoPorResidente = useMemo(() => {
@@ -130,11 +136,17 @@ export function MapaSuites() {
                   <th className="pb-2 pr-3 text-right">Mensalidade</th>
                   <th className="pb-2 pr-3 text-right">Upsell fixo</th>
                   <th className="pb-2 text-right">Total</th>
+                  {podeRegistrarSaida && <th className="pb-2 pl-3 text-right">Ações</th>}
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {linhas.map((l) => (
-                  <LinhaSuite key={l.residente.id} linha={l} />
+                  <LinhaSuite
+                    key={l.residente.id}
+                    linha={l}
+                    podeRegistrarSaida={podeRegistrarSaida}
+                    onSaida={() => setSaindo(l.residente)}
+                  />
                 ))}
               </tbody>
               <tfoot>
@@ -143,17 +155,30 @@ export function MapaSuites() {
                   <td className="pt-2 pr-3 text-right tabular-nums">{formatarMoeda(totais.mensalidade)}</td>
                   <td className="pt-2 pr-3 text-right tabular-nums">{formatarMoeda(totais.upsell)}</td>
                   <td className="pt-2 text-right tabular-nums">{formatarMoeda(totais.total)}</td>
+                  {podeRegistrarSaida && <td className="pt-2" />}
                 </tr>
               </tfoot>
             </table>
           </CardContent>
         </Card>
       )}
+
+      {saindo && (
+        <FormSaida residente={saindo} onFechar={() => setSaindo(null)} />
+      )}
     </div>
   );
 }
 
-function LinhaSuite({ linha }: { linha: LinhaMapa }) {
+function LinhaSuite({
+  linha,
+  podeRegistrarSaida,
+  onSaida,
+}: {
+  linha: LinhaMapa;
+  podeRegistrarSaida: boolean;
+  onSaida: () => void;
+}) {
   const r: Residente = linha.residente;
   const divergeGrau =
     !!r.grau_contratual && !!r.grau_dependencia && r.grau_contratual !== r.grau_dependencia;
@@ -182,6 +207,104 @@ function LinhaSuite({ linha }: { linha: LinhaMapa }) {
       <td className="py-2.5 pr-3 text-right tabular-nums">{formatarMoeda(r.mensalidade_valor ?? 0)}</td>
       <td className="py-2.5 pr-3 text-right tabular-nums">{linha.upsellFixo > 0 ? formatarMoeda(linha.upsellFixo) : "—"}</td>
       <td className="py-2.5 text-right font-bold tabular-nums">{formatarMoeda(linha.total)}</td>
+      {podeRegistrarSaida && (
+        <td className="py-2.5 pl-3 text-right">
+          <Button variant="ghost" size="sm" className="gap-1 text-destructive" onClick={onSaida}>
+            <LogOut className="size-3.5" /> Saída
+          </Button>
+        </td>
+      )}
     </tr>
+  );
+}
+
+// ─── Modal: registrar saída do hóspede (Master/Direção) ──────────────────────
+
+function FormSaida({ residente, onFechar }: { residente: Residente; onFechar: () => void }) {
+  const registrar = useRegistrarSaida();
+  const [dataSaida, setDataSaida] = useState(hojeISO());
+  const [motivo, setMotivo] = useState<string>(MOTIVOS_SAIDA[0]);
+
+  async function confirmar() {
+    if (!dataSaida || !motivo) {
+      toast.error("Informe a data e o motivo da saída.");
+      return;
+    }
+    try {
+      await registrar.mutateAsync({ id: residente.id, dataSaida, motivo });
+      toast.success(`Saída de ${residente.nome} registrada. Hóspede inativado.`);
+      onFechar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível registrar a saída.");
+    }
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Registrar saída"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <button
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={onFechar}
+        className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm"
+      />
+      <div className="relative w-full max-w-md animate-fade-in-up rounded-lg border bg-card p-6 shadow-lifted">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
+          <LogOut className="size-5 text-destructive" /> Registrar saída
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {residente.nome}
+          {residente.numero_hospede ? ` · ${residente.numero_hospede}` : ""}
+          {residente.quarto ? ` · Suíte ${formatarQuarto(residente.quarto)}` : ""}
+        </p>
+
+        <div className="mt-4 space-y-3">
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold text-secondary">Data de saída</span>
+            <input
+              type="date"
+              value={dataSaida}
+              onChange={(e) => setDataSaida(e.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold text-secondary">Motivo da saída</span>
+            <select
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {MOTIVOS_SAIDA.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </label>
+          <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            O hóspede sai das telas operacionais e a suíte fica vaga. O histórico e o financeiro
+            são preservados. Reversível em "Hóspedes inativos".
+          </p>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={registrar.isPending}>
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            size="lg"
+            className="flex-1"
+            onClick={confirmar}
+            disabled={registrar.isPending}
+          >
+            {registrar.isPending ? "Registrando…" : "Confirmar saída"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

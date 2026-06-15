@@ -125,7 +125,7 @@ const SEIS_MESES_MS = 183 * 24 * 60 * 60 * 1000;
 async function ivcfVencidos(): Promise<number> {
   try {
     const [{ data: res }, { data: avs }] = await Promise.all([
-      supabase.from("residentes").select("id"),
+      supabase.from("residentes").select("id").eq("status_hospede", "ativo"),
       supabase.from("avaliacao_ivcf").select("residente_id, registrado_em"),
     ]);
     const maisRecente = new Map<string, number>();
@@ -170,7 +170,7 @@ async function calcular(
     // ─── HOTELARIA (número) ───────────────────────────────────────────────────
     case "hotelaria": {
       const [comQuarto, { data: inspHoje }, abertosHt, emergHt] = await Promise.all([
-        contar(headCount("residentes").not("quarto", "is", null)),
+        contar(headCount("residentes").eq("status_hospede", "ativo").not("quarto", "is", null)),
         supabase.from("inspecao_suite").select("residente_id").eq("tipo", "diaria").eq("data", hoje),
         contar(headCount("chamado_manutencao").eq("destino", "hotelaria").neq("status", "resolvido")),
         contar(headCount("chamado_manutencao").eq("destino", "hotelaria").eq("urgencia", "emergencia").neq("status", "resolvido")),
@@ -188,7 +188,7 @@ async function calcular(
       const [estoqueBaixo, resgateBaixo, totalRes, { data: prov }, dispPend] = await Promise.all([
         contar(headCount("estoque_hospede").eq("mes_referencia", mes).lte("quantidade_atual", 5)),
         contar(headCount("estoque_resgate").lte("quantidade_atual", 5)),
-        contar(headCount("residentes")),
+        contar(headCount("residentes").eq("status_hospede", "ativo")),
         supabase.from("estoque_hospede").select("residente_id").eq("mes_referencia", mes),
         dispensacaoPendente(),
       ]);
@@ -431,7 +431,7 @@ async function atividadesNaoRegistradas(): Promise<number> {
 async function residentesSemDieta(): Promise<number> {
   try {
     const [{ data: res }, { data: dietas }] = await Promise.all([
-      supabase.from("residentes").select("id"),
+      supabase.from("residentes").select("id").eq("status_hospede", "ativo"),
       supabase.from("dieta").select("residente_id").eq("ativa", true),
     ]);
     const comDieta = new Set((dietas ?? []).map((d) => d.residente_id));

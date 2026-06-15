@@ -200,7 +200,7 @@ export function useAlertasEliminacaoPainel() {
   return useQuery({
     queryKey: ["coord-alertas-eliminacao", hojeISO()],
     queryFn: async (): Promise<AlertaEliminacaoPainel[]> => {
-      const residentesResp = await supabase.from("residentes").select("id");
+      const residentesResp = await supabase.from("residentes").select("id").eq("status_hospede", "ativo");
       if (residentesResp.error) throw residentesResp.error;
       const ids = (residentesResp.data ?? []).map((r) => r.id);
       if (ids.length === 0) return [];

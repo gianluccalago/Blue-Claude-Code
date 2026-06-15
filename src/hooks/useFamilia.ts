@@ -17,10 +17,12 @@ export function useResidenteFamilia() {
     // Família sem residente vinculado não consulta (evita eq com uuid vazio).
     enabled: !!FAMILIA_ATUAL.residenteId,
     queryFn: async (): Promise<Residente | null> => {
+      // Família só vê o hóspede enquanto ATIVO (inativado some do portal).
       const { data, error } = await supabase
         .from("residentes")
         .select("*")
         .eq("id", FAMILIA_ATUAL.residenteId)
+        .eq("status_hospede", "ativo")
         .limit(1);
       if (error) throw error;
       return data?.[0] ?? null;

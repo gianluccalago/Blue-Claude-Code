@@ -54,10 +54,12 @@ export function useTodasPrescricoesAtivas() {
   return useQuery({
     queryKey: ["todas-prescricoes-ativas"],
     queryFn: async (): Promise<PrescricaoComResidente[]> => {
+      // !inner + filtro: só prescrições de hóspedes ATIVOS (inativos somem do painel).
       const { data, error } = await supabase
         .from("prescricao")
-        .select("*, residente:residentes(nome)")
-        .eq("ativa", true);
+        .select("*, residente:residentes!inner(nome, status_hospede)")
+        .eq("ativa", true)
+        .eq("residente.status_hospede", "ativo");
       if (error) throw error;
       return (data ?? []).map((row: Record<string, unknown>) => ({
         ...(row as Prescricao),

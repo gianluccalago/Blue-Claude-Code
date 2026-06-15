@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Map as MapIcon,
+  Archive,
   LogOut,
   Loader2,
   X,
@@ -156,10 +157,13 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/servicos": Wrench,
   "/app/administracao/enxoval": Shirt,
   "/app/administracao/mapa-suites": MapIcon,
+  "/app/administracao/hospedes-inativos": Archive,
   "/app/direcao/mapa-suites": MapIcon,
+  "/app/direcao/hospedes-inativos": Archive,
   "/app/master/servicos": Wrench,
   "/app/master/enxoval": Shirt,
   "/app/master/mapa-suites": MapIcon,
+  "/app/master/hospedes-inativos": Archive,
   // Pesquisa NPS (aplicação) e Resultados NPS (análise)
   "/app/coordenacao/pesquisa-nps": ClipboardList,
   "/app/multidisciplinar/pesquisa-nps": ClipboardList,

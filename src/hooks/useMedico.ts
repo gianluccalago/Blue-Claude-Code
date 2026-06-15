@@ -324,7 +324,7 @@ export function useEscaladosMedico() {
           .eq("acao", "escalado_medico")
           .order("tratado_em", { ascending: false }),
         supabase.from("resolucao_medica").select("*"),
-        supabase.from("residentes").select("*"),
+        supabase.from("residentes").select("*").eq("status_hospede", "ativo"),
       ]);
 
       if (pendRes.error) throw pendRes.error;
