@@ -73,6 +73,8 @@ export type ItemInspecaoInput = {
   observacao: string | null;
   /** Destino do chamado gerado se for não conforme (default: serviços gerais). */
   destino?: DestinoChamado;
+  /** Foto opcional do problema (já enviada ao Storage). Repassada ao chamado. */
+  fotoUrl?: string | null;
 };
 
 /**
@@ -110,14 +112,18 @@ export function useSalvarInspecao() {
             item: it.item,
             status: it.status,
             observacao: it.observacao || null,
+            foto_url: it.fotoUrl ?? null,
           }))
         )
         .select("id, item, status, observacao");
       if (errI) throw errI;
 
-      // Destino escolhido por item na inspeção (default: serviços gerais).
+      // Destino e foto escolhidos por item na inspeção (default: serviços gerais).
       const destinoPorItem = new Map<string, DestinoChamado>(
         args.itens.map((it) => [it.item, it.destino ?? "servicos_gerais"]),
+      );
+      const fotoPorItem = new Map<string, string | null>(
+        args.itens.map((it) => [it.item, it.fotoUrl ?? null]),
       );
 
       const naoConformes = (itensSalvos ?? []).filter((it) => it.status === "nao_conforme");
@@ -138,6 +144,8 @@ export function useSalvarInspecao() {
           aberto_por: usuarioAtual.nome,
           perfil_solicitante: "hotelaria",
           destino: destinoPorItem.get(item.item) ?? "servicos_gerais",
+          // Foto do problema (se anexada na inspeção) — distinta da foto de encerramento.
+          foto_problema_url: fotoPorItem.get(item.item) ?? null,
           inspecao_item_id: item.id,
         });
         if (errChamado) throw errChamado;

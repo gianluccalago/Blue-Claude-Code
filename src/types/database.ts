@@ -46,7 +46,7 @@ export type TipoOrigemPendencia = "medicacao" | "intercorrencia" | "eliminacao" 
 export type AcaoPendencia = "resolvido" | "escalado_medico";
 export type AcaoEliminacaoTratamento = "silenciado" | "escalado_medico";
 export type TipoInspecao = "diaria" | "preventiva";
-export type StatusItemInspecao = "conforme" | "nao_conforme";
+export type StatusItemInspecao = "conforme" | "nao_conforme" | "nao_se_aplica";
 export type UrgenciaChamado = "baixa" | "media" | "alta" | "emergencia";
 export type StatusChamado = "aberto" | "em_andamento" | "resolvido";
 export type PerfilSolicitanteChamado =
@@ -729,6 +729,8 @@ export interface Database {
           item: string;
           status: StatusItemInspecao;
           observacao: string | null;
+          // Foto opcional do problema (não-conformidade). Repassada ao chamado.
+          foto_url: string | null;
         };
         Insert: {
           id?: string;
@@ -736,6 +738,7 @@ export interface Database {
           item: string;
           status: StatusItemInspecao;
           observacao?: string | null;
+          foto_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["inspecao_item"]["Insert"]>;
         Relationships: [];
@@ -755,6 +758,8 @@ export interface Database {
           responsavel: string | null;
           prazo: string | null;
           foto_url: string | null;
+          // Foto do PROBLEMA vinda da inspeção (distinta da foto_url de encerramento).
+          foto_problema_url: string | null;
           inspecao_item_id: string | null;
           // Sinalização da gestão (Administração/Master): "priorizado/cobrado".
           cobrado_gestao: boolean;
@@ -775,6 +780,7 @@ export interface Database {
           responsavel?: string | null;
           prazo?: string | null;
           foto_url?: string | null;
+          foto_problema_url?: string | null;
           inspecao_item_id?: string | null;
           cobrado_gestao?: boolean;
           cobrado_em?: string | null;

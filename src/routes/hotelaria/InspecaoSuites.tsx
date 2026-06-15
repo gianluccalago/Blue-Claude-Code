@@ -15,6 +15,9 @@ import {
   History,
   Check,
   X,
+  MinusCircle,
+  Camera,
+  ImageIcon,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -32,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
 import { DESTINO_CHAMADO } from "@/lib/manutencao";
+import { uploadFotoInspecao } from "@/lib/storage";
 import type {
   InspecaoSuite,
   InspecaoItem,
@@ -62,7 +66,12 @@ const ITENS_PREVENTIVA = [
   "Mobiliário",
   "Fechaduras/portas",
   "Janelas",
+  "Vidros",
+  "Higienização da sacada",
 ];
+
+// Itens que aceitam "Não se aplica" (N/A) — ex.: nem todo quarto tem sacada.
+const ITENS_COM_NA = new Set<string>(["Higienização da sacada"]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -315,22 +324,26 @@ function FormInspecao({
   const [observacoes, setObservacoes] = useState<Record<string, string>>({});
   // Destino do chamado gerado por cada item não conforme (default: serviços gerais).
   const [destinos, setDestinos] = useState<Record<string, DestinoChamado>>({});
+  // Foto opcional do problema por item não conforme (enviada ao Storage ao salvar).
+  const [fotos, setFotos] = useState<Record<string, File | null>>({});
   const [erro, setErro] = useState<string | null>(null);
   const salvar = useSalvarInspecao();
+  const [enviando, setEnviando] = useState(false);
 
   const itens = tipo === "diaria" ? ITENS_DIARIA : ITENS_PREVENTIVA;
   const totalRespondidos = itens.filter((it) => respostas[it] !== undefined).length;
   const todosRespondidos = totalRespondidos === itens.length;
 
   function toggleResposta(item: string, status: StatusItemInspecao) {
-    setRespostas((prev) => ({
-      ...prev,
-      [item]: prev[item] === status ? undefined : status,
-    }));
-    // Limpa a observação ao mudar para conforme
-    if (status === "conforme") {
-      setObservacoes((prev) => ({ ...prev, [item]: "" }));
-    }
+    setRespostas((prev) => {
+      const novo = prev[item] === status ? undefined : status;
+      // Ao deixar de ser "não conforme", limpa observação, destino e foto do item.
+      if (novo !== "nao_conforme") {
+        setObservacoes((o) => ({ ...o, [item]: "" }));
+        setFotos((f) => ({ ...f, [item]: null }));
+      }
+      return { ...prev, [item]: novo };
+    });
   }
 
   function mudarTipo(t: TipoInspecao) {
@@ -338,6 +351,7 @@ function FormInspecao({
     setRespostas({});
     setObservacoes({});
     setDestinos({});
+    setFotos({});
     setErro(null);
   }
 
@@ -347,12 +361,29 @@ function FormInspecao({
       return;
     }
     setErro(null);
+    setEnviando(true);
     try {
+      // Sobe as fotos dos itens não conformes (opcional; falha não quebra o fluxo).
+      const fotoUrlPorItem: Record<string, string | null> = {};
+      let algumaFalhou = false;
+      for (const it of itens) {
+        const file = fotos[it];
+        if (respostas[it] === "nao_conforme" && file) {
+          const url = await uploadFotoInspecao(file, residente.id);
+          fotoUrlPorItem[it] = url;
+          if (!url) algumaFalhou = true;
+        }
+      }
+      if (algumaFalhou) {
+        toast.warning("Alguma foto não pôde ser enviada — a inspeção foi salva sem ela.");
+      }
+
       const itensSalvar: ItemInspecaoInput[] = itens.map((it) => ({
         item: it,
         status: respostas[it]!,
         observacao: observacoes[it] || null,
         destino: respostas[it] === "nao_conforme" ? (destinos[it] ?? "servicos_gerais") : undefined,
+        fotoUrl: respostas[it] === "nao_conforme" ? (fotoUrlPorItem[it] ?? null) : null,
       }));
       await salvar.mutateAsync({
         residenteId: residente.id,
@@ -368,6 +399,8 @@ function FormInspecao({
       }
     } catch (e) {
       setErro(extrairErro(e));
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -444,19 +477,21 @@ function FormInspecao({
         {itens.map((item) => {
           const resp = respostas[item];
           const isNaoConforme = resp === "nao_conforme";
+          const aceitaNA = ITENS_COM_NA.has(item);
           return (
             <Card
               key={item}
               className={cn(
                 "transition-colors",
                 resp === "conforme" && "border-success/50 bg-success/5",
-                resp === "nao_conforme" && "border-destructive/50 bg-destructive/5"
+                resp === "nao_conforme" && "border-destructive/50 bg-destructive/5",
+                resp === "nao_se_aplica" && "border-border bg-muted/30"
               )}
             >
               <CardContent className="p-3 space-y-2">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="flex-1 text-sm font-medium">{item}</span>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <button
                       onClick={() => toggleResposta(item, "conforme")}
                       className={cn(
@@ -479,10 +514,24 @@ function FormInspecao({
                     >
                       <X className="h-3 w-3" /> Não conforme
                     </button>
+                    {aceitaNA && (
+                      <button
+                        onClick={() => toggleResposta(item, "nao_se_aplica")}
+                        title="Não se aplica (ex.: quarto sem sacada) — neutro, não gera chamado"
+                        className={cn(
+                          "flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                          resp === "nao_se_aplica"
+                            ? "bg-muted-foreground border-muted-foreground text-white"
+                            : "bg-background hover:bg-muted hover:border-muted-foreground/60 hover:text-muted-foreground"
+                        )}
+                      >
+                        <MinusCircle className="h-3 w-3" /> Não se aplica
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Observação + destino do chamado — só ao marcar não conforme */}
+                {/* Observação + destino + foto do chamado — só ao marcar não conforme */}
                 {isNaoConforme && (
                   <div className="space-y-2">
                     <textarea
@@ -494,6 +543,27 @@ function FormInspecao({
                       }
                       className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
+
+                    {/* Foto opcional do problema */}
+                    <div>
+                      <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                        <Camera className="h-3.5 w-3.5" /> Foto do problema (opcional)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setFotos((prev) => ({ ...prev, [item]: e.target.files?.[0] ?? null }))
+                        }
+                        className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground"
+                      />
+                      {fotos[item] && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-success">
+                          <ImageIcon className="h-3 w-3" /> {fotos[item]!.name} — anexada ao chamado
+                        </p>
+                      )}
+                    </div>
+
                     <div>
                       <p className="mb-1 text-xs font-semibold text-muted-foreground">
                         Direcionar o chamado para
@@ -540,15 +610,15 @@ function FormInspecao({
         <Button
           variant="outline"
           className="w-full gap-2"
-          disabled={!todosRespondidos || salvar.isPending}
+          disabled={!todosRespondidos || enviando || salvar.isPending}
           onClick={() => handleSalvar(false)}
         >
           <ClipboardCheck className="h-4 w-4" />
-          {salvar.isPending ? "Salvando…" : "Salvar e voltar"}
+          {enviando || salvar.isPending ? "Salvando…" : "Salvar e voltar"}
         </Button>
         <Button
           className="w-full gap-2"
-          disabled={!todosRespondidos || salvar.isPending || !proxima}
+          disabled={!todosRespondidos || enviando || salvar.isPending || !proxima}
           onClick={() => handleSalvar(true)}
         >
           <ClipboardCheck className="h-4 w-4" />
@@ -696,20 +766,36 @@ function ItemInspecaoRow({ item }: { item: InspecaoItem }) {
       <div className="flex items-center gap-2">
         {item.status === "conforme" ? (
           <Check className="h-3.5 w-3.5 shrink-0 text-success" />
+        ) : item.status === "nao_se_aplica" ? (
+          <MinusCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         ) : (
           <X className="h-3.5 w-3.5 shrink-0 text-destructive" />
         )}
         <span
           className={cn(
             "text-sm",
-            item.status === "nao_conforme" && "font-medium text-destructive"
+            item.status === "nao_conforme" && "font-medium text-destructive",
+            item.status === "nao_se_aplica" && "text-muted-foreground"
           )}
         >
           {item.item}
         </span>
+        {item.status === "nao_se_aplica" && (
+          <Badge variant="muted" className="text-[10px]">Não se aplica</Badge>
+        )}
       </div>
       {item.observacao && (
         <p className="ml-5 text-xs text-muted-foreground italic">"{item.observacao}"</p>
+      )}
+      {item.foto_url && (
+        <a
+          href={item.foto_url}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-5 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <ImageIcon className="h-3 w-3" /> Ver foto do problema
+        </a>
       )}
     </div>
   );

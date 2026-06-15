@@ -76,6 +76,30 @@ export async function uploadFotoManutencao(
 }
 
 /**
+ * Faz upload da foto de uma não-conformidade de inspeção (problema visto) e
+ * retorna a URL pública. Reutiliza o bucket de manutenção (mesmo domínio) com
+ * prefixo "inspecao/". Retorna `null` em caso de falha — a inspeção é salva
+ * mesmo sem foto (anexo é opcional).
+ */
+export async function uploadFotoInspecao(
+  file: File,
+  residenteId: string
+): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `inspecao/${residenteId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET_FOTOS_MANUTENCAO)
+      .upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from(BUCKET_FOTOS_MANUTENCAO).getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Faz upload da foto de registro de uma atividade (registro de que ela
  * aconteceu) e retorna a URL pública. Essa foto poderá futuramente alimentar
  * o portal da família (atividade_execucao.foto_url).
