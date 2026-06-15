@@ -9,7 +9,7 @@ import {
   type PerfilSeletor,
 } from "@/data/perfisSistema";
 import type { UsuarioValor } from "@/hooks/useUsuarios";
-import type { Residente, Usuario } from "@/types/database";
+import type { Residente, TipoRemuneracao, Usuario } from "@/types/database";
 
 // ===========================================================================
 // MASTER-3 · Formulário de usuário (criar/editar) com campos condicionais por
@@ -32,6 +32,14 @@ interface FormState {
   isento_ponto_app: boolean;
   residente_vinculado: string;
   ativo: boolean;
+  // Registro de pessoal SEM ACESSO (não loga; só equipe + custo).
+  semAcesso: boolean;
+  contato: string;
+  tipoRemuneracao: TipoRemuneracao;
+  valorMensal: string;
+  valorPlantaoDiurno: string;
+  valorPlantaoNoturno: string;
+  horario: string;
 }
 
 function estadoInicial(u?: Usuario): FormState {
@@ -47,6 +55,13 @@ function estadoInicial(u?: Usuario): FormState {
     isento_ponto_app: u?.isento_ponto_app ?? true,
     residente_vinculado: u?.residente_vinculado ?? "",
     ativo: u?.ativo ?? true,
+    semAcesso: u?.sem_acesso ?? false,
+    contato: u?.contato ?? "",
+    tipoRemuneracao: (u?.tipo_remuneracao ?? "mensal_fixo") as TipoRemuneracao,
+    valorMensal: u?.valor_mensal != null ? String(u.valor_mensal) : "",
+    valorPlantaoDiurno: u?.valor_plantao_diurno != null ? String(u.valor_plantao_diurno) : "",
+    valorPlantaoNoturno: u?.valor_plantao_noturno != null ? String(u.valor_plantao_noturno) : "",
+    horario: u?.horario_trabalho ?? "",
   };
 }
 
@@ -110,8 +125,10 @@ export function UsuarioForm({
     (!cfg.registroSomenteEnfermagem || perfilDoBanco(f.seletor, f.funcao) === "enfermagem");
 
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
-  const familiaPrecisaResidente = cfg.vinculaResidente && !f.residente_vinculado;
-  const valido = f.nome.trim().length > 0 && emailValido && !familiaPrecisaResidente;
+  // Pessoal sem acesso não loga → e-mail não é exigido; família não se aplica.
+  const familiaPrecisaResidente = !f.semAcesso && cfg.vinculaResidente && !f.residente_vinculado;
+  const valido =
+    f.nome.trim().length > 0 && (f.semAcesso || emailValido) && !familiaPrecisaResidente;
 
   const residentesOrdenados = useMemo(
     () => [...residentes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
@@ -120,22 +137,62 @@ export function UsuarioForm({
 
   function salvar() {
     const funcaoFinal = usaCargo ? f.funcao.trim() || null : null;
+    const num = (s: string): number | null => {
+      const n = Number(s.replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    };
+    const mensal = f.semAcesso && f.tipoRemuneracao === "mensal_fixo";
+    const plantao = f.semAcesso && f.tipoRemuneracao === "por_plantao";
     const valor: UsuarioValor = {
       nome: f.nome.trim(),
-      email: f.email.trim(),
+      email: f.semAcesso ? "" : f.email.trim(), // sem acesso → sem login
       perfil: perfilDoBanco(f.seletor, funcaoFinal),
       funcao: funcaoFinal,
       vinculo: cfg.mostraVinculo ? f.vinculo || null : null,
       registro_profissional: mostraRegistro ? f.registro.trim() || null : null,
       isento_ponto_app: cfg.mostraIsentoPonto ? f.isento_ponto_app : true,
-      residente_vinculado: cfg.vinculaResidente ? f.residente_vinculado || null : null,
+      residente_vinculado: !f.semAcesso && cfg.vinculaResidente ? f.residente_vinculado || null : null,
       ativo: f.ativo,
+      semAcesso: f.semAcesso,
+      contato: f.semAcesso ? f.contato.trim() || null : null,
+      tipoRemuneracao: f.semAcesso ? f.tipoRemuneracao : null,
+      valorMensal: mensal ? num(f.valorMensal) : null,
+      valorPlantaoDiurno: plantao ? num(f.valorPlantaoDiurno) : null,
+      valorPlantaoNoturno: plantao ? num(f.valorPlantaoNoturno) : null,
+      horarioTrabalho: f.semAcesso ? f.horario.trim() || null : null,
     };
     onSalvar(valor);
   }
 
   return (
     <div className="space-y-4 rounded-lg border border-primary/30 bg-accent/40 p-4">
+      {/* Tipo de cadastro: usuário COM acesso (login) vs registro SEM acesso. */}
+      <div>
+        <label className={labelBase}>Tipo de cadastro</label>
+        <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+          {[
+            { v: false, label: "Usuário com acesso (cria login)" },
+            { v: true, label: "Registro de pessoal (sem acesso)" },
+          ].map((o) => (
+            <button
+              key={String(o.v)}
+              type="button"
+              onClick={() => set("semAcesso", o.v)}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                f.semAcesso === o.v ? "bg-card text-secondary shadow-card" : "text-muted-foreground hover:text-secondary"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {f.semAcesso
+            ? "Pessoal só para registro de equipe e custo — NÃO loga no app e não aparece na seleção de perfil."
+            : "Cria um login: o e-mail será o acesso ao sistema."}
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Nome */}
         <div className="sm:col-span-2">
@@ -149,19 +206,34 @@ export function UsuarioForm({
           />
         </div>
 
-        {/* Email (login futuro) */}
-        <div>
-          <label className={labelBase}>E-mail (será o login)</label>
-          <input
-            value={f.email}
-            onChange={(e) => set("email", e.target.value)}
-            placeholder="email@blueseniorliving.com.br"
-            className={inputBase}
-          />
-          {f.email.trim() !== "" && !emailValido && (
-            <p className="mt-1 text-xs text-destructive">E-mail inválido.</p>
-          )}
-        </div>
+        {/* Email (login) — só para usuário COM acesso */}
+        {!f.semAcesso && (
+          <div>
+            <label className={labelBase}>E-mail (será o login)</label>
+            <input
+              value={f.email}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="email@blueseniorliving.com.br"
+              className={inputBase}
+            />
+            {f.email.trim() !== "" && !emailValido && (
+              <p className="mt-1 text-xs text-destructive">E-mail inválido.</p>
+            )}
+          </div>
+        )}
+
+        {/* Contato — só para registro SEM acesso */}
+        {f.semAcesso && (
+          <div>
+            <label className={labelBase}>Contato (opcional)</label>
+            <input
+              value={f.contato}
+              onChange={(e) => set("contato", e.target.value)}
+              placeholder="Telefone / e-mail de contato"
+              className={inputBase}
+            />
+          </div>
+        )}
 
         {/* Perfil */}
         <div>
@@ -232,8 +304,8 @@ export function UsuarioForm({
           </div>
         )}
 
-        {/* Família: vínculo ao residente (obrigatório) */}
-        {cfg.vinculaResidente && (
+        {/* Família: vínculo ao residente (obrigatório) — não se aplica a sem acesso */}
+        {cfg.vinculaResidente && !f.semAcesso && (
           <div className="sm:col-span-2">
             <label className={labelBase}>Residente acompanhado (obrigatório)</label>
             <select
@@ -256,7 +328,52 @@ export function UsuarioForm({
         )}
       </div>
 
-      {/* A remuneração é gerida pela Administração (Remuneração da equipe). */}
+      {/* Remuneração — só no registro SEM ACESSO (entra no custo de pessoal).
+          Para usuários COM acesso, a remuneração fica na Administração. */}
+      {f.semAcesso && (
+        <div className="space-y-3 rounded-lg border border-border bg-card/60 p-3">
+          <p className="text-sm font-semibold text-secondary">Remuneração (custo de pessoal)</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={labelBase}>Tipo</label>
+              <select
+                value={f.tipoRemuneracao}
+                onChange={(e) => set("tipoRemuneracao", e.target.value as TipoRemuneracao)}
+                className={inputBase}
+              >
+                <option value="mensal_fixo">Mensal fixo</option>
+                <option value="por_plantao">Por plantão</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelBase}>Horário / observação</label>
+              <input
+                value={f.horario}
+                onChange={(e) => set("horario", e.target.value)}
+                placeholder="Ex.: Seg–Sex 7h–16h"
+                className={inputBase}
+              />
+            </div>
+            {f.tipoRemuneracao === "mensal_fixo" ? (
+              <div>
+                <label className={labelBase}>Valor mensal (R$)</label>
+                <input type="number" min={0} step="0.01" value={f.valorMensal} onChange={(e) => set("valorMensal", e.target.value)} className={inputBase} />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className={labelBase}>Valor plantão diurno (R$)</label>
+                  <input type="number" min={0} step="0.01" value={f.valorPlantaoDiurno} onChange={(e) => set("valorPlantaoDiurno", e.target.value)} className={inputBase} />
+                </div>
+                <div>
+                  <label className={labelBase}>Valor plantão noturno (R$)</label>
+                  <input type="number" min={0} step="0.01" value={f.valorPlantaoNoturno} onChange={(e) => set("valorPlantaoNoturno", e.target.value)} className={inputBase} />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Isento de ponto no app */}
       {cfg.mostraIsentoPonto && (

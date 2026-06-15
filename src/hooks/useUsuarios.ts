@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { PerfilUsuario, Usuario } from "@/types/database";
+import type { PerfilUsuario, TipoRemuneracao, Usuario } from "@/types/database";
 
 // ===========================================================================
 // MASTER-3 · Usuários e acessos — CRUD da tabela `usuarios` e gestão dos
@@ -25,10 +25,19 @@ export interface UsuarioValor {
   vinculo: string | null;
   registro_profissional: string | null;
   isento_ponto_app: boolean;
-  // A remuneração (mensal/plantão) é gerida pela Administração (Remuneração da
-  // equipe), não aqui — por isso não entra no cadastro de usuário do Master.
+  // A remuneração de quem TEM acesso é gerida pela Administração (Remuneração da
+  // equipe). Para o REGISTRO SEM ACESSO, a remuneração entra aqui (ver abaixo).
   residente_vinculado: string | null;
   ativo: boolean;
+  // Registro de pessoal SEM ACESSO (não loga; só equipe + custo de pessoal).
+  semAcesso: boolean;
+  contato: string | null;
+  // Remuneração — só aplicada quando semAcesso=true (entra no custo de pessoal).
+  tipoRemuneracao: TipoRemuneracao | null;
+  valorMensal: number | null;
+  valorPlantaoDiurno: number | null;
+  valorPlantaoNoturno: number | null;
+  horarioTrabalho: string | null;
 }
 
 /** Todos os usuários, ordenados por nome. */
@@ -47,7 +56,7 @@ export function useUsuarios() {
 
 /** Monta o payload de insert/update a partir do valor do formulário. */
 function paraRegistro(v: UsuarioValor) {
-  return {
+  const base = {
     nome: v.nome.trim(),
     email: v.email.trim() || null,
     perfil: v.perfil,
@@ -57,6 +66,19 @@ function paraRegistro(v: UsuarioValor) {
     registro_profissional: v.registro_profissional?.trim() || null,
     isento_ponto_app: v.isento_ponto_app,
     residente_vinculado: v.residente_vinculado,
+    sem_acesso: v.semAcesso,
+    contato: v.contato?.trim() || null,
+  };
+  // A remuneração só é escrita no cadastro do pessoal SEM ACESSO — para usuários
+  // com acesso, ela continua sendo gerida pela Administração (não sobrescreve).
+  if (!v.semAcesso) return base;
+  return {
+    ...base,
+    tipo_remuneracao: v.tipoRemuneracao,
+    valor_mensal: v.valorMensal,
+    valor_plantao_diurno: v.valorPlantaoDiurno,
+    valor_plantao_noturno: v.valorPlantaoNoturno,
+    horario_trabalho: v.horarioTrabalho?.trim() || null,
   };
 }
 

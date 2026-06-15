@@ -50,6 +50,10 @@ async function resolverUsuario(email: string | undefined): Promise<Usuario | nul
     console.error("Falha ao resolver usuário:", error.message);
     return null;
   }
+  // "Registro de pessoal sem acesso" (sem_acesso) NÃO loga — só existe para
+  // a tela Equipe e o custo de pessoal. (Checagem em JS p/ tolerar bancos sem
+  // a coluna ainda; nesse caso sem_acesso é undefined → permite, como antes.)
+  if (data && (data as { sem_acesso?: boolean }).sem_acesso) return null;
   return data;
 }
 

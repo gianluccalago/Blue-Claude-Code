@@ -281,6 +281,9 @@ export interface Database {
           // Horário fixo dos mensalistas (quem não é escalado). Ex "Seg–Sex 8h–17h".
           horario_trabalho: string | null;
           foto_url: string | null;
+          // Registro de pessoal SEM ACESSO ao sistema (só equipe + custo, sem login).
+          sem_acesso: boolean;
+          contato: string | null;
         };
         Insert: {
           id?: string;
@@ -299,6 +302,8 @@ export interface Database {
           valor_plantao_noturno?: number | null;
           horario_trabalho?: string | null;
           foto_url?: string | null;
+          sem_acesso?: boolean;
+          contato?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];

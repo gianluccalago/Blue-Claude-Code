@@ -227,6 +227,7 @@ function MembroCard({ usuario: u, turnos }: { usuario: Usuario; turnos: Turno[] 
             <span className="font-bold text-secondary">{u.nome}</span>
             <Badge variant="default">{cargoDe(u)}</Badge>
             {u.ativo ? <Badge variant="success">Ativo</Badge> : <Badge variant="muted">Inativo</Badge>}
+            {u.sem_acesso && <Badge variant="warning">Sem acesso ao sistema</Badge>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span>{PERFIL_LABEL[u.perfil]}</span>

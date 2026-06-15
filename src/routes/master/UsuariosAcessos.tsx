@@ -302,6 +302,7 @@ function UsuarioCard({
             {u.funcao && <Badge variant="secondary">{u.funcao}</Badge>}
             <Badge variant="default">{PERFIL_LABEL[u.perfil]}</Badge>
             {u.ativo ? <Badge variant="success">Ativo</Badge> : <Badge variant="muted">Inativo</Badge>}
+            {u.sem_acesso && <Badge variant="warning">Sem acesso</Badge>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
