@@ -22,7 +22,8 @@ import {
 import { useResidentes } from "@/hooks/usePlanos";
 import { useInspecoesHoje } from "@/hooks/useHotelaria";
 import { useChamadosManutencao, useCobrarChamado } from "@/hooks/useManutencao";
-import { useRouparia } from "@/hooks/useRouparia";
+import { useEnxoval } from "@/hooks/useEnxoval";
+import { abaixoDoMinimo } from "@/lib/enxoval";
 import { DESTINO_CHAMADO_LABEL } from "@/lib/manutencao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,11 +64,11 @@ export function PainelServicos() {
   const residentes = useResidentes();
   const inspecoes = useInspecoesHoje();
   const chamados = useChamadosManutencao();
-  const rouparia = useRouparia();
+  const enxoval = useEnxoval();
 
   const isLoading =
-    residentes.isLoading || inspecoes.isLoading || chamados.isLoading || rouparia.isLoading;
-  const erro = residentes.error ?? inspecoes.error ?? chamados.error ?? rouparia.error;
+    residentes.isLoading || inspecoes.isLoading || chamados.isLoading || enxoval.isLoading;
+  const erro = residentes.error ?? inspecoes.error ?? chamados.error ?? enxoval.error;
 
   const lista = useMemo(() => chamados.data ?? [], [chamados.data]);
   const porServicosGerais = useMemo(
@@ -82,10 +83,10 @@ export function PainelServicos() {
   const suitesPendentes = comQuarto.filter((r) => suitePendente(r.id, insp)).length;
   const suitesNaoConformes = comQuarto.filter((r) => suiteNaoConforme(r.id, insp)).length;
 
-  // Lavanderia — rouparia.
-  const itensRoup = rouparia.data ?? [];
-  const saldoRoup = itensRoup.reduce((s, i) => s + i.saldo_atual, 0);
-  const limiteRoup = itensRoup.reduce((s, i) => s + i.limite, 0);
+  // Lavanderia — enxoval (patrimônio da casa).
+  const itensEnx = enxoval.data ?? [];
+  const aReporEnx = itensEnx.filter(abaixoDoMinimo).length;
+  const patrimonioEnx = itensEnx.reduce((s, i) => s + i.quantidade_total, 0);
 
   // Fila de chamados em aberto (todos os destinos) p/ a gestão priorizar.
   const abertos = useMemo(
@@ -145,17 +146,18 @@ export function PainelServicos() {
       </BlocoServico>
 
       {/* LAVANDERIA */}
-      <BlocoServico icon={Shirt} titulo="Lavanderia" subtitulo="Rouparia/enxoval em trânsito">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <BlocoServico icon={Shirt} titulo="Lavanderia" subtitulo="Enxoval da casa (patrimônio)">
+        <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
-            icon={Shirt}
-            tom={saldoRoup > limiteRoup ? "destructive" : "success"}
-            destaque={saldoRoup > limiteRoup}
-            rotulo="Saldo em trânsito"
-            valor={saldoRoup}
-            apoio={`limite ${limiteRoup}${saldoRoup > limiteRoup ? " · acima" : ""}`}
+            icon={AlertTriangle}
+            tom={aReporEnx > 0 ? "destructive" : "success"}
+            destaque={aReporEnx > 0}
+            rotulo="Itens a repor"
+            valor={aReporEnx}
+            apoio={aReporEnx > 0 ? "abaixo do mínimo" : "todos acima do mínimo"}
           />
-          <StatCard icon={CheckCircle2} tom="secondary" rotulo="Categorias" valor={itensRoup.length} />
+          <StatCard icon={Shirt} tom="secondary" rotulo="Patrimônio total" valor={patrimonioEnx} sufixo=" peças" />
+          <StatCard icon={CheckCircle2} tom="secondary" rotulo="Itens cadastrados" valor={itensEnx.length} />
         </div>
       </BlocoServico>
 

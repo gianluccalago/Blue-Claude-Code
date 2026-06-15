@@ -58,6 +58,17 @@ export type PerfilSolicitanteChamado =
 
 /** Destino do chamado de manutenção: quem o trata/gere. */
 export type DestinoChamado = "hotelaria" | "servicos_gerais";
+
+/** Categoria do enxoval da casa (patrimônio). */
+export type EnxovalCategoria =
+  | "roupa_cama"
+  | "toalha_banho"
+  | "toalha_rosto"
+  | "cobertor_manta"
+  | "fronha"
+  | "outro";
+/** Tipo de movimento do enxoval. */
+export type EnxovalMovimentoTipo = "entrada" | "baixa_perda" | "ajuste";
 export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
 /** Ocupação do quarto = preço por nº de leitos (simples/duplo/triplo). */
 export type Ocupacao = "simples" | "duplo" | "triplo";
@@ -854,22 +865,50 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;
         Relationships: [];
       };
-      rouparia_transito: {
+      enxoval: {
         Row: {
           id: string;
-          categoria: string;
-          saldo_atual: number;
-          limite: number;
+          categoria: EnxovalCategoria;
+          descricao: string;
+          quantidade_total: number;
+          quantidade_disponivel: number;
+          estoque_minimo: number;
+          observacao: string | null;
           atualizado_em: string;
         };
         Insert: {
           id?: string;
-          categoria: string;
-          saldo_atual?: number;
-          limite?: number;
+          categoria: EnxovalCategoria;
+          descricao: string;
+          quantidade_total?: number;
+          quantidade_disponivel?: number;
+          estoque_minimo?: number;
+          observacao?: string | null;
           atualizado_em?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["rouparia_transito"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["enxoval"]["Insert"]>;
+        Relationships: [];
+      };
+      enxoval_movimento: {
+        Row: {
+          id: string;
+          enxoval_id: string;
+          tipo: EnxovalMovimentoTipo;
+          quantidade: number;
+          motivo: string | null;
+          registrado_por: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          enxoval_id: string;
+          tipo: EnxovalMovimentoTipo;
+          quantidade: number;
+          motivo?: string | null;
+          registrado_por?: string | null;
+          registrado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["enxoval_movimento"]["Insert"]>;
         Relationships: [];
       };
       atividade: {
@@ -1751,7 +1790,8 @@ export type Dispensacao = Database["public"]["Tables"]["dispensacao"]["Row"];
 export type InspecaoSuite = Database["public"]["Tables"]["inspecao_suite"]["Row"];
 export type InspecaoItem = Database["public"]["Tables"]["inspecao_item"]["Row"];
 export type ChamadoManutencao = Database["public"]["Tables"]["chamado_manutencao"]["Row"];
-export type RoupariaTransito = Database["public"]["Tables"]["rouparia_transito"]["Row"];
+export type Enxoval = Database["public"]["Tables"]["enxoval"]["Row"];
+export type EnxovalMovimento = Database["public"]["Tables"]["enxoval_movimento"]["Row"];
 export type Atividade = Database["public"]["Tables"]["atividade"]["Row"];
 export type AtividadeExecucao = Database["public"]["Tables"]["atividade_execucao"]["Row"];
 export type AtividadeParticipacao = Database["public"]["Tables"]["atividade_participacao"]["Row"];

@@ -147,14 +147,15 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/hotelaria/visao-dia": LayoutDashboard,
   "/app/hotelaria/inspecao-suites": ClipboardCheck,
   "/app/hotelaria/manutencao": Wrench,
-  "/app/hotelaria/rouparia": Shirt,
-  // Serviços Gerais (manutenção) e Lavanderia (rouparia) — perfis derivados
+  // Serviços Gerais (manutenção) e Lavanderia (enxoval) — perfis derivados
   "/app/servicos_gerais/manutencao": Wrench,
-  "/app/lavanderia/rouparia": Shirt,
+  "/app/lavanderia/enxoval": Shirt,
   // Administração
   "/app/administracao": LayoutDashboard,
   "/app/administracao/servicos": Wrench,
+  "/app/administracao/enxoval": Shirt,
   "/app/master/servicos": Wrench,
+  "/app/master/enxoval": Shirt,
   // Pesquisa NPS (aplicação) e Resultados NPS (análise)
   "/app/coordenacao/pesquisa-nps": ClipboardList,
   "/app/multidisciplinar/pesquisa-nps": ClipboardList,

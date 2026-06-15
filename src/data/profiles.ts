@@ -54,6 +54,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Equipe", to: "/app/master/equipe" },
       { label: "Tabela de preços", to: "/app/master/tabela-precos" },
       { label: "Serviços", to: "/app/master/servicos" },
+      { label: "Enxoval", to: "/app/master/enxoval" },
       { label: "Custo refeições equipe", to: "/app/master/refeicoes-equipe" },
       { label: "Resultados NPS", to: "/app/master/resultados-nps" },
       { label: "CRM", to: "/app/master/crm" },
@@ -256,16 +257,16 @@ export const PERFIS: PerfilDef[] = [
     emConstrucao: false,
   },
   {
-    // LAVANDERIA: rouparia/enxoval. Herdou da Hotelaria o módulo de rouparia
-    // (reusa a rota flat /rouparia e a tabela rouparia_transito).
+    // LAVANDERIA INTERNA: controle do enxoval/patrimônio da casa (não o ciclo
+    // diário de lavagem nem a roupa pessoal, resolvidos fora do app).
     id: "lavanderia",
     nome: "Lavanderia",
-    descricao: "Rouparia e enxoval",
+    descricao: "Enxoval da casa",
     icon: Shirt,
     cor: "bg-primary text-primary-foreground",
-    rotaInicial: "/app/lavanderia/rouparia",
+    rotaInicial: "/app/lavanderia/enxoval",
     menu: [
-      { label: "Rouparia", to: "/app/lavanderia/rouparia" },
+      { label: "Enxoval", to: "/app/lavanderia/enxoval" },
     ],
     emConstrucao: false,
   },
@@ -280,6 +281,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Hóspedes", to: "/app/administracao/ficha" },
       { label: "Serviços", to: "/app/administracao/servicos" },
+      { label: "Enxoval", to: "/app/administracao/enxoval" },
       { label: "Resultados NPS", to: "/app/administracao/resultados-nps" },
       { label: "Tabela de preços", to: "/app/administracao/tabela-precos" },
       { label: "Mensalidades", to: "/app/administracao/mensalidades" },

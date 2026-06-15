@@ -43,7 +43,7 @@ import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
 import { EvolucaoMedico } from "@/routes/medico/Evolucao";
 import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
 import { Manutencao } from "@/routes/hotelaria/Manutencao";
-import { Rouparia } from "@/routes/hotelaria/Rouparia";
+import { Enxoval } from "@/routes/lavanderia/Enxoval";
 import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
@@ -214,10 +214,10 @@ const manutencaoRoute = createRoute({
   path: "manutencao",
   component: Manutencao,
 });
-const roupariaRoute = createRoute({
+const enxovalRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "rouparia",
-  component: Rouparia,
+  path: "enxoval",
+  component: Enxoval,
 });
 const visaoDiaHotelariaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -537,7 +537,7 @@ const routeTree = rootRoute.addChildren([
     evolucaoRoute,
     inspecaoSuitesRoute,
     manutencaoRoute,
-    roupariaRoute,
+    enxovalRoute,
     visaoDiaHotelariaRoute,
     chamadoManutencaoRoute,
     painelFarmaciaRoute,
