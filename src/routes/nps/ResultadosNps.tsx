@@ -6,7 +6,7 @@
  * respondente, com destaque para dimensões de NPS baixo.
  */
 import { useMemo, useState } from "react";
-import { BarChart3, AlertTriangle, MessageSquareText, Sparkles } from "lucide-react";
+import { BarChart3, AlertTriangle, MessageSquareText, Sparkles, TrendingDown, LineChart } from "lucide-react";
 import { useNpsPesquisas, useNpsRespostas } from "@/hooks/useNps";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -16,13 +16,38 @@ import {
   resumoNps,
   npsBaixo,
   type ClasseNps,
+  type DimensaoNps,
 } from "@/lib/nps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard/primitives";
+import { BarrasAgrupadas, PALETA_BARRAS, type SerieAgrupada } from "@/components/dashboard/BarrasAgrupadas";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataBR, ouNaoInformado } from "@/lib/utils";
-import type { NpsResposta } from "@/types/database";
+import type { NpsPesquisa, NpsResposta } from "@/types/database";
+
+// Rótulos curtos das dimensões para o eixo X do comparativo.
+const DIM_CURTA: Record<DimensaoNps, string> = {
+  geral: "Geral",
+  limpeza_suites: "Suítes",
+  limpeza_areas_comuns: "Áreas com.",
+  atendimento_equipe: "Atend.",
+  comida: "Comida",
+  atividades_fisicas: "Ativ. fís.",
+  atividades_lazer: "Lazer",
+  lavanderia: "Lavand.",
+};
+
+function trimestreDe(dataISO: string): string {
+  const d = new Date(dataISO);
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `${d.getFullYear()}-T${q}`;
+}
+function rotuloTrimestre(key: string): string {
+  const [ano, t] = key.split("-T");
+  return `${t}ºT/${ano}`;
+}
 
 type Periodo = "30" | "90" | "180" | "tudo";
 const PERIODOS: { value: Periodo; label: string }[] = [
@@ -61,15 +86,20 @@ export function ResultadosNps() {
   const pesquisas = pesquisasQ.data ?? [];
   const respostas = respostasQ.data ?? [];
 
-  const pesquisasFiltradas = useMemo(
+  // Filtro de respondente + hóspede SEM o período (base do comparativo por trimestre).
+  const pesquisasRespHosp = useMemo(
     () =>
       pesquisas.filter(
         (p) =>
           (respFiltro === "todos" || p.respondente === respFiltro) &&
-          (hospedeFiltro === "todos" || p.residente_id === hospedeFiltro) &&
-          dentroPeriodo(p.data, periodo),
+          (hospedeFiltro === "todos" || p.residente_id === hospedeFiltro),
       ),
-    [pesquisas, respFiltro, hospedeFiltro, periodo],
+    [pesquisas, respFiltro, hospedeFiltro],
+  );
+
+  const pesquisasFiltradas = useMemo(
+    () => pesquisasRespHosp.filter((p) => dentroPeriodo(p.data, periodo)),
+    [pesquisasRespHosp, periodo],
   );
 
   const respostasPorDimensao = useMemo(() => {
@@ -155,6 +185,9 @@ export function ResultadosNps() {
             <StatCard icon={BarChart3} tom="destructive" rotulo="Detratores (0-6)" valor={geral.detratores} apoio={pct(geral.detratores, geral.total)} />
           </div>
 
+          {/* Comparativo por trimestre (independe do filtro de período) */}
+          <ComparativoTrimestral pesquisas={pesquisasRespHosp} respostas={respostas} />
+
           {/* Por dimensão */}
           <div className="space-y-4">
             {DIMENSOES_NPS.map((d) => (
@@ -180,6 +213,120 @@ export function ResultadosNps() {
 function pct(parte: number, total: number): string {
   if (total === 0) return "0%";
   return `${Math.round((parte / total) * 100)}%`;
+}
+
+// ─── Comparativo por trimestre (barras agrupadas) ────────────────────────────
+
+function ComparativoTrimestral({
+  pesquisas,
+  respostas,
+}: {
+  pesquisas: NpsPesquisa[];
+  respostas: NpsResposta[];
+}) {
+  const trimestres = useMemo(() => {
+    const set = new Set(pesquisas.map((p) => trimestreDe(p.data)));
+    return Array.from(set).sort(); // crescente cronológico ("YYYY-TQ")
+  }, [pesquisas]);
+
+  // null = ainda não escolheu → usa os 4 trimestres mais recentes.
+  const [selecionados, setSelecionados] = useState<string[] | null>(null);
+  const selecao = useMemo(() => {
+    const base = selecionados ?? trimestres.slice(-4);
+    return base.filter((t) => trimestres.includes(t)).sort();
+  }, [selecionados, trimestres]);
+
+  const idsPorTri = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const p of pesquisas) {
+      const t = trimestreDe(p.data);
+      if (!m.has(t)) m.set(t, new Set());
+      m.get(t)!.add(p.id);
+    }
+    return m;
+  }, [pesquisas]);
+
+  // NPS por dimensão × trimestre selecionado (null = sem respostas).
+  const npsPorDimTri = useMemo(() => {
+    const out = new Map<DimensaoNps, Map<string, number | null>>();
+    for (const d of DIMENSOES_NPS) {
+      const porTri = new Map<string, number | null>();
+      for (const t of selecao) {
+        const ids = idsPorTri.get(t) ?? new Set<string>();
+        const notas = respostas.filter((r) => r.dimensao === d.key && ids.has(r.pesquisa_id)).map((r) => r.nota);
+        porTri.set(t, resumoNps(notas).nps);
+      }
+      out.set(d.key, porTri);
+    }
+    return out;
+  }, [respostas, idsPorTri, selecao]);
+
+  const categorias = DIMENSOES_NPS.map((d) => DIM_CURTA[d.key]);
+  const series: SerieAgrupada[] = selecao.map((t, i) => ({
+    label: rotuloTrimestre(t),
+    corClasse: PALETA_BARRAS[i % PALETA_BARRAS.length],
+    valores: DIMENSOES_NPS.map((d) => npsPorDimTri.get(d.key)!.get(t) ?? 0),
+  }));
+
+  // Destaques: piora (último < penúltimo) e atenção (NPS baixo no último).
+  const ultimo = selecao[selecao.length - 1];
+  const penultimo = selecao[selecao.length - 2];
+  const emQueda = DIMENSOES_NPS.filter((d) => {
+    if (!penultimo) return false;
+    const a = npsPorDimTri.get(d.key)!.get(penultimo);
+    const b = npsPorDimTri.get(d.key)!.get(ultimo);
+    return a != null && b != null && b < a;
+  });
+  const atencao = DIMENSOES_NPS.filter((d) => ultimo && npsBaixo(npsPorDimTri.get(d.key)!.get(ultimo) ?? null));
+
+  if (trimestres.length === 0) return null;
+
+  function toggle(t: string) {
+    const base = selecionados ?? trimestres.slice(-4);
+    setSelecionados(base.includes(t) ? base.filter((x) => x !== t) : [...base, t]);
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <LineChart className="size-4 text-primary" /> Comparativo por trimestre
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-1.5">
+          {trimestres.map((t) => (
+            <Button key={t} size="sm" variant={selecao.includes(t) ? "default" : "outline"} onClick={() => toggle(t)}>
+              {rotuloTrimestre(t)}
+            </Button>
+          ))}
+        </div>
+
+        {selecao.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Selecione ao menos um trimestre.</p>
+        ) : (
+          <>
+            <BarrasAgrupadas categorias={categorias} series={series} formatarValor={(n) => String(Math.round(n))} />
+            <p className="text-xs text-muted-foreground">Eixo Y = NPS por dimensão (−100 a +100) · séries = trimestres.</p>
+            {(emQueda.length > 0 || atencao.length > 0) && (
+              <div className="flex flex-wrap gap-2 border-t pt-3">
+                {emQueda.map((d) => (
+                  <Badge key={`q-${d.key}`} variant="warning" className="gap-1">
+                    <TrendingDown className="size-3" /> {d.label}: em queda
+                  </Badge>
+                ))}
+                {atencao.map((d) => (
+                  <Badge key={`a-${d.key}`} variant="destructive" className="gap-1">
+                    <AlertTriangle className="size-3" /> {d.label}: NPS baixo
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function Filtro({ label, children }: { label: string; children: React.ReactNode }) {
