@@ -72,6 +72,10 @@ export type EnxovalMovimentoTipo = "entrada" | "baixa_perda" | "ajuste";
 export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
 /** Ocupação do quarto = preço por nº de leitos (simples/duplo/triplo). */
 export type Ocupacao = "simples" | "duplo" | "triplo";
+/** Sexo do hóspede. */
+export type Sexo = "masculino" | "feminino";
+/** Ciclo de vida do hóspede: ativo (presente) ou inativo (saiu). */
+export type StatusHospede = "ativo" | "inativo";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
 // vencimento passado), mas também pode ser gravada. Migra do antigo
@@ -203,6 +207,12 @@ export interface Database {
           resp_fin_relacao: string | null;
           // RESERVADO: id do cliente na plataforma de cobrança (ex.: Asaas). NULL por ora.
           asaas_customer_id: string | null;
+          // Ciclo de vida do hóspede.
+          sexo: Sexo | null;
+          status_hospede: StatusHospede;
+          data_saida: string | null;
+          motivo_saida: string | null;
+          numero_hospede: string | null;
         };
         Insert: {
           id?: string;
@@ -238,6 +248,11 @@ export interface Database {
           resp_fin_telefone?: string | null;
           resp_fin_relacao?: string | null;
           asaas_customer_id?: string | null;
+          sexo?: Sexo | null;
+          status_hospede?: StatusHospede;
+          data_saida?: string | null;
+          motivo_saida?: string | null;
+          numero_hospede?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["residentes"]["Insert"]>;
         Relationships: [];
@@ -1505,6 +1520,8 @@ export interface Database {
           comprovante_url: string | null;
           lancado_por: string;
           criado_em: string;
+          // Recorrente (fixo mensal) vs avulso — só os fixos entram no Mapa das Suítes.
+          recorrente: boolean;
         };
         Insert: {
           id?: string;
@@ -1517,6 +1534,7 @@ export interface Database {
           comprovante_url?: string | null;
           lancado_por?: string;
           criado_em?: string;
+          recorrente?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["upselling"]["Insert"]>;
         Relationships: [];
