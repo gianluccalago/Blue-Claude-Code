@@ -165,13 +165,15 @@ export function PainelAdministracao() {
         <LinkCard to={`${base}/custos-pessoal`}>
           <StatCard icon={Users} tom="secondary" rotulo="Custo de pessoal" valor={formatarMoeda(r.custoPessoal)} />
         </LinkCard>
-        <StatCard
-          icon={Boxes}
-          tom="secondary"
-          rotulo="Custo de materiais"
-          valor={r.custoMateriais == null ? "—" : formatarMoeda(r.custoMateriais)}
-          apoio="limpeza + manutenção (módulo a implementar)"
-        />
+        <LinkCard to={`${base}/custos-materiais`}>
+          <StatCard
+            icon={Boxes}
+            tom="secondary"
+            rotulo="Custo de materiais"
+            valor={formatarMoeda(r.custoMateriais)}
+            apoio="limpeza + manutenção"
+          />
+        </LinkCard>
         <StatCard
           icon={Wallet}
           tom={resultadoPositivo ? "success" : "destructive"}

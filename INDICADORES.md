@@ -15,8 +15,8 @@ sobreposição, ele resume e aponta para o detalhe na Administração.
 - `faturamento = mensalidades (previstas) + upselling (do mês)`
 - `recebido = mensalidades de hóspedes com pagamento "paga"`
 - `resultado = faturamento − (custo de pessoal + custo de materiais)`
-- `custo de materiais = null` enquanto não existe o módulo de materiais
-  (limpeza/manutenção) — o card mostra "—".
+- `custo de materiais = soma (limpeza + manutenção) do mês` — vem do módulo
+  "Custos de materiais" (`useCustosMateriaisDoMes`), já descontado no resultado.
 - `taxa de ocupação = ativos / capacidade` (capacidade = config `total_suites`,
   editável no Painel da Administração); sem capacidade → "sem dados".
 
@@ -112,9 +112,6 @@ plano (hoje) · Manutenção · Hotelaria
    código apontando a origem futura.
 
 ## Pendências de fonte de dados
-- **Custo de materiais (limpeza + manutenção):** não há tabela/módulo. O card
-  exibe "—". Ao criar o módulo, alimentar `useResumoMes.custoMateriais` (e o
-  resultado já passa a descontá-lo automaticamente).
 - **NPS no Master:** existe a tela "Resultados NPS"; um resumo executivo pode
   ser plugado ao cockpit no futuro (não incluído para não exibir score sem o
   recorte definido).

@@ -69,6 +69,8 @@ export type EnxovalCategoria =
   | "outro";
 /** Tipo de movimento do enxoval. */
 export type EnxovalMovimentoTipo = "entrada" | "baixa_perda" | "ajuste";
+/** Categoria de custo de material (despesas da Administração). */
+export type CategoriaMaterial = "limpeza" | "manutencao";
 export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
 /** Ocupação do quarto = preço por nº de leitos (simples/duplo/triplo). */
 export type Ocupacao = "simples" | "duplo" | "triplo";
@@ -1539,6 +1541,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["upselling"]["Insert"]>;
         Relationships: [];
       };
+      custo_material: {
+        Row: {
+          id: string;
+          categoria: CategoriaMaterial;
+          descricao: string;
+          valor: number;
+          fornecedor: string | null;
+          data: string;
+          mes_referencia: string;
+          comprovante_url: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          categoria: CategoriaMaterial;
+          descricao: string;
+          valor: number;
+          fornecedor?: string | null;
+          data?: string;
+          mes_referencia: string;
+          comprovante_url?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["custo_material"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_pessoal: {
         Row: {
           id: string;
@@ -1818,5 +1848,6 @@ export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutrici
 export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
+export type CustoMaterial = Database["public"]["Tables"]["custo_material"]["Row"];
 export type PagamentoPessoal = Database["public"]["Tables"]["pagamento_pessoal"]["Row"];
 export type SolicitacaoFamilia = Database["public"]["Tables"]["solicitacao_familia"]["Row"];

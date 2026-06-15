@@ -5,6 +5,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Map as MapIcon,
   Archive,
+  Boxes,
   LogOut,
   Loader2,
   X,
@@ -181,6 +182,8 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/demonstrativo": FileSpreadsheet,
   "/app/administracao/remuneracao-equipe": Coins,
   "/app/administracao/custos-pessoal": Banknote,
+  "/app/administracao/custos-materiais": Boxes,
+  "/app/direcao/custos-materiais": Boxes,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
   // Direção (mesma operação da Administração + CRM)

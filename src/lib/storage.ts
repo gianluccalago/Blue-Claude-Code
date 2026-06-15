@@ -6,6 +6,28 @@ export const BUCKET_UPSELLING_COMPROVANTES = "upselling-comprovantes";
 export const BUCKET_FOTOS_INTERCORRENCIA = "intercorrencias-fotos";
 export const BUCKET_FOTOS_RESIDENTE = "residentes-fotos";
 export const BUCKET_FOTOS_USUARIO = "usuarios-fotos";
+export const BUCKET_CUSTOS_MATERIAIS = "custos-materiais-comprovantes";
+
+/**
+ * Faz upload do comprovante (foto/PDF) de um custo de material e retorna a URL
+ * pública. Retorna `null` em caso de falha — o lançamento é salvo sem comprovante.
+ */
+export async function uploadComprovanteMaterial(
+  file: File,
+  categoria: string,
+  mes: string,
+): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${categoria}/${mes}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_CUSTOS_MATERIAIS).upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from(BUCKET_CUSTOS_MATERIAIS).getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Faz upload da foto de um usuário (equipe) e retorna a URL pública.

@@ -5,6 +5,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import { useResidentesInativos } from "@/hooks/useCicloVida";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
+import { useCustosMateriaisDoMes } from "@/hooks/useCustosMateriais";
 import { useConfiguracao, CHAVE_TOTAL_SUITES } from "@/hooks/useConfiguracao";
 import { deslocarMes, chavePreco } from "@/lib/mensalidade";
 import type { Residente } from "@/types/database";
@@ -40,7 +41,7 @@ export interface ResumoMes {
   inadimplenteValor: number;
   // Custos e resultado
   custoPessoal: number;
-  custoMateriais: number | null;
+  custoMateriais: number; // soma limpeza + manutenção do mês
   resultado: number;
   // Estado
   isLoading: boolean;
@@ -55,13 +56,14 @@ function noMes(dataISO: string | null | undefined, mes: string): boolean {
 export function useResumoMes(mes: string): ResumoMes {
   const demo = useDemonstrativoMes(mes);
   const custos = useCustosPessoalDoMes(mes);
+  const materiais = useCustosMateriaisDoMes(mes);
   const ativosQ = useResidentes();
   const inativosQ = useResidentesInativos();
   const capacidadeQ = useConfiguracao(CHAVE_TOTAL_SUITES);
 
-  const isLoading = demo.isLoading || custos.isLoading || ativosQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading;
-  const isError = demo.isError || custos.isError || ativosQ.isError || inativosQ.isError;
-  const error = demo.error ?? custos.error ?? ativosQ.error ?? inativosQ.error;
+  const isLoading = demo.isLoading || custos.isLoading || materiais.isLoading || ativosQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading;
+  const isError = demo.isError || custos.isError || materiais.isError || ativosQ.isError || inativosQ.isError;
+  const error = demo.error ?? custos.error ?? materiais.error ?? ativosQ.error ?? inativosQ.error;
 
   const mensalidades = demo.linhas.reduce((s, l) => s + l.mensalidade, 0);
   const upselling = demo.linhas.reduce((s, l) => s + l.upselling, 0);
@@ -73,8 +75,9 @@ export function useResumoMes(mes: string): ResumoMes {
   const pctRecebido = mensalidades > 0 ? Math.round((recebido / mensalidades) * 100) : null;
 
   const custoPessoal = custos.linhas.reduce((s, l) => s + l.valorFinal, 0);
-  const custoMateriais: number | null = null; // sem módulo de materiais ainda
-  const resultado = faturamento - (custoPessoal + (custoMateriais ?? 0));
+  // Módulo de materiais (limpeza + manutenção) já alimenta o resultado.
+  const custoMateriais = (materiais.data ?? []).reduce((s, m) => s + m.valor, 0);
+  const resultado = faturamento - (custoPessoal + custoMateriais);
 
   const ativos = demo.linhas.length;
   const capacidadeNum = capacidadeQ.data ? parseInt(capacidadeQ.data, 10) : NaN;
