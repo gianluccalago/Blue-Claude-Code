@@ -44,6 +44,7 @@ import { EvolucaoMedico } from "@/routes/medico/Evolucao";
 import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
 import { Manutencao } from "@/routes/hotelaria/Manutencao";
 import { Enxoval } from "@/routes/lavanderia/Enxoval";
+import { MapaSuites } from "@/routes/administracao/MapaSuites";
 import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
@@ -218,6 +219,11 @@ const enxovalRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "enxoval",
   component: Enxoval,
+});
+const mapaSuitesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "mapa-suites",
+  component: MapaSuites,
 });
 const visaoDiaHotelariaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -538,6 +544,7 @@ const routeTree = rootRoute.addChildren([
     inspecaoSuitesRoute,
     manutencaoRoute,
     enxovalRoute,
+    mapaSuitesRoute,
     visaoDiaHotelariaRoute,
     chamadoManutencaoRoute,
     painelFarmaciaRoute,

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
+  Map as MapIcon,
   LogOut,
   Loader2,
   X,
@@ -154,8 +155,11 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao": LayoutDashboard,
   "/app/administracao/servicos": Wrench,
   "/app/administracao/enxoval": Shirt,
+  "/app/administracao/mapa-suites": MapIcon,
+  "/app/direcao/mapa-suites": MapIcon,
   "/app/master/servicos": Wrench,
   "/app/master/enxoval": Shirt,
+  "/app/master/mapa-suites": MapIcon,
   // Pesquisa NPS (aplicação) e Resultados NPS (análise)
   "/app/coordenacao/pesquisa-nps": ClipboardList,
   "/app/multidisciplinar/pesquisa-nps": ClipboardList,

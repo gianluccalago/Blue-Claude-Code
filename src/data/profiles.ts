@@ -47,6 +47,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel estratégico", to: "/app/master" },
       { label: "Visão do hóspede (360°)", to: "/app/master/hospede" },
+      { label: "Mapa das Suítes", to: "/app/master/mapa-suites" },
       { label: "Painel operacional", to: "/app/master/operacional" },
       { label: "Supervisão clínica", to: "/app/master/clinica" },
       { label: "Usuários e acessos", to: "/app/master/usuarios" },
@@ -280,6 +281,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Hóspedes", to: "/app/administracao/ficha" },
+      { label: "Mapa das Suítes", to: "/app/administracao/mapa-suites" },
       { label: "Serviços", to: "/app/administracao/servicos" },
       { label: "Enxoval", to: "/app/administracao/enxoval" },
       { label: "Resultados NPS", to: "/app/administracao/resultados-nps" },
@@ -309,6 +311,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel da Direção", to: "/app/direcao" },
       { label: "Hóspedes", to: "/app/direcao/ficha" },
+      { label: "Mapa das Suítes", to: "/app/direcao/mapa-suites" },
       { label: "CRM", to: "/app/direcao/crm" },
       { label: "Tabela de preços", to: "/app/direcao/tabela-precos" },
       { label: "Mensalidades", to: "/app/direcao/mensalidades" },
