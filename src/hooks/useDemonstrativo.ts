@@ -4,12 +4,15 @@ import { usePagamentosDoMes, useTabelaPreco } from "@/hooks/useMensalidades";
 import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
 import { chavePreco } from "@/lib/mensalidade";
 import { ehPago } from "@/lib/cobranca";
+import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { PagamentoMensalidade, Residente } from "@/types/database";
 
 export interface LinhaDemonstrativo {
   residente: Residente;
   mensalidade: number;
   upselling: number;
+  /** Parcela do 13º (nov/dez); 0 nos demais meses. Cobrança própria. */
+  decimoTerceiro: number;
   total: number;
   pago: boolean;
   pagamento: PagamentoMensalidade | undefined;
@@ -45,11 +48,14 @@ export function useDemonstrativoMes(mes: string) {
         r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
       const pagamento = pagamentoMap.get(r.id);
       const upsellingTotal = upsellingPorResidente.get(r.id) ?? 0;
+      // 13º proporcional (cobrança própria) — só nov/dez, sem upselling.
+      const decimoTerceiro = valorParcelaDecimo(mensalidade, r.data_admissao, mes);
       return {
         residente: r,
         mensalidade,
         upselling: upsellingTotal,
-        total: mensalidade + upsellingTotal,
+        decimoTerceiro,
+        total: mensalidade + upsellingTotal + decimoTerceiro,
         pago: ehPago(pagamento?.status),
         pagamento,
       };

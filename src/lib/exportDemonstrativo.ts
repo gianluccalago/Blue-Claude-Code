@@ -26,6 +26,7 @@ export async function exportarDemonstrativoConsolidadoExcel(
     const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
 
+    const tem13 = linhas.some((l) => l.decimoTerceiro > 0);
     const consolidado = linhas.map((l) => ({
       "Hóspede": l.residente.nome,
       "Quarto": l.residente.quarto ?? "Não informado",
@@ -33,6 +34,7 @@ export async function exportarDemonstrativoConsolidadoExcel(
       "Grau": l.residente.grau_dependencia ?? "Não informado",
       "Mensalidade (R$)": l.mensalidade,
       "Upselling (R$)": l.upselling,
+      ...(tem13 ? { "13º (R$)": l.decimoTerceiro } : {}),
       "Total (R$)": l.total,
       "Status mensalidade": l.pago ? "Pago" : "Pendente",
     }));
@@ -103,6 +105,7 @@ export async function exportarDemonstrativoIndividualExcel(
         "Mês de referência": formatarMesReferencia(mes),
         "Mensalidade (R$)": linha.mensalidade,
         "Upselling (R$)": linha.upselling,
+        ...(linha.decimoTerceiro > 0 ? { "13º (R$)": linha.decimoTerceiro } : {}),
         "Total (R$)": linha.total,
         "Status mensalidade": linha.pago ? "Pago" : "Pendente",
       },
@@ -140,6 +143,7 @@ export function gerarTextoDemonstrativoIndividual(
     "",
     `Mensalidade: ${formatarMoeda(linha.mensalidade)} (${linha.pago ? "Pago" : "Pendente"})`,
     `Upselling do mês: ${formatarMoeda(linha.upselling)}`,
+    ...(linha.decimoTerceiro > 0 ? [`13º (parcela): ${formatarMoeda(linha.decimoTerceiro)}`] : []),
     `Total do mês: ${formatarMoeda(linha.total)}`,
     "",
   ];

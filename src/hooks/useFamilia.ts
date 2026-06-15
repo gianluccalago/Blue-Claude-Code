@@ -5,6 +5,7 @@ import { FAMILIA_ATUAL } from "@/data/profiles";
 import { useTabelaPreco, usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { chavePreco } from "@/lib/mensalidade";
+import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { AtividadeParticipacao, CompromissoExterno, Residente } from "@/types/database";
 
 /**
@@ -159,6 +160,7 @@ export interface ItemUpsellingFamilia {
 export interface DemonstrativoFamilia {
   mensalidade: number;
   upselling: number;
+  decimoTerceiro: number;
   total: number;
   pago: boolean;
   itensUpselling: ItemUpsellingFamilia[];
@@ -186,11 +188,13 @@ export function useDemonstrativoFamilia(mes: string) {
       r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
     const itens = upselling.data ?? [];
     const upsellingTotal = itens.reduce((acc, i) => acc + i.valor, 0);
+    const decimoTerceiro = valorParcelaDecimo(mensalidade, r.data_admissao, mes);
     const pagamento = (pagamentos.data ?? []).find((p) => p.residente_id === r.id);
     return {
       mensalidade,
       upselling: upsellingTotal,
-      total: mensalidade + upsellingTotal,
+      decimoTerceiro,
+      total: mensalidade + upsellingTotal + decimoTerceiro,
       pago: pagamento?.status === "paga",
       itensUpselling: itens.map((i) => ({
         categoria: i.categoria,

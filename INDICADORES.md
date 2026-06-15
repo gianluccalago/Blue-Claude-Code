@@ -12,7 +12,9 @@ sobreposição, ele resume e aponta para o detalhe na Administração.
 - `useEvolucaoFinanceira(mesBase, n)` — série de faturamento/resultado mês a mês.
 
 **Definições canônicas:**
-- `faturamento = mensalidades (previstas) + upselling (do mês)`
+- `faturamento = mensalidades (previstas) + upselling (do mês) + 13º (nov/dez)`
+  — o 13º é uma linha CALCULADA no demonstrativo (não depende de upselling) e
+  flui para o faturamento via `demo.linhas` (fonte única).
 - `recebido = mensalidades de hóspedes com pagamento "paga"`
 - `resultado = faturamento − (custo de pessoal + custo de materiais)`
 - `custo de materiais = soma (limpeza + manutenção) do mês` — vem do módulo

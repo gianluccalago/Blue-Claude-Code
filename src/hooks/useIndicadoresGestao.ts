@@ -33,6 +33,7 @@ export interface ResumoMes {
   // Financeiro
   mensalidades: number;
   upselling: number;
+  decimoTerceiro: number; // parcela do 13º no mês (nov/dez)
   faturamento: number;
   recebido: number;
   pendente: number;
@@ -67,7 +68,8 @@ export function useResumoMes(mes: string): ResumoMes {
 
   const mensalidades = demo.linhas.reduce((s, l) => s + l.mensalidade, 0);
   const upselling = demo.linhas.reduce((s, l) => s + l.upselling, 0);
-  const faturamento = mensalidades + upselling;
+  const decimoTerceiro = demo.linhas.reduce((s, l) => s + l.decimoTerceiro, 0);
+  const faturamento = mensalidades + upselling + decimoTerceiro;
 
   const inadimplentesLinhas = demo.linhas.filter((l) => !l.pago && l.mensalidade > 0);
   const inadimplenteValor = inadimplentesLinhas.reduce((s, l) => s + l.mensalidade, 0);
@@ -101,6 +103,7 @@ export function useResumoMes(mes: string): ResumoMes {
     saidas,
     mensalidades,
     upselling,
+    decimoTerceiro,
     faturamento,
     recebido,
     pendente: inadimplenteValor,

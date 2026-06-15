@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
+import { rotuloParcelaDecimo } from "@/lib/decimoTerceiro";
 import { formatarDataBR } from "@/lib/utils";
 
 /**
@@ -35,7 +36,7 @@ export function Mensalidade() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={`grid gap-4 sm:grid-cols-2 ${demonstrativo.decimoTerceiro > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         <Card>
           <CardContent className="flex items-center gap-3 py-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -58,6 +59,19 @@ export function Mensalidade() {
             </div>
           </CardContent>
         </Card>
+        {demonstrativo.decimoTerceiro > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-4">
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                <Wallet className="size-5" />
+              </div>
+              <div>
+                <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(demonstrativo.decimoTerceiro)}</p>
+                <p className="text-sm text-muted-foreground">{rotuloParcelaDecimo(mes) ?? "13º"}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="flex items-center gap-3 py-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">

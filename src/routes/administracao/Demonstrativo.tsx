@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { useDemonstrativoMes, type LinhaDemonstrativo } from "@/hooks/useDemonstrativo";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
+import { rotuloParcelaDecimo } from "@/lib/decimoTerceiro";
 import {
   exportarDemonstrativoConsolidadoExcel,
   exportarDemonstrativoIndividualExcel,
@@ -43,7 +44,9 @@ export function Demonstrativo() {
 
   const totalMensalidades = demo.linhas.reduce((acc, l) => acc + l.mensalidade, 0);
   const totalUpselling = demo.linhas.reduce((acc, l) => acc + l.upselling, 0);
-  const totalGeral = totalMensalidades + totalUpselling;
+  const total13 = demo.linhas.reduce((acc, l) => acc + l.decimoTerceiro, 0);
+  const totalGeral = totalMensalidades + totalUpselling + total13;
+  const labelDecimo = rotuloParcelaDecimo(mes);
 
   const detalheLinha = demo.linhas.find((l) => l.residente.id === detalheId);
 
@@ -75,7 +78,7 @@ export function Demonstrativo() {
         <DetalheHospede linha={detalheLinha} mes={mes} onVoltar={() => setDetalheId(null)} />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className={`grid gap-4 sm:grid-cols-2 ${total13 > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
             <Card>
               <CardContent className="flex items-center gap-3 py-4">
                 <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -98,6 +101,19 @@ export function Demonstrativo() {
                 </div>
               </CardContent>
             </Card>
+            {total13 > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="flex items-center gap-3 py-4">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                    <Wallet className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(total13)}</p>
+                    <p className="text-sm text-muted-foreground">{labelDecimo ?? "13º"} a cobrar</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardContent className="flex items-center gap-3 py-4">
                 <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
@@ -125,7 +141,7 @@ export function Demonstrativo() {
 
           <div className="space-y-3">
             {demo.linhas.map((l) => (
-              <LinhaConsolidada key={l.residente.id} linha={l} onAbrir={() => setDetalheId(l.residente.id)} />
+              <LinhaConsolidada key={l.residente.id} linha={l} mes={mes} onAbrir={() => setDetalheId(l.residente.id)} />
             ))}
           </div>
         </>
@@ -134,7 +150,7 @@ export function Demonstrativo() {
   );
 }
 
-function LinhaConsolidada({ linha, onAbrir }: { linha: LinhaDemonstrativo; onAbrir: () => void }) {
+function LinhaConsolidada({ linha, mes: mesDaLinha, onAbrir }: { linha: LinhaDemonstrativo; mes: string; onAbrir: () => void }) {
   const r = linha.residente;
   return (
     <Card>
@@ -147,6 +163,9 @@ function LinhaConsolidada({ linha, onAbrir }: { linha: LinhaDemonstrativo; onAbr
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>Mensalidade: <span className="font-semibold text-secondary">{formatarMoeda(linha.mensalidade)}</span></span>
             <span>Upselling: <span className="font-semibold text-secondary">{formatarMoeda(linha.upselling)}</span></span>
+            {linha.decimoTerceiro > 0 && (
+              <span>{rotuloParcelaDecimo(mesDaLinha) ?? "13º"}: <span className="font-semibold text-primary">{formatarMoeda(linha.decimoTerceiro)}</span></span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -195,7 +214,7 @@ function DetalheHospede({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Mensalidade</p>
               <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(linha.mensalidade)}</p>
@@ -205,6 +224,12 @@ function DetalheHospede({
               <p className="text-sm text-muted-foreground">Upselling do mês</p>
               <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(linha.upselling)}</p>
             </div>
+            {linha.decimoTerceiro > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground">{rotuloParcelaDecimo(mes) ?? "13º"}</p>
+                <p className="text-xl font-bold tabular-nums text-primary">{formatarMoeda(linha.decimoTerceiro)}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm text-muted-foreground">Total do mês</p>
               <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(linha.total)}</p>

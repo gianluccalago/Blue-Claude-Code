@@ -135,7 +135,10 @@ export function PainelAdministracao() {
             tom="success"
             rotulo="Faturamento do mês"
             valor={formatarMoeda(r.faturamento)}
-            apoio={`Mensalidades ${formatarMoeda(r.mensalidades)} + upselling ${formatarMoeda(r.upselling)}`}
+            apoio={
+              `Mensalidades ${formatarMoeda(r.mensalidades)} + upselling ${formatarMoeda(r.upselling)}` +
+              (r.decimoTerceiro > 0 ? ` + 13º ${formatarMoeda(r.decimoTerceiro)}` : "")
+            }
           />
         </LinkCard>
         <LinkCard to={`${base}/cobranca`}>
