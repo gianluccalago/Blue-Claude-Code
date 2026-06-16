@@ -189,6 +189,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/cobranca-temporaria": Receipt,
   "/app/direcao/cobranca-temporaria": Receipt,
   "/app/master/cobranca-temporaria": Receipt,
+  "/app/administracao/rh-eventos": Users2,
+  "/app/direcao/rh-eventos": Users2,
+  "/app/master/rh-eventos": Users2,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
   // Direção (mesma operação da Administração + CRM)

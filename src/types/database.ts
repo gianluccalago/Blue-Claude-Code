@@ -84,6 +84,23 @@ export type ModalidadeEstadia = "longa_permanencia" | "curta_permanencia" | "day
 export type ModalidadeTemporaria = "curta_permanencia" | "day_care";
 /** Status de uma cobrança temporária. */
 export type StatusCobrancaTemporaria = "pendente" | "pago";
+/** Tipo de ausência de pessoal (RH). */
+export type TipoAusencia =
+  | "atestado"
+  | "falta_sem_atestado"
+  | "ferias"
+  | "licenca_maternidade"
+  | "licenca_inss"
+  | "evento"
+  | "outro";
+/** Motivo de desligamento (RH). */
+export type MotivoDesligamento =
+  | "pedido_demissao_voluntario"
+  | "sem_justa_causa"
+  | "com_justa_causa"
+  | "fim_experiencia"
+  | "fim_contrato"
+  | "outro";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
 // vencimento passado), mas também pode ser gravada. Migra do antigo
@@ -297,6 +314,8 @@ export interface Database {
           // Registro de pessoal SEM ACESSO ao sistema (só equipe + custo, sem login).
           sem_acesso: boolean;
           contato: string | null;
+          // Admissão do profissional (tempo de casa / turnover — módulo de RH).
+          data_admissao: string | null;
         };
         Insert: {
           id?: string;
@@ -317,8 +336,90 @@ export interface Database {
           foto_url?: string | null;
           sem_acesso?: boolean;
           contato?: string | null;
+          data_admissao?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
+        Relationships: [];
+      };
+      rh_ausencia: {
+        Row: {
+          id: string;
+          profissional_id: string;
+          tipo: TipoAusencia;
+          data_inicio: string;
+          data_fim: string;
+          dias: number;
+          gerou_cobertura: boolean;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          profissional_id: string;
+          tipo: TipoAusencia;
+          data_inicio: string;
+          data_fim: string;
+          dias?: number;
+          gerou_cobertura?: boolean;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rh_ausencia"]["Insert"]>;
+        Relationships: [];
+      };
+      rh_afastamento: {
+        Row: {
+          id: string;
+          profissional_id: string;
+          data_inicio: string;
+          data_fim: string | null;
+          dias_perdidos: number;
+          // Sensível (saúde): só o GRUPO do CID, nunca o diagnóstico.
+          cid_grupo: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          profissional_id: string;
+          data_inicio: string;
+          data_fim?: string | null;
+          dias_perdidos?: number;
+          cid_grupo?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rh_afastamento"]["Insert"]>;
+        Relationships: [];
+      };
+      rh_desligamento: {
+        Row: {
+          id: string;
+          profissional_id: string;
+          data_desligamento: string;
+          motivo: MotivoDesligamento;
+          cargo: string | null;
+          tempo_casa_meses: number | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          profissional_id: string;
+          data_desligamento: string;
+          motivo: MotivoDesligamento;
+          cargo?: string | null;
+          tempo_casa_meses?: number | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rh_desligamento"]["Insert"]>;
         Relationships: [];
       };
       cuidador_residente: {
@@ -1923,5 +2024,8 @@ export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
 export type CustoMaterial = Database["public"]["Tables"]["custo_material"]["Row"];
 export type TabelaDiaria = Database["public"]["Tables"]["tabela_diaria"]["Row"];
 export type CobrancaTemporaria = Database["public"]["Tables"]["cobranca_temporaria"]["Row"];
+export type RhAusencia = Database["public"]["Tables"]["rh_ausencia"]["Row"];
+export type RhAfastamento = Database["public"]["Tables"]["rh_afastamento"]["Row"];
+export type RhDesligamento = Database["public"]["Tables"]["rh_desligamento"]["Row"];
 export type PagamentoPessoal = Database["public"]["Tables"]["pagamento_pessoal"]["Row"];
 export type SolicitacaoFamilia = Database["public"]["Tables"]["solicitacao_familia"]["Row"];
