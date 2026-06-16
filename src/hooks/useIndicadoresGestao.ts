@@ -35,6 +35,7 @@ export interface ResumoMes {
   mensalidades: number;
   upselling: number;
   decimoTerceiro: number; // parcela do 13º no mês (nov/dez)
+  cobrancaTemporaria: number; // diárias/pacotes de curta permanência + day care
   faturamento: number;
   recebido: number;
   pendente: number;
@@ -69,9 +70,12 @@ export function useResumoMes(mes: string): ResumoMes {
   const error = demo.error ?? custos.error ?? materiais.error ?? ativosQ.error ?? inativosQ.error;
 
   const mensalidades = demo.linhas.reduce((s, l) => s + l.mensalidade, 0);
-  const upselling = demo.linhas.reduce((s, l) => s + l.upselling, 0);
+  // Upselling e cobranças temporárias somam TODAS as linhas do mês (inclui day
+  // care, que não está em demo.linhas por não ocupar leito) — fonte única.
+  const upselling = demo.upsellingTodos.reduce((s, u) => s + (u.valor ?? 0), 0);
   const decimoTerceiro = demo.linhas.reduce((s, l) => s + l.decimoTerceiro, 0);
-  const faturamento = mensalidades + upselling + decimoTerceiro;
+  const cobrancaTemporaria = demo.cobrancasTemporariasTodas.reduce((s, c) => s + (c.valor ?? 0), 0);
+  const faturamento = mensalidades + upselling + decimoTerceiro + cobrancaTemporaria;
 
   const inadimplentesLinhas = demo.linhas.filter((l) => !l.pago && l.mensalidade > 0);
   const inadimplenteValor = inadimplentesLinhas.reduce((s, l) => s + l.mensalidade, 0);
@@ -108,6 +112,7 @@ export function useResumoMes(mes: string): ResumoMes {
     mensalidades,
     upselling,
     decimoTerceiro,
+    cobrancaTemporaria,
     faturamento,
     recebido,
     pendente: inadimplenteValor,

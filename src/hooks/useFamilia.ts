@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { FAMILIA_ATUAL } from "@/data/profiles";
 import { useTabelaPreco, usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
+import { useCobrancasTemporariasDoMes } from "@/hooks/useCobrancaTemporaria";
 import { chavePreco } from "@/lib/mensalidade";
 import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { AtividadeParticipacao, CompromissoExterno, Residente } from "@/types/database";
@@ -161,6 +162,7 @@ export interface DemonstrativoFamilia {
   mensalidade: number;
   upselling: number;
   decimoTerceiro: number;
+  cobrancaTemporaria: number;
   total: number;
   pago: boolean;
   itensUpselling: ItemUpsellingFamilia[];
@@ -175,26 +177,37 @@ export function useDemonstrativoFamilia(mes: string) {
   const tabelaPreco = useTabelaPreco();
   const pagamentos = usePagamentosDoMes(mes);
   const upselling = useLancamentosDoMes(FAMILIA_ATUAL.residenteId, mes);
+  const cobrancas = useCobrancasTemporariasDoMes(mes);
 
-  const isLoading = residente.isLoading || tabelaPreco.isLoading || pagamentos.isLoading || upselling.isLoading;
-  const isError = residente.isError || tabelaPreco.isError || pagamentos.isError || upselling.isError;
-  const error = residente.error ?? tabelaPreco.error ?? pagamentos.error ?? upselling.error;
+  const isLoading =
+    residente.isLoading || tabelaPreco.isLoading || pagamentos.isLoading || upselling.isLoading || cobrancas.isLoading;
+  const isError =
+    residente.isError || tabelaPreco.isError || pagamentos.isError || upselling.isError || cobrancas.isError;
+  const error = residente.error ?? tabelaPreco.error ?? pagamentos.error ?? upselling.error ?? cobrancas.error;
 
   const demonstrativo: DemonstrativoFamilia | null = useMemo(() => {
     const r = residente.data;
     if (!r) return null;
     const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
+    // Só longa permanência paga mensalidade; temporários pagam por cobrança.
     const mensalidade =
-      r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
+      r.modalidade === "longa_permanencia"
+        ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+        : 0;
     const itens = upselling.data ?? [];
     const upsellingTotal = itens.reduce((acc, i) => acc + i.valor, 0);
     const decimoTerceiro = valorParcelaDecimo(mensalidade, r.data_admissao, mes);
+    // RLS entrega à família só as cobranças do seu hóspede.
+    const cobrancaTemporaria = (cobrancas.data ?? [])
+      .filter((c) => c.residente_id === r.id)
+      .reduce((acc, c) => acc + c.valor, 0);
     const pagamento = (pagamentos.data ?? []).find((p) => p.residente_id === r.id);
     return {
       mensalidade,
       upselling: upsellingTotal,
       decimoTerceiro,
-      total: mensalidade + upsellingTotal + decimoTerceiro,
+      cobrancaTemporaria,
+      total: mensalidade + upsellingTotal + decimoTerceiro + cobrancaTemporaria,
       pago: pagamento?.status === "paga",
       itensUpselling: itens.map((i) => ({
         categoria: i.categoria,
@@ -203,7 +216,7 @@ export function useDemonstrativoFamilia(mes: string) {
         data: i.data,
       })),
     };
-  }, [residente.data, tabelaPreco.data, pagamentos.data, upselling.data]);
+  }, [residente.data, tabelaPreco.data, pagamentos.data, upselling.data, cobrancas.data]);
 
   return { isLoading, isError, error, demonstrativo, residente: residente.data };
 }

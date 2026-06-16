@@ -48,6 +48,7 @@ import { Manutencao } from "@/routes/hotelaria/Manutencao";
 import { Enxoval } from "@/routes/lavanderia/Enxoval";
 import { MapaSuites } from "@/routes/administracao/MapaSuites";
 import { CustosMateriais } from "@/routes/administracao/CustosMateriais";
+import { CobrancaTemporaria } from "@/routes/administracao/CobrancaTemporaria";
 import { HospedesInativos } from "@/routes/administracao/HospedesInativos";
 import { AnaliseSaidas } from "@/routes/administracao/AnaliseSaidas";
 import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
@@ -244,6 +245,11 @@ const custosMateriaisRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "custos-materiais",
   component: CustosMateriais,
+});
+const cobrancaTemporariaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "cobranca-temporaria",
+  component: CobrancaTemporaria,
 });
 const visaoDiaHotelariaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -580,6 +586,7 @@ const routeTree = rootRoute.addChildren([
     hospedesInativosRoute,
     analiseSaidasRoute,
     custosMateriaisRoute,
+    cobrancaTemporariaRoute,
     visaoDiaHotelariaRoute,
     chamadoManutencaoRoute,
     painelFarmaciaRoute,

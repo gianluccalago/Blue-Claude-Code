@@ -12,11 +12,13 @@ import { toast } from "sonner";
 import { TrendingUp, Download, Percent, Wallet, Timer, LineChart } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useOportunidadesFunil } from "@/hooks/useCrm";
-import { funilHistorico, resumoFunilPeriodo, type LinhaFunil } from "@/lib/funilVendas";
+import { useModalidadePorResidente } from "@/hooks/usePlanos";
+import { funilHistorico, resumoFunilPeriodo, vendasPorTipo, TIPO_VENDA_LABEL, type LinhaFunil } from "@/lib/funilVendas";
 import { formatarMoeda, mesAtual, deslocarMes, formatarMesReferencia } from "@/lib/mensalidade";
 import { exportarFunilExcel } from "@/lib/exportFunil";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard/primitives";
 import { BarrasMensais } from "@/components/dashboard/BarrasMensais";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
@@ -28,6 +30,7 @@ export function FunilVendas() {
   const { usuarioEfetivo } = useAuth();
   const perfil = usuarioEfetivo?.perfil;
   const ops = useOportunidadesFunil();
+  const modalidadeMap = useModalidadePorResidente();
   const [mesAte, setMesAte] = useState(mesAtual());
 
   // Janela de 12 meses terminando no mês selecionado (cronológico crescente).
@@ -40,6 +43,11 @@ export function FunilVendas() {
   const dados = useMemo(() => ops.data ?? [], [ops.data]);
   const linhas = useMemo(() => funilHistorico(dados, meses), [dados, meses]);
   const resumo = useMemo(() => resumoFunilPeriodo(dados, meses), [dados, meses]);
+  // Vendas por tipo (LP/CP/SD) — conectado à modalidade real do residente admitido.
+  const porTipo = useMemo(
+    () => vendasPorTipo(dados, meses, modalidadeMap.data ?? new Map()),
+    [dados, meses, modalidadeMap.data],
+  );
 
   // Rodapé: médias das taxas e do ticket (sobre os meses com dado).
   const medias = useMemo(() => {
@@ -106,6 +114,21 @@ export function FunilVendas() {
             <StatCard icon={Timer} tom="secondary" rotulo="Tempo médio lead → venda" valor={resumo.tempoMedioDias == null ? "sem dados" : `${resumo.tempoMedioDias} dias`} />
             <StatCard icon={Wallet} tom="secondary" rotulo="Receita do período" valor={formatarMoeda(resumo.receita)} apoio="mensalidades estimadas das vendas" />
           </div>
+
+          {/* Vendas por tipo (LP/CP/SD) — origem real via modalidade do residente */}
+          {(porTipo.LP + porTipo.CP + porTipo.SD + porTipo.indefinido) > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Vendas por tipo no período</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                <Badge variant="default" className="gap-1">{TIPO_VENDA_LABEL.LP} (LP): <strong>{porTipo.LP}</strong></Badge>
+                <Badge variant="warning" className="gap-1">{TIPO_VENDA_LABEL.CP} (CP): <strong>{porTipo.CP}</strong></Badge>
+                <Badge variant="secondary" className="gap-1">{TIPO_VENDA_LABEL.SD} (SD): <strong>{porTipo.SD}</strong></Badge>
+                {porTipo.indefinido > 0 && <Badge variant="muted">Sem vínculo: {porTipo.indefinido}</Badge>}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Evolução do ticket médio (Realizado) */}
           <Card>

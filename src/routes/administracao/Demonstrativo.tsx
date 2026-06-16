@@ -45,7 +45,8 @@ export function Demonstrativo() {
   const totalMensalidades = demo.linhas.reduce((acc, l) => acc + l.mensalidade, 0);
   const totalUpselling = demo.linhas.reduce((acc, l) => acc + l.upselling, 0);
   const total13 = demo.linhas.reduce((acc, l) => acc + l.decimoTerceiro, 0);
-  const totalGeral = totalMensalidades + totalUpselling + total13;
+  const totalCobranca = demo.linhas.reduce((acc, l) => acc + l.cobrancaTemporaria, 0);
+  const totalGeral = totalMensalidades + totalUpselling + total13 + totalCobranca;
   const labelDecimo = rotuloParcelaDecimo(mes);
 
   const detalheLinha = demo.linhas.find((l) => l.residente.id === detalheId);
@@ -161,7 +162,12 @@ function LinhaConsolidada({ linha, mes: mesDaLinha, onAbrir }: { linha: LinhaDem
             Quarto {r.quarto ?? "Não informado"} · {r.tipo_suite ?? "Não informado"}
           </p>
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span>Mensalidade: <span className="font-semibold text-secondary">{formatarMoeda(linha.mensalidade)}</span></span>
+            {linha.residente.modalidade === "longa_permanencia" && (
+              <span>Mensalidade: <span className="font-semibold text-secondary">{formatarMoeda(linha.mensalidade)}</span></span>
+            )}
+            {linha.cobrancaTemporaria > 0 && (
+              <span>Cobrança (temporário): <span className="font-semibold text-primary">{formatarMoeda(linha.cobrancaTemporaria)}</span></span>
+            )}
             <span>Upselling: <span className="font-semibold text-secondary">{formatarMoeda(linha.upselling)}</span></span>
             {linha.decimoTerceiro > 0 && (
               <span>{rotuloParcelaDecimo(mesDaLinha) ?? "13º"}: <span className="font-semibold text-primary">{formatarMoeda(linha.decimoTerceiro)}</span></span>

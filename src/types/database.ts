@@ -80,6 +80,10 @@ export type Sexo = "masculino" | "feminino";
 export type StatusHospede = "ativo" | "inativo";
 /** Modalidade de estadia do hóspede. */
 export type ModalidadeEstadia = "longa_permanencia" | "curta_permanencia" | "day_care";
+/** Modalidade temporária (cobrança flexível). */
+export type ModalidadeTemporaria = "curta_permanencia" | "day_care";
+/** Status de uma cobrança temporária. */
+export type StatusCobrancaTemporaria = "pendente" | "pago";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
 // vencimento passado), mas também pode ser gravada. Migra do antigo
@@ -1583,6 +1587,60 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["custo_material"]["Insert"]>;
         Relationships: [];
       };
+      tabela_diaria: {
+        Row: {
+          id: string;
+          modalidade: ModalidadeTemporaria;
+          grau: GrauDependencia;
+          tipo_valor: "diaria" | "day_care_periodo";
+          valor_referencia: number;
+          observacao: string | null;
+          atualizado_em: string;
+          atualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          modalidade: ModalidadeTemporaria;
+          grau: GrauDependencia;
+          tipo_valor: "diaria" | "day_care_periodo";
+          valor_referencia?: number;
+          observacao?: string | null;
+          atualizado_em?: string;
+          atualizado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["tabela_diaria"]["Insert"]>;
+        Relationships: [];
+      };
+      cobranca_temporaria: {
+        Row: {
+          id: string;
+          residente_id: string;
+          modalidade: ModalidadeTemporaria;
+          descricao: string;
+          valor: number;
+          periodo_referencia: string;
+          data: string;
+          status: StatusCobrancaTemporaria;
+          pago_em: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          modalidade: ModalidadeTemporaria;
+          descricao: string;
+          valor: number;
+          periodo_referencia: string;
+          data?: string;
+          status?: StatusCobrancaTemporaria;
+          pago_em?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["cobranca_temporaria"]["Insert"]>;
+        Relationships: [];
+      };
       pagamento_pessoal: {
         Row: {
           id: string;
@@ -1863,5 +1921,7 @@ export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
 export type CustoMaterial = Database["public"]["Tables"]["custo_material"]["Row"];
+export type TabelaDiaria = Database["public"]["Tables"]["tabela_diaria"]["Row"];
+export type CobrancaTemporaria = Database["public"]["Tables"]["cobranca_temporaria"]["Row"];
 export type PagamentoPessoal = Database["public"]["Tables"]["pagamento_pessoal"]["Row"];
 export type SolicitacaoFamilia = Database["public"]["Tables"]["solicitacao_familia"]["Row"];

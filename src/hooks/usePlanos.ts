@@ -26,6 +26,20 @@ export function useResidentes() {
   });
 }
 
+/** Mapa residente_id → modalidade (TODOS — para segmentar vendas do funil). */
+export function useModalidadePorResidente() {
+  return useQuery({
+    queryKey: ["modalidade-por-residente"],
+    queryFn: async (): Promise<Map<string, Residente["modalidade"]>> => {
+      const { data, error } = await supabase.from("residentes").select("id, modalidade");
+      if (error) throw error;
+      const m = new Map<string, Residente["modalidade"]>();
+      for (const r of data ?? []) m.set(r.id as string, r.modalidade as Residente["modalidade"]);
+      return m;
+    },
+  });
+}
+
 /** Frequentadores ATIVOS do Day Care (não ocupam leito; período da tarde). */
 export function useFrequentadoresDayCare() {
   return useQuery({

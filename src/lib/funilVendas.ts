@@ -1,4 +1,4 @@
-import type { CrmOportunidade } from "@/types/database";
+import type { CrmOportunidade, ModalidadeEstadia } from "@/types/database";
 
 // ===========================================================================
 // FUNIL DE VENDAS histórico — agrega o CRM já existente (não recria coleta).
@@ -104,6 +104,41 @@ export interface ResumoFunilPeriodo {
   conversaoGlobal: number | null; // % vendas/leads
   ticketMedio: number | null;
   tempoMedioDias: number | null; // lead → venda (dias)
+}
+
+// ─── Vendas por tipo (LP / CP / SD) — conectado à modalidade do residente ────
+
+export type TipoVenda = "LP" | "CP" | "SD";
+export const TIPO_VENDA_LABEL: Record<TipoVenda, string> = {
+  LP: "Longa permanência",
+  CP: "Curta permanência",
+  SD: "Day Care",
+};
+
+/** Modalidade do residente admitido → tipo de venda. */
+export function tipoDaModalidade(m: ModalidadeEstadia | undefined): TipoVenda | null {
+  if (m === "longa_permanencia") return "LP";
+  if (m === "curta_permanencia") return "CP";
+  if (m === "day_care") return "SD";
+  return null;
+}
+
+/** Conta as vendas (ganha, coorte do período) por tipo, via modalidade do residente. */
+export function vendasPorTipo(
+  ops: CrmOportunidade[],
+  meses: string[],
+  modalidadePorResidente: Map<string, ModalidadeEstadia>,
+): { LP: number; CP: number; SD: number; indefinido: number } {
+  const set = new Set(meses);
+  const cont = { LP: 0, CP: 0, SD: 0, indefinido: 0 };
+  for (const o of ops) {
+    if (o.status !== "ganha") continue;
+    if (!o.criado_em || !set.has(o.criado_em.slice(0, 7))) continue;
+    const tipo = o.residente_id ? tipoDaModalidade(modalidadePorResidente.get(o.residente_id)) : null;
+    if (tipo) cont[tipo] += 1;
+    else cont.indefinido += 1;
+  }
+  return cont;
 }
 
 /** Consolida o período (coorte das oportunidades criadas nos meses dados). */

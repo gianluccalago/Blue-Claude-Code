@@ -141,6 +141,7 @@ export function PainelAdministracao() {
             valor={formatarMoeda(r.faturamento)}
             apoio={
               `Mensalidades ${formatarMoeda(r.mensalidades)} + upselling ${formatarMoeda(r.upselling)}` +
+              (r.cobrancaTemporaria > 0 ? ` + temporários ${formatarMoeda(r.cobrancaTemporaria)}` : "") +
               (r.decimoTerceiro > 0 ? ` + 13º ${formatarMoeda(r.decimoTerceiro)}` : "")
             }
           />

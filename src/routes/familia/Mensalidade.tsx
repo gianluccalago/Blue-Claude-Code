@@ -36,18 +36,32 @@ export function Mensalidade() {
         </CardContent>
       </Card>
 
-      <div className={`grid gap-4 sm:grid-cols-2 ${demonstrativo.decimoTerceiro > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        <Card>
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-              <Wallet className="size-5" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(demonstrativo.mensalidade)}</p>
-              <p className="text-sm text-muted-foreground">Mensalidade</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {demonstrativo.cobrancaTemporaria > 0 ? (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-4">
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                <Wallet className="size-5" />
+              </div>
+              <div>
+                <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(demonstrativo.cobrancaTemporaria)}</p>
+                <p className="text-sm text-muted-foreground">Estadia (diária/pacote)</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="flex items-center gap-3 py-4">
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <Wallet className="size-5" />
+              </div>
+              <div>
+                <p className="text-xl font-bold tabular-nums text-secondary">{formatarMoeda(demonstrativo.mensalidade)}</p>
+                <p className="text-sm text-muted-foreground">Mensalidade</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="flex items-center gap-3 py-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-secondary/10 text-secondary">
