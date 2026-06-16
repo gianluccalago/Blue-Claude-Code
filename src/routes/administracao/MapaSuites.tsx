@@ -19,6 +19,8 @@ import { formatarMoeda, mesAtual, formatarMesReferencia } from "@/lib/mensalidad
 import { formatarDataBR, hojeISO } from "@/lib/utils";
 import { formatarQuarto } from "@/lib/quarto";
 import { MOTIVOS_SAIDA } from "@/lib/cicloVida";
+import { temporariasTerminando, diasAteFim } from "@/lib/modalidade";
+import { SeloModalidade } from "@/components/SeloModalidade";
 import { exportarMapaSuitesExcel, type LinhaMapa } from "@/lib/exportMapaSuites";
 import type { Residente } from "@/types/database";
 
@@ -40,6 +42,9 @@ export function MapaSuites() {
   const mes = mesAtual();
   const upsell = useUpsellingTodosDoMes(mes);
   const [saindo, setSaindo] = useState<Residente | null>(null);
+  // Filtro por modalidade (todos / longa / curta). Day care não aparece aqui
+  // (não ocupa leito) — vive na tela própria de Day Care.
+  const [filtroMod, setFiltroMod] = useState<"todos" | "longa_permanencia" | "curta_permanencia">("todos");
 
   // Upselling FIXO (recorrente) por hóspede no mês.
   const fixoPorResidente = useMemo(() => {
@@ -51,9 +56,17 @@ export function MapaSuites() {
     return m;
   }, [upsell.data]);
 
-  // Ativos, ordenados por tempo de casa (data_admissao asc; sem data ao fim).
+  // Curta permanência com término próximo (alerta de estadia temporária).
+  const terminando = useMemo(
+    () => temporariasTerminando((residentes.data ?? []).filter((r) => r.status_hospede === "ativo"), 15),
+    [residentes.data],
+  );
+
+  // Ativos (ocupam leito), filtrados por modalidade, ordenados por tempo de casa.
   const linhas: LinhaMapa[] = useMemo(() => {
-    const ativos = (residentes.data ?? []).filter((r) => r.status_hospede === "ativo");
+    const ativos = (residentes.data ?? []).filter(
+      (r) => r.status_hospede === "ativo" && (filtroMod === "todos" || r.modalidade === filtroMod),
+    );
     ativos.sort((a, b) => {
       const da = a.data_admissao ?? "9999-12-31";
       const db = b.data_admissao ?? "9999-12-31";
@@ -63,7 +76,7 @@ export function MapaSuites() {
       const upsellFixo = fixoPorResidente.get(r.id) ?? 0;
       return { residente: r, upsellFixo, total: (r.mensalidade_valor ?? 0) + upsellFixo };
     });
-  }, [residentes.data, fixoPorResidente]);
+  }, [residentes.data, fixoPorResidente, filtroMod]);
 
   const totais = useMemo(() => {
     return {
@@ -105,12 +118,47 @@ export function MapaSuites() {
         </Button>
       </div>
 
-      {/* Totais */}
+      {/* Alerta: curta permanência com término próximo (estadia temporária). */}
+      {terminando.length > 0 && (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-warning-foreground">
+            <AlertTriangle className="size-4" /> Curta permanência chegando ao fim
+          </p>
+          <ul className="mt-1 flex flex-wrap gap-2">
+            {terminando.map((r) => {
+              const d = diasAteFim(r.data_fim_prevista);
+              return (
+                <li key={r.id}>
+                  <Badge variant="outline" className="border-warning/40 text-secondary">
+                    {r.nome} · {d != null && d < 0 ? "vencida" : `termina em ${d} dia${d === 1 ? "" : "s"}`}
+                  </Badge>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Totais (ocupação de LEITOS = longa + curta; day care é à parte) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} tom="secondary" rotulo="Hóspedes ativos" valor={totais.hospedes} />
+        <StatCard icon={Users} tom="secondary" rotulo="Hóspedes (leito)" valor={totais.hospedes} />
         <StatCard icon={Wallet} tom="secondary" rotulo="Mensalidades" valor={formatarMoeda(totais.mensalidade)} />
         <StatCard icon={Sparkles} tom="secondary" rotulo="Upsell fixo" valor={formatarMoeda(totais.upsell)} />
         <StatCard icon={Wallet} tom="primary" destaque rotulo="Total geral" valor={formatarMoeda(totais.total)} />
+      </div>
+
+      {/* Filtro por modalidade */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-semibold text-muted-foreground">Modalidade:</span>
+        {([
+          { v: "todos", label: "Todas" },
+          { v: "longa_permanencia", label: "Longa permanência" },
+          { v: "curta_permanencia", label: "Curta permanência" },
+        ] as const).map((o) => (
+          <Button key={o.v} size="sm" variant={filtroMod === o.v ? "default" : "outline"} onClick={() => setFiltroMod(o.v)}>
+            {o.label}
+          </Button>
+        ))}
       </div>
 
       {/* Tabela */}
@@ -186,7 +234,10 @@ function LinhaSuite({
   return (
     <tr className="text-secondary">
       <td className="py-2.5 pr-3">
-        <div className="font-medium">{r.nome}</div>
+        <div className="flex flex-wrap items-center gap-1.5 font-medium">
+          {r.nome}
+          <SeloModalidade modalidade={r.modalidade} />
+        </div>
         <div className="text-xs text-muted-foreground">{r.numero_hospede ?? "Não informado"}</div>
       </td>
       <td className="py-2.5 pr-3">{r.sexo ? SEXO_LABEL[r.sexo] : "Não informado"}</td>

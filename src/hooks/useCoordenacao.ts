@@ -200,7 +200,8 @@ export function useAlertasEliminacaoPainel() {
   return useQuery({
     queryKey: ["coord-alertas-eliminacao", hojeISO()],
     queryFn: async (): Promise<AlertaEliminacaoPainel[]> => {
-      const residentesResp = await supabase.from("residentes").select("id").eq("status_hospede", "ativo");
+      // Day care (cuidado parcial, sem leito) não entra nos alertas de eliminação 24h.
+      const residentesResp = await supabase.from("residentes").select("id").eq("status_hospede", "ativo").neq("modalidade", "day_care");
       if (residentesResp.error) throw residentesResp.error;
       const ids = (residentesResp.data ?? []).map((r) => r.id);
       if (ids.length === 0) return [];

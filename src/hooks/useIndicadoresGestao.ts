@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useResidentes, useFrequentadoresDayCare } from "@/hooks/usePlanos";
 import { useResidentesInativos } from "@/hooks/useCicloVida";
 import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
@@ -24,10 +24,11 @@ import type { Residente } from "@/types/database";
 
 export interface ResumoMes {
   mes: string;
-  // Ocupação
+  // Ocupação (de LEITOS = longa + curta; day care é contado à parte)
   ativos: number;
   capacidade: number | null;
   taxaOcupacao: number | null; // %
+  dayCareAtivos: number;
   entradas: number;
   saidas: number;
   // Financeiro
@@ -59,10 +60,11 @@ export function useResumoMes(mes: string): ResumoMes {
   const custos = useCustosPessoalDoMes(mes);
   const materiais = useCustosMateriaisDoMes(mes);
   const ativosQ = useResidentes();
+  const dayCareQ = useFrequentadoresDayCare();
   const inativosQ = useResidentesInativos();
   const capacidadeQ = useConfiguracao(CHAVE_TOTAL_SUITES);
 
-  const isLoading = demo.isLoading || custos.isLoading || materiais.isLoading || ativosQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading;
+  const isLoading = demo.isLoading || custos.isLoading || materiais.isLoading || ativosQ.isLoading || dayCareQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading;
   const isError = demo.isError || custos.isError || materiais.isError || ativosQ.isError || inativosQ.isError;
   const error = demo.error ?? custos.error ?? materiais.error ?? ativosQ.error ?? inativosQ.error;
 
@@ -82,6 +84,7 @@ export function useResumoMes(mes: string): ResumoMes {
   const resultado = faturamento - (custoPessoal + custoMateriais);
 
   const ativos = demo.linhas.length;
+  const dayCareAtivos = (dayCareQ.data ?? []).length;
   const capacidadeNum = capacidadeQ.data ? parseInt(capacidadeQ.data, 10) : NaN;
   const capacidade = Number.isFinite(capacidadeNum) && capacidadeNum > 0 ? capacidadeNum : null;
   const taxaOcupacao = capacidade ? Math.round((ativos / capacidade) * 100) : null;
@@ -99,6 +102,7 @@ export function useResumoMes(mes: string): ResumoMes {
     ativos,
     capacidade,
     taxaOcupacao,
+    dayCareAtivos,
     entradas,
     saidas,
     mensalidades,
@@ -129,7 +133,7 @@ export interface PontoEvolucao {
 
 type ResidenteEvolucao = Pick<
   Residente,
-  "mensalidade_valor" | "tipo_suite" | "grau_dependencia" | "ocupacao" | "data_admissao" | "data_saida"
+  "mensalidade_valor" | "tipo_suite" | "grau_dependencia" | "ocupacao" | "data_admissao" | "data_saida" | "modalidade"
 >;
 
 /** Residente "presente" no mês: admitido até o fim e não saído antes do início. */
@@ -158,7 +162,7 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       const [resR, tabR, upsR, pessoalR] = await Promise.all([
         supabase
           .from("residentes")
-          .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida"),
+          .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida, modalidade"),
         supabase.from("tabela_preco").select("tipo_suite, grau, ocupacao, valor"),
         supabase.from("upselling").select("valor, mes_referencia"),
         supabase.from("pagamento_pessoal").select("valor_final, mes_referencia"),
@@ -172,8 +176,11 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       const precoMap = new Map(
         (tabR.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor as number]),
       );
+      // Só LONGA permanência tem mensalidade automática (igual ao demonstrativo).
       const mensalidadeDe = (r: ResidenteEvolucao): number =>
-        r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
+        r.modalidade === "longa_permanencia"
+          ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+          : 0;
 
       const upsPorMes = new Map<string, number>();
       for (const u of upsR.data ?? []) {

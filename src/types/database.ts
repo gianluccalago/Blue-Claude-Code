@@ -78,6 +78,8 @@ export type Ocupacao = "simples" | "duplo" | "triplo";
 export type Sexo = "masculino" | "feminino";
 /** Ciclo de vida do hóspede: ativo (presente) ou inativo (saiu). */
 export type StatusHospede = "ativo" | "inativo";
+/** Modalidade de estadia do hóspede. */
+export type ModalidadeEstadia = "longa_permanencia" | "curta_permanencia" | "day_care";
 // Status de cobrança da mensalidade — controle MANUAL (a Administração move o
 // status na mão). "vencida" normalmente é calculada (em_aberto/enviada com
 // vencimento passado), mas também pode ser gravada. Migra do antigo
@@ -215,6 +217,10 @@ export interface Database {
           data_saida: string | null;
           motivo_saida: string | null;
           numero_hospede: string | null;
+          // Modalidade de estadia (longa/curta permanência, day care).
+          modalidade: ModalidadeEstadia;
+          data_inicio_estadia: string | null;
+          data_fim_prevista: string | null;
         };
         Insert: {
           id?: string;
@@ -255,6 +261,9 @@ export interface Database {
           data_saida?: string | null;
           motivo_saida?: string | null;
           numero_hospede?: string | null;
+          modalidade?: ModalidadeEstadia;
+          data_inicio_estadia?: string | null;
+          data_fim_prevista?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["residentes"]["Insert"]>;
         Relationships: [];

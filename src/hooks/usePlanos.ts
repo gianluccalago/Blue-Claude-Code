@@ -4,9 +4,10 @@ import type { PlanoCuidadoItem, Residente } from "@/types/database";
 import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
 
 /**
- * Residentes ATIVOS (presentes na casa). O hóspede inativado por saída some de
- * TODAS as telas operacionais — este é o hook central que garante o filtro.
- * O histórico de inativos vive em useResidentesInativos (somente gestão).
+ * Residentes ATIVOS que OCUPAM LEITO (longa + curta permanência). Hook central
+ * das telas operacionais e de ocupação. Inativos somem (status); e o DAY CARE é
+ * EXCLUÍDO aqui (não ocupa leito; vive em useFrequentadoresDayCare) — assim ele
+ * não polui checklist do cuidador, médico, farmácia, mapa de suítes, etc.
  */
 export function useResidentes() {
   return useQuery({
@@ -15,11 +16,30 @@ export function useResidentes() {
       const { data, error } = await supabase
         .from("residentes")
         .select("*")
-        .eq("status_hospede", "ativo");
+        .eq("status_hospede", "ativo")
+        .neq("modalidade", "day_care");
       if (error) throw error;
       const residentes = data ?? [];
       residentes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       return residentes;
+    },
+  });
+}
+
+/** Frequentadores ATIVOS do Day Care (não ocupam leito; período da tarde). */
+export function useFrequentadoresDayCare() {
+  return useQuery({
+    queryKey: ["frequentadores-day-care"],
+    queryFn: async (): Promise<Residente[]> => {
+      const { data, error } = await supabase
+        .from("residentes")
+        .select("*")
+        .eq("status_hospede", "ativo")
+        .eq("modalidade", "day_care");
+      if (error) throw error;
+      const lista = data ?? [];
+      lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      return lista;
     },
   });
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, ChevronDown, X } from "lucide-react";
 import { cn, formatarDataBR } from "@/lib/utils";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
+import { SeloModalidade } from "@/components/SeloModalidade";
 import type { Residente } from "@/types/database";
 
 export function HospedeSelector({
@@ -46,8 +47,9 @@ export function HospedeSelector({
                   : "border-border bg-card shadow-xs hover:border-primary/50 hover:shadow-card",
               )}
             >
-              <div className={cn("font-bold", ativo ? "text-secondary" : "text-foreground")}>
+              <div className={cn("flex flex-wrap items-center gap-1.5 font-bold", ativo ? "text-secondary" : "text-foreground")}>
                 {h.nome}
+                <SeloModalidade modalidade={h.modalidade} />
               </div>
               <div className="text-xs text-muted-foreground">
                 Quarto {h.quarto ?? "—"} · Entrada {formatarDataBR(h.data_admissao)}
@@ -142,8 +144,9 @@ export function HospedeSelector({
                     )}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className={cn("font-semibold", ativo ? "text-primary-strong" : "text-secondary")}>
+                      <div className={cn("flex flex-wrap items-center gap-1.5 font-semibold", ativo ? "text-primary-strong" : "text-secondary")}>
                         {h.nome}
+                        <SeloModalidade modalidade={h.modalidade} />
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Quarto {h.quarto ?? "—"} · Entrada {formatarDataBR(h.data_admissao)}

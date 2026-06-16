@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
+import type { GrauDependencia, ModalidadeEstadia, Ocupacao, TipoSuite } from "@/types/database";
 
 // ===========================================================================
 // MASTER · Gestão de residentes — criar/editar a ficha completa do hóspede.
@@ -20,6 +20,9 @@ export interface ResidenteValor {
   quarto: string | null;
   tipo_suite: TipoSuite | null;
   ocupacao: Ocupacao | null;
+  // Modalidade de estadia (longa/curta permanência, day care).
+  modalidade: ModalidadeEstadia;
+  data_fim_prevista: string | null; // término previsto (temporários)
   data_admissao: string | null;
   responsavel_legal: string | null;
   contato: string | null;
@@ -56,6 +59,11 @@ function paraRegistro(v: ResidenteValor) {
     quarto: t(v.quarto),
     tipo_suite: v.tipo_suite,
     ocupacao: v.ocupacao,
+    modalidade: v.modalidade,
+    // Início da estadia = admissão (regra simples; pode evoluir).
+    data_inicio_estadia: v.data_admissao,
+    // Término previsto só faz sentido em temporários; longa → null.
+    data_fim_prevista: v.modalidade === "longa_permanencia" ? null : v.data_fim_prevista,
     data_admissao: v.data_admissao,
     responsavel_legal: t(v.responsavel_legal),
     contato: t(v.contato),
@@ -80,6 +88,8 @@ function paraRegistro(v: ResidenteValor) {
 
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["residentes"] });
+  // Mudança de modalidade afeta a lista de Day Care e a ocupação.
+  qc.invalidateQueries({ queryKey: ["frequentadores-day-care"] });
 }
 
 export function useCriarResidente() {

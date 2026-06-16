@@ -19,6 +19,7 @@ import { CrmOrigens } from "@/routes/administracao/crm/CrmOrigens";
 import { CrmConfig } from "@/routes/administracao/crm/CrmConfig";
 import { CrmRelatorios } from "@/routes/administracao/crm/CrmRelatorios";
 import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
+import { DayCare } from "@/routes/DayCare";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -523,6 +524,11 @@ const funilVendasRoute = createRoute({
   path: "funil-vendas",
   component: FunilVendas,
 });
+const dayCareRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "day-care",
+  component: DayCare,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -563,6 +569,7 @@ const routeTree = rootRoute.addChildren([
     crmConfigRoute,
     crmRelatoriosRoute,
     funilVendasRoute,
+    dayCareRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

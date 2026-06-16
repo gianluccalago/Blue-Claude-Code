@@ -7,6 +7,7 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
+  Sun,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -246,6 +247,7 @@ export function PainelEstrategico() {
             destaque={resumo.saidas > 0}
             to="/app/master/analise-saidas"
           />
+          <Metric icon={Sun} rotulo="Day Care (sem leito)" valor={resumo.dayCareAtivos} nota="à parte da ocupação de leitos" to="/app/master/day-care" />
           <Metric
             icon={Layers}
             rotulo="Grau de dependência"

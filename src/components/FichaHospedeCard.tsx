@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SeloModalidade } from "@/components/SeloModalidade";
 import { FotoUploader } from "@/components/FotoUploader";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { useUltimosPesos } from "@/hooks/usePeso";
@@ -88,10 +89,17 @@ export function FichaHospedeCard({
               )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
+              <SeloModalidade modalidade={r.modalidade} />
               {idade !== null && <Badge variant="secondary">{idade} anos</Badge>}
               {r.tipo_suite && <Badge variant="muted">{r.tipo_suite}</Badge>}
               {r.ocupacao && <Badge variant="muted">{OCUPACAO_LABEL[r.ocupacao]}</Badge>}
             </div>
+            {/* Estadia temporária: previsão de término (curta permanência / day care). */}
+            {r.data_fim_prevista && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Término previsto: {formatarDataBR(r.data_fim_prevista)}
+              </p>
+            )}
             {/* Grau contratual × real (IVCF) com destaque na divergência. */}
             <GrauContratualReal
               className="mt-2"

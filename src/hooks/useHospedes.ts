@@ -22,12 +22,14 @@ export function useHospedesDesignados(cuidadorId: string, enabled = true) {
       const ids = (links ?? []).map((l) => l.residente_id);
       if (ids.length === 0) return [];
 
-      // Só ATIVOS: hóspede inativado some da designação do cuidador/enfermagem.
+      // Só ATIVOS que ocupam leito: inativado some; day care não entra no
+      // checklist de cuidado 24h (é atendido na tela própria de Day Care).
       const { data, error } = await supabase
         .from("residentes")
         .select("*")
         .in("id", ids)
-        .eq("status_hospede", "ativo");
+        .eq("status_hospede", "ativo")
+        .neq("modalidade", "day_care");
       if (error) throw error;
 
       const residentes = data ?? [];

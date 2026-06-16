@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FotoUploader } from "@/components/FotoUploader";
 import { uploadFotoResidente } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
+import { MODALIDADES } from "@/lib/modalidade";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
 import { montarQuarto, parseQuarto, type LetraQuarto } from "@/lib/quarto";
 import { ocupacoesValidas, OCUPACAO_LABEL } from "@/lib/mensalidade";
@@ -52,6 +53,8 @@ function estadoInicial(r?: Residente, prefill?: Partial<ResidenteValor>): Reside
     quarto: r?.quarto ?? null,
     tipo_suite: r?.tipo_suite ?? null,
     ocupacao: r?.ocupacao ?? null,
+    modalidade: r?.modalidade ?? "longa_permanencia",
+    data_fim_prevista: r?.data_fim_prevista ?? null,
     data_admissao: r?.data_admissao ?? null,
     responsavel_legal: r?.responsavel_legal ?? null,
     contato: r?.contato ?? null,
@@ -231,6 +234,22 @@ export function ResidenteFicha({
           <Campo rotulo={`Data de admissão · ${permanencia}`}>
             <input type="date" value={v.data_admissao ?? ""} onChange={(e) => set("data_admissao", e.target.value || null)} className={inputBase} />
           </Campo>
+          <Campo rotulo="Modalidade de estadia">
+            <select
+              value={v.modalidade}
+              onChange={(e) => set("modalidade", e.target.value as ResidenteValor["modalidade"])}
+              className={inputBase}
+            >
+              {MODALIDADES.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </Campo>
+          {v.modalidade !== "longa_permanencia" && (
+            <Campo rotulo="Término previsto (temporária)">
+              <input type="date" value={v.data_fim_prevista ?? ""} onChange={(e) => set("data_fim_prevista", e.target.value || null)} className={inputBase} />
+            </Campo>
+          )}
         </div>
       </Secao>
 

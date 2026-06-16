@@ -44,8 +44,12 @@ export function useDemonstrativoMes(mes: string) {
     }
 
     return residentes.data.map((r) => {
+      // Só LONGA permanência tem mensalidade automática. Curta permanência cobra
+      // por diária/pacote (lançado pela Adm — Frente B), então não auto-fatura.
       const mensalidade =
-        r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0;
+        r.modalidade === "longa_permanencia"
+          ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+          : 0;
       const pagamento = pagamentoMap.get(r.id);
       const upsellingTotal = upsellingPorResidente.get(r.id) ?? 0;
       // 13º proporcional (cobrança própria) — só nov/dez, sem upselling.

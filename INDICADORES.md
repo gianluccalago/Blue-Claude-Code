@@ -21,6 +21,9 @@ sobreposição, ele resume e aponta para o detalhe na Administração.
   "Custos de materiais" (`useCustosMateriaisDoMes`), já descontado no resultado.
 - `taxa de ocupação = ativos / capacidade` (capacidade = config `total_suites`,
   editável no Painel da Administração); sem capacidade → "sem dados".
+- **Ocupação de LEITOS** = longa + curta permanência (modalidade). O **Day Care**
+  NÃO ocupa leito: é excluído de `useResidentes` (não entra em ocupação/mapa/
+  operacional) e contado à parte em `useResumoMes.dayCareAtivos`.
 
 ---
 

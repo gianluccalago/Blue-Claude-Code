@@ -125,7 +125,7 @@ const SEIS_MESES_MS = 183 * 24 * 60 * 60 * 1000;
 async function ivcfVencidos(): Promise<number> {
   try {
     const [{ data: res }, { data: avs }] = await Promise.all([
-      supabase.from("residentes").select("id").eq("status_hospede", "ativo"),
+      supabase.from("residentes").select("id").eq("status_hospede", "ativo").neq("modalidade", "day_care"),
       supabase.from("avaliacao_ivcf").select("residente_id, registrado_em"),
     ]);
     const maisRecente = new Map<string, number>();
@@ -431,7 +431,7 @@ async function atividadesNaoRegistradas(): Promise<number> {
 async function residentesSemDieta(): Promise<number> {
   try {
     const [{ data: res }, { data: dietas }] = await Promise.all([
-      supabase.from("residentes").select("id").eq("status_hospede", "ativo"),
+      supabase.from("residentes").select("id").eq("status_hospede", "ativo").neq("modalidade", "day_care"),
       supabase.from("dieta").select("residente_id").eq("ativa", true),
     ]);
     const comDieta = new Set((dietas ?? []).map((d) => d.residente_id));

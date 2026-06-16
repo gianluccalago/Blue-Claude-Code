@@ -35,6 +35,7 @@ import {
   Boxes,
   LineChart,
   Pencil,
+  Sun,
 } from "lucide-react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useResumoMes, useEvolucaoFinanceira } from "@/hooks/useIndicadoresGestao";
@@ -122,6 +123,9 @@ export function PainelAdministracao() {
         <StatCard icon={ArrowUpRight} tom="secondary" rotulo="Entradas no mês" valor={r.entradas} />
         <LinkCard to={`${base}/analise-saidas`}>
           <StatCard icon={ArrowDownRight} tom={r.saidas > 0 ? "warning" : "secondary"} rotulo="Saídas no mês" valor={r.saidas} />
+        </LinkCard>
+        <LinkCard to={`${base}/day-care`}>
+          <StatCard icon={Sun} tom="secondary" rotulo="Day Care (sem leito)" valor={r.dayCareAtivos} apoio="à parte da ocupação" />
         </LinkCard>
       </div>
       <CapacidadeEditor ativos={r.ativos} />
