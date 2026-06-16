@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, type ChangeEvent } from "react";
+import { Fragment, useRef, useState, useEffect, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
@@ -79,6 +79,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/usuarios": Shield,
   "/app/master/residentes": Users2,
   "/app/master/equipe": UserCog,
+  "/app/master/equipe-acessos": Shield,
   "/app/master/profissionais": UserCog,
   "/app/master/chamado-manutencao": Wrench,
   // Médico
@@ -447,16 +448,30 @@ export function Sidebar({
         </div>
 
         <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 py-2">
-          {perfil.menu.map((item) => {
+          {perfil.menu.map((item, i) => {
             const ativo = pathname === item.to;
             const badge = badges[item.to];
             const ItemIcon = iconeDaRota(item.to);
+            // Cabeçalho de seção quando o `grupo` muda (perfis que agrupam o
+            // menu, hoje só o Master). Itens sem `grupo` seguem lista plana.
+            const grupoAnterior = i > 0 ? perfil.menu[i - 1].grupo : undefined;
+            const mostrarCabecalho = !!item.grupo && item.grupo !== grupoAnterior;
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={onFechar}
-                className={cn(
+              <Fragment key={item.to}>
+                {mostrarCabecalho && (
+                  <div
+                    className={cn(
+                      "px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted/70",
+                      i === 0 ? "pt-1" : "pt-4",
+                    )}
+                  >
+                    {item.grupo}
+                  </div>
+                )}
+                <Link
+                  to={item.to}
+                  onClick={onFechar}
+                  className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200",
                   ativo
                     ? "bg-white/12 text-white shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.08)]"
@@ -480,9 +495,10 @@ export function Sidebar({
                 >
                   <ItemIcon className="size-4" />
                 </span>
-                <span className="flex-1 truncate">{item.label}</span>
-                {badge && <BadgeSidebar badge={badge} />}
-              </Link>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {badge && <BadgeSidebar badge={badge} />}
+                </Link>
+              </Fragment>
             );
           })}
         </nav>

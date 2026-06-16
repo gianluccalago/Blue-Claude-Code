@@ -20,6 +20,11 @@ export interface MenuItem {
   label: string;
   /** rota dentro do app, ex "/app/cuidador/checklist" */
   to: string;
+  /**
+   * Seção do menu (cabeçalho na sidebar). Opcional: itens sem `grupo` são
+   * renderizados na lista plana de sempre. Hoje só o Master agrupa o menu.
+   */
+  grupo?: string;
 }
 
 export interface PerfilDef {
@@ -44,30 +49,34 @@ export const PERFIS: PerfilDef[] = [
     icon: Shield,
     cor: "bg-secondary text-secondary-foreground",
     rotaInicial: "/app/master",
+    // Menu curado em 5 seções (Operacional → Estratégico → Comercial →
+    // Financeiro → Sistema). "Hóspedes" agrega ativos+inativos em sub-abas e
+    // "Equipe e acessos" funde usuários/profissionais/equipe em abas.
     menu: [
-      { label: "Painel estratégico", to: "/app/master" },
-      { label: "Visão do hóspede (360°)", to: "/app/master/hospede" },
-      { label: "Mapa das Suítes", to: "/app/master/mapa-suites" },
-      { label: "Hóspedes inativos", to: "/app/master/hospedes-inativos" },
-      { label: "Day Care", to: "/app/master/day-care" },
-      { label: "Análise de saídas", to: "/app/master/analise-saidas" },
-      { label: "Painel operacional", to: "/app/master/operacional" },
-      { label: "Supervisão clínica", to: "/app/master/clinica" },
-      { label: "Usuários e acessos", to: "/app/master/usuarios" },
-      { label: "Hóspedes", to: "/app/master/residentes" },
-      { label: "Equipe", to: "/app/master/equipe" },
-      { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos" },
-      { label: "RH — Painéis", to: "/app/master/rh-paineis" },
-      { label: "Tabela de preços", to: "/app/master/tabela-precos" },
-      { label: "Cobrança de temporários", to: "/app/master/cobranca-temporaria" },
-      { label: "Serviços", to: "/app/master/servicos" },
-      { label: "Enxoval", to: "/app/master/enxoval" },
-      { label: "Custo refeições equipe", to: "/app/master/refeicoes-equipe" },
-      { label: "Resultados NPS", to: "/app/master/resultados-nps" },
-      { label: "CRM", to: "/app/master/crm" },
-      { label: "Funil de Vendas", to: "/app/master/funil-vendas" },
-      { label: "Profissionais", to: "/app/master/profissionais" },
-      { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao" },
+      // OPERACIONAL
+      { label: "Painel operacional", to: "/app/master/operacional", grupo: "Operacional" },
+      { label: "Supervisão clínica", to: "/app/master/clinica", grupo: "Operacional" },
+      { label: "Visão do hóspede (360°)", to: "/app/master/hospede", grupo: "Operacional" },
+      { label: "Hóspedes", to: "/app/master/residentes", grupo: "Operacional" },
+      { label: "Day Care", to: "/app/master/day-care", grupo: "Operacional" },
+      { label: "Serviços", to: "/app/master/servicos", grupo: "Operacional" },
+      { label: "Enxoval", to: "/app/master/enxoval", grupo: "Operacional" },
+      { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao", grupo: "Operacional" },
+      // ESTRATÉGICO
+      { label: "Painel estratégico", to: "/app/master", grupo: "Estratégico" },
+      { label: "Análise de saídas", to: "/app/master/analise-saidas", grupo: "Estratégico" },
+      { label: "RH — Painéis", to: "/app/master/rh-paineis", grupo: "Estratégico" },
+      { label: "Resultados NPS", to: "/app/master/resultados-nps", grupo: "Estratégico" },
+      { label: "Mapa das Suítes", to: "/app/master/mapa-suites", grupo: "Estratégico" },
+      // COMERCIAL
+      { label: "CRM", to: "/app/master/crm", grupo: "Comercial" },
+      { label: "Funil de Vendas", to: "/app/master/funil-vendas", grupo: "Comercial" },
+      // FINANCEIRO
+      { label: "Tabela de preços", to: "/app/master/tabela-precos", grupo: "Financeiro" },
+      { label: "Cobrança de temporários", to: "/app/master/cobranca-temporaria", grupo: "Financeiro" },
+      // SISTEMA
+      { label: "Equipe e acessos", to: "/app/master/equipe-acessos", grupo: "Sistema" },
+      { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos", grupo: "Sistema" },
     ],
     emConstrucao: false,
   },

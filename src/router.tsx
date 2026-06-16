@@ -33,8 +33,9 @@ import { Visao360 } from "@/routes/master/Visao360";
 import { PainelOperacional } from "@/routes/master/PainelOperacional";
 import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
 import { UsuariosAcessos } from "@/routes/master/UsuariosAcessos";
-import { Residentes } from "@/routes/master/Residentes";
 import { Equipe } from "@/routes/master/Equipe";
+import { EquipeAcessos } from "@/routes/master/EquipeAcessos";
+import { HospedesMaster } from "@/routes/master/HospedesMaster";
 import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
@@ -471,15 +472,23 @@ const masterUsuariosRoute = createRoute({
   path: "usuarios",
   component: UsuariosAcessos,
 });
+// "Hóspedes" do Master = wrapper com sub-abas Ativos (Residentes) + Inativos.
 const masterResidentesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "residentes",
-  component: Residentes,
+  component: HospedesMaster,
 });
 const masterEquipeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "equipe",
   component: Equipe,
+});
+// "Equipe e acessos" do Master = wrapper com abas Acessos + Profissionais +
+// Escala & horários (fusão de usuarios/profissionais/equipe num só item).
+const masterEquipeAcessosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "equipe-acessos",
+  component: EquipeAcessos,
 });
 
 // Ficha do hóspede — disponível em todos os perfis (menos Família). Aceita
@@ -577,6 +586,7 @@ const routeTree = rootRoute.addChildren([
     masterUsuariosRoute,
     masterResidentesRoute,
     masterEquipeRoute,
+    masterEquipeAcessosRoute,
     fichaHospedeRoute,
     crmPipelineRoute,
     crmNovaRoute,
