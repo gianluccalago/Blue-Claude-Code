@@ -137,11 +137,13 @@ export function PainelEstrategico() {
 
   // ----- OPERACIONAL: alertas críticos abertos (tempo real) -----
   const trat = tratamentos.data ?? [];
+  // Só alertas de hóspedes ATIVOS (inativado não infla os alertas críticos).
+  const ativosIds = new Set(listaResidentes.map((r) => r.id));
   const intercAbertas = (intercorrencias.data ?? []).filter(
-    (i) => !estadoDaPendencia(trat, "intercorrencia", i.id).resolvido,
+    (i) => ativosIds.has(i.residente_id) && !estadoDaPendencia(trat, "intercorrencia", i.id).resolvido,
   ).length;
   const medsAbertas = (medicacoes.data ?? []).filter(
-    (m) => !estadoDaPendencia(trat, "medicacao", m.id).resolvido,
+    (m) => ativosIds.has(m.residente_id) && !estadoDaPendencia(trat, "medicacao", m.id).resolvido,
   ).length;
   const alertas = alertasElim.data ?? [];
   const alertasEliminacao = alertas.length;

@@ -107,11 +107,15 @@ export function PainelOperacional() {
   const trat = tratamentos.data ?? [];
 
   // ---- Assistencial ----
+  // Só hóspedes ATIVOS (inativado não infla as pendências operacionais).
+  const ativosIds = new Set((residentes.data ?? []).map((r) => r.id));
   const ad = calcularAderencia(aderencia.data?.itens ?? [], aderencia.data?.registros ?? []);
   const medsAbertas = (medicacoes.data ?? [])
+    .filter((m) => ativosIds.has(m.residente_id))
     .map((m) => ({ reg: m, estado: estadoDaPendencia(trat, "medicacao", m.id) }))
     .filter((x) => !x.estado.resolvido);
   const intercAbertas = (intercorrencias.data ?? [])
+    .filter((i) => ativosIds.has(i.residente_id))
     .map((i) => ({ reg: i, estado: estadoDaPendencia(trat, "intercorrencia", i.id) }))
     .filter((x) => !x.estado.resolvido);
   const alertas = alertasElim.data ?? [];

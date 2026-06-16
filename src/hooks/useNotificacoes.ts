@@ -188,7 +188,7 @@ async function calcular(
       const [estoqueBaixo, resgateBaixo, totalRes, { data: prov }, dispPend] = await Promise.all([
         contar(headCount("estoque_hospede").eq("mes_referencia", mes).lte("quantidade_atual", 5)),
         contar(headCount("estoque_resgate").lte("quantidade_atual", 5)),
-        contar(headCount("residentes").eq("status_hospede", "ativo")),
+        contar(headCount("residentes").eq("status_hospede", "ativo").neq("modalidade", "day_care")),
         supabase.from("estoque_hospede").select("residente_id").eq("mes_referencia", mes),
         dispensacaoPendente(),
       ]);

@@ -83,6 +83,8 @@ Seletor de mês no topo. Hero: **Resultado do mês** + % recebido.
 - **Resultado do mês** (destaque) · faturamento − custos
 
 **Evolução do faturamento (12 meses)** — gráfico, alternando Faturamento/Resultado.
+O faturamento mensal da evolução soma mensalidades (longa) + upselling +
+cobranças temporárias (curta/day care), coerente com `useResumoMes`.
 
 **Cards de apoio** (não-financeiros, sem duplicar números):
 - Serviços (só Administração) · Telefone do plantão (só Administração)

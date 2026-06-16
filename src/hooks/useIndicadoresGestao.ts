@@ -16,7 +16,8 @@ import type { Residente } from "@/types/database";
 // MESMO número nunca é recalculado de formas diferentes em telas diferentes.
 //
 // Definições canônicas:
-//   faturamento = mensalidades (previstas) + upselling (do mês)
+//   faturamento = mensalidades (longa) + upselling + 13º (nov/dez) + cobranças
+//                 temporárias (curta permanência + day care)
 //   recebido    = mensalidades de hóspedes com pagamento "paga"
 //   resultado   = faturamento − (custo de pessoal + custo de materiais)
 //   materiais   = null enquanto não existe módulo de materiais (limpeza/manut.)
@@ -164,18 +165,20 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   return useQuery({
     queryKey: ["evolucao-financeira", mesBase, n],
     queryFn: async (): Promise<PontoEvolucao[]> => {
-      const [resR, tabR, upsR, pessoalR] = await Promise.all([
+      const [resR, tabR, upsR, pessoalR, cobR] = await Promise.all([
         supabase
           .from("residentes")
           .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida, modalidade"),
         supabase.from("tabela_preco").select("tipo_suite, grau, ocupacao, valor"),
         supabase.from("upselling").select("valor, mes_referencia"),
         supabase.from("pagamento_pessoal").select("valor_final, mes_referencia"),
+        supabase.from("cobranca_temporaria").select("valor, periodo_referencia"),
       ]);
       if (resR.error) throw resR.error;
       if (tabR.error) throw tabR.error;
       if (upsR.error) throw upsR.error;
       if (pessoalR.error) throw pessoalR.error;
+      if (cobR.error) throw cobR.error;
 
       const residentes = (resR.data ?? []) as ResidenteEvolucao[];
       const precoMap = new Map(
@@ -197,12 +200,19 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
         const m = p.mes_referencia as string;
         pessoalPorMes.set(m, (pessoalPorMes.get(m) ?? 0) + ((p.valor_final as number) ?? 0));
       }
+      // Cobranças de temporários (curta/day care) por mês — entram no faturamento
+      // (coerente com useResumoMes).
+      const cobPorMes = new Map<string, number>();
+      for (const c of cobR.data ?? []) {
+        const m = c.periodo_referencia as string;
+        cobPorMes.set(m, (cobPorMes.get(m) ?? 0) + ((c.valor as number) ?? 0));
+      }
 
       return meses.map((mes) => {
         const mensalidades = residentes
           .filter((r) => presenteNoMes(r, mes))
           .reduce((s, r) => s + mensalidadeDe(r), 0);
-        const faturamento = mensalidades + (upsPorMes.get(mes) ?? 0);
+        const faturamento = mensalidades + (upsPorMes.get(mes) ?? 0) + (cobPorMes.get(mes) ?? 0);
         const resultado = faturamento - (pessoalPorMes.get(mes) ?? 0);
         return { mes, faturamento, resultado };
       });

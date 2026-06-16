@@ -99,15 +99,19 @@ export function PainelCoordenacao() {
 
   const trat = tratamentos.data ?? [];
   const resolData: ResolucaoMedica[] = resolucoes.data ?? [];
+  // Só hóspedes ATIVOS no operacional (inativados somem das pendências/alertas).
+  const ativosIds = new Set((residentes.data ?? []).map((r) => r.id));
 
   // ----- Pendências abertas (sem tratamento "resolvido") -----
   // Fila puxada: ordena da MAIS ANTIGA para a mais nova (o que envelhece
   // primeiro é atacado primeiro); a idade + selo de SLA ficam no card.
   const medsAbertas = (medicacoes.data ?? [])
+    .filter((m) => ativosIds.has(m.residente_id))
     .map((m) => ({ reg: m, estado: estadoDaPendencia(trat, "medicacao", m.id) }))
     .filter((x) => !x.estado.resolvido)
     .sort((a, b) => a.reg.administrado_em.localeCompare(b.reg.administrado_em));
   const intercAbertas = (intercorrencias.data ?? [])
+    .filter((i) => ativosIds.has(i.residente_id))
     .map((i) => ({
       reg: i,
       estado: estadoDaPendencia(trat, "intercorrencia", i.id),
@@ -122,7 +126,7 @@ export function PainelCoordenacao() {
   const inicioHoje = new Date();
   inicioHoje.setHours(0, 0, 0, 0);
   const intercorrenciasHoje = (intercorrencias.data ?? []).filter(
-    (i) => new Date(i.registrado_em) >= inicioHoje,
+    (i) => ativosIds.has(i.residente_id) && new Date(i.registrado_em) >= inicioHoje,
   ).length;
   const pendenciasAbertas = medsAbertas.length + intercAbertas.length;
   const alertasElim = alertas.data ?? [];

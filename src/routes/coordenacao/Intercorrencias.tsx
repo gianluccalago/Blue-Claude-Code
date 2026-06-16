@@ -73,12 +73,15 @@ export function IntercorrenciasCoord() {
 
   const filtradas = useMemo(() => {
     return (intercorrencias.data ?? []).filter((i) => {
+      // Só hóspedes ATIVOS (inativados somem do operacional): `info` já é a
+      // lista de ativos (useResidentes).
+      if (!info.has(i.residente_id)) return false;
       if (hospedeFiltro !== "todos" && i.residente_id !== hospedeFiltro) return false;
       if (tipoFiltro !== "todos" && i.tipo !== tipoFiltro) return false;
       if (!dentroDoPeriodo(i.registrado_em, periodoFiltro)) return false;
       return true;
     });
-  }, [intercorrencias.data, hospedeFiltro, tipoFiltro, periodoFiltro]);
+  }, [intercorrencias.data, info, hospedeFiltro, tipoFiltro, periodoFiltro]);
 
   if (carregando) return <LoadingState />;
   if (erro) return <ErrorState error={erro} />;
