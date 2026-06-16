@@ -169,7 +169,7 @@ export function MapaSuites() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Hóspedes ativos ({linhas.length})</CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="planilha-fixa">
             <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">

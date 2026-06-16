@@ -170,7 +170,7 @@ function SecaoCobertura({ ano, meses, profs, deslig, turnos, aus }: {
         <CardTitle className="text-base">Cobertura de escala — {ano}</CardTitle>
         <Button variant="outline" size="sm" className="gap-2" onClick={exportar} disabled={!temDados}><Download className="size-4" /> Excel</Button>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      <CardContent className="planilha-fixa">
         {!temDados ? (
           <EmptyState label="Sem dados de escala/cobertura no período." />
         ) : (
@@ -301,7 +301,7 @@ function SecaoAbsenteismo({ ano, meses, mesesAnt, profs, deslig, afa, aus }: {
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Absenteísmo por cargo (dias de afastamento) — {ano}</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="planilha-fixa">
           {cargoMes.length === 0 ? <EmptyState label="Sem afastamentos no ano." /> : (
             <table className="w-full min-w-[640px] text-sm">
               <thead>

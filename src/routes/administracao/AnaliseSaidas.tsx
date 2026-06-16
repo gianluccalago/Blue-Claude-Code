@@ -279,7 +279,7 @@ export function AnaliseSaidas() {
                 <Grid3x3 className="size-4 text-secondary" /> Matriz tempo de casa × motivo
               </CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="planilha-fixa">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -348,7 +348,7 @@ export function AnaliseSaidas() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Saídas detalhadas ({linhas.length})</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="planilha-fixa">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
