@@ -62,6 +62,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { EditarPerfilDialog } from "@/components/EditarPerfilDialog";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
 import { useNotificacoes, type Badge as BadgeNotif } from "@/hooks/useNotificacoes";
@@ -386,7 +387,8 @@ export function Sidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioEfetivo, sair } = useAuth();
+  const { usuarioEfetivo, impersonado, sair } = useAuth();
+  const [editarPerfil, setEditarPerfil] = useState(false);
   const Icon = perfil.icon;
 
   // Notificações (badges) do perfil. Recalcula ao TROCAR DE TELA (sem realtime):
@@ -518,6 +520,18 @@ export function Sidebar({
               <div className="truncate text-sm font-bold">{ouNaoInformado(usuarioEfetivo?.nome)}</div>
               <div className="truncate text-[11px] text-sidebar-muted">Sessão ativa</div>
             </div>
+            {/* Editar o próprio perfil (nome/senha). Oculto durante o Camaleão,
+                para não haver ambiguidade sobre qual conta está sendo editada. */}
+            {!impersonado && (
+              <button
+                onClick={() => setEditarPerfil(true)}
+                className="grid size-9 shrink-0 place-items-center rounded-lg border border-white/15 text-sidebar-muted transition-colors duration-200 hover:border-white/30 hover:bg-white/10 hover:text-white"
+                aria-label="Editar meu perfil"
+                title="Editar meu perfil"
+              >
+                <UserCog className="size-4" />
+              </button>
+            )}
             <button
               onClick={logout}
               className="grid size-9 shrink-0 place-items-center rounded-lg border border-white/15 text-sidebar-muted transition-colors duration-200 hover:border-white/30 hover:bg-white/10 hover:text-white"
@@ -532,6 +546,8 @@ export function Sidebar({
           </p>
         </div>
       </aside>
+
+      <EditarPerfilDialog aberto={editarPerfil} onFechar={() => setEditarPerfil(false)} />
     </>
   );
 }

@@ -30,6 +30,8 @@ interface AuthState {
   carregando: boolean;
   entrar: (email: string, senha: string) => Promise<void>;
   sair: () => Promise<void>;
+  /** Recarrega o usuário REAL a partir do banco (ex.: após editar o perfil). */
+  recarregarUsuario: () => Promise<void>;
   /** Master assume a visão de `u` (ou null para voltar ao Master). */
   personificar: (u: Usuario | null) => void;
 }
@@ -144,6 +146,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setImpersonado(null);
   }
 
+  // Recarrega a linha de `usuarios` do usuário autenticado (não mexe no
+  // Camaleão). Usado após o próprio usuário editar nome/foto.
+  async function recarregarUsuario() {
+    const { data } = await supabase.auth.getUser();
+    const email = data.user?.email ?? undefined;
+    if (!email) return;
+    const u = await resolverUsuario(email);
+    if (u) setUsuario(u);
+  }
+
   function personificar(u: Usuario | null) {
     // Só o Master pode personificar; nunca a si mesmo.
     if (usuario?.perfil !== "master") return;
@@ -160,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       carregando,
       entrar,
       sair,
+      recarregarUsuario,
       personificar,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1960,6 +1960,11 @@ export interface Database {
         Args: { p_url: string | null };
         Returns: undefined;
       };
+      // Atualiza somente o nome de exibição do PRÓPRIO usuário (não altera perfil).
+      set_meu_nome: {
+        Args: { p_nome: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
