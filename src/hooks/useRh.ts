@@ -224,3 +224,42 @@ export function useRemoverDesligamento() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["rh-desligamentos"] }),
   });
 }
+
+// ─── Leituras por RANGE (para os PAINÉIS DE RH) ─────────────────────────────
+
+export function useAusenciasRange(de: string, ate: string) {
+  return useQuery({
+    queryKey: ["rh-ausencias-range", de, ate],
+    queryFn: async (): Promise<RhAusencia[]> => {
+      const { data, error } = await supabase
+        .from("rh_ausencia").select("*").gte("data_inicio", de).lte("data_inicio", ate);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAfastamentosRange(de: string, ate: string) {
+  return useQuery({
+    queryKey: ["rh-afastamentos-range", de, ate],
+    queryFn: async (): Promise<RhAfastamento[]> => {
+      const { data, error } = await supabase
+        .from("rh_afastamento").select("*").gte("data_inicio", de).lte("data_inicio", ate);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** TODOS os desligamentos (necessário para o headcount histórico mês a mês). */
+export function useDesligamentosTodos() {
+  return useQuery({
+    queryKey: ["rh-desligamentos-todos"],
+    queryFn: async (): Promise<RhDesligamento[]> => {
+      const { data, error } = await supabase
+        .from("rh_desligamento").select("*").order("data_desligamento", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}

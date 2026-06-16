@@ -192,6 +192,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/rh-eventos": Users2,
   "/app/direcao/rh-eventos": Users2,
   "/app/master/rh-eventos": Users2,
+  "/app/administracao/rh-paineis": BarChart3,
+  "/app/direcao/rh-paineis": BarChart3,
+  "/app/master/rh-paineis": BarChart3,
   "/app/administracao/profissionais": UserCog,
   "/app/administracao/solicitacoes-familia": MessageSquare,
   // Direção (mesma operação da Administração + CRM)

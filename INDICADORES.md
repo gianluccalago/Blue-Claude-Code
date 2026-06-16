@@ -107,6 +107,20 @@ plano (hoje) · Manutenção · Hotelaria
 > operacional/assistencial e **não** carrega indicadores financeiros — sem
 > sobreposição com os painéis acima.
 
+### Painéis de RH (`/app/{administracao,direcao,master}/rh-paineis`)
+Visão analítica de pessoal (Administração/Direção e Master). Lê dos registros de
+RH (`rh_ausencia`/`rh_afastamento`/`rh_desligamento`) e da escala (`turnos`).
+Não duplica indicadores existentes — é o módulo de RH.
+- **Cobertura:** tabela mensal (funcionários, plantões, descobertos =
+  `profissional_id is null`, coberturas por tipo, % atestados/plantões). Export Excel.
+- **Turnover** = (desligamentos no mês ÷ headcount médio) × 100 · combo (barras
+  ano atual vs anterior + linha de meta) · pizza de motivos · tabela por cargo.
+- **Absenteísmo** = (dias perdidos afastamento+faltas/atestados ÷ dias
+  trabalháveis) × 100 · combo + teto · tabela cargo×mês · combo por grupo de CID.
+- Metas/tetos = constantes editáveis (`META_TURNOVER_PCT`, `TETO_ABSENTEISMO_PCT`
+  em `lib/paineisRh.ts`). Observações qualitativas persistem em `configuracao`.
+- **Privacidade:** CID só o grupo (sem diagnóstico); RLS restringe à gestão.
+
 ### Funil de Vendas (`/app/{administracao,direcao,master}/funil-vendas`)
 Visão **histórica/analítica** do CRM (Administração/Direção e Master). Agrega o
 CRM já existente (não recria coleta). Fonte: `useOportunidadesFunil` +

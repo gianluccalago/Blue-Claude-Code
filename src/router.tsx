@@ -50,6 +50,7 @@ import { MapaSuites } from "@/routes/administracao/MapaSuites";
 import { CustosMateriais } from "@/routes/administracao/CustosMateriais";
 import { CobrancaTemporaria } from "@/routes/administracao/CobrancaTemporaria";
 import { RhEventos } from "@/routes/administracao/RhEventos";
+import { RhPaineis } from "@/routes/administracao/RhPaineis";
 import { HospedesInativos } from "@/routes/administracao/HospedesInativos";
 import { AnaliseSaidas } from "@/routes/administracao/AnaliseSaidas";
 import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
@@ -256,6 +257,11 @@ const rhEventosRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "rh-eventos",
   component: RhEventos,
+});
+const rhPaineisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "rh-paineis",
+  component: RhPaineis,
 });
 const visaoDiaHotelariaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -594,6 +600,7 @@ const routeTree = rootRoute.addChildren([
     custosMateriaisRoute,
     cobrancaTemporariaRoute,
     rhEventosRoute,
+    rhPaineisRoute,
     visaoDiaHotelariaRoute,
     chamadoManutencaoRoute,
     painelFarmaciaRoute,
