@@ -50,6 +50,10 @@ import { Enxoval } from "@/routes/lavanderia/Enxoval";
 import { MapaSuites } from "@/routes/administracao/MapaSuites";
 import { CustosMateriais } from "@/routes/administracao/CustosMateriais";
 import { CobrancaTemporaria } from "@/routes/administracao/CobrancaTemporaria";
+import { CobrancaGestao } from "@/routes/administracao/CobrancaGestao";
+import { HospedesGestao } from "@/routes/administracao/HospedesGestao";
+import { UpsellingAtendimentos } from "@/routes/administracao/UpsellingAtendimentos";
+import { CustosPessoalEquipe } from "@/routes/administracao/CustosPessoalEquipe";
 import { RhEventos } from "@/routes/administracao/RhEventos";
 import { RhPaineis } from "@/routes/administracao/RhPaineis";
 import { HospedesInativos } from "@/routes/administracao/HospedesInativos";
@@ -65,8 +69,6 @@ import { EstoqueResgate } from "@/routes/resgate/EstoqueResgate";
 import { Atividades } from "@/routes/multidisciplinar/Atividades";
 import { TabelaPrecos } from "@/routes/administracao/TabelaPrecos";
 import { Mensalidades } from "@/routes/administracao/Mensalidades";
-import { PainelCobranca } from "@/routes/administracao/PainelCobranca";
-import { Upselling } from "@/routes/administracao/Upselling";
 import { Demonstrativo } from "@/routes/administracao/Demonstrativo";
 import { PainelAdministracao } from "@/routes/administracao/PainelAdministracao";
 import { PainelServicos } from "@/routes/administracao/PainelServicos";
@@ -82,7 +84,6 @@ import { Peso } from "@/routes/nutricionista/Peso";
 import { EscalaCozinha } from "@/routes/nutricionista/EscalaCozinha";
 import { RefeicoesEquipe } from "@/routes/nutricionista/RefeicoesEquipe";
 import { RemuneracaoEquipe } from "@/routes/administracao/RemuneracaoEquipe";
-import { CustosPessoal } from "@/routes/administracao/CustosPessoal";
 import { Dietas } from "@/routes/nutricionista/Dietas";
 import { Acompanhamento as AcompanhamentoNutricional } from "@/routes/nutricionista/Acompanhamento";
 import { EvolucaoNutricional } from "@/routes/nutricionista/Evolucao";
@@ -394,15 +395,17 @@ const mensalidadesRoute = createRoute({
   path: "mensalidades",
   component: Mensalidades,
 });
+// "Cobrança" = wrapper com abas Mensalistas (PainelCobranca) + Temporários.
 const cobrancaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "cobranca",
-  component: PainelCobranca,
+  component: CobrancaGestao,
 });
+// "Upselling & atendimentos" = wrapper com abas Lançamentos + A precificar.
 const upsellingRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "upselling",
-  component: Upselling,
+  component: UpsellingAtendimentos,
 });
 const demonstrativoRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -414,10 +417,17 @@ const remuneracaoEquipeRoute = createRoute({
   path: "remuneracao-equipe",
   component: RemuneracaoEquipe,
 });
+// "Custos de pessoal" = wrapper com abas Pagamentos + Tabela de remuneração.
 const custosPessoalRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "custos-pessoal",
-  component: CustosPessoal,
+  component: CustosPessoalEquipe,
+});
+// "Hóspedes" (Adm/Direção) = wrapper com abas Ativos (ficha) + Inativos.
+const hospedesGestaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "hospedes-gestao",
+  component: HospedesGestao,
 });
 const fotosFamiliaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -606,6 +616,7 @@ const routeTree = rootRoute.addChildren([
     enxovalRoute,
     mapaSuitesRoute,
     hospedesInativosRoute,
+    hospedesGestaoRoute,
     analiseSaidasRoute,
     custosMateriaisRoute,
     cobrancaTemporariaRoute,
