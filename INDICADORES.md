@@ -102,6 +102,22 @@ plano (hoje) · Manutenção · Hotelaria
 > operacional/assistencial e **não** carrega indicadores financeiros — sem
 > sobreposição com os painéis acima.
 
+### Funil de Vendas (`/app/{administracao,direcao,master}/funil-vendas`)
+Visão **histórica/analítica** do CRM (Administração/Direção e Master). Agrega o
+CRM já existente (não recria coleta). Fonte: `useOportunidadesFunil` +
+`lib/funilVendas` (definições de lead/qualificado/visita/venda comentadas lá).
+- Tabela funil por mês (leads, qualificados, visitas, vendas, % de conversão,
+  receita, ticket) + médias no rodapé · gráfico de evolução do ticket médio ·
+  resumo de conversão do período. Export Excel.
+- **Consolidação (sem duplicar):** o card "Funil comercial" do painel é o
+  **snapshot do momento** (oportunidades ativas, visitas na semana, admissões no
+  mês) e passa a **apontar** para o Funil histórico (a visão por mês/conversão).
+  Nenhum número aparece nas duas telas na mesma forma.
+- Acesso: Administração ganhou **SELECT** em `crm_oportunidade` (migration 0074)
+  só para o funil — o CRM operacional (escrita) segue Direção/Master.
+- Pendências: série **Meta** (OKR futuro) e correção por **IPCA** comentadas no
+  código; **LP/CP/SD** (tipo de admissão) entra quando o CRM distinguir o tipo.
+
 ---
 
 ## Regra daqui pra frente

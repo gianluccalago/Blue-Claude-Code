@@ -698,3 +698,22 @@ export function useResumoFunil() {
 
 // Reexport de tipos úteis às telas.
 export type { CrmEvento, CrmTarefa };
+
+/**
+ * Oportunidades CRUAS (todos os campos) para o FUNIL DE VENDAS histórico.
+ * Leitura agregada do CRM já existente (RLS: Master/Direção total; Administração
+ * só SELECT — migration 0074). Sem joins: o funil usa só campos da oportunidade.
+ */
+export function useOportunidadesFunil() {
+  return useQuery({
+    queryKey: ["crm-oportunidades-funil"],
+    queryFn: async (): Promise<CrmOportunidade[]> => {
+      const { data, error } = await supabase
+        .from("crm_oportunidade")
+        .select("*")
+        .order("criado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}

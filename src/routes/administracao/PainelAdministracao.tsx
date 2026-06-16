@@ -378,13 +378,19 @@ function FunilComercialCard({ base }: { base: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="size-5 text-primary" /> Funil comercial
+          <TrendingUp className="size-5 text-primary" /> Funil comercial <span className="text-xs font-normal text-muted-foreground">· agora</span>
         </CardTitle>
-        <Link to={`${base}/crm`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-          Abrir pipeline <ArrowRight className="size-4" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to={`${base}/funil-vendas`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+            Funil histórico <ArrowRight className="size-4" />
+          </Link>
+          <Link to={`${base}/crm`} className="inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:underline">
+            Pipeline <ArrowRight className="size-4" />
+          </Link>
+        </div>
       </CardHeader>
       <CardContent>
+        {/* Snapshot do momento (não duplica o Funil histórico, que é por mês/conversão). */}
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard icon={TrendingUp} tom="primary" rotulo="Oportunidades ativas" valor={funil.data?.oportunidadesAtivas ?? 0} />
           <StatCard icon={CalendarCheck} tom="secondary" rotulo="Visitas agendadas na semana" valor={funil.data?.visitasNaSemana ?? 0} />

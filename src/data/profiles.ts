@@ -61,6 +61,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Custo refeições equipe", to: "/app/master/refeicoes-equipe" },
       { label: "Resultados NPS", to: "/app/master/resultados-nps" },
       { label: "CRM", to: "/app/master/crm" },
+      { label: "Funil de Vendas", to: "/app/master/funil-vendas" },
       { label: "Profissionais", to: "/app/master/profissionais" },
       { label: "Abrir chamado de manutenção", to: "/app/master/chamado-manutencao" },
     ],
@@ -283,6 +284,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Painel da Administração", to: "/app/administracao" },
       { label: "Hóspedes", to: "/app/administracao/ficha" },
+      { label: "Funil de Vendas", to: "/app/administracao/funil-vendas" },
       { label: "Mapa das Suítes", to: "/app/administracao/mapa-suites" },
       { label: "Hóspedes inativos", to: "/app/administracao/hospedes-inativos" },
       { label: "Análise de saídas", to: "/app/administracao/analise-saidas" },
@@ -320,6 +322,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Hóspedes inativos", to: "/app/direcao/hospedes-inativos" },
       { label: "Análise de saídas", to: "/app/direcao/analise-saidas" },
       { label: "CRM", to: "/app/direcao/crm" },
+      { label: "Funil de Vendas", to: "/app/direcao/funil-vendas" },
       { label: "Tabela de preços", to: "/app/direcao/tabela-precos" },
       { label: "Mensalidades", to: "/app/direcao/mensalidades" },
       { label: "Upselling", to: "/app/direcao/upselling" },

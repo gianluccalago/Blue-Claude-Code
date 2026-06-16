@@ -6,6 +6,7 @@ import {
   Map as MapIcon,
   Archive,
   Boxes,
+  Filter,
   LogOut,
   Loader2,
   X,
@@ -199,6 +200,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   // CRM comercial (Direção e Master)
   "/app/direcao/crm": TrendingUp,
   "/app/master/crm": TrendingUp,
+  "/app/administracao/funil-vendas": Filter,
+  "/app/direcao/funil-vendas": Filter,
+  "/app/master/funil-vendas": Filter,
   "/app/direcao/crm-tarefas": ListChecks,
   "/app/master/crm-tarefas": ListChecks,
   "/app/direcao/crm-contatos": Contact,
