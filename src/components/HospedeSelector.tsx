@@ -3,6 +3,8 @@ import { Search, ChevronDown, X } from "lucide-react";
 import { cn, formatarDataBR } from "@/lib/utils";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
 import { SeloModalidade } from "@/components/SeloModalidade";
+import { useAuth } from "@/auth/AuthProvider";
+import { podeVerGrauReal } from "@/lib/fichaHospede";
 import type { Residente } from "@/types/database";
 
 export function HospedeSelector({
@@ -16,6 +18,10 @@ export function HospedeSelector({
 }) {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
+  // Cuidadoras/enfermagem só veem o grau de ingresso; o grau real (IVCF) some
+  // do seletor para esses perfis (regra única em lib/fichaHospede).
+  const { usuarioEfetivo } = useAuth();
+  const ocultarGrauReal = !podeVerGrauReal(usuarioEfetivo?.perfil);
 
   const selecionado = hospedes.find((h) => h.id === selecionadoId);
 
@@ -59,6 +65,7 @@ export function HospedeSelector({
                 className="mt-0.5"
                 contratual={h.grau_contratual}
                 real={h.grau_dependencia}
+                ocultarReal={ocultarGrauReal}
               />
             </button>
           );
@@ -156,6 +163,7 @@ export function HospedeSelector({
                         className="mt-0.5"
                         contratual={h.grau_contratual}
                         real={h.grau_dependencia}
+                        ocultarReal={ocultarGrauReal}
                       />
                     </div>
                     {ativo && (

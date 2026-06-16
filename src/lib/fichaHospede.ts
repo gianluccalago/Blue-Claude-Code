@@ -33,6 +33,19 @@ const PERFIS_VE_FINANCEIRO: ReadonlySet<PerfilUsuario> = new Set(["master", "adm
 // financeiro, sem atuar no cuidado. Para eles o alerta de alergia é só ruído.
 const PERFIS_ADMINISTRATIVO: ReadonlySet<PerfilUsuario> = new Set(["administracao", "direcao"]);
 
+// O GRAU REAL (último IVCF / grau_dependencia) é uma leitura CLÍNICA. A ponta
+// assistencial (cuidadoras e enfermagem) cuida pelo GRAU DE INGRESSO (contratual,
+// o que foi contratado/dimensionado); expor o grau real ali só gera ancoragem e
+// ruído. Por isso o grau real fica OCULTO para esses perfis — eles veem apenas o
+// grau contratual. Gestão e clínica de retaguarda (Master, Médico, Coordenação,
+// Administração, Direção) continuam vendo contratual × real para gerir a
+// divergência (gatilho de revisão de grau).
+const PERFIS_OCULTA_GRAU_REAL: ReadonlySet<PerfilUsuario> = new Set([
+  "cuidador",
+  "enfermagem",
+  "enfermeira",
+]);
+
 /** Ficha completa (plano de saúde/contatos/clínico) vs assistencial. */
 export function fichaCompleta(perfil: PerfilUsuario | undefined): boolean {
   return !!perfil && PERFIS_FICHA_COMPLETA.has(perfil);
@@ -55,4 +68,13 @@ export function podeVerAlergias(perfil: PerfilUsuario | undefined): boolean {
 /** Pode editar os dados cadastrais e enviar foto do hóspede. */
 export function podeEditarFicha(perfil: PerfilUsuario | undefined): boolean {
   return !!perfil && PERFIS_EDITA_FICHA.has(perfil);
+}
+
+/**
+ * Pode ver o GRAU REAL (último IVCF / grau_dependencia). Cuidadoras e enfermagem
+ * só veem o grau de ingresso (contratual). Default seguro: perfil desconhecido
+ * NÃO vê o grau real (não vaza leitura clínica para fora dos perfis previstos).
+ */
+export function podeVerGrauReal(perfil: PerfilUsuario | undefined): boolean {
+  return !!perfil && !PERFIS_OCULTA_GRAU_REAL.has(perfil);
 }

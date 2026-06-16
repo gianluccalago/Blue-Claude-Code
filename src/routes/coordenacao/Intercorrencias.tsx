@@ -24,6 +24,7 @@ const TIPOS = [
   "Lesão de pele",
   "Recusa",
   "Vômito",
+  "Outras",
 ] as const;
 
 type Periodo = "hoje" | "7d" | "30d" | "tudo";

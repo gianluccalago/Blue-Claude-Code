@@ -26,9 +26,16 @@ const TIPOS = [
   "Lesão de pele",
   "Recusa",
   "Vômito",
+  // "Outras": cobre o que não se encaixa nos tipos acima. É a ÚNICA exceção à
+  // regra de não-digitação — por ser cuidado de urgência, libera um campo de
+  // texto para a cuidadora descrever a ocorrência (ver fluxo abaixo).
+  "Outras",
 ] as const;
 
+const TIPO_OUTRAS = "Outras";
+
 // Sub-opções por tipo — geram texto automático, dispensam digitação em urgência.
+// "Outras" NÃO tem sub-tipos (a descrição livre é o conteúdo).
 const SUB_TIPOS: Record<string, string[]> = {
   "Queda": ["Sem ferimento", "Hematoma", "Sangramento", "Contusão"],
   "Alteração de consciência": ["Confusão", "Agitação", "Sonolência", "Desmaio"],
@@ -65,7 +72,9 @@ export function Intercorrencia() {
 
   const hospedeSel = hospedeId || hospedes[0].id;
   const hospedeObj = hospedes.find((h) => h.id === hospedeSel);
-  const podeEnviar = !!tipo && !!hospedeSel && !registrar.isPending;
+  // Em "Outras" a descrição livre é obrigatória (não há sub-tipo que gere texto).
+  const descricaoObrigatoriaOk = tipo !== TIPO_OUTRAS || observacao.trim().length > 0;
+  const podeEnviar = !!tipo && !!hospedeSel && descricaoObrigatoriaOk && !registrar.isPending;
 
   function selecionarTipo(t: string) {
     setTipo(t);
@@ -94,9 +103,12 @@ export function Intercorrencia() {
   }
 
   // Texto gerado automaticamente: "Queda — Hematoma" + obs adicional.
+  // Em "Outras", o conteúdo é a própria descrição livre (o tipo já é gravado à
+  // parte), então não prefixa "Outras." no texto.
   function gerarTexto(): string {
-    const partes = [tipo, subTipo].filter(Boolean).join(" — ");
     const obs = observacao.trim();
+    if (tipo === TIPO_OUTRAS) return obs;
+    const partes = [tipo, subTipo].filter(Boolean).join(" — ");
     return obs ? `${partes}${partes ? ". " : ""}${obs}` : partes;
   }
 
@@ -187,16 +199,36 @@ export function Intercorrencia() {
             {hospedeObj && <HospedeIdentidade hospede={hospedeObj} compacto />}
           </Campo>
 
-          {/* Observação adicional */}
-          <Campo titulo="Observação adicional (opcional)">
-            <textarea
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              rows={3}
-              placeholder="Detalhe extra se necessário…"
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </Campo>
+          {/* Descrição / observação. Em "Outras" o campo é OBRIGATÓRIO (única
+              exceção à regra de não-digitação: a cuidadora descreve o que houve);
+              nos demais tipos segue como observação adicional opcional. */}
+          {tipo === TIPO_OUTRAS ? (
+            <Campo titulo="Descreva a ocorrência (obrigatório)">
+              <textarea
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                rows={3}
+                autoFocus
+                placeholder="Descreva o que aconteceu…"
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {observacao.trim().length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Em “Outras”, descreva a ocorrência para registrar.
+                </p>
+              )}
+            </Campo>
+          ) : (
+            <Campo titulo="Observação adicional (opcional)">
+              <textarea
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                rows={3}
+                placeholder="Detalhe extra se necessário…"
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </Campo>
+          )}
 
           {/* Foto */}
           <Campo titulo="Foto (opcional)">

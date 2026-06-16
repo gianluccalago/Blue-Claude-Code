@@ -40,7 +40,9 @@ function HospedeCard({ hospede: h, perfil }: { hospede: Residente; perfil: strin
             <BedDouble className="size-4" /> Quarto {ouNaoInformado(h.quarto)}
           </div>
         </div>
-        <Badge variant="secondary">Grau {h.grau_dependencia ?? "—"}</Badge>
+        {/* Ponta assistencial (cuidadoras/enfermagem) cuida pelo grau de
+            INGRESSO; o grau real (IVCF) não aparece aqui. */}
+        <Badge variant="secondary">Grau de ingresso {h.grau_contratual ?? "—"}</Badge>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <Linha icon={Cake} rotulo="Idade">

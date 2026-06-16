@@ -5,7 +5,7 @@ import { FAMILIA_ATUAL } from "@/data/profiles";
 import { useTabelaPreco, usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { useCobrancasTemporariasDoMes } from "@/hooks/useCobrancaTemporaria";
-import { chavePreco } from "@/lib/mensalidade";
+import { precoVigenteEm, hojeISO } from "@/lib/mensalidade";
 import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { AtividadeParticipacao, CompromissoExterno, Residente } from "@/types/database";
 
@@ -188,11 +188,13 @@ export function useDemonstrativoFamilia(mes: string) {
   const demonstrativo: DemonstrativoFamilia | null = useMemo(() => {
     const r = residente.data;
     if (!r) return null;
-    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
     // Só longa permanência paga mensalidade; temporários pagam por cobrança.
+    // Fallback = preço vigente na data de ENTRADA do hóspede (espelha a Adm).
     const mensalidade =
       r.modalidade === "longa_permanencia"
-        ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+        ? r.mensalidade_valor ??
+          precoVigenteEm(tabelaPreco.data ?? [], r.tipo_suite, r.grau_dependencia, r.ocupacao, r.data_admissao ?? hojeISO()) ??
+          0
         : 0;
     const itens = upselling.data ?? [];
     const upsellingTotal = itens.reduce((acc, i) => acc + i.valor, 0);

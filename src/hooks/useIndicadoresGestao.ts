@@ -7,7 +7,7 @@ import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { useCustosMateriaisDoMes } from "@/hooks/useCustosMateriais";
 import { useConfiguracao, CHAVE_TOTAL_SUITES } from "@/hooks/useConfiguracao";
-import { deslocarMes, chavePreco } from "@/lib/mensalidade";
+import { deslocarMes, precoVigenteEm, hojeISO } from "@/lib/mensalidade";
 import type { Residente } from "@/types/database";
 
 // ===========================================================================
@@ -169,7 +169,7 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
         supabase
           .from("residentes")
           .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida, modalidade"),
-        supabase.from("tabela_preco").select("tipo_suite, grau, ocupacao, valor"),
+        supabase.from("tabela_preco").select("tipo_suite, grau, ocupacao, valor, vigente_a_partir_de"),
         supabase.from("upselling").select("valor, mes_referencia"),
         supabase.from("pagamento_pessoal").select("valor_final, mes_referencia"),
         supabase.from("cobranca_temporaria").select("valor, periodo_referencia"),
@@ -181,13 +181,21 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       if (cobR.error) throw cobR.error;
 
       const residentes = (resR.data ?? []) as ResidenteEvolucao[];
-      const precoMap = new Map(
-        (tabR.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor as number]),
-      );
+      const precos = (tabR.data ?? []) as {
+        tipo_suite: string | null;
+        grau: string | null;
+        ocupacao: string | null;
+        valor: number;
+        vigente_a_partir_de: string;
+      }[];
       // Só LONGA permanência tem mensalidade automática (igual ao demonstrativo).
+      // Fallback = preço vigente na data de ENTRADA do hóspede (reajuste de preço
+      // não reajusta quem já entrou — afeta só novos contratos).
       const mensalidadeDe = (r: ResidenteEvolucao): number =>
         r.modalidade === "longa_permanencia"
-          ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+          ? r.mensalidade_valor ??
+            precoVigenteEm(precos, r.tipo_suite, r.grau_dependencia, r.ocupacao, r.data_admissao ?? hojeISO()) ??
+            0
           : 0;
 
       const upsPorMes = new Map<string, number>();

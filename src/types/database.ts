@@ -1124,6 +1124,11 @@ export interface Database {
           grau: GrauDependencia;
           ocupacao: Ocupacao;
           valor: number;
+          // Vigência: data a partir da qual este valor passa a valer (YYYY-MM-DD).
+          // O preço vigente de uma combinação numa data é a vigência de MAIOR
+          // vigente_a_partir_de ≤ data. Múltiplas vigências por combinação =
+          // histórico de preços (mudar preço cria nova vigência, não sobrescreve).
+          vigente_a_partir_de: string;
         };
         Insert: {
           id?: string;
@@ -1131,6 +1136,7 @@ export interface Database {
           grau: GrauDependencia;
           ocupacao?: Ocupacao;
           valor: number;
+          vigente_a_partir_de?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tabela_preco"]["Insert"]>;
         Relationships: [];

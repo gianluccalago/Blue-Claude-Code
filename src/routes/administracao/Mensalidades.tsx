@@ -36,7 +36,8 @@ import {
   OCUPACAO_LABEL,
   ocupacoesValidas,
   TIPOS_SUITE,
-  chavePreco,
+  precoVigenteEm,
+  hojeISO,
   deslocarMes,
   formatarMesReferencia,
   formatarMoeda,
@@ -71,13 +72,15 @@ export function Mensalidades() {
   if (!residentes.data || residentes.data.length === 0)
     return <EmptyState label="Nenhum residente cadastrado." />;
 
-  const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
+  const precos = tabelaPreco.data ?? [];
   const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
   const mesEhPassado = mes < mesAtual();
 
-  // Sugestão = tipo × grau × OCUPAÇÃO do hóspede (ajuste individual continua editável).
+  // Sugestão = preço VIGENTE na data de ENTRADA do hóspede, p/ tipo × grau ×
+  // ocupação dele (ajuste individual continua editável). Um reajuste de preço
+  // não muda a sugestão de quem já entrou — só vale para novos contratos.
   function precoSugerido(r: Residente): number | null {
-    return precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? null;
+    return precoVigenteEm(precos, r.tipo_suite, r.grau_dependencia, r.ocupacao, r.data_admissao ?? hojeISO());
   }
 
   function valorDe(r: Residente): number {

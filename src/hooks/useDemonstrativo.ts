@@ -3,7 +3,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import { usePagamentosDoMes, useTabelaPreco } from "@/hooks/useMensalidades";
 import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
 import { useCobrancasTemporariasDoMes } from "@/hooks/useCobrancaTemporaria";
-import { chavePreco } from "@/lib/mensalidade";
+import { precoVigenteEm, hojeISO } from "@/lib/mensalidade";
 import { ehPago } from "@/lib/cobranca";
 import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { CobrancaTemporaria, PagamentoMensalidade, Residente } from "@/types/database";
@@ -42,7 +42,7 @@ export function useDemonstrativoMes(mes: string) {
   const linhas: LinhaDemonstrativo[] = useMemo(() => {
     if (!residentes.data) return [];
 
-    const precoMap = new Map((tabelaPreco.data ?? []).map((p) => [chavePreco(p.tipo_suite, p.grau, p.ocupacao), p.valor]));
+    const precos = tabelaPreco.data ?? [];
     const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.residente_id, p]));
     const upsellingPorResidente = new Map<string, number>();
     for (const item of upselling.data ?? []) {
@@ -56,9 +56,13 @@ export function useDemonstrativoMes(mes: string) {
     return residentes.data.map((r) => {
       // Só LONGA permanência tem mensalidade automática. Temporários cobram por
       // diária/pacote (cobranca_temporaria), lançado pela Administração.
+      // Fallback (sem mensalidade_valor manual) = preço VIGENTE na data de
+      // ENTRADA do hóspede — reajuste de preço não mexe em quem já entrou.
       const mensalidade =
         r.modalidade === "longa_permanencia"
-          ? r.mensalidade_valor ?? precoMap.get(chavePreco(r.tipo_suite, r.grau_dependencia, r.ocupacao)) ?? 0
+          ? r.mensalidade_valor ??
+            precoVigenteEm(precos, r.tipo_suite, r.grau_dependencia, r.ocupacao, r.data_admissao ?? hojeISO()) ??
+            0
           : 0;
       const pagamento = pagamentoMap.get(r.id);
       const upsellingTotal = upsellingPorResidente.get(r.id) ?? 0;

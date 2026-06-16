@@ -27,12 +27,19 @@ export function GrauContratualReal({
   real,
   className,
   compact = false,
+  ocultarReal = false,
 }: {
   contratual: GrauDependencia | null | undefined;
   /** Grau real = grau_dependencia (atualizado pelo último IVCF). */
   real: GrauDependencia | null | undefined;
   className?: string;
   compact?: boolean;
+  /**
+   * Oculta o GRAU REAL (IVCF) e exibe SÓ o grau de ingresso (contratual). Usado
+   * na ponta assistencial (cuidadoras/enfermagem), que cuida pelo grau de
+   * ingresso. Ver `podeVerGrauReal` em lib/fichaHospede.
+   */
+  ocultarReal?: boolean;
 }) {
   const diverge = divergeGrauContratual(contratual, real);
   const contratualTxt = contratual ?? "não cadastrado";
@@ -42,13 +49,18 @@ export function GrauContratualReal({
     return (
       <span className={cn("inline-flex flex-wrap items-center gap-1 text-xs", className)}>
         <span className="text-muted-foreground">
-          Grau contratual <strong className="text-secondary">{contratualTxt}</strong> · real{" "}
-          <strong className={cn(diverge ? "text-destructive" : "text-secondary")}>{realTxt}</strong>
+          Grau de ingresso <strong className="text-secondary">{contratualTxt}</strong>
+          {!ocultarReal && (
+            <>
+              {" "}· real{" "}
+              <strong className={cn(diverge ? "text-destructive" : "text-secondary")}>{realTxt}</strong>
+            </>
+          )}
         </span>
-        {diverge && (
+        {!ocultarReal && diverge && (
           <AlertTriangle className="size-3.5 text-destructive" aria-label="divergência de grau" />
         )}
-        {!real && <span className="text-warning-foreground">· precisa de IVCF</span>}
+        {!ocultarReal && !real && <span className="text-warning-foreground">· precisa de IVCF</span>}
       </span>
     );
   }
@@ -56,24 +68,28 @@ export function GrauContratualReal({
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/30 px-2.5 py-1 text-xs font-medium">
-        <span className="text-muted-foreground">Grau contratual:</span>
+        <span className="text-muted-foreground">Grau de ingresso:</span>
         <strong className="text-secondary">{contratualTxt}</strong>
       </span>
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium",
-          diverge ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/30",
-        )}
-      >
-        <span className="text-muted-foreground">Grau real (IVCF):</span>
-        <strong className={cn(diverge ? "text-destructive" : "text-secondary")}>{realTxt}</strong>
-      </span>
-      {diverge && (
-        <Badge variant="destructive" className="gap-1">
-          <AlertTriangle className="size-3" /> divergência
-        </Badge>
+      {ocultarReal ? null : (
+        <>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium",
+              diverge ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/30",
+            )}
+          >
+            <span className="text-muted-foreground">Grau real (IVCF):</span>
+            <strong className={cn(diverge ? "text-destructive" : "text-secondary")}>{realTxt}</strong>
+          </span>
+          {diverge && (
+            <Badge variant="destructive" className="gap-1">
+              <AlertTriangle className="size-3" /> divergência
+            </Badge>
+          )}
+          {!real && <Badge variant="warning">precisa de IVCF</Badge>}
+        </>
       )}
-      {!real && <Badge variant="warning">precisa de IVCF</Badge>}
     </div>
   );
 }

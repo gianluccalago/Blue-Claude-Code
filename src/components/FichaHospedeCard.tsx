@@ -30,7 +30,7 @@ import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente } from "@/lib/storage";
-import { fichaCompleta, podeVerFinanceiro, podeVerAlergias } from "@/lib/fichaHospede";
+import { fichaCompleta, podeVerFinanceiro, podeVerAlergias, podeVerGrauReal } from "@/lib/fichaHospede";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
 import { formatarQuarto } from "@/lib/quarto";
 import {
@@ -64,6 +64,9 @@ export function FichaHospedeCard({
   onEditar?: () => void;
 }) {
   const completa = fichaCompleta(perfil);
+  // Cuidadoras/enfermagem cuidam pelo grau de INGRESSO; o grau real (IVCF) fica
+  // oculto para esses perfis (inclui a linha "Última avaliação IVCF" do resumo).
+  const verGrauReal = podeVerGrauReal(perfil);
 
   const idade = calcularIdade(r.data_nascimento);
   const permanencia = tempoDePermanencia(r.data_admissao);
@@ -100,11 +103,13 @@ export function FichaHospedeCard({
                 Término previsto: {formatarDataBR(r.data_fim_prevista)}
               </p>
             )}
-            {/* Grau contratual × real (IVCF) com destaque na divergência. */}
+            {/* Grau de ingresso × real (IVCF) com destaque na divergência. Para
+                cuidadoras/enfermagem exibe SÓ o grau de ingresso (oculta o real). */}
             <GrauContratualReal
               className="mt-2"
               contratual={r.grau_contratual}
               real={r.grau_dependencia}
+              ocultarReal={!verGrauReal}
             />
           </div>
         </CardContent>
@@ -170,7 +175,12 @@ export function FichaHospedeCard({
       </Secao>
 
       {/* CLÍNICO-ASSISTENCIAL (resumo, leitura) */}
-      <ResumoClinico residenteId={r.id} grauAtual={r.grau_dependencia} completa={completa} />
+      <ResumoClinico
+        residenteId={r.id}
+        grauAtual={r.grau_dependencia}
+        completa={completa}
+        verGrauReal={verGrauReal}
+      />
 
       {/* FINANCEIRO — dado sensível: apenas Administração e Master */}
       {podeVerFinanceiro(perfil) && <ResumoFinanceiro residente={r} />}
@@ -232,10 +242,12 @@ function ResumoClinico({
   residenteId,
   grauAtual,
   completa,
+  verGrauReal,
 }: {
   residenteId: string;
   grauAtual: string | null;
   completa: boolean;
+  verGrauReal: boolean;
 }) {
   const dieta = useDietaAtiva(residenteId);
   const restricoes = (dieta.data?.restricoes ?? []).filter(Boolean);
@@ -262,8 +274,15 @@ function ResumoClinico({
         <ItemPeso residenteId={residenteId} />
 
         {/* Prescrições e IVCF: só na ficha completa (perfis clínicos/gestão).
-            Os hooks ficam neste filho para nem consultar quando oculto. */}
-        {completa && <ResumoClinicoCompleto residenteId={residenteId} grauAtual={grauAtual} />}
+            Os hooks ficam neste filho para nem consultar quando oculto. O grau
+            real (IVCF) some para enfermeira (verGrauReal=false). */}
+        {completa && (
+          <ResumoClinicoCompleto
+            residenteId={residenteId}
+            grauAtual={grauAtual}
+            verGrauReal={verGrauReal}
+          />
+        )}
       </div>
     </Secao>
   );
@@ -327,9 +346,11 @@ function ItemPeso({ residenteId }: { residenteId: string }) {
 function ResumoClinicoCompleto({
   residenteId,
   grauAtual,
+  verGrauReal,
 }: {
   residenteId: string;
   grauAtual: string | null;
+  verGrauReal: boolean;
 }) {
   const prescricoes = usePrescricoesAtivas(residenteId);
   const ivcf = useAvaliacoesIVCF(residenteId);
@@ -356,20 +377,23 @@ function ResumoClinicoCompleto({
         )}
       </ItemResumo>
 
-      <ItemResumo icon={Layers} titulo="Última avaliação (IVCF / grau)">
-        {ultimaIvcf ? (
-          <>
-            {ultimaIvcf.classificacao}{" "}
-            <span className="text-muted-foreground">· {formatarDataBR(ultimaIvcf.registrado_em)}</span>
-          </>
-        ) : grauAtual ? (
-          <>
-            Grau {grauAtual} <span className="text-muted-foreground">· sem avaliação IVCF registrada</span>
-          </>
-        ) : (
-          <span className="text-muted-foreground">Não informado</span>
-        )}
-      </ItemResumo>
+      {/* Última avaliação IVCF = grau REAL: oculto p/ enfermeira (verGrauReal). */}
+      {verGrauReal && (
+        <ItemResumo icon={Layers} titulo="Última avaliação (IVCF / grau)">
+          {ultimaIvcf ? (
+            <>
+              {ultimaIvcf.classificacao}{" "}
+              <span className="text-muted-foreground">· {formatarDataBR(ultimaIvcf.registrado_em)}</span>
+            </>
+          ) : grauAtual ? (
+            <>
+              Grau {grauAtual} <span className="text-muted-foreground">· sem avaliação IVCF registrada</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Não informado</span>
+          )}
+        </ItemResumo>
+      )}
     </>
   );
 }

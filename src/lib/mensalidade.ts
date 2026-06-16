@@ -76,3 +76,45 @@ export function chavePreco(
 ): string {
   return `${tipoSuite ?? ""}|${grau ?? ""}|${ocupacao ?? "simples"}`;
 }
+
+/** Data de hoje em "YYYY-MM-DD" (para resolver o preço vigente "agora"). */
+export function hojeISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Uma vigência de preço (linha da tabela_preco). */
+export interface PrecoVigencia {
+  tipo_suite: string | null;
+  grau: string | null;
+  ocupacao: string | null;
+  valor: number;
+  vigente_a_partir_de: string; // YYYY-MM-DD
+}
+
+/**
+ * Preço VIGENTE de uma combinação (tipo × grau × ocupação) numa data: a vigência
+ * de MAIOR `vigente_a_partir_de` ≤ `dataRef`. Vigências futuras (data > dataRef)
+ * são ignoradas. Retorna `null` se a combinação não tem nenhuma vigência ≤ data.
+ *
+ * Regra de negócio: a mensalidade sugerida de um hóspede usa o preço vigente na
+ * data de ENTRADA dele — assim um reajuste de preço NÃO mexe retroativamente em
+ * quem já entrou (afeta só novos contratos). Residentes atuais mantêm o
+ * `mensalidade_valor` manual; este preço é só o fallback/sugestão.
+ */
+export function precoVigenteEm(
+  precos: readonly PrecoVigencia[],
+  tipoSuite: string | null,
+  grau: string | null,
+  ocupacao: string | null,
+  dataRef: string,
+): number | null {
+  const alvo = chavePreco(tipoSuite, grau, ocupacao);
+  let melhor: PrecoVigencia | null = null;
+  for (const p of precos) {
+    if (p.vigente_a_partir_de > dataRef) continue; // vigência ainda não começou
+    if (chavePreco(p.tipo_suite, p.grau, p.ocupacao) !== alvo) continue;
+    if (!melhor || p.vigente_a_partir_de > melhor.vigente_a_partir_de) melhor = p;
+  }
+  return melhor ? melhor.valor : null;
+}

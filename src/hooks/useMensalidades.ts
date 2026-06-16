@@ -4,6 +4,7 @@ import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import type {
   FormaPagamento,
+  GrauDependencia,
   Ocupacao,
   PagamentoMensalidade,
   StatusPagamentoMensalidade,
@@ -11,40 +12,75 @@ import type {
   TipoSuite,
 } from "@/types/database";
 
-// ─── Tabela de preços ───────────────────────────────────────────────────────────
+// ─── Tabela de preços (com VIGÊNCIA datada / histórico) ──────────────────────────
 
-/** As 12 combinações de tipo de suíte × grau de dependência e seus valores. */
+/**
+ * TODAS as vigências de preço (cada combinação tipo × grau × ocupação pode ter
+ * várias vigências = histórico). Para obter o valor que vale numa data use
+ * `precoVigenteEm` (lib/mensalidade): a vigência de maior data ≤ data consultada.
+ */
 export function useTabelaPreco() {
   return useQuery({
     queryKey: ["tabela-preco"],
     queryFn: async (): Promise<TabelaPreco[]> => {
-      const { data, error } = await supabase.from("tabela_preco").select("*");
+      const { data, error } = await supabase
+        .from("tabela_preco")
+        .select("*")
+        .order("vigente_a_partir_de", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
 }
 
-/** Atualiza o valor de uma combinação tipo de suíte × grau (com trilha). */
-export function useAtualizarPreco() {
+export type DefinirPrecoVigenciaInput = {
+  tipoSuite: TipoSuite;
+  grau: GrauDependencia;
+  ocupacao: Ocupacao;
+  valor: number;
+  /** Data a partir da qual o novo valor passa a valer (YYYY-MM-DD; hoje ou futuro). */
+  vigenteAPartirDe: string;
+  /** Valor vigente ANTES desta mudança (para a trilha de auditoria). */
+  valorAnteriorVigente: number | null;
+  motivo?: string | null;
+};
+
+/**
+ * Define o preço de uma combinação a partir de uma DATA DE VIGÊNCIA, preservando
+ * o histórico: cria uma nova vigência (NÃO sobrescreve as anteriores). Se já
+ * existir uma vigência para a MESMA data, atualiza o valor dela (upsert pela
+ * unicidade tipo × grau × ocupação × vigente_a_partir_de).
+ *
+ * Coexistência com a trilha (sem duplicar): a VIGÊNCIA é a regra de cobrança (o
+ * valor e desde quando vale); o `log_alteracao` é a AUDITORIA da edição (quem
+ * mudou, quando, de→para, motivo). registro_id = a chave da combinação, para
+ * agrupar a auditoria de preço por combinação.
+ */
+export function useDefinirPrecoVigencia() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, valor }: { id: string; valor: number }) => {
-      // Trilha de auditoria: valor anterior antes de sobrescrever.
-      const { data: atual } = await supabase
-        .from("tabela_preco")
-        .select("valor")
-        .eq("id", id)
-        .maybeSingle();
-      const { error } = await supabase.from("tabela_preco").update({ valor }).eq("id", id);
+    mutationFn: async (args: DefinirPrecoVigenciaInput) => {
+      const { error } = await supabase.from("tabela_preco").upsert(
+        {
+          tipo_suite: args.tipoSuite,
+          grau: args.grau,
+          ocupacao: args.ocupacao,
+          valor: args.valor,
+          vigente_a_partir_de: args.vigenteAPartirDe,
+        },
+        { onConflict: "tipo_suite,grau,ocupacao,vigente_a_partir_de" },
+      );
       if (error) throw error;
       await registrarLogAlteracao([
         {
           tabelaOrigem: "tabela_preco",
-          registroId: id,
+          registroId: `${args.tipoSuite}|${args.grau}|${args.ocupacao}`,
           campo: "valor",
-          valorAnterior: atual?.valor ?? null,
-          valorNovo: valor,
+          valorAnterior: args.valorAnteriorVigente,
+          valorNovo: args.valor,
+          motivo:
+            `Vigência a partir de ${args.vigenteAPartirDe}` +
+            (args.motivo?.trim() ? ` — ${args.motivo.trim()}` : ""),
         },
       ]);
     },
