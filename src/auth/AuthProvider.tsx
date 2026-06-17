@@ -111,7 +111,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     supabase.auth.getSession().then(({ data }) => aplicar(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_evento, s) => aplicar(s));
+    // IMPORTANTE: o callback do onAuthStateChange roda DENTRO da trava interna
+    // de auth do Supabase. Chamar supabase.from(...) aqui — o resolverUsuario
+    // faz isso — prende essa trava, e o signInWithPassword (no `entrar`) nunca
+    // resolve: o login fica "pendurado" e só entra após um refresh (quando o
+    // caminho do getSession roda fora da trava). Adiamos com setTimeout(0) para
+    // executar FORA do callback, liberando a trava imediatamente.
+    const { data: sub } = supabase.auth.onAuthStateChange((_evento, s) => {
+      setTimeout(() => {
+        if (vivo) aplicar(s);
+      }, 0);
+    });
 
     return () => {
       vivo = false;
