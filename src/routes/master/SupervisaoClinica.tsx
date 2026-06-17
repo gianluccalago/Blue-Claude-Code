@@ -12,6 +12,7 @@ import { grauNivel, formatarDataBR } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
+import { AlertaAmbulancia } from "@/components/AlertaAmbulancia";
 import { cn } from "@/lib/utils";
 import type { GrauDependencia } from "@/types/database";
 import type { ReactNode } from "react";
@@ -179,6 +180,9 @@ export function SupervisaoClinica() {
 
   return (
     <div className="space-y-6">
+      {/* Alerta imediato de ambulância (independe da escalação da Coordenação) */}
+      <AlertaAmbulancia />
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight text-secondary">

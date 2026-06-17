@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
+import { AlertaAmbulancia } from "@/components/AlertaAmbulancia";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 
 const inputClass =
@@ -37,6 +38,9 @@ export function EscaladosMedico() {
 
   return (
     <div className="space-y-6">
+      {/* Alerta imediato de ambulância (independe da escalação da Coordenação) */}
+      <AlertaAmbulancia />
+
       {/* Contador */}
       <div
         className={cn(
