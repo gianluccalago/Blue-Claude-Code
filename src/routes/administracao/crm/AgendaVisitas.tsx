@@ -286,17 +286,8 @@ function CelulaSlot({
   onClick: (rect: DOMRect) => void;
 }) {
   if (!slot) return <span className="text-xs text-muted-foreground/40">—</span>;
-  if (slot.bloqueada) {
-    return (
-      <button
-        onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
-        title={slot.motivo_bloqueio ?? "Bloqueado"}
-        className="flex w-full items-center justify-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20"
-      >
-        <Lock className="size-3" /> Bloq.
-      </button>
-    );
-  }
+  // Ocupado tem prioridade sobre bloqueado: uma visita já agendada continua
+  // valendo mesmo que o dia/horário tenha sido bloqueado para NOVAS visitas.
   if (ocupado) {
     const primeiro = ocupado.nome_completo.split(/\s+/)[0];
     return (
@@ -311,6 +302,17 @@ function CelulaSlot({
         )}
       >
         {primeiro}
+      </button>
+    );
+  }
+  if (slot.bloqueada) {
+    return (
+      <button
+        onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
+        title={slot.motivo_bloqueio ?? "Bloqueado"}
+        className="flex w-full items-center justify-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20"
+      >
+        <Lock className="size-3" /> Bloq.
       </button>
     );
   }
