@@ -509,17 +509,17 @@ function CardSolicitacao({
         )}
         {podeMensagem && (
           <>
-            <a href={linkWhatsapp(a.whatsapp, msg)} target="_blank" rel="noreferrer">
-              <Button size="sm" variant="success" type="button">
+            <Button asChild size="sm" variant="success">
+              <a href={linkWhatsapp(a.whatsapp, msg)} target="_blank" rel="noreferrer">
                 <MessageCircle className="size-4" /> WhatsApp
-              </Button>
-            </a>
-            {a.email && (
-              <a href={linkEmail(a.email, "Sua visita ao Blue Senior Living", msg)} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="outline" type="button">
-                  <Mail className="size-4" /> E-mail
-                </Button>
               </a>
+            </Button>
+            {a.email && (
+              <Button asChild size="sm" variant="outline">
+                <a href={linkEmail(a.email, "Sua visita ao Blue Senior Living", msg)} target="_blank" rel="noreferrer">
+                  <Mail className="size-4" /> E-mail
+                </a>
+              </Button>
             )}
           </>
         )}

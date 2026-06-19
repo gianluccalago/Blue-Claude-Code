@@ -49,7 +49,8 @@ export function mensagemRemarcacao(nome: string, data: string, hora: string): st
 
 /** Normaliza o WhatsApp para o formato do wa.me (só dígitos, com DDI 55). */
 export function normalizarWhatsapp(whatsapp: string): string {
-  const digitos = (whatsapp ?? "").replace(/\D/g, "");
+  // Só dígitos, sem zeros à esquerda (ex.: "0" de operadora antes do DDD).
+  const digitos = (whatsapp ?? "").replace(/\D/g, "").replace(/^0+/, "");
   if (digitos === "") return "";
   // Sem DDI (11 dígitos = DDD+celular, 10 = DDD+fixo) → assume Brasil (55).
   return digitos.length <= 11 ? `55${digitos}` : digitos;
