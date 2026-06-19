@@ -1952,6 +1952,60 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["crm_evento"]["Insert"]>;
         Relationships: [];
       };
+      visita_disponibilidade: {
+        Row: {
+          id: string;
+          data: string;
+          hora: string;
+          capacidade: number;
+          bloqueada: boolean;
+          motivo_bloqueio: string | null;
+        };
+        Insert: {
+          id?: string;
+          data: string;
+          hora: string;
+          capacidade?: number;
+          bloqueada?: boolean;
+          motivo_bloqueio?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["visita_disponibilidade"]["Insert"]>;
+        Relationships: [];
+      };
+      visita_agendamento: {
+        Row: {
+          id: string;
+          nome_completo: string;
+          whatsapp: string;
+          email: string | null;
+          data: string;
+          hora: string;
+          origem: "site" | "app";
+          status: "pendente" | "confirmada" | "remarcada" | "cancelada";
+          observacao: string | null;
+          oportunidade_id: string | null;
+          criado_em: string;
+          confirmado_em: string | null;
+          atualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          nome_completo: string;
+          whatsapp: string;
+          email?: string | null;
+          data: string;
+          hora: string;
+          origem?: "site" | "app";
+          status?: "pendente" | "confirmada" | "remarcada" | "cancelada";
+          observacao?: string | null;
+          oportunidade_id?: string | null;
+          criado_em?: string;
+          confirmado_em?: string | null;
+          atualizado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["visita_agendamento"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1964,6 +2018,11 @@ export interface Database {
       set_meu_nome: {
         Args: { p_nome: string };
         Returns: undefined;
+      };
+      // Slots de visita com vaga real (desconta ocupações). Pública (site usa via anon).
+      visitas_slots_livres: {
+        Args: { p_de: string; p_ate: string };
+        Returns: { data: string; hora: string; vagas: number }[];
       };
     };
     Enums: Record<string, never>;
@@ -1981,6 +2040,10 @@ export type CrmOportunidade = Database["public"]["Tables"]["crm_oportunidade"]["
 export type CrmTarefa = Database["public"]["Tables"]["crm_tarefa"]["Row"];
 export type CrmEvento = Database["public"]["Tables"]["crm_evento"]["Row"];
 export type CrmStatus = CrmOportunidade["status"];
+export type VisitaDisponibilidade = Database["public"]["Tables"]["visita_disponibilidade"]["Row"];
+export type VisitaAgendamento = Database["public"]["Tables"]["visita_agendamento"]["Row"];
+export type VisitaOrigem = VisitaAgendamento["origem"];
+export type VisitaStatus = VisitaAgendamento["status"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

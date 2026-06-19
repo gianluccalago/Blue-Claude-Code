@@ -18,6 +18,7 @@ import { CrmContatos } from "@/routes/administracao/crm/CrmContatos";
 import { CrmOrigens } from "@/routes/administracao/crm/CrmOrigens";
 import { CrmConfig } from "@/routes/administracao/crm/CrmConfig";
 import { CrmRelatorios } from "@/routes/administracao/crm/CrmRelatorios";
+import { AgendaVisitas } from "@/routes/administracao/crm/AgendaVisitas";
 import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
 import { DayCare } from "@/routes/DayCare";
 import { Checklist } from "@/routes/cuidador/Checklist";
@@ -556,6 +557,11 @@ const crmRelatoriosRoute = createRoute({
   path: "crm-relatorios",
   component: CrmRelatorios,
 });
+const crmAgendaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-agenda",
+  component: AgendaVisitas,
+});
 const funilVendasRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "funil-vendas",
@@ -606,6 +612,7 @@ const routeTree = rootRoute.addChildren([
     crmOrigensRoute,
     crmConfigRoute,
     crmRelatoriosRoute,
+    crmAgendaRoute,
     funilVendasRoute,
     dayCareRoute,
     prescricoesRoute,
