@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useRef, useEffect, useLayoutEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -93,7 +94,7 @@ export function AgendaVisitas() {
   const [grade, setGrade] = useState(false);
   const [novaVisita, setNovaVisita] = useState<{ data?: string; hora?: string } | null>(null);
   const [remarcar, setRemarcar] = useState<VisitaAgendamento | null>(null);
-  const [slotCtx, setSlotCtx] = useState<{ data: string; hora: string } | null>(null);
+  const [slotCtx, setSlotCtx] = useState<{ data: string; hora: string; rect: DOMRect } | null>(null);
   const [destaqueId, setDestaqueId] = useState<string | null>(null);
 
   if (disp.isLoading || agend.isLoading) return <LoadingState />;
@@ -206,7 +207,7 @@ export function AgendaVisitas() {
                           <CelulaSlot
                             slot={slot}
                             ocupado={ocup}
-                            onClick={() => slot && setSlotCtx({ data: dataISO, hora: h })}
+                            onClick={(rect) => slot && setSlotCtx({ data: dataISO, hora: h, rect })}
                           />
                         </td>
                       );
@@ -243,7 +244,8 @@ export function AgendaVisitas() {
         />
       )}
       {slotCtx && (
-        <ModalSlot
+        <SlotPopover
+          anchor={slotCtx.rect}
           slot={slotPorChave.get(chaveSlot(slotCtx.data, slotCtx.hora))}
           agendamento={ocupados.get(chaveSlot(slotCtx.data, slotCtx.hora))}
           data={slotCtx.data}
@@ -281,13 +283,13 @@ function CelulaSlot({
 }: {
   slot: VisitaDisponibilidade | undefined;
   ocupado: VisitaAgendamento | undefined;
-  onClick: () => void;
+  onClick: (rect: DOMRect) => void;
 }) {
   if (!slot) return <span className="text-xs text-muted-foreground/40">—</span>;
   if (slot.bloqueada) {
     return (
       <button
-        onClick={onClick}
+        onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
         title={slot.motivo_bloqueio ?? "Bloqueado"}
         className="flex w-full items-center justify-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20"
       >
@@ -299,7 +301,7 @@ function CelulaSlot({
     const primeiro = ocupado.nome_completo.split(/\s+/)[0];
     return (
       <button
-        onClick={onClick}
+        onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
         title={`${ocupado.nome_completo} · ${STATUS_VISITA_LABEL[ocupado.status]}`}
         className={cn(
           "block w-full truncate rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
@@ -314,7 +316,7 @@ function CelulaSlot({
   }
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
       className="block w-full rounded-md bg-success/10 px-2 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20"
     >
       Livre
@@ -543,8 +545,17 @@ function CardSolicitacao({
 }
 
 // ─── Modal genérico ───────────────────────────────────────────────────────────
+// Portal no body: o wrapper de rota tem `transform` (animate-route-in), o que
+// faria um `position: fixed` se ancorar nele em vez da viewport. O portal
+// garante que o modal cubra a tela inteira e centralize de verdade.
 function Modal({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: ReactNode }) {
-  return (
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onFechar]);
+
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={titulo} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -554,12 +565,17 @@ function Modal({ titulo, onFechar, children }: { titulo: string; onFechar: () =>
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-// ─── Modal: ações de um slot ──────────────────────────────────────────────────
-function ModalSlot({
+// ─── Popover: ações de um slot (ancorado na célula clicada) ───────────────────
+// Compacto e posicionado ao lado do horário (não um modal central). Portal no
+// body para escapar do `transform` do wrapper de rota (senão o `fixed` se
+// ancoraria nele). Fundo transparente: é um popover, não escurece a página.
+function SlotPopover({
+  anchor,
   slot,
   agendamento,
   data,
@@ -568,6 +584,7 @@ function ModalSlot({
   onVerSolicitacao,
   onFechar,
 }: {
+  anchor: DOMRect;
   slot: VisitaDisponibilidade | undefined;
   agendamento: VisitaAgendamento | undefined;
   data: string;
@@ -580,6 +597,31 @@ function ModalSlot({
   const excluir = useExcluirSlot();
   const [motivo, setMotivo] = useState("");
   const [bloqueando, setBloqueando] = useState(false);
+
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: anchor.bottom + 6, left: anchor.left });
+
+  // Posiciona ao lado da célula, com clamp na viewport (abre para cima se faltar
+  // espaço embaixo). Mede o tamanho real após render.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const margem = 8;
+    let left = anchor.left;
+    let top = anchor.bottom + 6;
+    if (left + w > window.innerWidth - margem) left = window.innerWidth - w - margem;
+    if (left < margem) left = margem;
+    if (top + h > window.innerHeight - margem) top = Math.max(margem, anchor.top - h - 6);
+    setPos({ top, left });
+  }, [anchor, bloqueando, agendamento, slot?.bloqueada]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onFechar]);
 
   if (!slot) return null;
 
@@ -612,54 +654,73 @@ function ModalSlot({
     }
   }
 
-  return (
-    <Modal titulo={`${formatarDataBR(data)} · ${hora}`} onFechar={onFechar}>
-      <div className="space-y-3">
+  return createPortal(
+    <>
+      {/* captura clique fora (sem escurecer/borrar a página) */}
+      <div className="fixed inset-0 z-40" onClick={onFechar} />
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        style={{ top: pos.top, left: pos.left }}
+        className="fixed z-50 w-72 max-w-[calc(100vw-1rem)] animate-fade-in-up rounded-xl border bg-card p-3.5 shadow-lifted"
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-sm font-bold text-secondary">{formatarDataBR(data)} · {hora}</p>
+          <button onClick={onFechar} className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+            <X className="size-3.5" />
+          </button>
+        </div>
+
         {agendamento ? (
-          <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-            <p className="font-semibold text-secondary">{agendamento.nome_completo}</p>
-            <p className="text-xs text-muted-foreground">
-              {STATUS_VISITA_LABEL[agendamento.status]} · {agendamento.origem} · WhatsApp {agendamento.whatsapp}
-            </p>
-            <Button className="mt-2" size="sm" variant="outline" onClick={() => onVerSolicitacao(agendamento.id)}>
+          <div className="space-y-2">
+            <div className="rounded-lg border bg-muted/20 p-2.5 text-sm">
+              <p className="font-semibold text-secondary">{agendamento.nome_completo}</p>
+              <p className="text-xs text-muted-foreground">
+                {STATUS_VISITA_LABEL[agendamento.status]} · {agendamento.origem}
+              </p>
+              <p className="text-xs text-muted-foreground">WhatsApp {agendamento.whatsapp}</p>
+            </div>
+            <Button className="w-full" size="sm" variant="outline" onClick={() => onVerSolicitacao(agendamento.id)}>
               Ver na lista de solicitações
             </Button>
           </div>
         ) : slot.bloqueada ? (
-          <>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
               Bloqueado{slot.motivo_bloqueio ? `: ${slot.motivo_bloqueio}` : "."} O site não oferece este horário.
             </p>
-            <Button variant="success" onClick={liberar} disabled={bloq.isPending}>
+            <Button className="w-full" size="sm" variant="success" onClick={liberar} disabled={bloq.isPending}>
               <Unlock className="size-4" /> Liberar horário
             </Button>
-          </>
+          </div>
         ) : bloqueando ? (
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-secondary">Motivo do bloqueio (opcional)</label>
-            <input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: evento interno" className={inputBase} />
+            <label className="text-xs font-semibold text-secondary">Motivo do bloqueio (opcional)</label>
+            <input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: evento interno" className={cn(inputBase, "h-9")} />
             <div className="flex gap-2">
-              <Button variant="destructive" onClick={aplicarBloqueio} disabled={bloq.isPending}>
-                <Lock className="size-4" /> Confirmar bloqueio
+              <Button className="flex-1" size="sm" variant="destructive" onClick={aplicarBloqueio} disabled={bloq.isPending}>
+                <Lock className="size-4" /> Bloquear
               </Button>
-              <Button variant="outline" onClick={() => setBloqueando(false)}>Voltar</Button>
+              <Button size="sm" variant="outline" onClick={() => setBloqueando(false)}>Voltar</Button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <Button onClick={onAgendar}>
-              <Plus className="size-4" /> Agendar visita neste horário
+          <div className="flex flex-col gap-1.5">
+            <Button className="w-full" size="sm" onClick={onAgendar}>
+              <Plus className="size-4" /> Agendar neste horário
             </Button>
-            <Button variant="outline" onClick={() => setBloqueando(true)}>
+            <Button className="w-full" size="sm" variant="outline" onClick={() => setBloqueando(true)}>
               <Lock className="size-4" /> Bloquear horário
             </Button>
-            <Button variant="ghost" className="text-destructive" onClick={removerSlot} disabled={excluir.isPending}>
-              <Trash2 className="size-4" /> Excluir horário da grade
+            <Button className="w-full justify-start text-destructive" size="sm" variant="ghost" onClick={removerSlot} disabled={excluir.isPending}>
+              <Trash2 className="size-4" /> Excluir da grade
             </Button>
           </div>
         )}
       </div>
-    </Modal>
+    </>,
+    document.body,
   );
 }
 
