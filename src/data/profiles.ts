@@ -177,6 +177,7 @@ export const PERFIS: PerfilDef[] = [
     cor: "bg-primary text-primary-foreground",
     rotaInicial: "/app/enfermagem/checklist",
     menu: [
+      { label: "Cobertura Assistencial", to: "/app/enfermagem/cobertura" },
       { label: "Checklist do turno", to: "/app/enfermagem/checklist" },
       { label: "Medicação", to: "/app/enfermagem/medicacao" },
       { label: "Medicação de enfermagem", to: "/app/enfermagem/medicacao-enfermagem" },

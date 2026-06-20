@@ -166,3 +166,29 @@ export function useRemoverDesignacao() {
     onSuccess: () => invalidar(qc),
   });
 }
+
+/**
+ * Designação EM LOTE: adiciona UMA cuidadora a vários hóspedes (recorte por
+ * módulo/andar) de uma vez. ADICIONA (não remove designações existentes);
+ * duplicatas são ignoradas pelo unique (residente,cuidador,data,turno).
+ */
+export function useDesignarLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { residenteIds: string[]; cuidadorId: string; data: string; turno: TagTurno }) => {
+      if (args.residenteIds.length === 0) return;
+      const linhas = args.residenteIds.map((rid) => ({
+        residente_id: rid,
+        cuidador_id: args.cuidadorId,
+        data: args.data,
+        turno: args.turno,
+        criado_por: usuarioAtual.nome,
+      }));
+      const { error } = await supabase
+        .from("designacao_cuidado")
+        .upsert(linhas, { onConflict: "residente_id,cuidador_id,data,turno", ignoreDuplicates: true });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}

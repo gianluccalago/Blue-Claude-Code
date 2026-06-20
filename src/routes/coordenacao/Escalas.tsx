@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, AlertTriangle, CalendarRange } from "lucide-react";
 import {
@@ -48,14 +49,20 @@ export function Escalas() {
   const ajustarPonto = useRegistrarPonto();
   const vagos7 = useTurnosVagosProximos(7);
 
-  const [ancora, setAncora] = useState(() => new Date());
+  // Atalho da Cobertura Assistencial: ?data=YYYY-MM-DD posiciona a escala na
+  // data (e abre o detalhe do dia). Sem o parâmetro → hoje, como antes.
+  const search = useSearch({ strict: false }) as { data?: string };
+  const dataInicial =
+    search.data && /^\d{4}-\d{2}-\d{2}$/.test(search.data) ? search.data : null;
+
+  const [ancora, setAncora] = useState(() => (dataInicial ? new Date(`${dataInicial}T12:00:00`) : new Date()));
   const [visao, setVisao] = useState<Visao>("semana");
   const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaFiltro>("todas");
   const [profFiltro, setProfFiltro] = useState<string>("todas");
   const [modal, setModal] = useState<ModalEstado | null>(null);
   const [recorrenteAberto, setRecorrenteAberto] = useState(false);
   const [excluirId, setExcluirId] = useState<string | null>(null);
-  const [diaDetalhe, setDiaDetalhe] = useState<string | null>(null);
+  const [diaDetalhe, setDiaDetalhe] = useState<string | null>(dataInicial);
 
   // Intervalo de busca conforme a visão.
   const base = useMemo(

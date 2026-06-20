@@ -120,6 +120,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/cuidador/chamado-manutencao": Wrench,
   // Enfermagem (mesmo fluxo da cuidadora + medicação exclusiva de enfermagem)
   "/app/enfermagem": LayoutDashboard,
+  "/app/enfermagem/cobertura": ShieldCheck,
   "/app/enfermagem/checklist": ClipboardCheck,
   "/app/enfermagem/medicacao": Pill,
   "/app/enfermagem/medicacao-enfermagem": Syringe,

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ShieldAlert,
@@ -11,12 +12,16 @@ import {
   X,
   Plus,
   CalendarDays,
+  Building2,
+  CalendarCog,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   useCoberturaTurno,
   useDesignarCuidador,
   useRemoverDesignacao,
+  useDesignarLote,
   type HospedeCobertura,
   type PessoaTurno,
 } from "@/hooks/useCobertura";
@@ -28,6 +33,7 @@ import {
   PRESENCA_VARIANTE,
 } from "@/lib/cobertura";
 import { MODALIDADE_SELO } from "@/lib/modalidade";
+import { parseQuarto, formatarQuarto } from "@/lib/quarto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,13 +55,25 @@ function deslocarDia(iso: string, dias: number): string {
 // com a escala: só designa quem está escalado; designação cai se sai da escala.
 // ===========================================================================
 
+const PERFIS_EDITAM: ReadonlyArray<string | undefined> = ["coordenacao", "master", "enfermagem"];
+
 export function CoberturaAssistencial() {
   const { usuarioEfetivo } = useAuth();
-  const podeEditar = usuarioEfetivo?.perfil === "coordenacao" || usuarioEfetivo?.perfil === "master";
+  // Coordenação, Master e Enfermagem (enfermeira de plantão) designam.
+  const podeEditar = PERFIS_EDITAM.includes(usuarioEfetivo?.perfil);
+
+  const { perfil: perfilRota } = useParams({ strict: false }) as { perfil?: string };
+  const perfil = perfilRota ?? usuarioEfetivo?.perfil ?? "coordenacao";
+  const navigate = useNavigate();
 
   const inicial = turnoCorrente();
   const [data, setData] = useState(inicial.data);
   const [tag, setTag] = useState<TagTurno>(inicial.tag);
+
+  // Atalho para a Escala já posicionada na DATA selecionada (ver/ajustar turno).
+  function abrirEscala() {
+    navigate({ to: `/app/${perfil}/escalas` as string, search: { data } });
+  }
 
   const cob = useCoberturaTurno(data, tag);
 
@@ -122,10 +140,64 @@ export function CoberturaAssistencial() {
           tag={tag}
           cobertura={cob.data!}
           podeEditar={podeEditar}
+          onAbrirEscala={abrirEscala}
         />
       )}
     </div>
   );
+}
+
+// ─── Agrupamento por MÓDULO / ANDAR (parsing seguro do número do quarto) ──────
+interface GrupoAndar {
+  andar: number;
+  hospedes: HospedeCobertura[];
+}
+interface GrupoModulo {
+  modulo: number;
+  hospedes: HospedeCobertura[]; // todos do módulo (todos os andares)
+  andares: GrupoAndar[];
+}
+
+function agruparPorLocal(hospedes: HospedeCobertura[]): {
+  modulos: GrupoModulo[];
+  semLocal: HospedeCobertura[];
+} {
+  const porModulo = new Map<number, Map<number, HospedeCobertura[]>>();
+  const semLocal: HospedeCobertura[] = [];
+
+  for (const h of hospedes) {
+    const { bloco, andar } = parseQuarto(h.residente.quarto);
+    // Parsing seguro: fora do padrão (módulo/andar nulos) → não agrupa.
+    if (bloco == null || andar == null) {
+      semLocal.push(h);
+      continue;
+    }
+    if (!porModulo.has(bloco)) porModulo.set(bloco, new Map());
+    const andares = porModulo.get(bloco)!;
+    if (!andares.has(andar)) andares.set(andar, []);
+    andares.get(andar)!.push(h);
+  }
+
+  const ordenarHosp = (a: HospedeCobertura, b: HospedeCobertura) => {
+    const peso = (h: HospedeCobertura) => (h.descoberto ? 0 : h.risco ? 1 : 2);
+    return (
+      peso(a) - peso(b) ||
+      (a.residente.quarto ?? "").localeCompare(b.residente.quarto ?? "", "pt-BR") ||
+      a.residente.nome.localeCompare(b.residente.nome, "pt-BR")
+    );
+  };
+
+  const modulos: GrupoModulo[] = [...porModulo.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([modulo, andaresMap]) => {
+      const andares = [...andaresMap.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([andar, hs]) => ({ andar, hospedes: [...hs].sort(ordenarHosp) }));
+      const todos = andares.flatMap((a) => a.hospedes);
+      return { modulo, hospedes: todos, andares };
+    });
+
+  return { modulos, semLocal: [...semLocal].sort(ordenarHosp) };
 }
 
 function ConteudoCobertura({
@@ -133,13 +205,16 @@ function ConteudoCobertura({
   tag,
   cobertura,
   podeEditar,
+  onAbrirEscala,
 }: {
   data: string;
   tag: TagTurno;
   cobertura: NonNullable<ReturnType<typeof useCoberturaTurno>["data"]>;
   podeEditar: boolean;
+  onAbrirEscala: () => void;
 }) {
   const { enfermeiras, cuidadoresEscalados, hospedes, descobertos, riscos } = cobertura;
+  const { modulos, semLocal } = useMemo(() => agruparPorLocal(hospedes), [hospedes]);
 
   return (
     <div className="space-y-4">
@@ -202,17 +277,22 @@ function ConteudoCobertura({
         </div>
       </div>
 
-      {/* Cuidadoras escaladas no turno */}
+      {/* Cuidadoras escaladas no turno + atalho para a Escala */}
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <HeartHandshake className="size-4 text-primary" /> Cuidadoras escaladas
             <Badge variant="muted" className="ml-1">{cuidadoresEscalados.length}</Badge>
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={onAbrirEscala}>
+            <CalendarCog className="size-4" /> Ver/ajustar escala
+          </Button>
         </CardHeader>
         <CardContent>
           {cuidadoresEscalados.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma cuidadora escalada neste turno (escala vazia).</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhuma cuidadora escalada neste turno (escala vazia). Use “Ver/ajustar escala”.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {cuidadoresEscalados.map((c) => (
@@ -225,23 +305,153 @@ function ConteudoCobertura({
         </CardContent>
       </Card>
 
-      {/* Lista de hóspedes do turno */}
+      {/* Lista de hóspedes do turno, agrupada por módulo/andar */}
       {hospedes.length === 0 ? (
         <EmptyState label="Nenhum hóspede ativo neste turno." />
       ) : (
-        <div className="space-y-3">
-          {hospedes.map((h) => (
-            <CardHospede
-              key={h.residente.id}
-              item={h}
+        <div className="space-y-5">
+          {modulos.map((m) => (
+            <GrupoModuloView
+              key={m.modulo}
+              grupo={m}
               data={data}
               tag={tag}
               escalados={cuidadoresEscalados}
               podeEditar={podeEditar}
             />
           ))}
+
+          {semLocal.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 border-b pb-1">
+                <Building2 className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-bold text-secondary">Sem localização identificada</h3>
+                <Badge variant="muted">{semLocal.length}</Badge>
+                <span className="text-xs text-muted-foreground">(quarto fora do padrão — designe individualmente)</span>
+              </div>
+              {semLocal.map((h) => (
+                <CardHospede key={h.residente.id} item={h} data={data} tag={tag} escalados={cuidadoresEscalados} podeEditar={podeEditar} />
+              ))}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Recorte: um módulo (com seus andares) ────────────────────────────────────
+function GrupoModuloView({
+  grupo,
+  data,
+  tag,
+  escalados,
+  podeEditar,
+}: {
+  grupo: GrupoModulo;
+  data: string;
+  tag: TagTurno;
+  escalados: PessoaTurno[];
+  podeEditar: boolean;
+}) {
+  const descobertosNoModulo = grupo.hospedes.filter((h) => h.descoberto).length;
+  return (
+    <div className="space-y-3">
+      {/* Cabeçalho do MÓDULO (designar todo o módulo) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-secondary/5 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="size-4 text-secondary" />
+          <h3 className="text-sm font-extrabold uppercase tracking-wide text-secondary">Módulo {grupo.modulo}</h3>
+          <Badge variant="muted">{grupo.hospedes.length} hóspede(s)</Badge>
+          {descobertosNoModulo > 0 && (
+            <Badge variant="destructive" className="gap-1">
+              <UserX className="size-3" /> {descobertosNoModulo}
+            </Badge>
+          )}
+        </div>
+        {podeEditar && (
+          <BulkDesignar
+            rotulo={`Designar todo o Módulo ${grupo.modulo}`}
+            residenteIds={grupo.hospedes.map((h) => h.residente.id)}
+            escalados={escalados}
+            data={data}
+            tag={tag}
+          />
+        )}
+      </div>
+
+      {/* Andares do módulo */}
+      {grupo.andares.map((a) => (
+        <div key={a.andar} className="space-y-2 pl-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-1">
+            <div className="flex items-center gap-2">
+              <Users className="size-3.5 text-muted-foreground" />
+              <h4 className="text-sm font-bold text-secondary">
+                Módulo {grupo.modulo} · Andar {a.andar}
+              </h4>
+              <Badge variant="muted">{a.hospedes.length}</Badge>
+            </div>
+            {podeEditar && (
+              <BulkDesignar
+                rotulo={`Designar o Andar ${a.andar}`}
+                residenteIds={a.hospedes.map((h) => h.residente.id)}
+                escalados={escalados}
+                data={data}
+                tag={tag}
+              />
+            )}
+          </div>
+          {a.hospedes.map((h) => (
+            <CardHospede key={h.residente.id} item={h} data={data} tag={tag} escalados={escalados} podeEditar={podeEditar} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Designação em lote (recorte por módulo/andar) ────────────────────────────
+function BulkDesignar({
+  rotulo,
+  residenteIds,
+  escalados,
+  data,
+  tag,
+}: {
+  rotulo: string;
+  residenteIds: string[];
+  escalados: PessoaTurno[];
+  data: string;
+  tag: TagTurno;
+}) {
+  const lote = useDesignarLote();
+
+  async function aplicar(cuidadorId: string) {
+    if (!cuidadorId) return;
+    try {
+      await lote.mutateAsync({ residenteIds, cuidadorId, data, turno: tag });
+      const nome = escalados.find((c) => c.id === cuidadorId)?.nome ?? "Cuidadora";
+      toast.success(`${nome} designada a ${residenteIds.length} hóspede(s).`);
+    } catch (e) {
+      toast.error(erroMsg(e));
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Plus className="size-3.5 shrink-0 text-muted-foreground" />
+      <select
+        value=""
+        onChange={(e) => aplicar(e.target.value)}
+        disabled={lote.isPending || escalados.length === 0 || residenteIds.length === 0}
+        className="h-8 max-w-[220px] rounded-md border border-input bg-card px-2 text-xs disabled:opacity-50"
+        title={rotulo}
+      >
+        <option value="">{escalados.length === 0 ? "Sem cuidadora escalada" : `${rotulo}…`}</option>
+        {escalados.map((c) => (
+          <option key={c.id} value={c.id}>{c.nome}</option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -298,7 +508,7 @@ function CardHospede({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-secondary">{r.nome}</span>
-            <span className="text-xs text-muted-foreground">Quarto {ouNaoInformado(r.quarto)}</span>
+            <span className="text-xs text-muted-foreground">Quarto {ouNaoInformado(formatarQuarto(r.quarto))}</span>
             {selo && <Badge variant="secondary">{selo}</Badge>}
             {descoberto && (
               <Badge variant="destructive" className="gap-1"><UserX className="size-3" /> Descoberto</Badge>
