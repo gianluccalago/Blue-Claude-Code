@@ -41,6 +41,7 @@ import { MedicacaoEnfermagem } from "@/routes/coordenacao/MedicacaoEnfermagem";
 import { IntercorrenciasCoord } from "@/routes/coordenacao/Intercorrencias";
 import { Profissionais } from "@/routes/equipe/Profissionais";
 import { Escalas } from "@/routes/coordenacao/Escalas";
+import { CoberturaAssistencial } from "@/routes/coordenacao/CoberturaAssistencial";
 import { MinhaEscala } from "@/routes/cuidador/MinhaEscala";
 import { Prescricoes } from "@/routes/medico/Prescricoes";
 import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
@@ -200,6 +201,11 @@ const minhaEscalaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "minha-escala",
   component: MinhaEscala,
+});
+const coberturaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "cobertura",
+  component: CoberturaAssistencial,
 });
 const prescricoesRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -595,6 +601,7 @@ const routeTree = rootRoute.addChildren([
     intercorrenciasCoordRoute,
     profissionaisRoute,
     escalasRoute,
+    coberturaRoute,
     minhaEscalaRoute,
     masterHospedeRoute,
     masterOperacionalRoute,

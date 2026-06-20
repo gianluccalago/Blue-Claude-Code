@@ -107,6 +107,7 @@ export const PERFIS: PerfilDef[] = [
     // Ordenado por frequência de uso no dia a dia da coordenação.
     menu: [
       { label: "Visão geral", to: "/app/coordenacao" },
+      { label: "Cobertura Assistencial", to: "/app/coordenacao/cobertura" },
       { label: "Hóspedes", to: "/app/coordenacao/ficha" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/coordenacao/intercorrencias" },

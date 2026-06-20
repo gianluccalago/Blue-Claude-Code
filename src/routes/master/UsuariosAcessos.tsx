@@ -20,7 +20,6 @@ import {
   type UsuarioValor,
 } from "@/hooks/useUsuarios";
 import { UsuarioForm } from "@/components/master/UsuarioForm";
-import { VinculoHospedes } from "@/components/master/VinculoHospedes";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -354,10 +353,13 @@ function UsuarioCard({
         </div>
       </div>
 
-      {/* Gestão do vínculo cuidador↔hóspede (designação do checklist). */}
+      {/* O vínculo FIXO cuidador↔hóspede foi APOSENTADO (0081): a designação
+          agora é POR TURNO, na tela Cobertura Assistencial (Coordenação). */}
       {ehCuidado && vinculosAberto && (
-        <div className="mt-3">
-          <VinculoHospedes cuidadorId={u.id} residentes={residentes} />
+        <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-secondary">
+          A designação de hóspedes agora é <span className="font-semibold">por turno</span>, na tela{" "}
+          <span className="font-semibold">Cobertura Assistencial</span> (Coordenação / Painel do Master).
+          O vínculo fixo foi descontinuado.
         </div>
       )}
     </div>

@@ -2006,6 +2006,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["visita_agendamento"]["Insert"]>;
         Relationships: [];
       };
+      designacao_cuidado: {
+        Row: {
+          id: string;
+          residente_id: string;
+          cuidador_id: string;
+          data: string;
+          turno: string;
+          criado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          cuidador_id: string;
+          data: string;
+          turno: string;
+          criado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["designacao_cuidado"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2044,6 +2066,7 @@ export type VisitaDisponibilidade = Database["public"]["Tables"]["visita_disponi
 export type VisitaAgendamento = Database["public"]["Tables"]["visita_agendamento"]["Row"];
 export type VisitaOrigem = VisitaAgendamento["origem"];
 export type VisitaStatus = VisitaAgendamento["status"];
+export type DesignacaoCuidado = Database["public"]["Tables"]["designacao_cuidado"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

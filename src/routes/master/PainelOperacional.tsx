@@ -39,6 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Medalhao } from "@/components/dashboard/primitives";
 import { LoadingState, ErrorState } from "@/components/states";
+import { CoberturaAssistencial } from "@/routes/coordenacao/CoberturaAssistencial";
 import { cn, formatarDataBR, formatarHoraBR } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -179,6 +180,10 @@ export function PainelOperacional() {
           </p>
         </div>
       </div>
+
+      {/* COBERTURA ASSISTENCIAL — mapa vivo de quem cuida de cada hóspede no
+          turno. Master vê e edita aqui mesmo (componente da Coordenação). */}
+      <CoberturaAssistencial />
 
       {/* ASSISTENCIAL */}
       <Bloco icon={ClipboardCheck} titulo="Assistencial" to="/app/coordenacao">

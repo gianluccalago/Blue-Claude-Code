@@ -324,14 +324,40 @@ function headCount(tabela: string): any {
   return supabase.from(tabela as never).select("id", { count: "exact", head: true });
 }
 
-/** Residentes designados ao cuidador (escopo do perfil). */
+/**
+ * Residentes designados ao cuidador NO TURNO CORRENTE (0081). Antes era o
+ * vínculo fixo cuidador_residente; agora deriva do turno ativo dele na escala
+ * e da designacao_cuidado daquele data+turno.
+ */
 async function idsDesignados(cuidadorId: string): Promise<string[]> {
   try {
+    const now = new Date();
+    const agora = now.getTime();
+    const ini = new Date(now); ini.setDate(ini.getDate() - 1);
+    const fim = new Date(now); fim.setDate(fim.getDate() + 1);
+    const { data: turnos } = await supabase
+      .from("turnos")
+      .select("data, inicio, fim, tag")
+      .eq("profissional_id", cuidadorId)
+      .gte("data", dataISO(ini))
+      .lte("data", dataISO(fim));
+    const lista = turnos ?? [];
+    const turno =
+      lista.find((t) => +new Date(t.inicio) <= agora && agora <= +new Date(t.fim)) ??
+      lista
+        .filter((t) => +new Date(t.inicio) > agora)
+        .sort((a, b) => +new Date(a.inicio) - +new Date(b.inicio))[0] ??
+      lista
+        .filter((t) => +new Date(t.fim) < agora)
+        .sort((a, b) => +new Date(b.fim) - +new Date(a.fim))[0];
+    if (!turno) return [];
     const { data } = await supabase
-      .from("cuidador_residente")
+      .from("designacao_cuidado")
       .select("residente_id")
-      .eq("cuidador_id", cuidadorId);
-    return (data ?? []).map((r) => r.residente_id);
+      .eq("cuidador_id", cuidadorId)
+      .eq("data", turno.data)
+      .eq("turno", turno.tag);
+    return [...new Set((data ?? []).map((r) => r.residente_id))];
   } catch {
     return [];
   }

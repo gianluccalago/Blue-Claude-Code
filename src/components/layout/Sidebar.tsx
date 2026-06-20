@@ -53,6 +53,7 @@ import {
   Camera,
   Home,
   Shield,
+  ShieldCheck,
   TrendingUp,
   Contact,
   Radio,
@@ -91,6 +92,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/medico/solicitacoes-familia": MessageSquare,
   // Coordenação
   "/app/coordenacao": LayoutDashboard,
+  "/app/coordenacao/cobertura": ShieldCheck,
   "/app/coordenacao/planos": ClipboardList,
   "/app/coordenacao/modelos": ListChecks,
   "/app/coordenacao/medicacao-enfermagem": Syringe,
