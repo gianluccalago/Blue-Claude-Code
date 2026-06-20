@@ -1981,7 +1981,7 @@ export interface Database {
           data: string;
           hora: string;
           origem: "site" | "app";
-          status: "pendente" | "confirmada" | "remarcada" | "cancelada";
+          status: "pendente" | "em_contato" | "confirmada" | "remarcada" | "cancelada";
           observacao: string | null;
           oportunidade_id: string | null;
           criado_em: string;
@@ -1996,7 +1996,7 @@ export interface Database {
           data: string;
           hora: string;
           origem?: "site" | "app";
-          status?: "pendente" | "confirmada" | "remarcada" | "cancelada";
+          status?: "pendente" | "em_contato" | "confirmada" | "remarcada" | "cancelada";
           observacao?: string | null;
           oportunidade_id?: string | null;
           criado_em?: string;

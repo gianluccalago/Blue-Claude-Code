@@ -27,6 +27,20 @@ export function dataHoraExtenso(data: string, hora: string): string {
 
 // ─── Mensagens prontas (ponto único para futura WhatsApp Business API) ────────
 
+/** Mensagem de QUALIFICAÇÃO — disparada ao mover o lead para "em contato". */
+export function mensagemQualificacao(nome: string): string {
+  const primeiro = nome.trim().split(/\s+/)[0] || nome;
+  return (
+    `Olá ${primeiro}! Recebemos seu pedido de visita ao Blue e ficamos felizes. ` +
+    `Sabemos que procurar um lugar para alguém querido é uma decisão delicada — ` +
+    `por isso queremos preparar sua visita com todo o cuidado. Se puder, me conte rapidamente:\n` +
+    `1. Para quem é o cuidado?\n` +
+    `2. Qual a idade?\n` +
+    `3. Em poucas palavras, o que está acontecendo neste momento?\n` +
+    `Assim recebemos vocês da melhor forma. Estamos à disposição.`
+  );
+}
+
 export function mensagemConfirmacao(nome: string, data: string, hora: string): string {
   const primeiro = nome.trim().split(/\s+/)[0] || nome;
   return (
@@ -77,24 +91,32 @@ export const DIAS_SEMANA: { dow: number; curto: string; label: string }[] = [
   { dow: 7, curto: "Dom", label: "Domingo" },
 ];
 
-/** Gera horários "HH:00" de `inicio` a `fim` (inclusive), de hora em hora. */
-export function horariosDaGrade(inicio: number, fim: number): string[] {
-  const out: string[] = [];
-  for (let h = inicio; h <= fim; h++) out.push(`${String(h).padStart(2, "0")}:00`);
-  return out;
-}
+/**
+ * HORÁRIOS PADRÃO de visita oferecidos (e exibidos pelo site): só estes 4, e
+ * só em DIAS ÚTEIS (seg–sex). A gestão pode bloquear datas/horários à vontade e
+ * pode marcar manualmente em QUALQUER data/horário (fora do padrão) pelo app.
+ */
+export const HORARIOS_PADRAO_VISITA = ["10:00", "14:30", "16:00", "17:30"] as const;
+
+/** Dias úteis (isodow seg–sex). */
+export const DIAS_UTEIS: number[] = [1, 2, 3, 4, 5];
 
 // ─── Rótulos de status ────────────────────────────────────────────────────────
 
 export const STATUS_VISITA_LABEL: Record<VisitaStatus, string> = {
   pendente: "Pendente",
+  em_contato: "Em contato com o cliente",
   confirmada: "Confirmada",
   remarcada: "Remarcada",
   cancelada: "Cancelada",
 };
 
-export const STATUS_VISITA_VARIANTE: Record<VisitaStatus, "warning" | "success" | "secondary" | "muted"> = {
+export const STATUS_VISITA_VARIANTE: Record<
+  VisitaStatus,
+  "warning" | "success" | "secondary" | "muted" | "default"
+> = {
   pendente: "warning",
+  em_contato: "default",
   confirmada: "success",
   remarcada: "secondary",
   cancelada: "muted",

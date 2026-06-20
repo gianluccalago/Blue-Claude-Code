@@ -16,7 +16,7 @@ const K = {
   agendamentos: ["visita-agendamentos"] as const,
 };
 
-const STATUS_ATIVO = ["pendente", "confirmada", "remarcada"] as const;
+const STATUS_ATIVO = ["pendente", "em_contato", "confirmada", "remarcada"] as const;
 
 function invalidarTudo(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: K.disponibilidade });
@@ -161,6 +161,21 @@ export function useDefinirBloqueioDia() {
 }
 
 // ─── Agendamentos: ações da gestão ────────────────────────────────────────────
+
+/** Move o lead para "em contato" (equipe qualificando antes de confirmar). */
+export function useIniciarContato() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("visita_agendamento")
+        .update({ status: "em_contato", atualizado_por: usuarioAtual.nome })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarTudo(qc),
+  });
+}
 
 export function useConfirmarVisita() {
   const qc = useQueryClient();

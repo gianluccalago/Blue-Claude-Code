@@ -25,10 +25,10 @@ import {
   ocupacaoAtiva,
   chaveSlot,
   useGerarGrade,
-  useCriarSlot,
   useExcluirSlot,
   useDefinirBloqueioSlot,
   useDefinirBloqueioDia,
+  useIniciarContato,
   useConfirmarVisita,
   useRemarcarVisita,
   useCancelarVisita,
@@ -38,10 +38,12 @@ import {
 import { useOportunidades } from "@/hooks/useCrm";
 import {
   DIAS_SEMANA,
-  horariosDaGrade,
+  DIAS_UTEIS,
+  HORARIOS_PADRAO_VISITA,
   formatarHora,
   STATUS_VISITA_LABEL,
   STATUS_VISITA_VARIANTE,
+  mensagemQualificacao,
   mensagemConfirmacao,
   mensagemRemarcacao,
   linkWhatsapp,
@@ -232,14 +234,12 @@ export function AgendaVisitas() {
       {novaVisita && (
         <ModalNovaVisita
           inicial={novaVisita}
-          slotsLivres={slotsLivresLista(slots, ocupados)}
           onFechar={() => setNovaVisita(null)}
         />
       )}
       {remarcar && (
         <ModalRemarcar
           agendamento={remarcar}
-          slotsLivres={slotsLivresLista(slots, ocupados)}
           onFechar={() => setRemarcar(null)}
         />
       )}
@@ -263,16 +263,6 @@ export function AgendaVisitas() {
       )}
     </div>
   );
-}
-
-// Lista de slots livres (não bloqueados e sem agendamento ativo), p/ selects.
-function slotsLivresLista(
-  slots: VisitaDisponibilidade[],
-  ocupados: Map<string, VisitaAgendamento>,
-): { data: string; hora: string }[] {
-  return slots
-    .filter((s) => !s.bloqueada && !ocupados.has(chaveSlot(s.data, s.hora)))
-    .map((s) => ({ data: s.data, hora: formatarHora(s.hora) }));
 }
 
 // ─── Célula do calendário ─────────────────────────────────────────────────────
@@ -367,7 +357,7 @@ function SolicitacoesVisita({
 }) {
   const [filtro, setFiltro] = useState<VisitaStatus | "todos">("todos");
   const ordenados = useMemo(() => {
-    const peso: Record<VisitaStatus, number> = { pendente: 0, remarcada: 1, confirmada: 2, cancelada: 3 };
+    const peso: Record<VisitaStatus, number> = { pendente: 0, em_contato: 1, remarcada: 2, confirmada: 3, cancelada: 4 };
     return [...agendamentos]
       .filter((a) => filtro === "todos" || a.status === filtro)
       .sort((a, b) => peso[a.status] - peso[b.status] || a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
@@ -385,7 +375,7 @@ function SolicitacoesVisita({
           )}
         </CardTitle>
         <div className="flex flex-wrap gap-1">
-          {(["todos", "pendente", "confirmada", "remarcada", "cancelada"] as const).map((f) => (
+          {(["todos", "pendente", "em_contato", "confirmada", "remarcada", "cancelada"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFiltro(f)}
@@ -419,6 +409,13 @@ function SolicitacoesVisita({
   );
 }
 
+// Abre o WhatsApp DO CLIENTE (número da solicitação) com a mensagem pronta.
+// window.open síncrono no clique → sem bloqueio de popup e sem aninhamento de
+// <a>; sempre usa o número do cliente normalizado (nunca um número fixo).
+function abrirWhatsappCliente(numeroCliente: string, mensagem: string) {
+  window.open(linkWhatsapp(numeroCliente, mensagem), "_blank", "noopener");
+}
+
 function CardSolicitacao({
   agendamento: a,
   destaque,
@@ -428,22 +425,37 @@ function CardSolicitacao({
   destaque: boolean;
   onRemarcar: () => void;
 }) {
+  const iniciarContato = useIniciarContato();
   const confirmar = useConfirmarVisita();
   const cancelar = useCancelarVisita();
   const oportunidades = useOportunidades();
   const vincular = useVincularOportunidade();
 
   const ativa = a.status !== "cancelada";
-  const podeMensagem = a.status === "confirmada" || a.status === "remarcada";
-  const msg =
-    a.status === "remarcada"
-      ? mensagemRemarcacao(a.nome_completo, a.data, a.hora)
-      : mensagemConfirmacao(a.nome_completo, a.data, a.hora);
+  // Mensagem certa para o estágio atual (sempre p/ o WhatsApp do cliente).
+  const msgAtual =
+    a.status === "confirmada"
+      ? mensagemConfirmacao(a.nome_completo, a.data, a.hora)
+      : a.status === "remarcada"
+        ? mensagemRemarcacao(a.nome_completo, a.data, a.hora)
+        : mensagemQualificacao(a.nome_completo);
 
+  async function handleIniciarContato() {
+    // Abre a mensagem de QUALIFICAÇÃO no WhatsApp do cliente e move p/ "em contato".
+    abrirWhatsappCliente(a.whatsapp, mensagemQualificacao(a.nome_completo));
+    try {
+      await iniciarContato.mutateAsync(a.id);
+      toast.success("Lead em contato. Mensagem de qualificação aberta no WhatsApp.");
+    } catch (e) {
+      toast.error(erroMsg(e));
+    }
+  }
   async function handleConfirmar() {
+    // Abre a mensagem de CONFIRMAÇÃO no WhatsApp do cliente e confirma.
+    abrirWhatsappCliente(a.whatsapp, mensagemConfirmacao(a.nome_completo, a.data, a.hora));
     try {
       await confirmar.mutateAsync(a.id);
-      toast.success("Visita confirmada. Use os botões de WhatsApp/e-mail para avisar o cliente.");
+      toast.success("Visita confirmada. Mensagem de confirmação aberta no WhatsApp.");
     } catch (e) {
       toast.error(erroMsg(e));
     }
@@ -471,6 +483,7 @@ function CardSolicitacao({
       className={cn(
         "rounded-lg border bg-card p-4 transition-shadow",
         a.status === "pendente" && "border-warning/40 bg-warning/5",
+        a.status === "em_contato" && "border-primary/40 bg-primary/5",
         destaque && "ring-2 ring-primary",
       )}
     >
@@ -490,9 +503,14 @@ function CardSolicitacao({
         </div>
       </div>
 
-      {/* Ações */}
+      {/* Ações — fluxo: pendente → em contato → confirmada (cancelar a qualquer momento) */}
       <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
         {a.status === "pendente" && (
+          <Button size="sm" onClick={handleIniciarContato} disabled={iniciarContato.isPending}>
+            <MessageCircle className="size-4" /> Iniciar contato
+          </Button>
+        )}
+        {(a.status === "pendente" || a.status === "em_contato") && (
           <Button size="sm" variant="success" onClick={handleConfirmar} disabled={confirmar.isPending}>
             <Check className="size-4" /> Confirmar
           </Button>
@@ -507,21 +525,17 @@ function CardSolicitacao({
             <X className="size-4" /> Cancelar
           </Button>
         )}
-        {podeMensagem && (
-          <>
-            <Button asChild size="sm" variant="success">
-              <a href={linkWhatsapp(a.whatsapp, msg)} target="_blank" rel="noreferrer">
-                <MessageCircle className="size-4" /> WhatsApp
-              </a>
-            </Button>
-            {a.email && (
-              <Button asChild size="sm" variant="outline">
-                <a href={linkEmail(a.email, "Sua visita ao Blue Senior Living", msg)} target="_blank" rel="noreferrer">
-                  <Mail className="size-4" /> E-mail
-                </a>
-              </Button>
-            )}
-          </>
+        {ativa && a.whatsapp && (
+          <Button size="sm" variant="success" onClick={() => abrirWhatsappCliente(a.whatsapp, msgAtual)}>
+            <MessageCircle className="size-4" /> WhatsApp
+          </Button>
+        )}
+        {ativa && a.email && (
+          <Button asChild size="sm" variant="outline">
+            <a href={linkEmail(a.email, "Sua visita ao Blue Senior Living", msgAtual)} target="_blank" rel="noreferrer">
+              <Mail className="size-4" /> E-mail
+            </a>
+          </Button>
         )}
       </div>
 
@@ -726,27 +740,30 @@ function SlotPopover({
   );
 }
 
-// ─── Modal: editar grade ──────────────────────────────────────────────────────
+// ─── Modal: editar grade (padrão = 4 horários, dias úteis) ────────────────────
 function ModalGrade({ onFechar }: { onFechar: () => void }) {
   const gerar = useGerarGrade();
-  const criar = useCriarSlot();
   const hoje = new Date();
-  const [dows, setDows] = useState<number[]>([1, 2, 3, 4, 5, 6]);
-  const [inicio, setInicio] = useState(9);
-  const [fim, setFim] = useState(17);
+  // Padrão de oferta: 4 horários, seg–sex. A gestão pode ajustar quais horários
+  // e dias gerar, mas o default já reflete a regra do site.
+  const [horarios, setHorarios] = useState<string[]>([...HORARIOS_PADRAO_VISITA]);
+  const [dows, setDows] = useState<number[]>([...DIAS_UTEIS]);
   const [capacidade, setCapacidade] = useState(1);
   const [de, setDe] = useState(isoLocal(hoje));
-  const [ate, setAte] = useState(isoLocal(addDias(hoje, 27)));
+  const [ate, setAte] = useState(isoLocal(addDias(hoje, 29)));
 
   function toggleDow(dow: number) {
     setDows((prev) => (prev.includes(dow) ? prev.filter((x) => x !== dow) : [...prev, dow]));
   }
+  function toggleHora(h: string) {
+    setHorarios((prev) => (prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]));
+  }
 
   async function aplicar() {
     if (dows.length === 0) return toast.error("Selecione ao menos um dia.");
-    if (fim < inicio) return toast.error("Hora final deve ser ≥ inicial.");
+    if (horarios.length === 0) return toast.error("Selecione ao menos um horário.");
     try {
-      await gerar.mutateAsync({ de, ate, dows, horarios: horariosDaGrade(inicio, fim), capacidade });
+      await gerar.mutateAsync({ de, ate, dows, horarios, capacidade });
       toast.success("Grade de horários atualizada.");
       onFechar();
     } catch (e) {
@@ -758,8 +775,26 @@ function ModalGrade({ onFechar }: { onFechar: () => void }) {
     <Modal titulo="Editar grade de horários" onFechar={onFechar}>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Cria os horários no período (não sobrescreve nem remove os já existentes — bloqueios são preservados).
+          Cria os horários no período (não remove os existentes — bloqueios são preservados). O padrão
+          oferecido pelo site é <span className="font-semibold">10:00, 14:30, 16:00 e 17:30, seg–sex</span>.
         </p>
+        <div>
+          <label className="text-sm font-semibold text-secondary">Horários (padrão)</label>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {HORARIOS_PADRAO_VISITA.map((h) => (
+              <button
+                key={h}
+                onClick={() => toggleHora(h)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm font-medium tabular-nums transition-colors",
+                  horarios.includes(h) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70",
+                )}
+              >
+                {h}
+              </button>
+            ))}
+          </div>
+        </div>
         <div>
           <label className="text-sm font-semibold text-secondary">Dias da semana</label>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -779,20 +814,6 @@ function ModalGrade({ onFechar }: { onFechar: () => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-semibold text-secondary">Das</label>
-            <select value={inicio} onChange={(e) => setInicio(Number(e.target.value))} className={inputBase}>
-              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-secondary">Até</label>
-            <select value={fim} onChange={(e) => setFim(Number(e.target.value))} className={inputBase}>
-              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
             <label className="text-sm font-semibold text-secondary">De (data)</label>
             <input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inputBase} />
           </div>
@@ -805,7 +826,7 @@ function ModalGrade({ onFechar }: { onFechar: () => void }) {
           <label className="text-sm font-semibold text-secondary">Capacidade por horário</label>
           <input type="number" min={1} value={capacidade} onChange={(e) => setCapacidade(Math.max(1, Number(e.target.value)))} className={inputBase} />
         </div>
-        <Button className="w-full" onClick={aplicar} disabled={gerar.isPending || criar.isPending}>
+        <Button className="w-full" onClick={aplicar} disabled={gerar.isPending}>
           {gerar.isPending ? "Gerando…" : "Gerar horários"}
         </Button>
       </div>
@@ -813,14 +834,12 @@ function ModalGrade({ onFechar }: { onFechar: () => void }) {
   );
 }
 
-// ─── Modal: nova visita (origem app) ──────────────────────────────────────────
+// ─── Modal: nova visita (origem app) — manual, QUALQUER data/horário ──────────
 function ModalNovaVisita({
   inicial,
-  slotsLivres,
   onFechar,
 }: {
   inicial: { data?: string; hora?: string };
-  slotsLivres: { data: string; hora: string }[];
   onFechar: () => void;
 }) {
   const agendar = useAgendarVisitaApp();
@@ -832,10 +851,6 @@ function ModalNovaVisita({
   const [hora, setHora] = useState(inicial.hora ?? "");
   const [obs, setObs] = useState("");
   const [opId, setOpId] = useState("");
-
-  // Datas e horários disponíveis derivados dos slots livres.
-  const datas = [...new Set(slotsLivres.map((s) => s.data))].sort();
-  const horasDaData = slotsLivres.filter((s) => s.data === data).map((s) => s.hora).sort();
 
   async function salvar() {
     if (!nome.trim() || !whats.trim() || !data || !hora) {
@@ -861,28 +876,19 @@ function ModalNovaVisita({
   return (
     <Modal titulo="Nova visita (pela gestão)" onFechar={onFechar}>
       <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Marcação manual livre: escolha <span className="font-semibold">qualquer data e horário</span> (não
+          se limita à grade padrão oferecida no site).
+        </p>
         <Campo label="Nome completo"><input value={nome} onChange={(e) => setNome(e.target.value)} className={inputBase} /></Campo>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="WhatsApp"><input value={whats} onChange={(e) => setWhats(e.target.value)} placeholder="(41) 99999-9999" className={inputBase} /></Campo>
           <Campo label="E-mail (opcional)"><input value={email} onChange={(e) => setEmail(e.target.value)} className={inputBase} /></Campo>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Campo label="Data">
-            <select value={data} onChange={(e) => { setData(e.target.value); setHora(""); }} className={inputBase}>
-              <option value="">Selecione…</option>
-              {datas.map((d) => <option key={d} value={d}>{formatarDataBR(d)}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Horário">
-            <select value={hora} onChange={(e) => setHora(e.target.value)} disabled={!data} className={inputBase}>
-              <option value="">Selecione…</option>
-              {horasDaData.map((h) => <option key={h} value={h}>{h}</option>)}
-            </select>
-          </Campo>
+          <Campo label="Data"><input type="date" value={data} onChange={(e) => setData(e.target.value)} className={inputBase} /></Campo>
+          <Campo label="Horário"><input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={inputBase} /></Campo>
         </div>
-        {datas.length === 0 && (
-          <p className="text-xs text-warning-foreground">Não há horários livres na grade. Crie/edite a grade primeiro.</p>
-        )}
         <Campo label="Observação (opcional)"><textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} className={cn(inputBase, "h-auto py-2 resize-none")} /></Campo>
         <Campo label="Vincular a oportunidade do CRM (opcional)">
           <select value={opId} onChange={(e) => setOpId(e.target.value)} className={inputBase}>
@@ -898,27 +904,25 @@ function ModalNovaVisita({
   );
 }
 
-// ─── Modal: remarcar ──────────────────────────────────────────────────────────
+// ─── Modal: remarcar — nova data/horário livres + avisa o cliente ─────────────
 function ModalRemarcar({
   agendamento: a,
-  slotsLivres,
   onFechar,
 }: {
   agendamento: VisitaAgendamento;
-  slotsLivres: { data: string; hora: string }[];
   onFechar: () => void;
 }) {
   const remarcar = useRemarcarVisita();
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  const datas = [...new Set(slotsLivres.map((s) => s.data))].sort();
-  const horasDaData = slotsLivres.filter((s) => s.data === data).map((s) => s.hora).sort();
 
   async function salvar() {
     if (!data || !hora) return toast.error("Escolha a nova data e horário.");
+    // Abre o WhatsApp do cliente com a mensagem de remarcação (no clique).
+    abrirWhatsappCliente(a.whatsapp, mensagemRemarcacao(a.nome_completo, data, hora));
     try {
       await remarcar.mutateAsync({ id: a.id, data, hora });
-      toast.success("Visita remarcada. Avise o cliente pelo WhatsApp/e-mail na lista.");
+      toast.success("Visita remarcada. Mensagem aberta no WhatsApp do cliente.");
       onFechar();
     } catch (e) {
       toast.error(erroMsg(e));
@@ -930,22 +934,12 @@ function ModalRemarcar({
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
           Atual: {formatarDataBR(a.data)} às {formatarHora(a.hora)}. O horário atual é liberado automaticamente.
+          Pode escolher qualquer data/horário.
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <Campo label="Nova data">
-            <select value={data} onChange={(e) => { setData(e.target.value); setHora(""); }} className={inputBase}>
-              <option value="">Selecione…</option>
-              {datas.map((d) => <option key={d} value={d}>{formatarDataBR(d)}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Novo horário">
-            <select value={hora} onChange={(e) => setHora(e.target.value)} disabled={!data} className={inputBase}>
-              <option value="">Selecione…</option>
-              {horasDaData.map((h) => <option key={h} value={h}>{h}</option>)}
-            </select>
-          </Campo>
+          <Campo label="Nova data"><input type="date" value={data} onChange={(e) => setData(e.target.value)} className={inputBase} /></Campo>
+          <Campo label="Novo horário"><input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={inputBase} /></Campo>
         </div>
-        {datas.length === 0 && <p className="text-xs text-warning-foreground">Não há horários livres na grade.</p>}
         <Button className="w-full" onClick={salvar} disabled={remarcar.isPending}>
           {remarcar.isPending ? "Salvando…" : "Confirmar remarcação"}
         </Button>
