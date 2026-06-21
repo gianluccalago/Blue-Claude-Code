@@ -525,7 +525,10 @@ function CardSolicitacao({
             <X className="size-4" /> Cancelar
           </Button>
         )}
-        {ativa && a.whatsapp && (
+        {/* No 'pendente', "Iniciar contato" já abre o WhatsApp (e dispara o
+            contato) — evita o botão WhatsApp redundante. Nos demais estágios o
+            botão reabre a mensagem certa (qualificação/confirmação/remarcação). */}
+        {ativa && a.whatsapp && a.status !== "pendente" && (
           <Button size="sm" variant="success" onClick={() => abrirWhatsappCliente(a.whatsapp, msgAtual)}>
             <MessageCircle className="size-4" /> WhatsApp
           </Button>
