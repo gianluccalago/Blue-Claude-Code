@@ -29,15 +29,15 @@ export function dataHoraExtenso(data: string, hora: string): string {
 
 /** Mensagem de QUALIFICAÇÃO — disparada ao mover o lead para "em contato". */
 export function mensagemQualificacao(nome: string): string {
-  const primeiro = nome.trim().split(/\s+/)[0] || nome;
+  const primeiro = nome.trim().split(/\s+/)[0] || "";
+  const saudacao = primeiro ? `Olá ${primeiro}!` : "Olá!";
   return (
-    `Olá ${primeiro}! Recebemos seu pedido de visita ao Blue e ficamos felizes. ` +
-    `Sabemos que procurar um lugar para alguém querido é uma decisão delicada — ` +
-    `por isso queremos preparar sua visita com todo o cuidado. Se puder, me conte rapidamente:\n` +
-    `1. Para quem é o cuidado?\n` +
-    `2. Qual a idade?\n` +
-    `3. Em poucas palavras, o que está acontecendo neste momento?\n` +
-    `Assim recebemos vocês da melhor forma. Estamos à disposição.`
+    `${saudacao} Recebemos seu pedido de visita ao Blue e ficamos felizes. ` +
+    `Se puder, me conte rapidamente:\n\n` +
+    `1. Para quem você está buscando um residencial?\n` +
+    `2. Qual a idade do hóspede?\n` +
+    `3. Em poucas palavras, o que está acontecendo neste momento?\n\n` +
+    `Estamos à disposição.`
   );
 }
 
