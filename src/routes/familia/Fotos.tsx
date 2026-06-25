@@ -13,7 +13,9 @@ export function Fotos() {
 
   const lista = fotos.data ?? [];
   if (lista.length === 0)
-    return <EmptyState label="Ainda não há fotos de atividades para o hóspede." />;
+    return (
+      <EmptyState label="As fotos das atividades aparecerão aqui assim que o hóspede participar — momentos para guardar com carinho. 💙" />
+    );
 
   return (
     <div className="space-y-4">
@@ -31,7 +33,7 @@ export function Fotos() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {lista.map((f) => (
           <Card key={f.id} className="overflow-hidden">
-            <img src={f.fotoUrl} alt={f.atividadeTitulo} className="h-48 w-full object-cover" />
+            <img src={f.fotoUrl} alt={f.atividadeTitulo} loading="lazy" className="h-48 w-full object-cover" />
             <CardContent className="space-y-1 py-3">
               <p className="font-semibold text-secondary">{f.atividadeTitulo}</p>
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">

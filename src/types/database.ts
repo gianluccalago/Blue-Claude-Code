@@ -2028,6 +2028,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["designacao_cuidado"]["Insert"]>;
         Relationships: [];
       };
+      recado_familia: {
+        Row: {
+          id: string;
+          residente_id: string;
+          mensagem: string;
+          autor: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          mensagem: string;
+          autor?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recado_familia"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2067,6 +2085,7 @@ export type VisitaAgendamento = Database["public"]["Tables"]["visita_agendamento
 export type VisitaOrigem = VisitaAgendamento["origem"];
 export type VisitaStatus = VisitaAgendamento["status"];
 export type DesignacaoCuidado = Database["public"]["Tables"]["designacao_cuidado"]["Row"];
+export type RecadoFamilia = Database["public"]["Tables"]["recado_familia"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

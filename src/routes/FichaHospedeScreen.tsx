@@ -10,6 +10,7 @@ import { useEditarResidente, type ResidenteValor } from "@/hooks/useResidentesGe
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { FichaHospedeCard } from "@/components/FichaHospedeCard";
 import { ResidenteFicha } from "@/components/master/ResidenteFicha";
+import { RecadoFamiliaEditor } from "@/components/coordenacao/RecadoFamiliaEditor";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { podeEditarFicha } from "@/lib/fichaHospede";
@@ -114,6 +115,11 @@ export function FichaHospedeScreen() {
             onEditar={() => setEditando(true)}
           />
         ))}
+
+      {/* Recado da equipe para a família — só Coordenação/Master. */}
+      {hospede && (perfil === "coordenacao" || perfil === "master") && (
+        <RecadoFamiliaEditor residenteId={hospede.id} nome={hospede.nome} />
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   BedDouble,
@@ -12,38 +13,99 @@ import {
   UtensilsCrossed,
   Sparkles,
   Phone,
+  Heart,
+  Activity,
+  CalendarCheck,
 } from "lucide-react";
-import { useResidenteFamilia, useFotosResidente } from "@/hooks/useFamilia";
+import {
+  useResidenteFamilia,
+  useFotosResidente,
+  useParticipacoesResidente,
+  useCompromissosResidente,
+} from "@/hooks/useFamilia";
+import { useRecadosResidente } from "@/hooks/useRecados";
 import { useTelefonePlantao } from "@/hooks/useConfiguracao";
 import { useSolicitacoesFamilia } from "@/hooks/useSolicitacoes";
 import { useAceitacaoResidenteHoje } from "@/hooks/useMaster";
+import { FAMILIA_ATUAL } from "@/data/profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
-import { calcularIdade, ouNaoInformado, hojeISO } from "@/lib/utils";
+import { calcularIdade, ouNaoInformado, hojeISO, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
-// Card "O dia de [nome]" — agrega APENAS dados já capturados (aceitação
-// alimentar e atividades com foto), em linguagem humana e calorosa.
-// REGRA DE SOBRIEDADE: nunca expõe intercorrências, eliminações ou medicação;
-// se o dia teve ocorrência grave, este card mostra só o neutro — a
-// comunicação sensível é humana, fora do app.
+// Portal da Família — régua de conteúdo: BEM-ESTAR, VIDA e PRESENÇA. Nunca
+// dados clínicos crus (eliminações, medicação, peso, sinais). Tom acolhedor.
 // ---------------------------------------------------------------------------
 
-/** Frase calorosa por nível de aceitação (sem jargão clínico). */
-const FRASE_ACEITACAO: Record<string, string> = {
-  "Tudo": "comeu muito bem",
+/** Frases POSITIVAS de refeição (sem jargão clínico). Aceitação baixa é OMITIDA
+ *  — jamais "recusou"/alarme; o sensível é comunicado pela equipe, com contexto. */
+const FRASE_ACEITACAO_POSITIVA: Record<string, string> = {
+  Tudo: "comeu muito bem",
   "Quase tudo": "comeu bem",
-  "Metade": "comeu metade",
-  "Pouco": "aceitou um pouquinho",
-  "Nada": "não quis desta vez — a equipe acompanha de perto",
+  Metade: "aceitou bem a refeição",
 };
 
-/**
- * Contato do plantão para a família: número FIXO do aparelho da casa (com a
- * enfermagem de plantão). Em destaque, com aviso de uso consciente — emergência
- * ou falar com o hóspede; o dia a dia é pelo app.
- */
+/** "a", "a e b", "a, b e c". */
+function juntarE(itens: string[]): string {
+  if (itens.length === 0) return "";
+  if (itens.length === 1) return itens[0];
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
+}
+
+// ─── Recado da equipe (alto valor emocional) ──────────────────────────────────
+function CardRecadoEquipe() {
+  const recados = useRecadosResidente(FAMILIA_ATUAL.residenteId);
+  const [verTodos, setVerTodos] = useState(false);
+  const lista = recados.data ?? [];
+  if (lista.length === 0) return null; // toque opcional: sem recado, portal segue normal
+
+  const ultimo = lista[0];
+  const anteriores = lista.slice(1);
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base text-secondary">
+          <Heart className="size-5 text-primary" /> Da nossa equipe para você
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <p className="text-[15px] leading-relaxed text-secondary">{ultimo.mensagem}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {ultimo.autor ? `${ultimo.autor} · ` : ""}{formatarDataHoraBR(ultimo.criado_em)}
+          </p>
+        </div>
+
+        {anteriores.length > 0 && (
+          <div className="border-t border-primary/15 pt-2">
+            <button
+              onClick={() => setVerTodos((v) => !v)}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              {verTodos ? "Ocultar recados anteriores" : `Ver recados anteriores (${anteriores.length})`}
+            </button>
+            {verTodos && (
+              <div className="mt-2 space-y-2.5">
+                {anteriores.map((r) => (
+                  <div key={r.id} className="rounded-lg bg-card/60 p-2.5">
+                    <p className="text-sm leading-relaxed text-secondary/90">{r.mensagem}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {r.autor ? `${r.autor} · ` : ""}{formatarDataHoraBR(r.criado_em)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Contato direto com o plantão (número fixo da casa). */
 function CardPlantao({ primeiroNome }: { primeiroNome: string }) {
   const telefone = useTelefonePlantao();
   const numero = telefone.data ?? null;
@@ -55,10 +117,7 @@ function CardPlantao({ primeiroNome }: { primeiroNome: string }) {
           <Phone className="size-4" /> Contato direto com o plantão
         </div>
         {numero ? (
-          <a
-            href={`tel:${numeroLimpo}`}
-            className="block text-2xl font-extrabold tracking-tight text-secondary hover:underline"
-          >
+          <a href={`tel:${numeroLimpo}`} className="block text-2xl font-extrabold tracking-tight text-secondary hover:underline">
             {numero}
           </a>
         ) : (
@@ -74,25 +133,33 @@ function CardPlantao({ primeiroNome }: { primeiroNome: string }) {
   );
 }
 
+// ─── "O dia de [nome]" — atividades + refeições positivas + foto ──────────────
 function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: string }) {
   const aceitacao = useAceitacaoResidenteHoje(residenteId);
   const fotos = useFotosResidente();
+  const participacoes = useParticipacoesResidente();
 
   const primeiroNome = nome.split(" ")[0];
-  const refeicoes = aceitacao.data ?? [];
+  const hoje = hojeISO();
 
-  // Atividade mais recente de hoje (ou de ontem, como fallback caloroso).
+  // Refeições — só as positivas (baixa aceitação é omitida).
+  const refeicoesPositivas = (aceitacao.data ?? []).filter((r) => FRASE_ACEITACAO_POSITIVA[r.nivel]);
+
+  // Atividades de hoje (títulos distintos).
+  const titulosHoje = [...new Set((participacoes.data ?? []).filter((p) => p.data === hoje).map((p) => p.atividadeTitulo))];
+
+  // Foto do dia (hoje ou, como carinho, de ontem).
   const ontem = (() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   })();
   const fotoDoDia =
-    (fotos.data ?? []).find((f) => f.data === hojeISO()) ??
+    (fotos.data ?? []).find((f) => f.data === hoje) ??
     (fotos.data ?? []).find((f) => f.data === ontem) ??
     null;
 
-  const temConteudo = refeicoes.length > 0 || fotoDoDia;
+  const temConteudo = titulosHoje.length > 0 || refeicoesPositivas.length > 0 || !!fotoDoDia;
 
   return (
     <Card>
@@ -103,23 +170,32 @@ function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: st
       </CardHeader>
       <CardContent className="space-y-4">
         {!temConteudo ? (
-          // Estado vazio acolhedor — nunca uma tela fria.
           <p className="text-sm leading-relaxed text-muted-foreground">
-            O dia de hoje ainda está sendo registrado pela equipe. Volte mais
-            tarde para ver como {primeiroNome} está aproveitando o dia. 💙
+            O dia de hoje ainda está sendo registrado pela equipe. Volte mais tarde para ver como{" "}
+            {primeiroNome} está aproveitando o dia. 💙
           </p>
         ) : (
           <>
-            {refeicoes.length > 0 && (
+            {titulosHoje.length > 0 && (
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
+                  <Activity className="size-4" />
+                </div>
+                <p className="text-sm leading-relaxed text-secondary">
+                  Hoje {primeiroNome} participou de <span className="font-semibold">{juntarE(titulosHoje)}</span>.
+                </p>
+              </div>
+            )}
+
+            {refeicoesPositivas.length > 0 && (
               <div className="flex items-start gap-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-secondary">
                   <UtensilsCrossed className="size-4" />
                 </div>
                 <div className="text-sm leading-relaxed text-secondary">
-                  {refeicoes.map(({ refeicao, nivel }) => (
+                  {refeicoesPositivas.map(({ refeicao, nivel }) => (
                     <p key={refeicao}>
-                      <span className="font-semibold">{refeicao}:</span>{" "}
-                      {FRASE_ACEITACAO[nivel] ?? nivel.toLowerCase()}
+                      <span className="font-semibold">{refeicao}:</span> {FRASE_ACEITACAO_POSITIVA[nivel]}
                     </p>
                   ))}
                 </div>
@@ -133,25 +209,93 @@ function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: st
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-relaxed text-secondary">
-                    {fotoDoDia.data === hojeISO() ? "Hoje" : "Ontem"} {primeiroNome} participou de{" "}
+                    {fotoDoDia.data === hoje ? "Um momento de hoje" : "Um momento de ontem"} —{" "}
                     <span className="font-semibold">{fotoDoDia.atividadeTitulo}</span>.
                   </p>
                   <img
                     src={fotoDoDia.fotoUrl}
                     alt={fotoDoDia.atividadeTitulo}
+                    loading="lazy"
                     className="mt-2 max-h-56 w-full rounded-lg border object-cover"
                   />
-                  {/* 5.2: a descrição geral da execução vira LEGENDA da foto */}
                   {fotoDoDia.descricaoGeral && (
-                    <p className="mt-1.5 text-sm italic text-muted-foreground">
-                      "{fotoDoDia.descricaoGeral}"
-                    </p>
+                    <p className="mt-1.5 text-sm italic text-muted-foreground">"{fotoDoDia.descricaoGeral}"</p>
                   )}
                 </div>
               </div>
             )}
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Vida ativa do mês (resumo leve, sem clínica) ─────────────────────────────
+function CardVidaAtiva({ nome }: { nome: string }) {
+  const participacoes = useParticipacoesResidente();
+  const primeiroNome = nome.split(" ")[0];
+  const mes = hojeISO().slice(0, 7);
+  const doMes = (participacoes.data ?? []).filter((p) => p.data.slice(0, 7) === mes);
+  if (doMes.length === 0) return null;
+
+  const tipos = [...new Set(doMes.map((p) => p.atividadeTitulo))];
+  return (
+    <Card>
+      <CardContent className="flex items-start gap-3 py-4">
+        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+          <Activity className="size-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm leading-relaxed text-secondary">
+            Este mês, {primeiroNome} já participou de{" "}
+            <span className="font-bold text-primary">{doMes.length}</span>{" "}
+            {doMes.length === 1 ? "atividade" : "atividades"} — vida ativa e bem acompanhada. 💙
+          </p>
+          {tipos.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tipos.slice(0, 6).map((t) => (
+                <Badge key={t} variant="secondary">{t}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Próximos compromissos ────────────────────────────────────────────────────
+function CardProximosCompromissos({ nome }: { nome: string }) {
+  const compromissos = useCompromissosResidente();
+  const primeiroNome = nome.split(" ")[0];
+  const hoje = hojeISO();
+  const proximos = (compromissos.data ?? []).filter((c) => c.data && c.data >= hoje).slice(0, 4);
+  if (proximos.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CalendarCheck className="size-5 text-primary" /> Próximos compromissos
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {proximos.map((c) => (
+          <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3">
+            <div className="min-w-0">
+              <p className="font-semibold text-secondary">{c.titulo}</p>
+              {c.detalhes && <p className="truncate text-xs text-muted-foreground">{c.detalhes}</p>}
+            </div>
+            <div className="shrink-0 text-right text-sm">
+              <p className="font-semibold text-secondary">{c.data ? formatarDataBR(c.data) : "A definir"}</p>
+              {c.horario && <p className="text-xs text-muted-foreground">{c.horario.slice(0, 5)}</p>}
+            </div>
+          </div>
+        ))}
+        <Link to="/app/familia/compromissos-familia" className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-primary hover:underline">
+          Ver todos os compromissos de {primeiroNome} <ArrowRight className="size-4" />
+        </Link>
       </CardContent>
     </Card>
   );
@@ -173,9 +317,7 @@ export function Inicio() {
   if (residente.isLoading) return <LoadingState />;
   if (residente.isError) return <ErrorState error={residente.error} />;
 
-  const r = residente.data;
-
-  return <InicioConteudo r={r} respondidas={respondidas} />;
+  return <InicioConteudo r={residente.data} respondidas={respondidas} />;
 }
 
 function InicioConteudo({
@@ -185,15 +327,11 @@ function InicioConteudo({
   r: ReturnType<typeof useResidenteFamilia>["data"];
   respondidas: number;
 }) {
-
   return (
     <div className="space-y-6">
-      {/* HERO de boas-vindas — primeira tela da família (celular) */}
+      {/* HERO de boas-vindas */}
       <div className="relative overflow-hidden rounded-lg bg-hero-navy p-6 text-white shadow-cinematic">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-primary/20 blur-3xl"
-        />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-primary/20 blur-3xl" />
         <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
           <div className="grid size-20 shrink-0 place-items-center rounded-full bg-white/10 ring-2 ring-white/20 backdrop-blur-sm">
             <UserRound className="size-10 text-white" />
@@ -216,10 +354,19 @@ function InicioConteudo({
         </div>
       </div>
 
-      {/* O DIA DE [NOME] — narrativa do cuidado com dados já capturados */}
+      {/* Recado da equipe — destaque emocional (some quando não há) */}
+      <CardRecadoEquipe />
+
+      {/* O DIA DE [NOME] */}
       {r && <CardDiaDoHospede residenteId={r.id} nome={r.nome} />}
 
-      {/* Contato direto com o plantão (número fixo do aparelho da casa) */}
+      {/* Vida ativa do mês */}
+      {r && <CardVidaAtiva nome={r.nome} />}
+
+      {/* Próximos compromissos */}
+      {r && <CardProximosCompromissos nome={r.nome} />}
+
+      {/* Contato direto com o plantão */}
       {r && <CardPlantao primeiroNome={r.nome.split(" ")[0]} />}
 
       <Card>

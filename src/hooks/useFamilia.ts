@@ -92,6 +92,39 @@ export function useFotosResidente() {
   });
 }
 
+export interface ParticipacaoResidente {
+  id: string;
+  atividadeTitulo: string;
+  data: string;
+}
+
+/**
+ * Atividades em que o hóspede PARTICIPOU (presença), mais recentes primeiro —
+ * para o card "O dia de" e o resumo de vida ativa do mês. Só bem-estar/vida,
+ * sem nada clínico.
+ */
+export function useParticipacoesResidente() {
+  const residenteId = FAMILIA_ATUAL.residenteId;
+  return useQuery({
+    queryKey: ["participacoes-familia", residenteId],
+    enabled: !!residenteId,
+    queryFn: async (): Promise<ParticipacaoResidente[]> => {
+      const { data, error } = await supabase
+        .from("atividade_participacao")
+        .select("id, data, atividade:atividade_id(titulo)")
+        .eq("residente_id", residenteId)
+        .eq("presente", true)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row: Record<string, unknown>) => ({
+        id: String(row.id),
+        data: String(row.data),
+        atividadeTitulo: (row.atividade as { titulo?: string } | null)?.titulo ?? "Atividade",
+      }));
+    },
+  });
+}
+
 /** Compromissos externos do hóspede, do mais próximo ao mais distante. */
 export function useCompromissosResidente() {
   return useQuery({
