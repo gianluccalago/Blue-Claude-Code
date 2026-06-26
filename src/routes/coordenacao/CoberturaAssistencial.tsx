@@ -15,6 +15,7 @@ import {
   Building2,
   CalendarCog,
   Users,
+  Scale,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -33,6 +34,13 @@ import {
   PRESENCA_VARIANTE,
 } from "@/lib/cobertura";
 import { MODALIDADE_SELO } from "@/lib/modalidade";
+import {
+  contarPorGrau,
+  minimoCuidadores,
+  statusProporcao,
+  STATUS_PROPORCAO_LABEL,
+  STATUS_PROPORCAO_VARIANTE,
+} from "@/lib/proporcaoRh";
 import { parseQuarto, formatarQuarto } from "@/lib/quarto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -305,6 +313,10 @@ function ConteudoCobertura({
         </CardContent>
       </Card>
 
+      {/* Indicador-resumo da proporção mínima de cuidadores (RDC 502 Art. 16).
+          Detalhe completo fica na aba Vigilância Sanitária. */}
+      <ProporcaoResumo hospedes={hospedes} escalado={cuidadoresEscalados.length} />
+
       {/* Lista de hóspedes do turno, agrupada por módulo/andar */}
       {hospedes.length === 0 ? (
         <EmptyState label="Nenhum hóspede ativo neste turno." />
@@ -566,6 +578,31 @@ function CardHospede({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Indicador-resumo da proporção mínima de cuidadores (RDC 502 Art. 16). O
+// painel completo fica na aba Vigilância Sanitária; aqui é só o resumo do turno.
+function ProporcaoResumo({ hospedes, escalado }: { hospedes: HospedeCobertura[]; escalado: number }) {
+  const contagem = contarPorGrau(hospedes.map((h) => h.residente));
+  const minimo = minimoCuidadores(contagem);
+  const status = statusProporcao(escalado, minimo);
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-2.5 text-sm",
+        status === "abaixo" ? "border-destructive/40 bg-destructive/5" : "border-success/30 bg-success/5",
+      )}
+    >
+      <span className="flex flex-wrap items-center gap-x-1.5 text-secondary">
+        <Scale className="size-4 text-muted-foreground" />
+        Proporção mínima (RDC Art. 16): escalado <strong>{escalado}</strong> / mínimo <strong>{minimo}</strong>
+        {contagem.semGrau > 0 && (
+          <span className="text-warning-foreground">· {contagem.semGrau} sem grau definido</span>
+        )}
+      </span>
+      <Badge variant={STATUS_PROPORCAO_VARIANTE[status]}>{STATUS_PROPORCAO_LABEL[status]}</Badge>
     </div>
   );
 }
