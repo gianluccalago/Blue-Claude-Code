@@ -77,6 +77,7 @@ export const PERFIS: PerfilDef[] = [
       // VIGILÂNCIA SANITÁRIA (RT) — guarda-chuva de compliance RDC 502/2021.
       // Próximos sub-itens: indicadores RDC, carteira vacinal, proporção de RH, patologias.
       { label: "Eventos sentinela", to: "/app/master/vigilancia-sentinela", grupo: "Vigilância Sanitária" },
+      { label: "Indicadores RDC 502", to: "/app/master/vigilancia-indicadores", grupo: "Vigilância Sanitária" },
       // SISTEMA
       { label: "Equipe e acessos", to: "/app/master/equipe-acessos", grupo: "Sistema" },
       { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos", grupo: "Sistema" },

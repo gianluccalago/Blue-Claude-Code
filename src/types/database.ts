@@ -2088,6 +2088,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["evento_sentinela"]["Insert"]>;
         Relationships: [];
       };
+      agravo_epidemiologico: {
+        Row: {
+          id: string;
+          residente_id: string;
+          tipo: "obito" | "diarreia_aguda" | "escabiose" | "desidratacao" | "ulcera_decubito" | "desnutricao";
+          data_ocorrencia: string;
+          tipo_registro: "incidencia" | "prevalencia";
+          descricao: string | null;
+          registrado_por: string | null;
+          perfil_registrador: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          tipo: "obito" | "diarreia_aguda" | "escabiose" | "desidratacao" | "ulcera_decubito" | "desnutricao";
+          data_ocorrencia: string;
+          tipo_registro: "incidencia" | "prevalencia";
+          descricao?: string | null;
+          registrado_por?: string | null;
+          perfil_registrador?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["agravo_epidemiologico"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2130,6 +2156,8 @@ export type DesignacaoCuidado = Database["public"]["Tables"]["designacao_cuidado
 export type RecadoFamilia = Database["public"]["Tables"]["recado_familia"]["Row"];
 export type EventoSentinela = Database["public"]["Tables"]["evento_sentinela"]["Row"];
 export type TipoEventoSentinela = EventoSentinela["tipo"];
+export type AgravoEpidemiologico = Database["public"]["Tables"]["agravo_epidemiologico"]["Row"];
+export type TipoAgravo = AgravoEpidemiologico["tipo"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

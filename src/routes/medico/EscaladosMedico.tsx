@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { AlertaAmbulancia } from "@/components/AlertaAmbulancia";
 import { RegistrarEventoSentinelaModal } from "@/components/vigilancia/RegistrarEventoSentinelaModal";
+import { RegistrarAgravoModal } from "@/components/vigilancia/RegistrarAgravoModal";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 
 const inputClass =
@@ -30,6 +31,7 @@ export function EscaladosMedico() {
   const { data, isLoading, isError, error } = useEscaladosMedico();
   const resolver = useRegistrarResolucaoMedica();
   const [registrarSentinela, setRegistrarSentinela] = useState(false);
+  const [registrarAgravo, setRegistrarAgravo] = useState(false);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -40,8 +42,11 @@ export function EscaladosMedico() {
 
   return (
     <div className="space-y-6">
-      {/* RDC 502/2021: o Médico registra eventos sentinela; o RT notifica. */}
-      <div className="flex justify-end">
+      {/* RDC 502/2021: o Médico registra eventos sentinela e agravos; o RT notifica/consolida. */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => setRegistrarAgravo(true)}>
+          <ShieldAlert className="size-4" /> Registrar agravo (RDC)
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setRegistrarSentinela(true)}>
           <ShieldAlert className="size-4" /> Registrar evento sentinela
         </Button>
@@ -53,6 +58,7 @@ export function EscaladosMedico() {
       {registrarSentinela && (
         <RegistrarEventoSentinelaModal onFechar={() => setRegistrarSentinela(false)} />
       )}
+      {registrarAgravo && <RegistrarAgravoModal onFechar={() => setRegistrarAgravo(false)} />}
 
       {/* Contador */}
       <div

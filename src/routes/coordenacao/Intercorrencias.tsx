@@ -4,6 +4,7 @@ import { AlertTriangle, Check, Stethoscope, CircleDashed, Ambulance, Pencil, Shi
 import { useResidentes } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useTratamentos, useResolucoesMedicas } from "@/hooks/useCoordenacao";
 import { RegistrarEventoSentinelaModal } from "@/components/vigilancia/RegistrarEventoSentinelaModal";
+import { RegistrarAgravoModal } from "@/components/vigilancia/RegistrarAgravoModal";
 import { useRegistrarAmbulancia } from "@/hooks/useIntercorrencia";
 import { AmbulanciaFields } from "@/components/intercorrencia/AmbulanciaFields";
 import {
@@ -61,6 +62,7 @@ export function IntercorrenciasCoord() {
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [periodoFiltro, setPeriodoFiltro] = useState<Periodo>("7d");
   const [registrarSentinela, setRegistrarSentinela] = useState(false);
+  const [registrarAgravo, setRegistrarAgravo] = useState(false);
 
   const carregando =
     residentes.isLoading || intercorrencias.isLoading || tratamentos.isLoading;
@@ -104,9 +106,14 @@ export function IntercorrenciasCoord() {
           {/* RDC 502/2021: a Coordenação registra eventos sentinela (queda c/
               lesão, tentativa de suicídio, doença de notificação compulsória).
               O RT acompanha/notifica na aba Vigilância Sanitária. */}
-          <Button variant="outline" size="sm" onClick={() => setRegistrarSentinela(true)}>
-            <ShieldAlert className="size-4" /> Registrar evento sentinela
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRegistrarAgravo(true)}>
+              <ShieldAlert className="size-4" /> Registrar agravo (RDC)
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setRegistrarSentinela(true)}>
+              <ShieldAlert className="size-4" /> Registrar evento sentinela
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -186,6 +193,7 @@ export function IntercorrenciasCoord() {
       {registrarSentinela && (
         <RegistrarEventoSentinelaModal onFechar={() => setRegistrarSentinela(false)} />
       )}
+      {registrarAgravo && <RegistrarAgravoModal onFechar={() => setRegistrarAgravo(false)} />}
     </div>
   );
 }
