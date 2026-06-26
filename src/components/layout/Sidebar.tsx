@@ -87,6 +87,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/vigilancia-indicadores": Activity,
   "/app/master/vigilancia-vacinacao": Syringe,
   "/app/master/vigilancia-proporcao": Scale,
+  "/app/master/vigilancia-plano": ClipboardList,
   "/app/master/profissionais": UserCog,
   "/app/master/chamado-manutencao": Wrench,
   // Médico

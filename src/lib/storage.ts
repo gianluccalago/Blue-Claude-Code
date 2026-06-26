@@ -37,6 +37,32 @@ export async function urlAssinadaCarteira(path: string, segundos = 300): Promise
   }
 }
 
+export const BUCKET_PLANOS_SAUDE = "planos-saude";
+
+/** Upload do anexo do Plano de Atenção à Saúde (bucket privado). Retorna o caminho. */
+export async function uploadPlanoSaude(file: File): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_PLANOS_SAUDE).upload(path, file, { upsert: false });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+/** URL assinada (temporária) do anexo do plano. */
+export async function urlAssinadaPlano(path: string, segundos = 300): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET_PLANOS_SAUDE).createSignedUrl(path, segundos);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Faz upload do comprovante (foto/PDF) de um custo de material e retorna a URL
  * pública. Retorna `null` em caso de falha — o lançamento é salvo sem comprovante.

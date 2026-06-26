@@ -2162,6 +2162,58 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["vacina_registro"]["Insert"]>;
         Relationships: [];
       };
+      patologia_residente: {
+        Row: {
+          id: string;
+          residente_id: string;
+          descricao: string;
+          cid_codigo: string | null;
+          ativa: boolean;
+          data_registro: string;
+          registrado_por: string | null;
+          observacao: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          descricao: string;
+          cid_codigo?: string | null;
+          ativa?: boolean;
+          data_registro?: string;
+          registrado_por?: string | null;
+          observacao?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["patologia_residente"]["Insert"]>;
+        Relationships: [];
+      };
+      plano_atencao_saude: {
+        Row: {
+          id: string;
+          versao: string;
+          elaborado_em: string;
+          proxima_revisao: string | null;
+          avaliacao_anual_em: string | null;
+          documento_url: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          versao: string;
+          elaborado_em?: string;
+          proxima_revisao?: string | null;
+          avaliacao_anual_em?: string | null;
+          documento_url?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plano_atencao_saude"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2208,6 +2260,8 @@ export type AgravoEpidemiologico = Database["public"]["Tables"]["agravo_epidemio
 export type TipoAgravo = AgravoEpidemiologico["tipo"];
 export type CarteiraVacinal = Database["public"]["Tables"]["carteira_vacinal"]["Row"];
 export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
+export type PatologiaResidente = Database["public"]["Tables"]["patologia_residente"]["Row"];
+export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

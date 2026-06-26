@@ -12,6 +12,7 @@ import { FichaHospedeCard } from "@/components/FichaHospedeCard";
 import { ResidenteFicha } from "@/components/master/ResidenteFicha";
 import { RecadoFamiliaEditor } from "@/components/coordenacao/RecadoFamiliaEditor";
 import { CarteiraVacinalCard } from "@/components/vigilancia/CarteiraVacinalCard";
+import { CondicoesSaudeCard } from "@/components/vigilancia/CondicoesSaudeCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { podeEditarFicha } from "@/lib/fichaHospede";
@@ -116,6 +117,11 @@ export function FichaHospedeScreen() {
             onEditar={() => setEditando(true)}
           />
         ))}
+
+      {/* Condições de saúde / Comorbidades (RDC 502 Art. 37) — Coord/Médico/Master. */}
+      {hospede && (perfil === "coordenacao" || perfil === "medico" || perfil === "master") && (
+        <CondicoesSaudeCard residenteId={hospede.id} />
+      )}
 
       {/* Carteira vacinal (RDC 502 Art. 39) — Coordenação/Médico/Master. */}
       {hospede && (perfil === "coordenacao" || perfil === "medico" || perfil === "master") && (

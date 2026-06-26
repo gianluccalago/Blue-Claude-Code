@@ -80,6 +80,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Indicadores RDC 502", to: "/app/master/vigilancia-indicadores", grupo: "Vigilância Sanitária" },
       { label: "Controle de vacinação", to: "/app/master/vigilancia-vacinacao", grupo: "Vigilância Sanitária" },
       { label: "Proporção de cuidadores", to: "/app/master/vigilancia-proporcao", grupo: "Vigilância Sanitária" },
+      { label: "Patologias e Plano de Saúde", to: "/app/master/vigilancia-plano", grupo: "Vigilância Sanitária" },
       // SISTEMA
       { label: "Equipe e acessos", to: "/app/master/equipe-acessos", grupo: "Sistema" },
       { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos", grupo: "Sistema" },

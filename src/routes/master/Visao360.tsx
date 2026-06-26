@@ -16,6 +16,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { CondicoesSaudeCard } from "@/components/vigilancia/CondicoesSaudeCard";
 import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
 import { usePrescricoes } from "@/hooks/useMedicacao";
 import { useEliminacoes, calcularAlertasEliminacao } from "@/hooks/useEliminacao";
@@ -183,6 +184,9 @@ function Prontuario({ residenteId, hospede }: { residenteId: string; hospede: Re
 
   return (
     <div className="space-y-6">
+      {/* CONDIÇÕES DE SAÚDE / COMORBIDADES (RDC 502 Art. 37) — leitura. */}
+      <CondicoesSaudeCard residenteId={residenteId} somenteLeitura />
+
       {/* IDENTIFICAÇÃO */}
       <Secao icon={User} titulo="Identificação">
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
