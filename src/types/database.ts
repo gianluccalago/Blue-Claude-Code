@@ -2214,6 +2214,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["plano_atencao_saude"]["Insert"]>;
         Relationships: [];
       };
+      relatorio_sanitario_extraido: {
+        Row: {
+          id: string;
+          periodo_tipo: string;
+          periodo_inicio: string;
+          periodo_fim: string;
+          valores_originais: Record<string, unknown>;
+          valores_extraidos: Record<string, unknown>;
+          houve_edicao: boolean;
+          extraido_por: string | null;
+          extraido_em: string;
+          hash: string | null;
+        };
+        Insert: {
+          id?: string;
+          periodo_tipo: string;
+          periodo_inicio: string;
+          periodo_fim: string;
+          valores_originais: Record<string, unknown>;
+          valores_extraidos: Record<string, unknown>;
+          houve_edicao?: boolean;
+          extraido_por?: string | null;
+          extraido_em?: string;
+          hash?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["relatorio_sanitario_extraido"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2262,6 +2290,7 @@ export type CarteiraVacinal = Database["public"]["Tables"]["carteira_vacinal"]["
 export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
 export type PatologiaResidente = Database["public"]["Tables"]["patologia_residente"]["Row"];
 export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];
+export type RelatorioSanitarioExtraido = Database["public"]["Tables"]["relatorio_sanitario_extraido"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];

@@ -37,6 +37,7 @@ import { VigilanciaIndicadores } from "@/routes/master/VigilanciaIndicadores";
 import { VigilanciaVacinacao } from "@/routes/master/VigilanciaVacinacao";
 import { VigilanciaProporcao } from "@/routes/master/VigilanciaProporcao";
 import { VigilanciaPlano } from "@/routes/master/VigilanciaPlano";
+import { VigilanciaRelatorio } from "@/routes/master/VigilanciaRelatorio";
 import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
 import { UsuariosAcessos } from "@/routes/master/UsuariosAcessos";
 import { Equipe } from "@/routes/master/Equipe";
@@ -515,6 +516,11 @@ const vigilanciaPlanoRoute = createRoute({
   path: "vigilancia-plano",
   component: VigilanciaPlano,
 });
+const vigilanciaRelatorioRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "vigilancia-relatorio",
+  component: VigilanciaRelatorio,
+});
 const masterUsuariosRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "usuarios",
@@ -641,6 +647,7 @@ const routeTree = rootRoute.addChildren([
     vigilanciaVacinacaoRoute,
     vigilanciaProporcaoRoute,
     vigilanciaPlanoRoute,
+    vigilanciaRelatorioRoute,
     masterClinicaRoute,
     masterUsuariosRoute,
     masterResidentesRoute,
