@@ -7,6 +7,35 @@ export const BUCKET_FOTOS_INTERCORRENCIA = "intercorrencias-fotos";
 export const BUCKET_FOTOS_RESIDENTE = "residentes-fotos";
 export const BUCKET_FOTOS_USUARIO = "usuarios-fotos";
 export const BUCKET_CUSTOS_MATERIAIS = "custos-materiais-comprovantes";
+export const BUCKET_CARTEIRAS_VACINAIS = "carteiras-vacinais";
+
+/**
+ * Faz upload da carteira vacinal (foto/PDF) de um residente. Bucket PRIVADO
+ * (dado de saúde) — retorna o CAMINHO do objeto (não URL pública); o acesso é
+ * por URL assinada (urlAssinadaCarteira). `null` em caso de falha.
+ */
+export async function uploadCarteiraVacinal(file: File, residenteId: string): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${residenteId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_CARTEIRAS_VACINAIS).upload(path, file, { upsert: false });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+/** Gera uma URL ASSINADA (temporária) para visualizar a carteira. `null` se falhar. */
+export async function urlAssinadaCarteira(path: string, segundos = 300): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET_CARTEIRAS_VACINAIS).createSignedUrl(path, segundos);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Faz upload do comprovante (foto/PDF) de um custo de material e retorna a URL

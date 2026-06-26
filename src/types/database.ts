@@ -2114,6 +2114,54 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["agravo_epidemiologico"]["Insert"]>;
         Relationships: [];
       };
+      carteira_vacinal: {
+        Row: {
+          id: string;
+          residente_id: string;
+          arquivo_url: string;
+          data_upload: string;
+          atualizada_em: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          arquivo_url: string;
+          data_upload?: string;
+          atualizada_em?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["carteira_vacinal"]["Insert"]>;
+        Relationships: [];
+      };
+      vacina_registro: {
+        Row: {
+          id: string;
+          residente_id: string;
+          vacina: string;
+          data_aplicacao: string | null;
+          dose: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          vacina: string;
+          data_aplicacao?: string | null;
+          dose?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["vacina_registro"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2158,6 +2206,8 @@ export type EventoSentinela = Database["public"]["Tables"]["evento_sentinela"]["
 export type TipoEventoSentinela = EventoSentinela["tipo"];
 export type AgravoEpidemiologico = Database["public"]["Tables"]["agravo_epidemiologico"]["Row"];
 export type TipoAgravo = AgravoEpidemiologico["tipo"];
+export type CarteiraVacinal = Database["public"]["Tables"]["carteira_vacinal"]["Row"];
+export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];
