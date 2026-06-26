@@ -54,6 +54,7 @@ import {
   Home,
   Shield,
   ShieldCheck,
+  ShieldAlert,
   TrendingUp,
   Contact,
   Radio,
@@ -82,6 +83,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/residentes": Users2,
   "/app/master/equipe": UserCog,
   "/app/master/equipe-acessos": Shield,
+  "/app/master/vigilancia-sentinela": ShieldAlert,
   "/app/master/profissionais": UserCog,
   "/app/master/chamado-manutencao": Wrench,
   // Médico

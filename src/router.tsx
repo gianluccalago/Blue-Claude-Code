@@ -32,6 +32,7 @@ import { PainelCoordenacao } from "@/routes/coordenacao/Painel";
 import { PainelEstrategico } from "@/routes/master/PainelEstrategico";
 import { Visao360 } from "@/routes/master/Visao360";
 import { PainelOperacional } from "@/routes/master/PainelOperacional";
+import { VigilanciaSentinela } from "@/routes/master/VigilanciaSentinela";
 import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
 import { UsuariosAcessos } from "@/routes/master/UsuariosAcessos";
 import { Equipe } from "@/routes/master/Equipe";
@@ -484,6 +485,12 @@ const masterClinicaRoute = createRoute({
   path: "clinica",
   component: SupervisaoClinica,
 });
+// Vigilância Sanitária (RDC 502/2021) — guarda-chuva; 1º módulo: eventos sentinela.
+const vigilanciaSentinelaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "vigilancia-sentinela",
+  component: VigilanciaSentinela,
+});
 const masterUsuariosRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "usuarios",
@@ -605,6 +612,7 @@ const routeTree = rootRoute.addChildren([
     minhaEscalaRoute,
     masterHospedeRoute,
     masterOperacionalRoute,
+    vigilanciaSentinelaRoute,
     masterClinicaRoute,
     masterUsuariosRoute,
     masterResidentesRoute,

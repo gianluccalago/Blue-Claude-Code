@@ -74,6 +74,9 @@ export const PERFIS: PerfilDef[] = [
       // FINANCEIRO
       { label: "Tabela de preços", to: "/app/master/tabela-precos", grupo: "Financeiro" },
       { label: "Cobrança de temporários", to: "/app/master/cobranca-temporaria", grupo: "Financeiro" },
+      // VIGILÂNCIA SANITÁRIA (RT) — guarda-chuva de compliance RDC 502/2021.
+      // Próximos sub-itens: indicadores RDC, carteira vacinal, proporção de RH, patologias.
+      { label: "Eventos sentinela", to: "/app/master/vigilancia-sentinela", grupo: "Vigilância Sanitária" },
       // SISTEMA
       { label: "Equipe e acessos", to: "/app/master/equipe-acessos", grupo: "Sistema" },
       { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos", grupo: "Sistema" },

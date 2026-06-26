@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Stethoscope, CircleDashed, Ambulance, Pencil } from "lucide-react";
+import { AlertTriangle, Check, Stethoscope, CircleDashed, Ambulance, Pencil, ShieldAlert } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useTratamentos, useResolucoesMedicas } from "@/hooks/useCoordenacao";
+import { RegistrarEventoSentinelaModal } from "@/components/vigilancia/RegistrarEventoSentinelaModal";
 import { useRegistrarAmbulancia } from "@/hooks/useIntercorrencia";
 import { AmbulanciaFields } from "@/components/intercorrencia/AmbulanciaFields";
 import {
@@ -59,6 +60,7 @@ export function IntercorrenciasCoord() {
   const [hospedeFiltro, setHospedeFiltro] = useState("todos");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [periodoFiltro, setPeriodoFiltro] = useState<Periodo>("7d");
+  const [registrarSentinela, setRegistrarSentinela] = useState(false);
 
   const carregando =
     residentes.isLoading || intercorrencias.isLoading || tratamentos.isLoading;
@@ -97,8 +99,14 @@ export function IntercorrenciasCoord() {
     <div className="space-y-6">
       {/* Filtros + contadores */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Histórico de intercorrências</CardTitle>
+          {/* RDC 502/2021: a Coordenação registra eventos sentinela (queda c/
+              lesão, tentativa de suicídio, doença de notificação compulsória).
+              O RT acompanha/notifica na aba Vigilância Sanitária. */}
+          <Button variant="outline" size="sm" onClick={() => setRegistrarSentinela(true)}>
+            <ShieldAlert className="size-4" /> Registrar evento sentinela
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -173,6 +181,10 @@ export function IntercorrenciasCoord() {
             />
           ))}
         </div>
+      )}
+
+      {registrarSentinela && (
+        <RegistrarEventoSentinelaModal onFechar={() => setRegistrarSentinela(false)} />
       )}
     </div>
   );

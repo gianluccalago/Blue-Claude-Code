@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope, AlertCircle, Clock3, RotateCcw } from "lucide-react";
+import { AlertTriangle, Droplet, CircleDot, Check, CheckCircle2, Stethoscope, AlertCircle, Clock3, RotateCcw, ShieldAlert } from "lucide-react";
 import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
 import { formatarDataBR } from "@/lib/utils";
 import {
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { AlertaAmbulancia } from "@/components/AlertaAmbulancia";
+import { RegistrarEventoSentinelaModal } from "@/components/vigilancia/RegistrarEventoSentinelaModal";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 
 const inputClass =
@@ -28,6 +29,7 @@ const ELIM_LABEL: Record<string, string> = {
 export function EscaladosMedico() {
   const { data, isLoading, isError, error } = useEscaladosMedico();
   const resolver = useRegistrarResolucaoMedica();
+  const [registrarSentinela, setRegistrarSentinela] = useState(false);
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState error={error} />;
@@ -38,8 +40,19 @@ export function EscaladosMedico() {
 
   return (
     <div className="space-y-6">
+      {/* RDC 502/2021: o Médico registra eventos sentinela; o RT notifica. */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setRegistrarSentinela(true)}>
+          <ShieldAlert className="size-4" /> Registrar evento sentinela
+        </Button>
+      </div>
+
       {/* Alerta imediato de ambulância (independe da escalação da Coordenação) */}
       <AlertaAmbulancia />
+
+      {registrarSentinela && (
+        <RegistrarEventoSentinelaModal onFechar={() => setRegistrarSentinela(false)} />
+      )}
 
       {/* Contador */}
       <div

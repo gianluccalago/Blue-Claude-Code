@@ -2046,6 +2046,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["recado_familia"]["Insert"]>;
         Relationships: [];
       };
+      evento_sentinela: {
+        Row: {
+          id: string;
+          residente_id: string;
+          intercorrencia_id: string | null;
+          tipo: "queda_com_lesao" | "tentativa_suicidio" | "doenca_notificacao_compulsoria";
+          descricao_doenca: string | null;
+          data_ocorrencia: string;
+          descricao: string | null;
+          registrado_por: string | null;
+          perfil_registrador: string | null;
+          gravidade: string | null;
+          notificado: boolean;
+          notificado_em: string | null;
+          notificado_por: string | null;
+          orgao_notificado: string | null;
+          protocolo_notificacao: string | null;
+          observacao_notificacao: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          intercorrencia_id?: string | null;
+          tipo: "queda_com_lesao" | "tentativa_suicidio" | "doenca_notificacao_compulsoria";
+          descricao_doenca?: string | null;
+          data_ocorrencia?: string;
+          descricao?: string | null;
+          registrado_por?: string | null;
+          perfil_registrador?: string | null;
+          gravidade?: string | null;
+          notificado?: boolean;
+          notificado_em?: string | null;
+          notificado_por?: string | null;
+          orgao_notificado?: string | null;
+          protocolo_notificacao?: string | null;
+          observacao_notificacao?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["evento_sentinela"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2086,6 +2128,8 @@ export type VisitaOrigem = VisitaAgendamento["origem"];
 export type VisitaStatus = VisitaAgendamento["status"];
 export type DesignacaoCuidado = Database["public"]["Tables"]["designacao_cuidado"]["Row"];
 export type RecadoFamilia = Database["public"]["Tables"]["recado_familia"]["Row"];
+export type EventoSentinela = Database["public"]["Tables"]["evento_sentinela"]["Row"];
+export type TipoEventoSentinela = EventoSentinela["tipo"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];
