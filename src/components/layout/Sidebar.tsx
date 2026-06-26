@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, useEffect, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
@@ -61,6 +61,7 @@ import {
   Settings,
   BarChart3,
   CreditCard,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -70,7 +71,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { useNotificacoes, type Badge as BadgeNotif } from "@/hooks/useNotificacoes";
 import { useFotoResidente, useDefinirMinhaFoto } from "@/hooks/useUsuarioFoto";
 import { uploadFotoUsuario } from "@/lib/storage";
-import type { PerfilDef } from "@/data/profiles";
+import type { MenuItem, PerfilDef } from "@/data/profiles";
 
 // Ícone por rota — puramente visual (não altera navegação nem dados).
 const ICONE_POR_ROTA: Record<string, LucideIcon> = {
@@ -413,6 +414,87 @@ export function Sidebar({
     navigate({ to: "/" });
   }
 
+  // Agrupa o menu em blocos: seções (com `grupo`) viram acordeões recolhíveis;
+  // itens sem grupo seguem na lista plana (perfis de ponta não mudam).
+  const blocos: (
+    | { grupo: string; itens: MenuItem[] }
+    | { grupo: null; item: MenuItem }
+  )[] = [];
+  for (const item of perfil.menu) {
+    if (!item.grupo) {
+      blocos.push({ grupo: null, item });
+      continue;
+    }
+    const ultimo = blocos[blocos.length - 1];
+    if (ultimo && ultimo.grupo === item.grupo) ultimo.itens.push(item);
+    else blocos.push({ grupo: item.grupo, itens: [item] });
+  }
+
+  // Grupo da página atual (para abrir automaticamente o acordeão certo).
+  const grupoAtivo =
+    blocos.find((b): b is { grupo: string; itens: MenuItem[] } => b.grupo !== null && b.itens.some((it) => it.to === pathname))
+      ?.grupo ?? null;
+
+  // Acordeão: só UM grupo aberto por vez; abre o da página atual ao navegar.
+  const [grupoAberto, setGrupoAberto] = useState<string | null>(grupoAtivo);
+  useEffect(() => {
+    if (grupoAtivo) setGrupoAberto(grupoAtivo);
+  }, [grupoAtivo]);
+
+  // Soma as pendências dos itens de um grupo (badge no cabeçalho quando fechado).
+  const TOM_PRIORIDADE: Record<BadgeNotif["tom"], number> = { destructive: 3, warning: 2, primary: 1 };
+  function agregarBadge(itens: MenuItem[]): BadgeNotif | null {
+    let count = 0;
+    let dot = false;
+    let tom: BadgeNotif["tom"] | null = null;
+    for (const it of itens) {
+      const b = badges[it.to];
+      if (!b) continue;
+      count += b.count;
+      if (b.dot) dot = true;
+      if (!tom || TOM_PRIORIDADE[b.tom] > TOM_PRIORIDADE[tom]) tom = b.tom;
+    }
+    if (count === 0 && !dot) return null;
+    return { count, tom: tom ?? "primary", dot: count === 0 ? dot : false };
+  }
+
+  // Renderiza um item de menu (Link) — reusado na lista plana e dentro dos grupos.
+  function renderItem(item: MenuItem) {
+    const ativo = pathname === item.to;
+    const badge = badges[item.to];
+    const ItemIcon = iconeDaRota(item.to);
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        onClick={onFechar}
+        className={cn(
+          "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200",
+          ativo
+            ? "bg-white/12 text-white shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.08)]"
+            : "text-sidebar-muted hover:bg-white/8 hover:text-white",
+        )}
+      >
+        {ativo && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full bg-sidebar-accent shadow-glow-primary"
+          />
+        )}
+        <span
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-200",
+            ativo ? "bg-brand-gradient text-white" : "bg-white/5 text-sidebar-muted group-hover:bg-white/10 group-hover:text-white",
+          )}
+        >
+          <ItemIcon className="size-4" />
+        </span>
+        <span className="flex-1 truncate">{item.label}</span>
+        {badge && <BadgeSidebar badge={badge} />}
+      </Link>
+    );
+  }
+
   return (
     <>
       {/* Overlay (mobile) */}
@@ -467,57 +549,26 @@ export function Sidebar({
         </div>
 
         <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 py-2">
-          {perfil.menu.map((item, i) => {
-            const ativo = pathname === item.to;
-            const badge = badges[item.to];
-            const ItemIcon = iconeDaRota(item.to);
-            // Cabeçalho de seção quando o `grupo` muda (perfis que agrupam o
-            // menu, hoje só o Master). Itens sem `grupo` seguem lista plana.
-            const grupoAnterior = i > 0 ? perfil.menu[i - 1].grupo : undefined;
-            const mostrarCabecalho = !!item.grupo && item.grupo !== grupoAnterior;
+          {blocos.map((b, i) => {
+            // Item sem grupo → lista plana (perfis de ponta).
+            if (b.grupo === null) return renderItem(b.item);
+
+            const aberto = grupoAberto === b.grupo;
+            const agg = aberto ? null : agregarBadge(b.itens);
             return (
-              <Fragment key={item.to}>
-                {mostrarCabecalho && (
-                  <div
-                    className={cn(
-                      "px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted/70",
-                      i === 0 ? "pt-1" : "pt-4",
-                    )}
-                  >
-                    {item.grupo}
-                  </div>
-                )}
-                <Link
-                  to={item.to}
-                  onClick={onFechar}
-                  className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200",
-                  ativo
-                    ? "bg-white/12 text-white shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.08)]"
-                    : "text-sidebar-muted hover:bg-white/8 hover:text-white",
-                )}
-              >
-                {/* Pílula/glow do item ativo */}
-                {ativo && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full bg-sidebar-accent shadow-glow-primary"
-                  />
-                )}
-                <span
-                  className={cn(
-                    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-200",
-                    ativo
-                      ? "bg-brand-gradient text-white"
-                      : "bg-white/5 text-sidebar-muted group-hover:bg-white/10 group-hover:text-white",
-                  )}
+              <div key={b.grupo} className={i > 0 ? "pt-1.5" : ""}>
+                <button
+                  type="button"
+                  onClick={() => setGrupoAberto(aberto ? null : b.grupo)}
+                  aria-expanded={aberto}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted/70 transition-colors hover:bg-white/5 hover:text-white"
                 >
-                  <ItemIcon className="size-4" />
-                </span>
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {badge && <BadgeSidebar badge={badge} />}
-                </Link>
-              </Fragment>
+                  <span className="flex-1 text-left">{b.grupo}</span>
+                  {agg && <BadgeSidebar badge={agg} />}
+                  <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-200", aberto && "rotate-180")} />
+                </button>
+                {aberto && <div className="mt-0.5 space-y-1">{b.itens.map((it) => renderItem(it))}</div>}
+              </div>
             );
           })}
         </nav>
