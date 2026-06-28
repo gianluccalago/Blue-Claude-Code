@@ -53,6 +53,7 @@ import { Prescricoes } from "@/routes/medico/Prescricoes";
 import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
 import { EvolucaoMedico } from "@/routes/medico/Evolucao";
 import { EvolucaoAdmissao } from "@/routes/medico/EvolucaoAdmissao";
+import { TestesCognitivos } from "@/routes/medico/TestesCognitivos";
 import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
 import { Manutencao } from "@/routes/hotelaria/Manutencao";
 import { Enxoval } from "@/routes/lavanderia/Enxoval";
@@ -233,6 +234,11 @@ const admissaoRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "admissao",
   component: EvolucaoAdmissao,
+});
+const testesCognitivosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "testes-cognitivos",
+  component: TestesCognitivos,
 });
 const inspecaoSuitesRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -675,6 +681,7 @@ const routeTree = rootRoute.addChildren([
     escaladosRoute,
     evolucaoRoute,
     admissaoRoute,
+    testesCognitivosRoute,
     inspecaoSuitesRoute,
     manutencaoRoute,
     enxovalRoute,

@@ -63,6 +63,32 @@ export async function urlAssinadaPlano(path: string, segundos = 300): Promise<st
   }
 }
 
+export const BUCKET_TESTES_COGNITIVOS = "testes-cognitivos";
+
+/** Upload da foto (desenho no papel) de um teste cognitivo. Bucket privado. */
+export async function uploadTesteCognitivo(file: File, residenteId: string): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${residenteId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_TESTES_COGNITIVOS).upload(path, file, { upsert: false });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+/** URL assinada (temporária) da foto do teste cognitivo. */
+export async function urlAssinadaTeste(path: string, segundos = 300): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET_TESTES_COGNITIVOS).createSignedUrl(path, segundos);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Faz upload do comprovante (foto/PDF) de um custo de material e retorna a URL
  * pública. Retorna `null` em caso de falha — o lançamento é salvo sem comprovante.

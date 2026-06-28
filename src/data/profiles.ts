@@ -98,6 +98,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Prescrições", to: "/app/medico/prescricoes" },
       { label: "Evolução de admissão", to: "/app/medico/admissao" },
+      { label: "Testes cognitivos", to: "/app/medico/testes-cognitivos" },
       { label: "Hóspedes", to: "/app/medico/ficha" },
       { label: "Painel clínico", to: "/app/medico/escalados" },
       { label: "Evolução", to: "/app/medico/evolucao" },

@@ -2272,6 +2272,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["evolucao_admissao"]["Insert"]>;
         Relationships: [];
       };
+      teste_cognitivo: {
+        Row: {
+          id: string;
+          residente_id: string;
+          tipo: "MEEM" | "MoCA";
+          respostas: Record<string, number>;
+          pontuacao_total: number;
+          escolaridade_anos: number | null;
+          interpretacao: string | null;
+          foto_url: string | null;
+          aplicado_por: string | null;
+          aplicado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          tipo: "MEEM" | "MoCA";
+          respostas: Record<string, number>;
+          pontuacao_total: number;
+          escolaridade_anos?: number | null;
+          interpretacao?: string | null;
+          foto_url?: string | null;
+          aplicado_por?: string | null;
+          aplicado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["teste_cognitivo"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2322,6 +2350,7 @@ export type PatologiaResidente = Database["public"]["Tables"]["patologia_residen
 export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];
 export type RelatorioSanitarioExtraido = Database["public"]["Tables"]["relatorio_sanitario_extraido"]["Row"];
 export type EvolucaoAdmissao = Database["public"]["Tables"]["evolucao_admissao"]["Row"];
+export type TesteCognitivo = Database["public"]["Tables"]["teste_cognitivo"]["Row"];
 export type LogAlteracao = Database["public"]["Tables"]["log_alteracao"]["Row"];
 export type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 export type PlanoCuidadoItem = Database["public"]["Tables"]["plano_cuidado_item"]["Row"];
