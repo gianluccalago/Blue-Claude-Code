@@ -44,6 +44,7 @@ import {
   PackageSearch,
   PackageCheck,
   ClipboardCheck,
+  ClipboardPlus,
   Sparkles,
   Shirt,
   CalendarClock,
@@ -96,6 +97,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/medico/prescricoes": Pill,
   "/app/medico/escalados": Stethoscope,
   "/app/medico/evolucao": FileText,
+  "/app/medico/admissao": ClipboardPlus,
   "/app/medico/resgate": PackageOpen,
   "/app/medico/solicitacoes-familia": MessageSquare,
   // Coordenação

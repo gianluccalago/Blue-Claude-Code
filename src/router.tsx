@@ -52,6 +52,7 @@ import { MinhaEscala } from "@/routes/cuidador/MinhaEscala";
 import { Prescricoes } from "@/routes/medico/Prescricoes";
 import { EscaladosMedico } from "@/routes/medico/EscaladosMedico";
 import { EvolucaoMedico } from "@/routes/medico/Evolucao";
+import { EvolucaoAdmissao } from "@/routes/medico/EvolucaoAdmissao";
 import { InspecaoSuites } from "@/routes/hotelaria/InspecaoSuites";
 import { Manutencao } from "@/routes/hotelaria/Manutencao";
 import { Enxoval } from "@/routes/lavanderia/Enxoval";
@@ -227,6 +228,11 @@ const evolucaoRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "evolucao",
   component: EvolucaoMedico,
+});
+const admissaoRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "admissao",
+  component: EvolucaoAdmissao,
 });
 const inspecaoSuitesRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -668,6 +674,7 @@ const routeTree = rootRoute.addChildren([
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,
+    admissaoRoute,
     inspecaoSuitesRoute,
     manutencaoRoute,
     enxovalRoute,
