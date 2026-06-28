@@ -5,6 +5,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import { useEvolucaoAdmissao, useSalvarEvolucaoAdmissao } from "@/hooks/useEvolucaoAdmissao";
 import { useTestesCognitivos } from "@/hooks/useTestesCognitivos";
 import { useAvaliacoesIVCF } from "@/hooks/useMedico";
+import { useRegistrosPesoDoResidente } from "@/hooks/usePeso";
 import {
   dadosAdmissaoVazios, medVazia, imcDeTexto,
   MOTIVO_ORIGEM, DISPOSITIVOS, VIA_LABEL, PERIODO_LABEL, PERIODOS_ORDEM,
@@ -78,6 +79,7 @@ function Formulario({ hospede }: { hospede: Residente }) {
   // Resultados reais já registrados (módulos MEEM/MoCA e IVCF) — para referência.
   const testes = useTestesCognitivos(hospede.id);
   const ivcf = useAvaliacoesIVCF(hospede.id);
+  const pesos = useRegistrosPesoDoResidente(hospede.id); // ordem ascendente → o último é o mais recente
   const [d, setD] = useState<DadosAdmissao>(() => dadosAdmissaoVazios(hospede.data_admissao ?? hojeISO()));
   const [exportando, setExportando] = useState(false);
 
@@ -108,7 +110,16 @@ function Formulario({ hospede }: { hospede: Residente }) {
   const ultimoMeem = (testes.data ?? []).find((t) => t.tipo === "MEEM") ?? null;
   const ultimoMoca = (testes.data ?? []).find((t) => t.tipo === "MoCA") ?? null;
   const ultimoIvcf = (ivcf.data ?? [])[0] ?? null;
+  const ultimoPeso = (pesos.data ?? []).at(-1) ?? null;
   const temResultados = !!(ultimoMeem || ultimoMoca || ultimoIvcf);
+  function usarPeso() {
+    if (!ultimoPeso) return;
+    setD((p) => ({
+      ...p,
+      peso: String(ultimoPeso.peso_kg),
+      altura: ultimoPeso.altura_m ? String(ultimoPeso.altura_m) : p.altura,
+    }));
+  }
   function refTestos(): string {
     const partes: string[] = [];
     if (ultimoMeem) partes.push(`MEEM ${ultimoMeem.pontuacao_total}/30 (${formatarDataBR(ultimoMeem.aplicado_em.slice(0, 10))})`);
@@ -253,6 +264,18 @@ function Formulario({ hospede }: { hospede: Residente }) {
           <Campo label="Tax"><input value={d.temp} onChange={(e) => set("temp", e.target.value)} className={inputBase} /></Campo>
           <Campo label="SatO2"><input value={d.satO2} onChange={(e) => set("satO2", e.target.value)} className={inputBase} /></Campo>
         </div>
+        {/* Último peso/IMC já registrado (acompanhamento de peso). */}
+        {ultimoPeso && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/20 p-3 text-sm">
+            <span className="text-secondary">
+              Último registro: <span className="font-bold">{ultimoPeso.peso_kg} kg</span>
+              {ultimoPeso.altura_m ? ` · ${ultimoPeso.altura_m} m` : ""}
+              {ultimoPeso.imc ? ` · IMC ${ultimoPeso.imc}` : ""}
+              <span className="text-xs text-muted-foreground"> · {formatarDataBR(ultimoPeso.data)}</span>
+            </span>
+            <button type="button" onClick={usarPeso} className="text-xs font-semibold text-primary hover:underline">Usar este peso ↓</button>
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <Campo label="Peso (kg)"><input value={d.peso} onChange={(e) => set("peso", e.target.value)} className={inputBase} placeholder="68" /></Campo>
           <Campo label="Altura (m)"><input value={d.altura} onChange={(e) => set("altura", e.target.value)} className={inputBase} placeholder="1.65" /></Campo>
