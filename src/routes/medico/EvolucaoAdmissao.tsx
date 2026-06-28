@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { ClipboardPlus, Save, FileDown, Plus, X, CheckCircle2, Pill, HeartPulse } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useEvolucaoAdmissao, useSalvarEvolucaoAdmissao } from "@/hooks/useEvolucaoAdmissao";
+import { useTestesCognitivos } from "@/hooks/useTestesCognitivos";
+import { useAvaliacoesIVCF } from "@/hooks/useMedico";
 import {
   dadosAdmissaoVazios, medVazia, imcDeTexto,
   MOTIVO_ORIGEM, DISPOSITIVOS, VIA_LABEL, PERIODO_LABEL, PERIODOS_ORDEM,
@@ -14,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { calcularIdade, hojeISO, ouNaoInformado } from "@/lib/utils";
+import { calcularIdade, formatarDataBR, hojeISO, ouNaoInformado } from "@/lib/utils";
 import type { PeriodoMedicacao, Residente, ViaMedicacao } from "@/types/database";
 
 const inputBase =
@@ -73,6 +75,9 @@ export function EvolucaoAdmissao() {
 function Formulario({ hospede }: { hospede: Residente }) {
   const existenteQ = useEvolucaoAdmissao(hospede.id);
   const salvar = useSalvarEvolucaoAdmissao();
+  // Resultados reais já registrados (módulos MEEM/MoCA e IVCF) — para referência.
+  const testes = useTestesCognitivos(hospede.id);
+  const ivcf = useAvaliacoesIVCF(hospede.id);
   const [d, setD] = useState<DadosAdmissao>(() => dadosAdmissaoVazios(hospede.data_admissao ?? hojeISO()));
   const [exportando, setExportando] = useState(false);
 
@@ -98,6 +103,19 @@ function Formulario({ hospede }: { hospede: Residente }) {
   const idade = calcularIdade(hospede.data_nascimento);
   const idadeTexto = idade !== null ? `${idade} anos` : "Não informado";
   const sexoTexto = hospede.sexo ? SEXO_LABEL[hospede.sexo] : "Não informado";
+
+  // Últimos resultados dos módulos de teste (referência na seção 6).
+  const ultimoMeem = (testes.data ?? []).find((t) => t.tipo === "MEEM") ?? null;
+  const ultimoMoca = (testes.data ?? []).find((t) => t.tipo === "MoCA") ?? null;
+  const ultimoIvcf = (ivcf.data ?? [])[0] ?? null;
+  const temResultados = !!(ultimoMeem || ultimoMoca || ultimoIvcf);
+  function refTestos(): string {
+    const partes: string[] = [];
+    if (ultimoMeem) partes.push(`MEEM ${ultimoMeem.pontuacao_total}/30 (${formatarDataBR(ultimoMeem.aplicado_em.slice(0, 10))})`);
+    if (ultimoMoca) partes.push(`MoCA ${ultimoMoca.pontuacao_total}/30 (${formatarDataBR(ultimoMoca.aplicado_em.slice(0, 10))})`);
+    if (ultimoIvcf) partes.push(`IVCF ${ultimoIvcf.classificacao} (${ultimoIvcf.pontuacao_total} pts)`);
+    return partes.join("; ");
+  }
 
   async function handleSalvar() {
     try {
@@ -246,6 +264,28 @@ function Formulario({ hospede }: { hospede: Residente }) {
       {/* 6 · Cognitiva e humor */}
       <Secao numero={6} titulo="Avaliação cognitiva e de humor">
         <Campo label="Estado cognitivo (geral)"><textarea value={d.cognitivoGeral} onChange={(e) => set("cognitivoGeral", e.target.value)} rows={2} className={areaBase} /></Campo>
+
+        {/* Resultados reais já registrados (módulos MEEM/MoCA e IVCF). */}
+        {temResultados && (
+          <div className="space-y-1 rounded-lg border bg-muted/20 p-3 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resultados registrados</p>
+            {ultimoMeem && (
+              <p className="text-secondary">MEEM: <span className="font-bold">{ultimoMeem.pontuacao_total}/30</span>{" "}
+                <span className="text-xs text-muted-foreground">· {formatarDataBR(ultimoMeem.aplicado_em.slice(0, 10))}</span></p>
+            )}
+            {ultimoMoca && (
+              <p className="text-secondary">MoCA: <span className="font-bold">{ultimoMoca.pontuacao_total}/30</span>{" "}
+                <span className="text-xs text-muted-foreground">· {formatarDataBR(ultimoMoca.aplicado_em.slice(0, 10))}</span></p>
+            )}
+            {ultimoIvcf && (
+              <p className="text-secondary">IVCF: <span className="font-bold">{ultimoIvcf.classificacao}</span> ({ultimoIvcf.pontuacao_total} pts)</p>
+            )}
+            <button type="button" onClick={() => set("testesCognitivos", refTestos())} className="pt-1 text-xs font-semibold text-primary hover:underline">
+              Usar nos testes ↓
+            </button>
+          </div>
+        )}
+
         <Campo label="Testes aplicados (MEEM / MoCA / IVCF) e escores"><input value={d.testesCognitivos} onChange={(e) => set("testesCognitivos", e.target.value)} className={inputBase} placeholder="Ex.: MEEM 22/30; IVCF Grau II" /></Campo>
         <Campo label="Humor / comportamento"><textarea value={d.humorComportamento} onChange={(e) => set("humorComportamento", e.target.value)} rows={2} className={areaBase} /></Campo>
       </Secao>
