@@ -78,19 +78,31 @@ export function useSalvarEvolucaoAdmissao() {
       }
 
       // ── CRIAÇÃO: integrações que só rodam uma vez ─────────────────────────
-      // Peso/IMC → registro_peso.
+      // Peso/IMC → registro_peso. NÃO re-registra se o peso for IDÊNTICO ao
+      // último já registrado (evita duplicar quando o médico usa "Usar este peso").
       const pesoKg = Number(String(dados.peso).replace(",", "."));
       const alturaM = Number(String(dados.altura).replace(",", "."));
       if (Number.isFinite(pesoKg) && pesoKg > 0) {
-        await supabase.from("registro_peso").insert({
-          residente_id: residenteId,
-          peso_kg: pesoKg,
-          altura_m: Number.isFinite(alturaM) && alturaM > 0 ? alturaM : null,
-          imc: imcDeTexto(dados.peso, dados.altura),
-          data: dados.dataAdmissao || new Date().toISOString().slice(0, 10),
-          observacao: "Peso de admissão",
-          registrado_por: medicoNome,
-        });
+        const { data: ultimo } = await supabase
+          .from("registro_peso")
+          .select("peso_kg")
+          .eq("residente_id", residenteId)
+          .order("data", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const duplicado = !!ultimo && Math.abs(Number(ultimo.peso_kg) - pesoKg) < 0.001;
+        if (!duplicado) {
+          await supabase.from("registro_peso").insert({
+            residente_id: residenteId,
+            peso_kg: pesoKg,
+            altura_m: Number.isFinite(alturaM) && alturaM > 0 ? alturaM : null,
+            imc: imcDeTexto(dados.peso, dados.altura),
+            data: dados.dataAdmissao || new Date().toISOString().slice(0, 10),
+            observacao: "Peso de admissão",
+            registrado_por: medicoNome,
+          });
+        }
+        // Altura no cadastro é idempotente — atualiza mesmo se o peso for duplicado.
         if (Number.isFinite(alturaM) && alturaM > 0) {
           await supabase.from("residentes").update({ altura_m: alturaM }).eq("id", residenteId);
         }
