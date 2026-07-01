@@ -201,14 +201,22 @@ function PeriodoMedicacaoView({
   }
 
   async function confirmarTodas() {
-    await registrar.mutateAsync({ periodo, status: "sim" });
-    toast.success("Medicação confirmada.");
+    try {
+      await registrar.mutateAsync({ periodo, status: "sim" });
+      toast.success("Medicação confirmada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível registrar a administração. Tente novamente.");
+    }
   }
   /** "Não" em 1 toque a mais: motivo por botão (zero digitação). */
   async function confirmarNao(motivo: string) {
-    await registrar.mutateAsync({ periodo, status: "nao", motivo });
-    setEscolhendoMotivo(false);
-    toast.warning(`Não administrada (${motivo.toLowerCase()}) — coordenação notificada.`);
+    try {
+      await registrar.mutateAsync({ periodo, status: "nao", motivo });
+      setEscolhendoMotivo(false);
+      toast.warning(`Não administrada (${motivo.toLowerCase()}) — coordenação notificada.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível registrar a administração. Tente novamente.");
+    }
   }
 
   const jaRegistrado = !!registro;

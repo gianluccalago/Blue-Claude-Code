@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Syringe, ShieldAlert, Check, CircleDashed, X, ChevronLeft, ChevronRight, Clock3, Users, ClipboardCheck } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -387,9 +388,14 @@ function ProcedimentosEnfermagem({ residenteId }: { residenteId: string }) {
   const valido = procedimento.trim().length > 0;
   async function salvar() {
     if (!valido) return;
-    await registrar.mutateAsync({ procedimento: procedimento.trim(), observacao });
-    setProcedimento("");
-    setObservacao("");
+    try {
+      await registrar.mutateAsync({ procedimento: procedimento.trim(), observacao });
+      setProcedimento("");
+      setObservacao("");
+      toast.success("Procedimento registrado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível registrar o procedimento. Tente novamente.");
+    }
   }
 
   const lista = hoje.data ?? [];

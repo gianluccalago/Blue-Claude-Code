@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { normalizarPatologia } from "@/lib/planoSaude";
+import { hojeISO } from "@/lib/utils";
 import { montarTextoAdmissao, imcDeTexto, type DadosAdmissao } from "@/lib/evolucaoAdmissao";
 import type { EvolucaoAdmissao } from "@/types/database";
 
@@ -97,7 +98,7 @@ export function useSalvarEvolucaoAdmissao() {
             peso_kg: pesoKg,
             altura_m: Number.isFinite(alturaM) && alturaM > 0 ? alturaM : null,
             imc: imcDeTexto(dados.peso, dados.altura),
-            data: dados.dataAdmissao || new Date().toISOString().slice(0, 10),
+            data: dados.dataAdmissao || hojeISO(),
             observacao: "Peso de admissão",
             registrado_por: medicoNome,
           });

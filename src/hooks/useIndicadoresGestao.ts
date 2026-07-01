@@ -153,7 +153,9 @@ function presenteNoMes(r: ResidenteEvolucao, mes: string): boolean {
  * Série de faturamento e resultado dos últimos `n` meses (real por mês de
  * referência). Mensalidade considera o ROSTER presente em cada mês (entradas/
  * saídas refletidas); upselling vem por mes_referencia; o custo de pessoal usa
- * os lançamentos registrados (pagamento_pessoal) e materiais = 0 (sem módulo).
+ * os lançamentos registrados (pagamento_pessoal) e materiais vêm de
+ * custo_material por mes_referencia (mesma fonte do useResumoMes).
+ * Observação: o 13º (nov/dez) ainda NÃO é somado nesta série — ver AUDITORIA.md.
  */
 export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   const meses = useMemo(() => {
@@ -165,7 +167,7 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   return useQuery({
     queryKey: ["evolucao-financeira", mesBase, n],
     queryFn: async (): Promise<PontoEvolucao[]> => {
-      const [resR, tabR, upsR, pessoalR, cobR] = await Promise.all([
+      const [resR, tabR, upsR, pessoalR, cobR, matR] = await Promise.all([
         supabase
           .from("residentes")
           .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida, modalidade"),
@@ -173,12 +175,14 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
         supabase.from("upselling").select("valor, mes_referencia"),
         supabase.from("pagamento_pessoal").select("valor_final, mes_referencia"),
         supabase.from("cobranca_temporaria").select("valor, periodo_referencia"),
+        supabase.from("custo_material").select("valor, mes_referencia"),
       ]);
       if (resR.error) throw resR.error;
       if (tabR.error) throw tabR.error;
       if (upsR.error) throw upsR.error;
       if (pessoalR.error) throw pessoalR.error;
       if (cobR.error) throw cobR.error;
+      if (matR.error) throw matR.error;
 
       const residentes = (resR.data ?? []) as ResidenteEvolucao[];
       const precos = (tabR.data ?? []) as {
@@ -215,13 +219,20 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
         const m = c.periodo_referencia as string;
         cobPorMes.set(m, (cobPorMes.get(m) ?? 0) + ((c.valor as number) ?? 0));
       }
+      // Custo de materiais (limpeza/manutenção) por mês — entra no RESULTADO
+      // (coerente com useResumoMes: resultado = faturamento − pessoal − materiais).
+      const matPorMes = new Map<string, number>();
+      for (const m0 of matR.data ?? []) {
+        const m = m0.mes_referencia as string;
+        matPorMes.set(m, (matPorMes.get(m) ?? 0) + ((m0.valor as number) ?? 0));
+      }
 
       return meses.map((mes) => {
         const mensalidades = residentes
           .filter((r) => presenteNoMes(r, mes))
           .reduce((s, r) => s + mensalidadeDe(r), 0);
         const faturamento = mensalidades + (upsPorMes.get(mes) ?? 0) + (cobPorMes.get(mes) ?? 0);
-        const resultado = faturamento - (pessoalPorMes.get(mes) ?? 0);
+        const resultado = faturamento - (pessoalPorMes.get(mes) ?? 0) - (matPorMes.get(mes) ?? 0);
         return { mes, faturamento, resultado };
       });
     },

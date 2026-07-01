@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
+import { hojeISO } from "@/lib/utils";
 import type {
   FormaPagamento,
   GrauDependencia,
@@ -181,7 +182,7 @@ export function useMarcarPagamento() {
             status: "paga",
             pago_em: agora.toISOString(),
             valor_pago: args.valor,
-            data_pagamento: agora.toISOString().slice(0, 10),
+            data_pagamento: hojeISO(),
             registrado_por: ADMIN_ATUAL.nome,
           },
           { onConflict: "residente_id,mes_referencia" },
@@ -212,7 +213,7 @@ export function useMarcarPagamentosLote() {
     mutationFn: async (args: MarcarPagamentosLoteInput) => {
       if (args.itens.length === 0) return;
       const agora = new Date().toISOString();
-      const hoje = agora.slice(0, 10);
+      const hoje = hojeISO();
       const linhas = args.itens.map((i) => ({
         residente_id: i.residenteId,
         mes_referencia: args.mes,
@@ -256,7 +257,7 @@ export function useAtualizarCobranca() {
   return useMutation({
     mutationFn: async (args: AtualizarCobrancaInput) => {
       const pago = args.status === "paga";
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = hojeISO();
       const { error } = await supabase.from("pagamento_mensalidade").upsert(
         {
           residente_id: args.residenteId,
