@@ -29,6 +29,8 @@ import {
   X,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
+import { BUCKET_FOTOS_ATIVIDADE } from "@/lib/storage";
 import {
   atividadesDoDia,
   useAtividades,
@@ -475,13 +477,17 @@ function ExecucaoResumo({
       {execucao.descricao_geral && <p className="text-sm">{execucao.descricao_geral}</p>}
 
       {execucao.foto_url && (
-        <a href={execucao.foto_url} target="_blank" rel="noreferrer" className="inline-block">
-          <img
-            src={execucao.foto_url}
-            alt="Registro da atividade"
-            className="h-28 w-28 rounded-md border object-cover"
-          />
-        </a>
+        <AnexoSeguro bucket={BUCKET_FOTOS_ATIVIDADE} stored={execucao.foto_url}>
+          {(url) => (
+            <a href={url} target="_blank" rel="noreferrer" className="inline-block">
+              <img
+                src={url}
+                alt="Registro da atividade"
+                className="h-28 w-28 rounded-md border object-cover"
+              />
+            </a>
+          )}
+        </AnexoSeguro>
       )}
 
       <div className="flex items-center gap-1.5 text-sm">

@@ -1,17 +1,22 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { User, Camera, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUrlAssinada } from "@/components/AnexoSeguro";
 
 /**
  * Uploader de foto reutilizável (hóspedes E usuários). Faz o upload via a
- * função `onUpload` recebida (cada contexto usa seu bucket) e devolve a URL
- * por `onChange`. Quem consome decide o que fazer com a URL (gravar direto no
- * banco ou só no estado de um formulário). `onChange(null)` = remover foto.
- * Erros de upload são tratados com toast; não quebram a tela.
+ * função `onUpload` recebida (cada contexto usa seu bucket) e devolve o CAMINHO
+ * do objeto por `onChange`. Quem consome decide o que fazer (gravar no banco ou
+ * só no estado). `onChange(null)` = remover foto.
+ *
+ * `bucket` (privado): o `fotoUrl` recebido é o valor GUARDADO (caminho novo ou
+ * URL pública legada) e é resolvido para URL ASSINADA na exibição. Após enviar,
+ * mostra uma prévia local imediata. Erros são tratados com toast.
  */
 export function FotoUploader({
   fotoUrl,
+  bucket,
   nome,
   podeEditar,
   onUpload,
@@ -21,6 +26,7 @@ export function FotoUploader({
   iconeTamanho = "size-10",
 }: {
   fotoUrl: string | null;
+  bucket?: string;
   nome: string;
   podeEditar: boolean;
   onUpload: (file: File) => Promise<string | null>;
@@ -31,6 +37,18 @@ export function FotoUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
+  const [previaLocal, setPreviaLocal] = useState<string | null>(null);
+
+  // Exibição: bucket privado → URL assinada; sem bucket → usa o valor direto.
+  const assinada = useUrlAssinada(bucket ?? "", bucket ? fotoUrl : null);
+  const urlExibicao = previaLocal ?? (bucket ? assinada.data ?? null : fotoUrl);
+
+  // Libera o objectURL da prévia ao trocar/desmontar.
+  useEffect(() => {
+    return () => {
+      if (previaLocal) URL.revokeObjectURL(previaLocal);
+    };
+  }, [previaLocal]);
 
   async function onArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -43,6 +61,7 @@ export function FotoUploader({
         toast.error("Não foi possível enviar a foto. Tente novamente.");
         return;
       }
+      setPreviaLocal(URL.createObjectURL(file)); // feedback imediato
       onChange(url);
     } catch {
       toast.error("Erro ao enviar a foto.");
@@ -60,8 +79,8 @@ export function FotoUploader({
           formato,
         )}
       >
-        {fotoUrl ? (
-          <img src={fotoUrl} alt={`Foto de ${nome}`} className="size-full object-cover" />
+        {urlExibicao ? (
+          <img src={urlExibicao} alt={`Foto de ${nome}`} className="size-full object-cover" />
         ) : (
           <User className={iconeTamanho} />
         )}
@@ -79,10 +98,10 @@ export function FotoUploader({
           >
             {enviando ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
           </button>
-          {fotoUrl && !enviando && (
+          {urlExibicao && !enviando && (
             <button
               type="button"
-              onClick={() => onChange(null)}
+              onClick={() => { setPreviaLocal(null); onChange(null); }}
               className="absolute -top-1.5 -right-1.5 grid size-7 place-items-center rounded-full border-2 border-card bg-destructive text-white shadow-card transition-colors hover:bg-destructive/90"
               aria-label="Remover foto"
               title="Remover foto"

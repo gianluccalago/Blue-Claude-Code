@@ -72,7 +72,8 @@ import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
 import { useNotificacoes, type Badge as BadgeNotif } from "@/hooks/useNotificacoes";
 import { useFotoResidente, useDefinirMinhaFoto } from "@/hooks/useUsuarioFoto";
-import { uploadFotoUsuario } from "@/lib/storage";
+import { uploadFotoUsuario, BUCKET_FOTOS_RESIDENTE, BUCKET_FOTOS_USUARIO } from "@/lib/storage";
+import { useUrlAssinada } from "@/components/AnexoSeguro";
 import type { MenuItem, PerfilDef } from "@/data/profiles";
 
 // Ícone por rota — puramente visual (não altera navegação nem dados).
@@ -340,6 +341,9 @@ function AvatarUsuario() {
   const podeEditar = !impersonado && !ehFamilia && !!usuario;
   const fotoBase = ehFamilia ? fotoHospede.data ?? null : usuarioEfetivo?.foto_url ?? null;
   const foto = override ?? fotoBase;
+  // Bucket privado: família espelha a foto do hóspede; equipe usa a própria.
+  const bucketFoto = ehFamilia ? BUCKET_FOTOS_RESIDENTE : BUCKET_FOTOS_USUARIO;
+  const fotoAssinada = useUrlAssinada(bucketFoto, foto).data ?? null;
 
   async function onArquivo(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -365,8 +369,8 @@ function AvatarUsuario() {
   return (
     <div className="relative shrink-0">
       <div className="grid size-10 place-items-center overflow-hidden rounded-full bg-brand-gradient text-sm font-extrabold text-white shadow-glow-primary">
-        {foto ? (
-          <img src={foto} alt="" className="size-full object-cover" />
+        {fotoAssinada ? (
+          <img src={fotoAssinada} alt="" className="size-full object-cover" />
         ) : (
           iniciais(usuarioEfetivo?.nome)
         )}

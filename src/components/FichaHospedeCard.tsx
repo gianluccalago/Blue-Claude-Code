@@ -29,7 +29,7 @@ import { resumoPeso, CLASSIFICACAO_IMC_LABEL, CLASSIFICACAO_IMC_VARIANTE } from 
 import { usePrescricoesAtivas, useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { usePagamentosDoMes } from "@/hooks/useMensalidades";
 import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
-import { uploadFotoResidente } from "@/lib/storage";
+import { uploadFotoResidente, BUCKET_FOTOS_RESIDENTE } from "@/lib/storage";
 import { fichaCompleta, podeVerFinanceiro, podeVerAlergias, podeVerGrauReal } from "@/lib/fichaHospede";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
 import { formatarQuarto } from "@/lib/quarto";
@@ -196,6 +196,7 @@ function FotoHospede({ residente: r, podeEditar }: { residente: Residente; podeE
     <div className="self-center sm:self-auto">
       <FotoUploader
         fotoUrl={r.foto_url}
+        bucket={BUCKET_FOTOS_RESIDENTE}
         nome={r.nome}
         podeEditar={podeEditar}
         onUpload={(file) => uploadFotoResidente(file, r.id)}

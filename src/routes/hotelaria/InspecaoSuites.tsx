@@ -35,7 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
 import { DESTINO_CHAMADO } from "@/lib/manutencao";
-import { uploadFotoInspecao } from "@/lib/storage";
+import { uploadFotoInspecao, BUCKET_FOTOS_MANUTENCAO } from "@/lib/storage";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
 import type {
   InspecaoSuite,
   InspecaoItem,
@@ -788,14 +789,18 @@ function ItemInspecaoRow({ item }: { item: InspecaoItem }) {
         <p className="ml-5 text-xs text-muted-foreground italic">"{item.observacao}"</p>
       )}
       {item.foto_url && (
-        <a
-          href={item.foto_url}
-          target="_blank"
-          rel="noreferrer"
-          className="ml-5 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          <ImageIcon className="h-3 w-3" /> Ver foto do problema
-        </a>
+        <AnexoSeguro bucket={BUCKET_FOTOS_MANUTENCAO} stored={item.foto_url}>
+          {(url) => (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="ml-5 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <ImageIcon className="h-3 w-3" /> Ver foto do problema
+            </a>
+          )}
+        </AnexoSeguro>
       )}
     </div>
   );

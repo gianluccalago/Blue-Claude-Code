@@ -25,7 +25,8 @@ import {
   useAtribuirResponsavel,
   useResolverChamado,
 } from "@/hooks/useManutencao";
-import { uploadFotoManutencao } from "@/lib/storage";
+import { uploadFotoManutencao, BUCKET_FOTOS_MANUTENCAO } from "@/lib/storage";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
 import { destinoDoPerfil, DESTINO_CHAMADO_LABEL } from "@/lib/manutencao";
 import { FormAbrirChamado } from "@/components/manutencao/FormAbrirChamado";
 import { Card, CardContent } from "@/components/ui/card";
@@ -375,25 +376,33 @@ function ChamadoCard({
                 {chamado.foto_problema_url && (
                   <div>
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">Foto do problema</p>
-                    <a href={chamado.foto_problema_url} target="_blank" rel="noreferrer" className="inline-block">
-                      <img
-                        src={chamado.foto_problema_url}
-                        alt="Problema registrado na inspeção"
-                        className="h-28 w-28 rounded-md border object-cover"
-                      />
-                    </a>
+                    <AnexoSeguro bucket={BUCKET_FOTOS_MANUTENCAO} stored={chamado.foto_problema_url}>
+                      {(url) => (
+                        <a href={url} target="_blank" rel="noreferrer" className="inline-block">
+                          <img
+                            src={url}
+                            alt="Problema registrado na inspeção"
+                            className="h-28 w-28 rounded-md border object-cover"
+                          />
+                        </a>
+                      )}
+                    </AnexoSeguro>
                   </div>
                 )}
                 {chamado.foto_url && (
                   <div>
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidência da resolução</p>
-                    <a href={chamado.foto_url} target="_blank" rel="noreferrer" className="inline-block">
-                      <img
-                        src={chamado.foto_url}
-                        alt="Evidência da resolução"
-                        className="h-28 w-28 rounded-md border object-cover"
-                      />
-                    </a>
+                    <AnexoSeguro bucket={BUCKET_FOTOS_MANUTENCAO} stored={chamado.foto_url}>
+                      {(url) => (
+                        <a href={url} target="_blank" rel="noreferrer" className="inline-block">
+                          <img
+                            src={url}
+                            alt="Evidência da resolução"
+                            className="h-28 w-28 rounded-md border object-cover"
+                          />
+                        </a>
+                      )}
+                    </AnexoSeguro>
                   </div>
                 )}
               </div>

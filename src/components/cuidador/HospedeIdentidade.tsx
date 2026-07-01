@@ -1,5 +1,7 @@
 import { AlertTriangle, User } from "lucide-react";
 import { cn, ouNaoInformado } from "@/lib/utils";
+import { FotoSegura } from "@/components/AnexoSeguro";
+import { BUCKET_FOTOS_RESIDENTE } from "@/lib/storage";
 import type { Residente } from "@/types/database";
 import type { ReactNode } from "react";
 
@@ -28,17 +30,17 @@ export function HospedeIdentidade({
             compacto ? "size-11" : "size-14",
           )}
         >
-          {hospede.foto_url ? (
-            <img
-              src={hospede.foto_url}
-              alt={`Foto de ${hospede.nome}`}
-              className="size-full object-cover"
-            />
-          ) : (
-            <span className={cn("font-extrabold", compacto ? "text-lg" : "text-xl")}>
-              {inicial || <User className="size-5" />}
-            </span>
-          )}
+          <FotoSegura
+            bucket={BUCKET_FOTOS_RESIDENTE}
+            stored={hospede.foto_url}
+            alt={`Foto de ${hospede.nome}`}
+            className="size-full object-cover"
+            fallback={
+              <span className={cn("font-extrabold", compacto ? "text-lg" : "text-xl")}>
+                {inicial || <User className="size-5" />}
+              </span>
+            }
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className={cn("truncate font-extrabold leading-tight", compacto ? "text-base" : "text-lg")}>

@@ -17,15 +17,17 @@ acesso a banco vivo. **Nenhuma funcionalidade nova. Sem refatoração de estilo.
 ## 1. Sumário executivo
 
 ### CRÍTICO
-1. **Fotos de idosos em buckets Storage PÚBLICOS (LGPD).** `residentes-fotos`,
-   `intercorrencias-fotos`, `atividades-fotos`, `manutencao-fotos` (fotos ligadas
-   ao residente) e comprovantes financeiros (`upselling-comprovantes`) são
-   `public=true` → o objeto é servido **sem autenticação e sem expiração**. A URL
-   pública é gravada no banco e renderizada (inclusive potencialmente no portal da
-   família). Qualquer vazamento de URL (referrer, log, print) = exposição
-   permanente. **NÃO corrigido automaticamente** (a correção troca o caminho de
-   leitura para signed URLs e mexe em vários pontos → muda comportamento). Ver
-   **REQUER DECISÃO #1**.
+1. **Fotos de idosos em buckets Storage PÚBLICOS (LGPD). — CORRIGIDO.**
+   `residentes-fotos`, `usuarios-fotos`, `atividades-fotos`, `manutencao-fotos`,
+   `upselling-comprovantes`, `custos-materiais-comprovantes` e o (inexistente)
+   `intercorrencias-fotos` eram `public=true` → objeto servido **sem autenticação
+   e sem expiração**. **Corrigido** (migration `0093` + refatoração de
+   `src/lib/storage.ts`): buckets virados `public=false`, policies de
+   `storage.objects` só `authenticated` (derrubadas as antigas de leitura pública),
+   e a leitura migrada de `getPublicUrl` → **URL assinada temporária**
+   (`createSignedUrl`) via `useUrlAssinada`/`FotoSegura`/`AnexoSeguro`. Uploads
+   passam a gravar o **caminho** do objeto; o resolver aceita também as linhas
+   legadas (URL pública antiga). Detalhe na seção 7.
 
 ### ALTO
 2. **Família lê dado clínico cru de TODOS os hóspedes (RLS frouxa).**
@@ -175,10 +177,11 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
 - **Segredos/env: OK.** Nenhum `service_role`/secret/JWT em `src/`. `supabase.ts` só
   usa `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. `.env*` no `.gitignore`;
   `render.yaml` com `sync:false`.
-- **[CRÍTICO — documentado] Storage público** (item 1 / REQUER DECISÃO #1).
-- **[CRÍTICO — documentado] `intercorrencias-fotos` nunca criado em migration** →
-  `uploadFotoIntercorrencia` (`storage.ts`) falha e retorna `null` silenciosamente.
-  Se um dia for criado, deve nascer **privado**. REQUER DECISÃO #1.
+- **[CRÍTICO — corrigido] Storage público** (item 1) — buckets privados + signed
+  URLs (migration `0093` + `storage.ts`).
+- **[CRÍTICO — corrigido] `intercorrencias-fotos` nunca criado em migration** →
+  `uploadFotoIntercorrencia` falhava e retornava `null` em silêncio. A `0093`
+  **cria o bucket privado**; o upload passa a funcionar.
 - **[MÉDIO — corrigido] Validação do insert anônimo** (item 6) — CHECK de tamanho na
   0092. Formato/rate-limit: REQUER DECISÃO #2.
 - **Camaleão: OK.** `CamaleaoBar` retorna null se `!ehMaster`; `personificar`
@@ -207,14 +210,13 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
 > Itens com impacto de comportamento visível ou regra de negócio — **não alterados**
 > sem sua confirmação. Recomendação em cada um.
 
-1. **[CRÍTICO] Tornar privados os buckets com foto de idoso / comprovante.**
-   `residentes-fotos`, `atividades-fotos`, `manutencao-fotos`,
-   `upselling-comprovantes`, `custos-materiais-comprovantes`, `usuarios-fotos` e o
-   inexistente `intercorrencias-fotos`. **Recomendação:** virar `public=false`,
-   adicionar policies de `storage.objects` por `app_perfil()` e trocar o caminho de
-   leitura de `getPublicUrl` → `createSignedUrl` (padrão já usado em vacinal/plano/
-   cognitivo). Muda comportamento (URLs expiram; renderização assíncrona) e toca
-   vários call sites — por isso não foi aplicado silenciosamente. Maior risco LGPD.
+1. **[CRÍTICO] ~~Tornar privados os buckets com foto de idoso~~ — RESOLVIDO** na
+   migration `0093` + refatoração de `src/lib/storage.ts` (buckets privados,
+   storage RLS `authenticated`, leitura por URL assinada). Ação operacional
+   pendente: **rodar a `0093` no Supabase** e conferir que as fotos carregam.
+   Nota: a leitura de storage é liberada a qualquer autenticado (a família precisa
+   da foto do seu hóspede); um recorte fino por perfil no `storage.objects` pode ser
+   um próximo passo, mas o furo (acesso anônimo/internet) está fechado.
 2. **[MÉDIO] Anti-flood/formato no agendamento anônimo.** Tamanho já limitado (0092).
    Falta: validação de formato (e-mail/WhatsApp), dedupe e rate-limit. **Recomendação:**
    validar formato no formulário público (fora deste repo) + rate-limit no gateway;
@@ -250,14 +252,28 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
 
 ## 7. Correções aplicadas nesta auditoria
 
-**SQL — nova migration (rode após as demais):**
+**SQL — novas migrations (rode após as demais, em ordem):**
 `supabase/migrations/0092_rls_familia_clinico_e_agenda.sql`
 - `staff_only` (exclui família) em `administracao`, `eliminacao`,
   `eliminacao_tratamento`, `pendencia_tratamento`, `intercorrencia`.
 - `tarefa_registro` escopada ao próprio residente da família (portal preservado).
 - CHECK de tamanho por coluna em `visita_agendamento` (anti-payload gigante).
 
+`supabase/migrations/0093_storage_privado_lgpd.sql`
+- Buckets de foto/comprovante → `public=false` (cria `intercorrencias-fotos`).
+- Derruba as policies legadas de **leitura pública** e cria policies de
+  `storage.objects` só para `authenticated`.
+
 **Código:**
+- `src/lib/storage.ts` — uploads gravam o **caminho** (não URL pública); novo
+  resolver `urlAssinadaStorage(bucket, valor)` (aceita caminho novo e URL legada).
+- `src/components/AnexoSeguro.tsx` (novo) — `useUrlAssinada`, `<FotoSegura>`,
+  `<AnexoSeguro>` (URL assinada temporária na exibição).
+- `src/components/FotoUploader.tsx` — exibição por URL assinada (prop `bucket`) +
+  prévia local imediata após enviar.
+- Sites de exibição migrados: `FotoUploader` (ficha do hóspede/master),
+  `HospedeIdentidade`, `Sidebar` (avatar), `useFamilia` (fotos de atividade),
+  `Manutencao`, `InspecaoSuites`, `Atividades`, `Upselling`, `CustosMateriais`.
 - `src/routes/cuidador/Medicacao.tsx` — try/catch + toast de erro em
   `confirmarTodas`/`confirmarNao`.
 - `src/routes/coordenacao/MedicacaoEnfermagem.tsx` — idem no registro de procedimento.

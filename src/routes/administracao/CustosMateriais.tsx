@@ -25,6 +25,8 @@ import {
   useSalvarCustoMaterial,
   useRemoverCustoMaterial,
 } from "@/hooks/useCustosMateriais";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
+import { BUCKET_CUSTOS_MATERIAIS } from "@/lib/storage";
 import { formatarMoeda, mesAtual, deslocarMes, formatarMesReferencia } from "@/lib/mensalidade";
 import { hojeISO, formatarDataBR, ouNaoInformado } from "@/lib/utils";
 import { exportarCustosMateriaisExcel } from "@/lib/exportCustosMateriais";
@@ -132,9 +134,13 @@ export function CustosMateriais() {
                         <p className="text-xs text-muted-foreground">
                           {formatarDataBR(m.data)} · {ouNaoInformado(m.fornecedor)}
                           {m.comprovante_url && (
-                            <a href={m.comprovante_url} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 text-primary hover:underline">
-                              <Paperclip className="size-3" /> comprovante
-                            </a>
+                            <AnexoSeguro bucket={BUCKET_CUSTOS_MATERIAIS} stored={m.comprovante_url}>
+                              {(url) => (
+                                <a href={url} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 text-primary hover:underline">
+                                  <Paperclip className="size-3" /> comprovante
+                                </a>
+                              )}
+                            </AnexoSeguro>
                           )}
                         </p>
                       </div>

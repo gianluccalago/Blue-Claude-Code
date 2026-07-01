@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FotoUploader } from "@/components/FotoUploader";
-import { uploadFotoResidente } from "@/lib/storage";
+import { uploadFotoResidente, BUCKET_FOTOS_RESIDENTE } from "@/lib/storage";
 import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { MODALIDADES } from "@/lib/modalidade";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
@@ -172,6 +172,7 @@ export function ResidenteFicha({
           <CardContent className="flex items-center gap-4 py-4">
             <FotoUploader
               fotoUrl={v.foto_url}
+              bucket={BUCKET_FOTOS_RESIDENTE}
               nome={v.nome || "hóspede"}
               podeEditar
               onUpload={(file) => uploadFotoResidente(file, inicial.id)}

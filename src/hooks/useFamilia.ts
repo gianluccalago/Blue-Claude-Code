@@ -7,6 +7,7 @@ import { useLancamentosDoMes } from "@/hooks/useUpselling";
 import { useCobrancasTemporariasDoMes } from "@/hooks/useCobrancaTemporaria";
 import { precoVigenteEm, hojeISO } from "@/lib/mensalidade";
 import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
+import { urlAssinadaStorage, BUCKET_FOTOS_ATIVIDADE } from "@/lib/storage";
 import type { AtividadeParticipacao, CompromissoExterno, Residente } from "@/types/database";
 
 /**
@@ -79,9 +80,12 @@ export function useFotosResidente() {
       for (const p of participacoes) {
         const exec = execMap.get(`${p.atividade_id}|${p.data}`);
         if (!exec?.foto_url) continue;
+        // Bucket privado: resolve o caminho guardado para URL assinada temporária.
+        const url = await urlAssinadaStorage(BUCKET_FOTOS_ATIVIDADE, exec.foto_url);
+        if (!url) continue;
         fotos.push({
           id: exec.id,
-          fotoUrl: exec.foto_url,
+          fotoUrl: url,
           atividadeTitulo: p.atividade_titulo ?? "Atividade",
           data: p.data,
           descricaoGeral: exec.descricao_geral,

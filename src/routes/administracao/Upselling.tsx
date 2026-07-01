@@ -28,6 +28,8 @@ import {
   useUpsellingTodosDoMes,
 } from "@/hooks/useUpselling";
 import { CATEGORIAS_UPSELLING } from "@/lib/upselling";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
+import { BUCKET_UPSELLING_COMPROVANTES } from "@/lib/storage";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -277,9 +279,13 @@ function CamposLancamento({
             className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
           />
           {comprovanteAtualUrl && (
-            <a href={comprovanteAtualUrl} target="_blank" rel="noreferrer" className="inline-block text-xs text-primary underline">
-              Ver comprovante atual
-            </a>
+            <AnexoSeguro bucket={BUCKET_UPSELLING_COMPROVANTES} stored={comprovanteAtualUrl}>
+              {(url) => (
+                <a href={url} target="_blank" rel="noreferrer" className="inline-block text-xs text-primary underline">
+                  Ver comprovante atual
+                </a>
+              )}
+            </AnexoSeguro>
           )}
         </div>
       </div>
@@ -503,14 +509,18 @@ function ItemUpselling({ item, residenteId, mes }: { item: UpsellingRow; residen
             </div>
             {item.descricao && <p className="mt-1 text-sm text-secondary">{item.descricao}</p>}
             {item.comprovante_url && (
+              <AnexoSeguro bucket={BUCKET_UPSELLING_COMPROVANTES} stored={item.comprovante_url}>
+                {(url) => (
               <a
-                href={item.comprovante_url}
+                href={url}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-1 inline-block text-xs text-primary underline"
               >
                 Ver comprovante
               </a>
+                )}
+              </AnexoSeguro>
             )}
           </div>
           <div className="flex items-center gap-2">
