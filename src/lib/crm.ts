@@ -1,3 +1,4 @@
+import { hojeISO } from "@/lib/utils";
 import type { CrmStatus, CrmTarefa } from "@/types/database";
 
 // ===========================================================================
@@ -45,5 +46,5 @@ export const ETAPA_ADMISSAO = "Admissão";
 /** A tarefa está vencida? (não concluída e com data anterior a hoje). */
 export function tarefaVencida(t: Pick<CrmTarefa, "concluida" | "data">): boolean {
   if (t.concluida || !t.data) return false;
-  return t.data < new Date().toISOString().slice(0, 10);
+  return t.data < hojeISO();
 }

@@ -217,36 +217,32 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
    Nota: a leitura de storage é liberada a qualquer autenticado (a família precisa
    da foto do seu hóspede); um recorte fino por perfil no `storage.objects` pode ser
    um próximo passo, mas o furo (acesso anônimo/internet) está fechado.
-2. **[MÉDIO] Anti-flood/formato no agendamento anônimo.** Tamanho já limitado (0092).
-   Falta: validação de formato (e-mail/WhatsApp), dedupe e rate-limit. **Recomendação:**
-   validar formato no formulário público (fora deste repo) + rate-limit no gateway;
-   opcional: um RPC `SECURITY DEFINER` de inserção que valide/normalize, revogando o
-   INSERT direto do anon.
-3. **[MÉDIO] Dispensação atômica + idempotente.** **Recomendação:** RPC transacional
-   que insere a dispensação e decrementa o estoque na mesma transação, com unique
-   `(residente_id, periodo, data)` (ou chave de idempotência) contra dupla baixa.
-4. **[MÉDIO] Refletir `sem_acesso` na RLS.** Hoje inócuo (seeds têm `email=null`), mas
-   é só o cliente que barra. **Recomendação:** `app_perfil()`/`app_usuario_id()`
-   retornarem nulo para `sem_acesso=true` (defesa em profundidade). Não aplicado por
-   tocar a função de auth central.
-5. **[MÉDIO] 13º na série "Evolução financeira".** A série não soma a provisão de 13º
-   em nov/dez (o card do painel soma). **Recomendação:** aplicar `decimoTerceiro.ts`
-   por residente presente em nov/dez, como no `useResumoMes`, para o gráfico bater
-   com o card.
-6. **[MÉDIO] Fuso horário.** Persistidos corrigidos. **Recomendação:** (a) trocar os
-   `new Date().toISOString().slice(0,10)` de *display* restantes por `hojeISO()`
-   (CRM/cobrança); (b) para robustez fora de SP, reimplementar `hojeISO()/dataISO()`
-   sobre `Intl…America/Sao_Paulo` (como `periodos.ts`). É mudança transversal — decida
-   se quer pinar tudo em SP ou seguir device-local.
-7. **[BAIXO] Escopo horizontal por residente na equipe.** Fechar por RLS (cuidador só
-   designados, etc.) as tabelas assistenciais mudaria passagem de plantão. **Recom.:**
-   manter recorte de UI; avaliar RLS por designação caso a caso.
-8. **[ALTO operacional] Senha padrão `"blue"`.** **Recomendação:** senha individual
-   forte + troca obrigatória no 1º acesso antes de produção.
-9. **[BAIXO] "Meus hóspedes" fora do turno.** `useHospedes.ts` (`escolherTurno`) cai
-   em turno passado/futuro fora do plantão, listando hóspedes fora do turno corrente
-   (ações seguem bloqueadas por `usePlantao.liberado`). **Recom.:** para cuidador,
-   retornar vazio quando não há turno corrente.
+2. **[MÉDIO] ~~Anti-flood/formato no agendamento anônimo~~ — FORMATO RESOLVIDO**
+   (migration `0095`: CHECK de e-mail e WhatsApp 8–15 dígitos; tamanho já na 0092).
+   Pendente de infra (fora deste repo): **rate-limit/captcha** no gateway/formulário
+   público — não há como fazê-lo só no banco.
+3. **[MÉDIO] ~~Dispensação atômica + idempotente~~ — RESOLVIDO** (migration `0094`:
+   RPC `dispensar_medicamentos` — registro + baixa numa transação, idempotente por
+   (hóspede, período, dia) com advisory lock; e `estornar_dispensacao` atômico).
+   `useDispensacao.ts` passou a chamar as RPCs.
+4. **[MÉDIO] ~~Refletir `sem_acesso` na RLS~~ — RESOLVIDO** (migration `0095`:
+   `app_perfil`/`app_usuario_id`/`app_residente_familia` ignoram `sem_acesso=true`).
+5. **[MÉDIO] ~~13º na série "Evolução financeira"~~ — RESOLVIDO**
+   (`useIndicadoresGestao.ts`: soma `valorParcelaDecimo` por residente presente,
+   como o demonstrativo; a série agora bate com o card).
+6. **[MÉDIO] ~~Fuso horário~~ — RESOLVIDO.** (a) `hojeISO()/dataISO()/inicioDoDiaISO()`
+   pinados em `America/Sao_Paulo` via `Intl` (em tablets SP nada muda; fora de SP
+   deixa de escorregar). (b) Displays de CRM/cobrança trocados para `hojeISO()`.
+7. **[BAIXO] Escopo horizontal por residente na equipe — MANTIDO por decisão.**
+   Fechar por RLS (cuidador só designados) as tabelas assistenciais mudaria a
+   passagem de plantão (a equipe precisa do histórico do hóspede na virada de turno).
+   O recorte de UI é mantido; um recorte por designação exigiria decisão de produto
+   caso a caso — **não alterado** para não quebrar fluxo clínico.
+8. **[ALTO operacional] Senha padrão `"blue"` — REQUER SUA DECISÃO (não é código).**
+   Trocar exige escolher o fluxo (e-mail de convite × troca forçada no 1º acesso) e
+   definir senhas individuais fortes — decisão operacional, não automatizável aqui.
+9. **[BAIXO] ~~"Meus hóspedes" fora do turno~~ — RESOLVIDO** (`useHospedes.ts`: para
+   cuidador, só o turno ATIVO agora conta; fora do plantão a lista fica vazia).
 
 ---
 
@@ -264,6 +260,14 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
 - Derruba as policies legadas de **leitura pública** e cria policies de
   `storage.objects` só para `authenticated`.
 
+`supabase/migrations/0094_dispensacao_atomica.sql`
+- RPCs `dispensar_medicamentos` (registro + baixa numa transação, idempotente por
+  (hóspede, período, dia) com advisory lock) e `estornar_dispensacao` (atômico).
+
+`supabase/migrations/0095_sem_acesso_rls_e_validacao_agenda.sql`
+- `app_perfil`/`app_usuario_id`/`app_residente_familia` ignoram `sem_acesso=true`.
+- CHECK de formato (e-mail/WhatsApp/nome) no `visita_agendamento` anônimo.
+
 **Código:**
 - `src/lib/storage.ts` — uploads gravam o **caminho** (não URL pública); novo
   resolver `urlAssinadaStorage(bucket, valor)` (aceita caminho novo e URL legada).
@@ -277,9 +281,18 @@ workflows de passagem de plantão — ver **REQUER DECISÃO #7**.
 - `src/routes/cuidador/Medicacao.tsx` — try/catch + toast de erro em
   `confirmarTodas`/`confirmarNao`.
 - `src/routes/coordenacao/MedicacaoEnfermagem.tsx` — idem no registro de procedimento.
-- `src/hooks/useIndicadoresGestao.ts` — série financeira subtrai `custo_material`.
+- `src/hooks/useIndicadoresGestao.ts` — série financeira subtrai `custo_material`
+  e soma o 13º proporcional (bate com o demonstrativo).
 - `src/hooks/useMensalidades.ts` — `data_pagamento` via `hojeISO()` (3 pontos).
 - `src/hooks/useEvolucaoAdmissao.ts` — data do peso de admissão via `hojeISO()`.
+- `src/lib/utils.ts` — `hojeISO`/`dataISO`/`inicioDoDiaISO` pinados em
+  `America/Sao_Paulo` (via `Intl`).
+- `src/lib/crm.ts`, `src/lib/cobranca.ts`, `src/routes/administracao/crm/`
+  `CrmTarefas.tsx`+`CrmOportunidade.tsx`, `src/hooks/useCrm.ts` — datas de display
+  (vencida/hoje/próximos-7) e `data_admissao` via `hojeISO()`/`dataISO()`.
+- `src/hooks/useHospedes.ts` — "meus hóspedes" do cuidador só no turno ATIVO.
+- `src/hooks/useDispensacao.ts` — usa as RPCs atômicas (0094).
+- `src/types/database.ts` — tipos das novas RPCs.
 
 **Validação final:** `tsc -b --noEmit` limpo · `npm run build` verde.
 

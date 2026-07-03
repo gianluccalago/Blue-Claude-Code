@@ -15,7 +15,7 @@ import { ResidenteFicha } from "@/components/master/ResidenteFicha";
 import { QUALIFICACAO_LABEL, STATUS_LABEL, STATUS_VARIANTE, TIPOS_TAREFA, BASE_LEGAL_LABEL } from "@/lib/crm";
 import { idadeTexto } from "@/lib/sla";
 import { formatarMoeda } from "@/lib/mensalidade";
-import { formatarDataHoraBR, formatarDataBR, ouNaoInformado, cn } from "@/lib/utils";
+import { formatarDataHoraBR, formatarDataBR, ouNaoInformado, cn, hojeISO } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -286,7 +286,7 @@ function prefillResidente(op: CrmOportunidadeRow, contato: CrmContato | null): P
     responsavel_legal: responsavel,
     contato: contato?.telefones?.[0] ?? null,
     mensalidade_valor: op.valor_mensalidade_estimado ?? null,
-    data_admissao: new Date().toISOString().slice(0, 10),
+    data_admissao: hojeISO(),
   };
 }
 
@@ -398,7 +398,7 @@ function TarefasTab({ oportunidadeId }: { oportunidadeId: string }) {
 }
 
 function ItemTarefa({ t, onConcluir, ocupado, concluida = false }: { t: CrmTarefa; onConcluir: () => void; ocupado: boolean; concluida?: boolean }) {
-  const vencida = !t.concluida && !!t.data && t.data < new Date().toISOString().slice(0, 10);
+  const vencida = !t.concluida && !!t.data && t.data < hojeISO();
   return (
     <div className={cn("flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5", concluida ? "opacity-60" : vencida ? "border-destructive/40 bg-destructive/5" : "border-border/70 bg-card")}>
       <div className="min-w-0">

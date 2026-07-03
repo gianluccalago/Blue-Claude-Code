@@ -11,10 +11,6 @@ export function hojeISODate(): string {
   return hojeISO();
 }
 
-function mesRefDeData(data: string): string {
-  return data.slice(0, 7); // "YYYY-MM-DD" → "YYYY-MM"
-}
-
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 /** Dispensações de um hóspede em uma data. */
@@ -64,43 +60,18 @@ export function useConfirmarDispensacao() {
       itens: ItemDispensacaoJson[];
       dispensadoPor?: string;
     }) => {
-      const mesRef = mesRefDeData(args.data);
-
-      // Gravar o registro de dispensação
-      const { data: rec, error: errD } = await supabase
-        .from("dispensacao")
-        .insert({
-          residente_id: args.residenteId,
-          periodo: args.periodo,
-          data: args.data,
-          itens: args.itens,
-          dispensado_por: args.dispensadoPor ?? usuarioAtual.nome,
-        })
-        .select("id")
-        .single();
-      if (errD) throw errD;
-      if (!rec) throw new Error("Dispensação não retornou ID.");
-
-      // Decrementar estoque_hospede de cada item (best-effort; saldo pode ficar negativo)
-      for (const item of args.itens) {
-        const { data: estoq } = await supabase
-          .from("estoque_hospede")
-          .select("id, quantidade_atual")
-          .eq("residente_id", args.residenteId)
-          .eq("medicamento", item.medicamento)
-          .eq("mes_referencia", mesRef)
-          .maybeSingle();
-
-        if (estoq) {
-          await supabase
-            .from("estoque_hospede")
-            .update({ quantidade_atual: estoq.quantidade_atual - item.quantidade })
-            .eq("id", estoq.id);
-        }
-        // Sem registro no mês: saldo negativo ficará visível no painel da farmácia
-      }
-
-      return rec.id as string;
+      // Registro + baixa de estoque numa ÚNICA transação, idempotente por
+      // (hóspede, período, dia) — dupla confirmação não duplica nem baixa 2x
+      // (RPC dispensar_medicamentos, migration 0094).
+      const { data: id, error } = await supabase.rpc("dispensar_medicamentos", {
+        p_residente_id: args.residenteId,
+        p_periodo: args.periodo,
+        p_data: args.data,
+        p_itens: args.itens,
+        p_dispensado_por: args.dispensadoPor ?? usuarioAtual.nome,
+      });
+      if (error) throw error;
+      return id as string;
     },
     onSuccess: (_id, vars) => {
       qc.invalidateQueries({ queryKey: ["dispensacoes", vars.residenteId, vars.data] });
@@ -116,32 +87,9 @@ export function useDesfazerDispensacao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (dispensacao: Dispensacao) => {
-      const mesRef = mesRefDeData(dispensacao.data);
-      const itens = dispensacao.itens as ItemDispensacaoJson[];
-
-      // Estornar: incrementa saldo de cada item
-      for (const item of itens) {
-        const { data: estoq } = await supabase
-          .from("estoque_hospede")
-          .select("id, quantidade_atual")
-          .eq("residente_id", dispensacao.residente_id)
-          .eq("medicamento", item.medicamento)
-          .eq("mes_referencia", mesRef)
-          .maybeSingle();
-
-        if (estoq) {
-          await supabase
-            .from("estoque_hospede")
-            .update({ quantidade_atual: estoq.quantidade_atual + item.quantidade })
-            .eq("id", estoq.id);
-        }
-      }
-
-      // Remover o registro
-      const { error } = await supabase
-        .from("dispensacao")
-        .delete()
-        .eq("id", dispensacao.id);
+      // Estorno do saldo + remoção do registro numa ÚNICA transação
+      // (RPC estornar_dispensacao, migration 0094).
+      const { error } = await supabase.rpc("estornar_dispensacao", { p_id: dispensacao.id });
       if (error) throw error;
     },
     onSuccess: (_r, dispensacao) => {

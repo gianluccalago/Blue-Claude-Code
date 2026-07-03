@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { formatarDataBR, cn } from "@/lib/utils";
+import { formatarDataBR, cn, hojeISO, dataISO } from "@/lib/utils";
 
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => hojeISO();
 
 export function CrmTarefas() {
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
@@ -30,7 +30,7 @@ export function CrmTarefas() {
   const filtradas = useMemo(() => {
     const h = hoje();
     const em7 = new Date(); em7.setDate(em7.getDate() + 7);
-    const lim7 = em7.toISOString().slice(0, 10);
+    const lim7 = dataISO(em7);
     const arr = lista.filter((t) => {
       if (fStatus === "pendentes" && t.concluida) return false;
       if (fStatus === "concluidas" && !t.concluida) return false;

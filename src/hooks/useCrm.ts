@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { tarefaVencida, ETAPA_ADMISSAO } from "@/lib/crm";
+import { dataISO } from "@/lib/utils";
 import type {
   CrmContato,
   CrmEtapa,
@@ -662,8 +663,8 @@ export function useResumoFunil() {
       const hoje = new Date();
       const em7 = new Date(hoje);
       em7.setDate(em7.getDate() + 7);
-      const hojeStr = hoje.toISOString().slice(0, 10);
-      const fim7Str = em7.toISOString().slice(0, 10);
+      const hojeStr = dataISO(hoje);
+      const fim7Str = dataISO(em7);
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
 
       const [ativas, visitas, admissoes] = await Promise.all([

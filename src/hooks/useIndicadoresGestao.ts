@@ -8,6 +8,7 @@ import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { useCustosMateriaisDoMes } from "@/hooks/useCustosMateriais";
 import { useConfiguracao, CHAVE_TOTAL_SUITES } from "@/hooks/useConfiguracao";
 import { deslocarMes, precoVigenteEm, hojeISO } from "@/lib/mensalidade";
+import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
 import type { Residente } from "@/types/database";
 
 // ===========================================================================
@@ -154,8 +155,8 @@ function presenteNoMes(r: ResidenteEvolucao, mes: string): boolean {
  * referência). Mensalidade considera o ROSTER presente em cada mês (entradas/
  * saídas refletidas); upselling vem por mes_referencia; o custo de pessoal usa
  * os lançamentos registrados (pagamento_pessoal) e materiais vêm de
- * custo_material por mes_referencia (mesma fonte do useResumoMes).
- * Observação: o 13º (nov/dez) ainda NÃO é somado nesta série — ver AUDITORIA.md.
+ * custo_material por mes_referencia (mesma fonte do useResumoMes). O 13º (nov/
+ * dez) é somado proporcionalmente por residente, como no demonstrativo.
  */
 export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   const meses = useMemo(() => {
@@ -228,10 +229,16 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       }
 
       return meses.map((mes) => {
-        const mensalidades = residentes
-          .filter((r) => presenteNoMes(r, mes))
-          .reduce((s, r) => s + mensalidadeDe(r), 0);
-        const faturamento = mensalidades + (upsPorMes.get(mes) ?? 0) + (cobPorMes.get(mes) ?? 0);
+        const presentes = residentes.filter((r) => presenteNoMes(r, mes));
+        const mensalidades = presentes.reduce((s, r) => s + mensalidadeDe(r), 0);
+        // 13º proporcional (nov/dez), por residente presente — mesma fonte do
+        // useResumoMes/demonstrativo (valorParcelaDecimo já retorna 0 fora de nov/dez).
+        const decimoTerceiro = presentes.reduce(
+          (s, r) => s + valorParcelaDecimo(mensalidadeDe(r), r.data_admissao, mes),
+          0,
+        );
+        const faturamento =
+          mensalidades + (upsPorMes.get(mes) ?? 0) + (cobPorMes.get(mes) ?? 0) + decimoTerceiro;
         const resultado = faturamento - (pessoalPorMes.get(mes) ?? 0) - (matPorMes.get(mes) ?? 0);
         return { mes, faturamento, resultado };
       });

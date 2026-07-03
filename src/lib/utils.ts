@@ -52,24 +52,37 @@ export function ouNaoInformado(valor: string | null | undefined): string {
   return valor;
 }
 
-/** Data de hoje no formato YYYY-MM-DD (timezone local). */
+// A casa opera em America/Sao_Paulo (fuso fixo UTC−3; o Brasil não tem mais
+// horário de verão desde 2019). Fixamos o "dia civil" nesse fuso para não
+// depender da configuração do dispositivo — em tablets já em SP nada muda; num
+// device fora de SP/mal-configurado, o dia deixa de escorregar.
+const FUSO_SP = "America/Sao_Paulo";
+
+/** YYYY-MM-DD de um Date no fuso da casa (America/Sao_Paulo). */
+function ymdEmSP(d: Date): string {
+  // en-CA formata como "YYYY-MM-DD".
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: FUSO_SP,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** Data de hoje no formato YYYY-MM-DD (fuso da casa, America/Sao_Paulo). */
 export function hojeISO(): string {
-  const d = new Date();
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+  return ymdEmSP(new Date());
 }
 
-/** Instante (ISO/UTC) da meia-noite local de hoje — para filtrar registros do dia. */
+/** Instante (ISO/UTC) da meia-noite de HOJE no fuso da casa — filtra registros do dia. */
 export function inicioDoDiaISO(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  // UTC−3 fixo (sem horário de verão): a meia-noite de SP é 03:00 UTC.
+  return new Date(`${hojeISO()}T00:00:00-03:00`).toISOString();
 }
 
-/** Data (timezone local) de um Date no formato YYYY-MM-DD. */
+/** Data de um Date no formato YYYY-MM-DD (fuso da casa, America/Sao_Paulo). */
 export function dataISO(d: Date): string {
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+  return ymdEmSP(d);
 }
 
 /** Domingo (00:00) da semana que contém `d`. */

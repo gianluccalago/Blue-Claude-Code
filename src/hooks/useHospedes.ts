@@ -70,14 +70,20 @@ export function useHospedesDesignados(cuidadorId: string, enabled = true) {
         return ordenar(data ?? []);
       }
 
-      // CUIDADOR: hóspedes designados a ele no turno corrente. Sem turno → vazio.
-      if (!turnoSel) return [];
+      // CUIDADOR: hóspedes designados a ele no turno ATIVO agora. Fora do
+      // plantão (só turno passado/futuro) → vazio (a lista não vaza designações
+      // de outro turno; as ações já eram bloqueadas por usePlantao.liberado).
+      const turnoAtivo =
+        turnoSel && +new Date(turnoSel.inicio) <= agora && agora <= +new Date(turnoSel.fim)
+          ? turnoSel
+          : null;
+      if (!turnoAtivo) return [];
       const { data: desig, error: desigErr } = await supabase
         .from("designacao_cuidado")
         .select("residente_id")
         .eq("cuidador_id", cuidadorId)
-        .eq("data", turnoSel.data)
-        .eq("turno", turnoSel.tag);
+        .eq("data", turnoAtivo.data)
+        .eq("turno", turnoAtivo.tag);
       if (desigErr) throw desigErr;
 
       const ids = [...new Set((desig ?? []).map((d) => d.residente_id))];

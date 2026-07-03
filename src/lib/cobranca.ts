@@ -1,3 +1,4 @@
+import { hojeISO } from "@/lib/utils";
 import type {
   FormaPagamento,
   PagamentoMensalidade,
@@ -60,7 +61,7 @@ export const FORMA_PAGAMENTO_LABEL: Record<FormaPagamento, string> = {
 /** Relação do responsável financeiro com o hóspede. */
 export const RELACOES_FINANCEIRO = ["Filho(a)", "Cônjuge", "Outro"] as const;
 
-const hojeISOData = () => new Date().toISOString().slice(0, 10);
+const hojeISOData = () => hojeISO();
 
 /** A mensalidade está efetivamente quitada? (status "paga"). */
 export function ehPago(status: StatusPagamentoMensalidade | undefined | null): boolean {

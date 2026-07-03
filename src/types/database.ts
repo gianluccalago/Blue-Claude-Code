@@ -2318,6 +2318,22 @@ export interface Database {
         Args: { p_de: string; p_ate: string };
         Returns: { data: string; hora: string; vagas: number }[];
       };
+      // Dispensação atômica + idempotente (registro + baixa de estoque numa transação).
+      dispensar_medicamentos: {
+        Args: {
+          p_residente_id: string;
+          p_periodo: string;
+          p_data: string;
+          p_itens: ItemDispensacaoJson[];
+          p_dispensado_por: string;
+        };
+        Returns: string;
+      };
+      // Estorno atômico de uma dispensação (devolve o saldo + remove o registro).
+      estornar_dispensacao: {
+        Args: { p_id: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
