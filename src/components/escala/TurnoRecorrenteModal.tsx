@@ -126,9 +126,9 @@ export function TurnoRecorrenteModal({
         aria-hidden="true"
         tabIndex={-1}
         onClick={onFechar}
-        className="absolute inset-0 cursor-default bg-secondary/40 backdrop-blur-sm"
+        className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm"
       />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-soft">
+      <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
           <CalendarRange className="size-5 text-primary" /> Criar turnos recorrentes
         </h2>

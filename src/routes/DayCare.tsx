@@ -118,7 +118,7 @@ function EncerrarEstadia({ residente, onFechar }: { residente: Residente; onFech
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative w-full max-w-md animate-fade-in-up rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
           <LogOut className="size-5 text-destructive" /> Encerrar estadia (Day Care)
         </h2>

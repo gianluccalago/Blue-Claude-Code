@@ -240,7 +240,7 @@ export function CrmOportunidade() {
       {modalPerda && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button aria-hidden tabIndex={-1} onClick={() => setModalPerda(false)} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm animate-fade-in-up rounded-lg border bg-card p-6 shadow-lifted">
+          <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
             <h2 className="text-lg font-bold text-secondary">Marcar oportunidade como perdida</h2>
             <p className="mt-1 text-sm text-muted-foreground">Selecione o motivo da perda (obrigatório).</p>
             <select

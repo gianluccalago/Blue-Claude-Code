@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function LoadingState({ label = "Carregando…" }: { label?: string }) {
   return (
-    <div className="animate-fade-in space-y-3 py-2" role="status" aria-label={label}>
+    <div className="stagger-in space-y-3 py-2" role="status" aria-label={label}>
       <span className="sr-only">{label}</span>
       {[0, 1, 2].map((i) => (
         <div

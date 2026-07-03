@@ -27,7 +27,8 @@ export function Topbar({
           {/* Acento vertical da marca ao lado do título */}
           <span aria-hidden="true" className="hidden h-9 w-1.5 rounded-full bg-brand-gradient sm:block" />
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-extrabold tracking-tight text-secondary">{titulo}</h1>
+            {/* key={titulo}: remonta o nó a cada troca de tela → micro-fade */}
+            <h1 key={titulo} className="animate-fade-in truncate text-2xl font-extrabold tracking-tight text-secondary">{titulo}</h1>
             {subtitulo && <p className="truncate text-sm text-muted-foreground">{subtitulo}</p>}
           </div>
         </div>

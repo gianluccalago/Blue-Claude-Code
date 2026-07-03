@@ -325,7 +325,7 @@ function NotificacaoModal({ evento, onFechar }: { evento: EventoSentinelaComNome
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Registrar notificação" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
             <BellRing className="size-5 text-primary" /> Registrar notificação

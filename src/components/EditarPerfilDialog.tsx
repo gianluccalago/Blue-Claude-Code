@@ -109,7 +109,7 @@ export function EditarPerfilDialog({ aberto, onFechar }: { aberto: boolean; onFe
         onClick={onFechar}
         className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-md animate-fade-in-up rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <div className="flex items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
             <UserCog className="size-5" />

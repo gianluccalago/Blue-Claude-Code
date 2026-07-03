@@ -575,7 +575,18 @@ export function Sidebar({
                   {agg && <BadgeSidebar badge={agg} />}
                   <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-200", aberto && "rotate-180")} />
                 </button>
-                {aberto && <div className="mt-0.5 space-y-1">{b.itens.map((it) => renderItem(it))}</div>}
+                {/* Acordeão suave via grid-template-rows (0fr→1fr), sem animar
+                    height em px. O inner overflow-hidden recorta durante a transição. */}
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-200 ease-out",
+                    aberto ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <div className="mt-0.5 space-y-1">{b.itens.map((it) => renderItem(it))}</div>
+                  </div>
+                </div>
               </div>
             );
           })}

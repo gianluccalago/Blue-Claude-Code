@@ -165,20 +165,51 @@
     box-shadow: inset 0 -1px 0 0 hsl(var(--border));
   }
 
-  /* Transição de rota: slide + fade (conteúdo principal do app) */
+  /* Transição de rota: fade + translateY sutil (só transform/opacity, ~180ms) */
   @keyframes route-in {
     from {
       opacity: 0;
-      transform: translateY(10px) scale(0.995);
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-route-in {
+    animation: route-in 0.18s ease-out both;
+  }
+
+  /* Entrada de modal/drawer: scale + fade (só transform/opacity) */
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
     }
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
     }
   }
-  .animate-route-in {
-    animation: route-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  .animate-modal-in {
+    animation: modal-in 0.18s ease-out both;
   }
+
+  /* Stagger de entrada — SÓ no 1º carregamento (a animação CSS dispara na
+     montagem; re-render sem remontar não reexecuta). Aplicar no container da
+     lista: <div class="stagger-in">…itens…</div>. Cap em 8 para não atrasar
+     listas longas. */
+  .stagger-in > * {
+    animation: fade-in-up 0.22s ease-out both;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-in > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger-in > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger-in > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger-in > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger-in > *:nth-child(6) { animation-delay: 200ms; }
+  .stagger-in > *:nth-child(7) { animation-delay: 240ms; }
+  .stagger-in > *:nth-child(n + 8) { animation-delay: 280ms; }
 
   /* Shimmer dos skeletons de carregamento */
   @keyframes shimmer {
@@ -285,5 +316,23 @@
     box-shadow:
       0 0 0 1px hsl(var(--primary) / 0.4),
       0 8px 28px -10px hsl(var(--primary) / 0.5);
+  }
+}
+
+/* ===========================================================================
+   ACESSIBILIDADE — respeita "reduzir movimento" do sistema. Desliga TODAS as
+   animações e transições (entradas, stagger, shimmer, acordeões, aurora do
+   login). O conteúdo aparece instantaneamente, sem atrito para quem precisa.
+   =========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
 }

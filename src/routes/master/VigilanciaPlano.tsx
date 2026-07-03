@@ -256,7 +256,7 @@ function ModalNovaVersao({ onFechar }: { onFechar: () => void }) {
   return createPortal(
     <div role="dialog" aria-modal className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="mb-4 text-lg font-bold text-secondary">Nova versão do plano</h2>
         <div className="space-y-3">
           <Campo label="Versão (ex.: 2026-2028)"><input value={versao} onChange={(e) => setVersao(e.target.value)} className={inputBase} /></Campo>

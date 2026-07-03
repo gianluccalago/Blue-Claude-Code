@@ -194,8 +194,8 @@ function ContatoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid animate-fade-in place-items-center bg-secondary/40 p-4 backdrop-blur-sm" onClick={onClose}>
+      <Card className="max-h-[90vh] w-full max-w-2xl animate-modal-in overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <CardContent className="space-y-4 py-5">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-secondary">{contato ? "Editar contato" : "Novo contato"}</h2>
