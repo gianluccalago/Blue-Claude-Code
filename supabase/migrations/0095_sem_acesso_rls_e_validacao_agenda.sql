@@ -42,6 +42,9 @@ returns uuid language sql stable security definer set search_path = public as $$
 $$;
 
 -- (b) Formato do agendamento anônimo (além do tamanho da 0092).
+--     NOT VALID: o CHECK vale para TODOS os inserts/updates NOVOS (a defesa
+--     contra o anônimo), mas NÃO valida o histórico — linhas antigas fora do
+--     formato (testes/dados legados) não bloqueiam a migration.
 do $$
 begin
   if to_regclass('public.visita_agendamento') is not null then
@@ -53,7 +56,7 @@ begin
       and char_length(regexp_replace(whatsapp, '[^0-9]', '', 'g')) between 8 and 15
       -- nome: pelo menos 2 caracteres não-espaço
       and char_length(btrim(nome_completo)) >= 2
-    );
+    ) not valid;
   end if;
 end $$;
 
