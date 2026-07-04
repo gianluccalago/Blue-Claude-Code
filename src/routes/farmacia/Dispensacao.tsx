@@ -56,7 +56,9 @@ function parsearQtd(q: string | null): { numero: number; unidade: string } {
   const m = q.trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)/);
   if (!m) return { numero: 1, unidade: q.trim() };
   const n = parseFloat(m[1].replace(",", "."));
-  return { numero: isNaN(n) ? 1 : Math.ceil(n), unidade: m[2].trim() || "unidade" };
+  // NÃO arredonda a dose por administração: meio comprimido é 0,5 (não 1). O
+  // arredondamento p/ cima é só no TOTAL provisionado/viagem, não por dose.
+  return { numero: isNaN(n) ? 1 : n, unidade: m[2].trim() || "unidade" };
 }
 
 function extrairErro(e: unknown): string {

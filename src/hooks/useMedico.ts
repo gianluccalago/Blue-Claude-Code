@@ -161,7 +161,9 @@ export function useCriarPrescricao() {
   return useMutation({
     mutationFn: async (args: NovaPrescricaoArgs) => {
       const grupoPrescricao = crypto.randomUUID();
-      const medicamento = args.medicamento.trim().toUpperCase();
+      // Normaliza espaços internos além do trim: "AAS  INFANTIL" e "AAS INFANTIL"
+      // devem casar como o MESMO nome em estoque/dispensação/viagem.
+      const medicamento = args.medicamento.trim().replace(/\s+/g, " ").toUpperCase();
       const prescritoPor = prescritorAtualId();
       const linhas = args.periodos.map((p) => ({
         residente_id: args.residenteId,
@@ -224,7 +226,7 @@ export function useEditarPrescricao() {
         .eq("grupo_prescricao", args.grupoPrescricao);
       if (suspErr) throw suspErr;
 
-      const medicamento = args.medicamento.trim().toUpperCase();
+      const medicamento = args.medicamento.trim().replace(/\s+/g, " ").toUpperCase();
       const linhas = args.periodos.map((p) => ({
         residente_id: args.residenteId,
         medicamento,

@@ -1,3 +1,4 @@
+import { hojeISO as hojeISOsp } from "@/lib/utils";
 import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
 
 export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"];
@@ -77,10 +78,9 @@ export function chavePreco(
   return `${tipoSuite ?? ""}|${grau ?? ""}|${ocupacao ?? "simples"}`;
 }
 
-/** Data de hoje em "YYYY-MM-DD" (para resolver o preço vigente "agora"). */
+/** Data de hoje em "YYYY-MM-DD" no fuso da casa (delega ao utils, pinado em SP). */
 export function hojeISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return hojeISOsp();
 }
 
 /** Uma vigência de preço (linha da tabela_preco). */

@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR } from "@/lib/utils";
+import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR, inicioDoDiaISO } from "@/lib/utils";
 import type { PlanoCuidadoItem, Residente, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
@@ -473,8 +473,8 @@ function EliminacoesSection({
   const registros = eliminacoes.data ?? [];
   const alertas = calcularAlertasEliminacao(registros);
 
-  const inicioHoje = new Date();
-  inicioHoje.setHours(0, 0, 0, 0);
+  // "Hoje" no fuso da casa (America/Sao_Paulo), consistente com o alerta.
+  const inicioHoje = new Date(inicioDoDiaISO());
   const deHoje = registros.filter((r) => new Date(r.registrado_em) >= inicioHoje);
   const urinaHoje = deHoje.filter((r) => r.tipo === "urina");
   const evacHoje = deHoje.filter((r) => r.tipo === "evacuacao");

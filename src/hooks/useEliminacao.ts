@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
-import { hojeISO } from "@/lib/utils";
+import { hojeISO, inicioDoDiaISO } from "@/lib/utils";
 import type { Eliminacao, TipoEliminacao } from "@/types/database";
 
 /** Janela de busca (horas) suficiente para cobrir o alerta de evacuação (72h). */
@@ -79,8 +79,9 @@ export function calcularAlertasEliminacao(
   registros: Eliminacao[],
   agora: Date = new Date(),
 ): AlertasEliminacao {
-  const inicioHoje = new Date(agora);
-  inicioHoje.setHours(0, 0, 0, 0);
+  // "Hoje" = dia civil no fuso da casa (America/Sao_Paulo), não o do dispositivo,
+  // para o alerta "sem urina hoje" bater com o resto do app.
+  const inicioHoje = new Date(inicioDoDiaISO());
   const limite72h = new Date(agora.getTime() - 72 * 60 * 60 * 1000);
 
   const temUrinaHoje = registros.some(

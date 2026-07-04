@@ -45,6 +45,12 @@ export function MinhaEscala() {
 function TurnoLinha({ turno: t, isento }: { turno: Turno; isento: boolean }) {
   const ehHoje = t.data === hojeISO();
   const noturno = t.tag === "noturno";
+  // Noturno cruza a meia-noite (pertence ao dia que inicia): depois da 00h,
+  // ehHoje vira falso, mas o turno ainda está em andamento e o cuidador precisa
+  // poder bater a SAÍDA. Libera o bloco de ponto enquanto o turno corre.
+  const agora = Date.now();
+  const emAndamento = new Date(t.inicio).getTime() <= agora && agora <= new Date(t.fim).getTime();
+  const podeBaterPonto = ehHoje || emAndamento;
   const Icone = noturno ? Moon : Sun;
   const dataObj = new Date(t.data + "T00:00:00");
 
@@ -79,8 +85,8 @@ function TurnoLinha({ turno: t, isento }: { turno: Turno; isento: boolean }) {
         </Badge>
       </CardContent>
 
-      {/* Ponto: só no turno de HOJE. */}
-      {ehHoje && (
+      {/* Ponto: no turno de hoje ou num noturno da véspera ainda em andamento. */}
+      {podeBaterPonto && (
         <div className="border-t px-4 py-3">
           <PontoBloco turno={t} isento={isento} />
         </div>

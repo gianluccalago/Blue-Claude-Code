@@ -31,7 +31,7 @@ import { FAMILIA_ATUAL } from "@/data/profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
-import { calcularIdade, ouNaoInformado, hojeISO, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
+import { calcularIdade, ouNaoInformado, hojeISO, dataISO, somarDias, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Portal da Família — régua de conteúdo: BEM-ESTAR, VIDA e PRESENÇA. Nunca
@@ -148,12 +148,8 @@ function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: st
   // Atividades de hoje (títulos distintos).
   const titulosHoje = [...new Set((participacoes.data ?? []).filter((p) => p.data === hoje).map((p) => p.atividadeTitulo))];
 
-  // Foto do dia (hoje ou, como carinho, de ontem).
-  const ontem = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  })();
+  // Foto do dia (hoje ou, como carinho, de ontem). Dia civil no fuso da casa.
+  const ontem = dataISO(somarDias(new Date(), -1));
   const fotoDoDia =
     (fotos.data ?? []).find((f) => f.data === hoje) ??
     (fotos.data ?? []).find((f) => f.data === ontem) ??
@@ -354,8 +350,9 @@ function InicioConteudo({
         </div>
       </div>
 
-      {/* Recado da equipe — destaque emocional (some quando não há) */}
-      <CardRecadoEquipe />
+      {/* Recado da equipe — destaque emocional (some quando não há). Só com
+          hóspede ATIVO: inativado some do portal (não vaza recado antigo). */}
+      {r && <CardRecadoEquipe />}
 
       {/* O DIA DE [NOME] */}
       {r && <CardDiaDoHospede residenteId={r.id} nome={r.nome} />}

@@ -18,10 +18,18 @@ import type { Residente, Turno } from "@/types/database";
 // consumidores (checklist, medicação, compromissos, intercorrência, ficha…).
 // ===========================================================================
 
+// Mesma tolerância do usePlantao: o plantão fica "no horário" em
+// [inicio−10min, fim+10min]. A lista de hóspedes precisa acompanhar essa janela
+// (senão o cuidador que chega 5 min antes vê "sem hóspedes" apesar de liberado).
+const TOLERANCIA_MS = 10 * 60 * 1000;
+function dentroDoTurno(t: Turno, agora: number): boolean {
+  return +new Date(t.inicio) - TOLERANCIA_MS <= agora && agora <= +new Date(t.fim) + TOLERANCIA_MS;
+}
+
 /** Escolhe o turno do profissional "para agora": ativo > próximo > mais recente. */
 function escolherTurno(turnos: Turno[], agora: number): Turno | null {
   if (turnos.length === 0) return null;
-  const ativo = turnos.find((t) => +new Date(t.inicio) <= agora && agora <= +new Date(t.fim));
+  const ativo = turnos.find((t) => dentroDoTurno(t, agora));
   if (ativo) return ativo;
   const futuros = turnos
     .filter((t) => +new Date(t.inicio) > agora)
@@ -73,10 +81,7 @@ export function useHospedesDesignados(cuidadorId: string, enabled = true) {
       // CUIDADOR: hóspedes designados a ele no turno ATIVO agora. Fora do
       // plantão (só turno passado/futuro) → vazio (a lista não vaza designações
       // de outro turno; as ações já eram bloqueadas por usePlantao.liberado).
-      const turnoAtivo =
-        turnoSel && +new Date(turnoSel.inicio) <= agora && agora <= +new Date(turnoSel.fim)
-          ? turnoSel
-          : null;
+      const turnoAtivo = turnoSel && dentroDoTurno(turnoSel, agora) ? turnoSel : null;
       if (!turnoAtivo) return [];
       const { data: desig, error: desigErr } = await supabase
         .from("designacao_cuidado")
