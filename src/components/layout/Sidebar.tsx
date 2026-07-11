@@ -64,6 +64,8 @@ import {
   BarChart3,
   CreditCard,
   ChevronDown,
+  FolderCheck,
+  BookLock,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -93,6 +95,15 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/vigilancia-proporcao": Scale,
   "/app/master/vigilancia-plano": ClipboardList,
   "/app/master/vigilancia-relatorio": FileText,
+  "/app/master/documentos-institucionais": FolderCheck,
+  "/app/administracao/documentos-institucionais": FolderCheck,
+  "/app/direcao/documentos-institucionais": FolderCheck,
+  "/app/master/livro-controlados": BookLock,
+  "/app/farmacia/livro-controlados": BookLock,
+  "/app/coordenacao/livro-controlados": BookLock,
+  "/app/enfermeira/livro-controlados": BookLock,
+  "/app/medico/livro-controlados": BookLock,
+  "/app/direcao/livro-controlados": BookLock,
   "/app/master/profissionais": UserCog,
   "/app/master/chamado-manutencao": Wrench,
   // Médico

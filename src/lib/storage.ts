@@ -74,7 +74,6 @@ export async function urlAssinadaCarteira(path: string, segundos = 300): Promise
 }
 
 export const BUCKET_PLANOS_SAUDE = "planos-saude";
-
 /** Upload do anexo do Plano de Atenção à Saúde (bucket privado). Retorna o caminho. */
 export async function uploadPlanoSaude(file: File): Promise<string | null> {
   try {
@@ -292,6 +291,27 @@ export async function uploadComprovanteUpselling(
     const { error } = await supabase.storage
       .from(BUCKET_UPSELLING_COMPROVANTES)
       .upload(path, file, { upsert: true });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+export const BUCKET_DOCUMENTOS_INSTITUCIONAIS = "documentos-institucionais";
+
+/**
+ * Upload de um documento institucional da ILPI (alvará, AVCB, contrato etc.).
+ * Bucket PRIVADO — retorna o CAMINHO do objeto (exibição por URL assinada).
+ * `null` em caso de falha.
+ */
+export async function uploadDocumentoInstitucional(file: File, tipo: string): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${tipo}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from(BUCKET_DOCUMENTOS_INSTITUCIONAIS)
+      .upload(path, file, { upsert: false });
     if (error) return null;
     return path;
   } catch {

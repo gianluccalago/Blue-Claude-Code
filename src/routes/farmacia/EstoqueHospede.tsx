@@ -259,6 +259,8 @@ function ConteudoEstoque({
   const itensEstoque = estoque.data ?? [];
   const listaPrescricoes = prescricoes.data ?? [];
   const semPrescricoes = listaPrescricoes.length === 0;
+  // Medicamentos sujeitos a controle especial (Port. 344/98) — selo na tabela.
+  const medsControlados = new Set(listaPrescricoes.filter((p) => p.controlado).map((p) => p.medicamento));
   // Entrou no mês corrente e ainda sem provisionamento → sugere entrada proporcional.
   const novoNoMes = entrouNoMes(residente?.data_admissao, mesRef) && itensEstoque.length === 0;
 
@@ -304,7 +306,7 @@ function ConteudoEstoque({
                 </thead>
                 <tbody className="divide-y">
                   {itensEstoque.map((item) => (
-                    <LinhaEstoque key={item.id} item={item} />
+                    <LinhaEstoque key={item.id} item={item} controlado={medsControlados.has(item.medicamento)} />
                   ))}
                 </tbody>
               </table>
@@ -761,7 +763,7 @@ function HistoricoViagem({ residenteId }: { residenteId: string }) {
 
 // ─── Linha de estoque ─────────────────────────────────────────────────────────
 
-function LinhaEstoque({ item }: { item: EstoqueHospede }) {
+function LinhaEstoque({ item, controlado = false }: { item: EstoqueHospede; controlado?: boolean }) {
   const status =
     item.quantidade_atual < 0 ? "negativo" :
     item.quantidade_atual === 0 ? "zero" :
@@ -769,7 +771,10 @@ function LinhaEstoque({ item }: { item: EstoqueHospede }) {
 
   return (
     <tr className="text-secondary">
-      <td className="py-2.5 font-medium">{item.medicamento}</td>
+      <td className="py-2.5 font-medium">
+        {item.medicamento}
+        {controlado && <Badge variant="purple" className="ml-2">344/98</Badge>}
+      </td>
       <td className="py-2.5 text-right tabular-nums text-muted-foreground">{item.quantidade_provisionada}</td>
       <td className={cn(
         "py-2.5 text-right tabular-nums font-bold",

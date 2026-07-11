@@ -72,6 +72,8 @@ import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
+import { LivroControlados } from "@/routes/farmacia/LivroControlados";
+import { DocumentosInstitucionais } from "@/routes/administracao/DocumentosInstitucionais";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
 import { PedidosMensais } from "@/routes/farmacia/PedidosMensais";
 import { CustosMedicamento } from "@/routes/farmacia/CustosMedicamento";
@@ -309,6 +311,19 @@ const dispensacaoRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "dispensacao",
   component: Dispensacao,
+});
+// Livro de medicamentos controlados (Port. 344/98) — farmácia/master/coordenação/
+// enfermeira lançam; médico/direção leem (a RPC nega escrita no banco).
+const livroControladosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "livro-controlados",
+  component: LivroControlados,
+});
+// Documentos institucionais da ILPI — Master/Administração/Direção.
+const documentosInstitucionaisRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "documentos-institucionais",
+  component: DocumentosInstitucionais,
 });
 const pedidosMensaisRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -697,6 +712,8 @@ const routeTree = rootRoute.addChildren([
     chamadoManutencaoRoute,
     painelFarmaciaRoute,
     dispensacaoRoute,
+    livroControladosRoute,
+    documentosInstitucionaisRoute,
     pedidosMensaisRoute,
     custosMedicamentoRoute,
     estoqueHospedeRoute,

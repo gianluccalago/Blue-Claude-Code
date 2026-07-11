@@ -22,6 +22,8 @@ export type GrupoPrescricao = {
   posologia: string | null;
   /** Médico AUTOR da prescrição (usuarios.id) — quem assina a receita PDF. */
   prescritoPor: string | null;
+  /** Sujeito a controle especial (Portaria 344/98). */
+  controlado: boolean;
   linhas: Prescricao[];
 };
 
@@ -123,12 +125,14 @@ export async function fetchPrescricoesAtivasAgrupadas(
         via: l.via,
         posologia: l.posologia,
         prescritoPor: l.prescrito_por,
+        controlado: l.controlado ?? false,
         linhas: [],
       });
     }
     const g = mapaGrupo.get(chave)!;
     g.linhas.push(l);
     if (!g.prescritoPor && l.prescrito_por) g.prescritoPor = l.prescrito_por;
+    if (l.controlado) g.controlado = true;
   }
 
   return Array.from(mapaGrupo.values());
@@ -154,6 +158,8 @@ type NovaPrescricaoArgs = {
   periodos: PeriodoQuantidade[];
   /** Alergeno confirmado pelo médico no alerta de alergia (trilha; null = sem conflito). */
   alertaAlergia?: string | null;
+  /** Sujeito a controle especial (Portaria 344/98). */
+  controlado?: boolean;
 };
 
 export function useCriarPrescricao() {
@@ -177,6 +183,7 @@ export function useCriarPrescricao() {
         ativa: true,
         alerta_alergia: args.alertaAlergia ?? null,
         prescrito_por: prescritoPor,
+        controlado: args.controlado ?? false,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;
@@ -199,6 +206,8 @@ type EditarPrescricaoArgs = {
   periodos: PeriodoQuantidade[];
   /** Alergeno confirmado pelo médico no alerta de alergia (trilha; null = sem conflito). */
   alertaAlergia?: string | null;
+  /** Sujeito a controle especial (Portaria 344/98). */
+  controlado?: boolean;
 };
 
 /** Edita um grupo: suspende as linhas antigas e cria novas com o mesmo grupo_prescricao. */
@@ -239,6 +248,7 @@ export function useEditarPrescricao() {
         ativa: true,
         alerta_alergia: args.alertaAlergia ?? null,
         prescrito_por: prescritoPor,
+        controlado: args.controlado ?? false,
       }));
       const { error } = await supabase.from("prescricao").insert(linhas);
       if (error) throw error;

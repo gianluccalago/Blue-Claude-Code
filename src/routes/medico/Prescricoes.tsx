@@ -90,6 +90,8 @@ type FormValues = {
   posologia: string;
   quantidadeDefault: string;
   periodos: PeriodoForm[];
+  /** Sujeito a controle especial (Portaria 344/98). */
+  controlado: boolean;
 };
 
 function formInicial(): FormValues {
@@ -104,6 +106,7 @@ function formInicial(): FormValues {
       marcado: p.key === "manha",
       quantidade: "",
     })),
+    controlado: false,
   };
 }
 
@@ -121,6 +124,7 @@ function formDeGrupo(g: GrupoPrescricao): FormValues {
       marcado: marcados.has(p.key),
       quantidade: qtdPorPeriodo.get(p.key) ?? "",
     })),
+    controlado: g.controlado,
   };
 }
 
@@ -365,6 +369,7 @@ function GrupoCard({
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">{VIA_LABEL[g.via]}</Badge>
+                {g.controlado && <Badge variant="purple">Controlado 344/98</Badge>}
                 {g.posologia && <span className="font-medium text-secondary/70">{g.posologia}</span>}
               </div>
               <div className="mt-2 text-sm text-secondary/80">{periodosTexto || "—"}</div>
@@ -506,6 +511,7 @@ function FormPrescricao({
       periodos,
       // Trilha: registra o alérgeno cujo alerta foi exibido e confirmado.
       alertaAlergia: conflitoAlergia && alergiaConfirmada ? conflitoAlergia : null,
+      controlado: form.controlado,
     };
     if (grupoPrescricao) {
       await editar.mutateAsync({ ...base, grupoPrescricao });
@@ -622,6 +628,20 @@ function FormPrescricao({
             ))}
           </select>
         </Campo>
+
+        {/* Controle especial (Port. 344/98) — alimenta o selo e o livro de controlados */}
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={form.controlado}
+            onChange={(e) => setForm((f) => ({ ...f, controlado: e.target.checked }))}
+            className="size-4 accent-primary"
+          />
+          <span className="text-sm text-secondary">
+            <span className="font-semibold">Sujeito a controle especial</span>{" "}
+            <span className="text-muted-foreground">(Portaria 344/98 — entra no livro de controlados)</span>
+          </span>
+        </label>
 
         {/* Quantidade padrão */}
         <Campo label="Quantidade padrão (replica para períodos marcados)">

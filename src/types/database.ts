@@ -31,6 +31,14 @@ export type GrauDependencia = "I" | "II" | "III";
 /** Ocupação da suíte. */
 export type OcupacaoSuite = "simples" | "duplo" | "triplo";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
+/** Tipos de assento do livro de controlados (Port. 344/98). */
+export type TipoAssentoControlado =
+  | "entrada"
+  | "dispensacao"
+  | "administracao"
+  | "perda"
+  | "vencimento"
+  | "estorno";
 // 6 períodos de medicação, cada um com horário padrão (ver PERIODOS nas telas).
 // "jejum" (06:00) e "noite" (20:00) são separados (antes eram "noite/jejum").
 export type PeriodoMedicacao =
@@ -501,6 +509,8 @@ export interface Database {
           // Médico autor da prescrição (usuarios.id, perfil medico/master).
           // A receita PDF assina SEMPRE com este médico — nunca quem exporta.
           prescrito_por: string | null;
+          // Sujeito a controle especial (Portaria 344/98) — marcado ao prescrever.
+          controlado: boolean;
         };
         Insert: {
           id?: string;
@@ -516,6 +526,7 @@ export interface Database {
           grupo_prescricao?: string | null;
           alerta_alergia?: string | null;
           prescrito_por?: string | null;
+          controlado?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
         Relationships: [];
@@ -2138,6 +2149,59 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["carteira_vacinal"]["Insert"]>;
         Relationships: [];
       };
+      documento_institucional: {
+        Row: {
+          id: string;
+          tipo: string;
+          nome: string;
+          identificador: string | null;
+          orgao_emissor: string | null;
+          data_emissao: string | null;
+          data_validade: string | null;
+          arquivo_url: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          tipo: string;
+          nome: string;
+          identificador?: string | null;
+          orgao_emissor?: string | null;
+          data_emissao?: string | null;
+          data_validade?: string | null;
+          arquivo_url: string;
+          observacao?: string | null;
+          registrado_por?: string | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["documento_institucional"]["Insert"]>;
+        Relationships: [];
+      };
+      // Livro de controlados (Port. 344/98): APPEND-ONLY — sem Insert/Update
+      // direto (todo lançamento via RPC registrar_assento_controlado).
+      livro_controlados: {
+        Row: {
+          id: string;
+          numero: number;
+          residente_id: string | null;
+          medicamento: string;
+          tipo_assento: TipoAssentoControlado;
+          quantidade: number;
+          unidade: string;
+          justificativa: string | null;
+          referencia_numero: number | null;
+          registrado_por: string;
+          perfil_registrador: string;
+          registrado_em: string;
+          hash_anterior: string | null;
+          hash: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       vacina_registro: {
         Row: {
           id: string;
@@ -2334,6 +2398,26 @@ export interface Database {
         Args: { p_id: string };
         Returns: undefined;
       };
+      // Livro de controlados (Port. 344/98): lançamento append-only com hash
+      // encadeado server-side. Retorna o nº do assento.
+      registrar_assento_controlado: {
+        Args: {
+          p_residente_id: string | null;
+          p_medicamento: string;
+          p_tipo: TipoAssentoControlado;
+          p_quantidade: number;
+          p_unidade: string;
+          p_justificativa: string | null;
+          p_referencia: number | null;
+          p_registrado_por: string;
+        };
+        Returns: number;
+      };
+      // Reprocessa a cadeia de hash do livro e acusa adulteração.
+      verificar_livro_controlados: {
+        Args: Record<string, never>;
+        Returns: { integro: boolean; primeiro_numero_violado: number | null; total_assentos: number }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -2361,6 +2445,8 @@ export type TipoEventoSentinela = EventoSentinela["tipo"];
 export type AgravoEpidemiologico = Database["public"]["Tables"]["agravo_epidemiologico"]["Row"];
 export type TipoAgravo = AgravoEpidemiologico["tipo"];
 export type CarteiraVacinal = Database["public"]["Tables"]["carteira_vacinal"]["Row"];
+export type DocumentoInstitucional = Database["public"]["Tables"]["documento_institucional"]["Row"];
+export type AssentoControlado = Database["public"]["Tables"]["livro_controlados"]["Row"];
 export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
 export type PatologiaResidente = Database["public"]["Tables"]["patologia_residente"]["Row"];
 export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];

@@ -176,6 +176,12 @@ function Dispensar({
       });
   }, [prescricoes, periodoKey]);
 
+  // Medicamentos sujeitos a controle especial (Port. 344/98) — selo no ziploc.
+  const medsControlados = useMemo(
+    () => new Set(prescricoes.filter((p) => p.controlado).map((p) => p.medicamento)),
+    [prescricoes],
+  );
+
   // Itens cujo saldo do mês não cobre a quantidade a dispensar (ou sem
   // provisionamento). A dispensação NÃO é bloqueada — o saldo negativo segue
   // como sinalização (regra atual) — mas nunca passa em silêncio.
@@ -290,6 +296,7 @@ function Dispensar({
                 <div className="flex items-center gap-2">
                   <Pill className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-sm">{item.medicamento}</span>
+                  {medsControlados.has(item.medicamento) && <Badge variant="purple">344/98</Badge>}
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {item.quantidade} {item.unidade}
