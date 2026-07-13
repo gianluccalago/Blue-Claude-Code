@@ -190,7 +190,6 @@ function SecaoCobertura({ ano, meses, profs, deslig, turnos, aus }: {
             </tbody>
           </table>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">Plantão descoberto = turno sem profissional escalado. % Atestados = dias de atestado ÷ plantões.</p>
       </CardContent>
     </Card>
   );
@@ -236,7 +235,6 @@ function SecaoTurnover({ ano, meses, mesesAnt, profs, deslig }: {
               formatarBarra={(n) => `${n}%`}
             />
           )}
-          <p className="mt-2 text-xs text-muted-foreground">Turnover do mês = (desligamentos no mês ÷ nº médio de funcionários) × 100. Linha = meta configurável.</p>
         </CardContent>
       </Card>
 
@@ -294,7 +292,6 @@ function SecaoAbsenteismo({ ano, meses, mesesAnt, profs, deslig, afa, aus }: {
               formatarBarra={(n) => `${n}%`}
             />
           )}
-          <p className="mt-2 text-xs text-muted-foreground">Absenteísmo = (dias perdidos por afastamento + faltas/atestados ÷ dias trabalháveis) × 100. Linha = teto configurável.</p>
         </CardContent>
       </Card>
 
@@ -334,7 +331,6 @@ function SecaoAbsenteismo({ ano, meses, mesesAnt, profs, deslig, afa, aus }: {
               linha={{ label: "Colaboradores afastados", cor: COR_LINHA, valores: cid.map((c) => c.colaboradores) }}
             />
           )}
-          <p className="mt-2 text-xs text-muted-foreground">Barras = dias perdidos; linha = nº de colaboradores. Grupo do CID (categoria) — dado sensível, sem diagnóstico.</p>
         </CardContent>
       </Card>
 

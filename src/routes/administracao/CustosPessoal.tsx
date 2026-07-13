@@ -192,13 +192,9 @@ function ProfissionalCusto({ linha, mes }: { linha: LinhaPagamentoPessoal; mes: 
             <div className="rounded-md bg-muted/30 p-3 text-sm sm:col-span-2">
               <p className="font-semibold text-secondary">Carga horária efetiva (realizada)</p>
               <p className="text-muted-foreground">
-                {formatarHoras(linha.horasEfetivas)} no mês ·{" "}
-                <span className="text-xs">plantões de 12h contam 11h (1h de almoço); não muda o pagamento</span>
+                {formatarHoras(linha.horasEfetivas)} no mês
               </p>
             </div>
-            <p className="text-xs text-muted-foreground sm:col-span-2">
-              O pagamento usa os plantões REALIZADOS (com check-in e check-out registrados).
-            </p>
           </div>
         )}
 

@@ -254,9 +254,6 @@ function EvolucaoFaturamento({ mes }: { mes: string }) {
         ) : (
           <BarrasMensais pontos={pontos} formatar={(n) => formatarMoeda(n)} tom={serie === "faturamento" ? "primary" : "secondary"} />
         )}
-        <p className="mt-2 text-xs text-muted-foreground">
-          Faturamento = mensalidades (roster presente no mês) + upselling. Resultado desconta o custo de pessoal registrado.
-        </p>
       </CardContent>
     </Card>
   );

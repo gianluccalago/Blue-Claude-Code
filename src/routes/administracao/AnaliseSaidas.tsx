@@ -266,7 +266,6 @@ export function AnaliseSaidas() {
               </CardHeader>
               <CardContent>
                 <BarrasAgrupadas categorias={anosTodos} series={seriesAno} />
-                <p className="mt-2 text-xs text-muted-foreground">Eixo Y = nº de saídas · séries = motivos.</p>
               </CardContent>
             </Card>
           )}
@@ -318,7 +317,6 @@ export function AnaliseSaidas() {
                   </tr>
                 </tfoot>
               </table>
-              <p className="mt-2 text-xs text-muted-foreground">% = participação da faixa no total de saídas do período.</p>
             </CardContent>
           </Card>
 

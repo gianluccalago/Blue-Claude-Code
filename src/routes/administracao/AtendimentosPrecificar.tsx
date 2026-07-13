@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Receipt,
   Ban,
-  CheckCircle2,
 } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
@@ -316,9 +315,6 @@ function GrupoHospede({
                   <Ban className="size-4" /> Não cobrar
                 </Button>
               </div>
-              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <CheckCircle2 className="size-3.5" /> 1 selecionado = cobrança individual · vários = pacote único.
-              </p>
             </div>
           </>
         )}

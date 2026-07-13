@@ -774,10 +774,6 @@ function ModalGrade({ onFechar }: { onFechar: () => void }) {
   return (
     <Modal titulo="Editar grade de horários" onFechar={onFechar}>
       <div className="space-y-4">
-        <p className="text-xs text-muted-foreground">
-          Cria os horários no período (não remove os existentes — bloqueios são preservados). O padrão
-          oferecido pelo site é <span className="font-semibold">10:00, 14:30, 16:00 e 17:30, seg–sex</span>.
-        </p>
         <div>
           <label className="text-sm font-semibold text-secondary">Horários (padrão)</label>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -876,10 +872,6 @@ function ModalNovaVisita({
   return (
     <Modal titulo="Nova visita (pela gestão)" onFechar={onFechar}>
       <div className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Marcação manual livre: escolha <span className="font-semibold">qualquer data e horário</span> (não
-          se limita à grade padrão oferecida no site).
-        </p>
         <Campo label="Nome completo"><input value={nome} onChange={(e) => setNome(e.target.value)} className={inputBase} /></Campo>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="WhatsApp"><input value={whats} onChange={(e) => setWhats(e.target.value)} placeholder="(41) 99999-9999" className={inputBase} /></Campo>
@@ -933,8 +925,7 @@ function ModalRemarcar({
     <Modal titulo={`Remarcar — ${a.nome_completo}`} onFechar={onFechar}>
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Atual: {formatarDataBR(a.data)} às {formatarHora(a.hora)}. O horário atual é liberado automaticamente.
-          Pode escolher qualquer data/horário.
+          Atual: {formatarDataBR(a.data)} às {formatarHora(a.hora)}.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Nova data"><input type="date" value={data} onChange={(e) => setData(e.target.value)} className={inputBase} /></Campo>

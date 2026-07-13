@@ -287,10 +287,6 @@ function SecaoAfastamentos({ profissionais }: { profissionais: Usuario[] }) {
         <MesNav mes={mes} setMes={setMes} />
       </Cabecalho>
 
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-        <ShieldAlert className="size-3.5 shrink-0 text-warning" /> Dado sensível de saúde: registra-se só o GRUPO do CID, nunca o diagnóstico. Acesso restrito à gestão.
-      </div>
-
       {form.aberto && <FormAfastamento profissionais={profissionais} editar={form.editar} onFechar={() => setForm({ aberto: false, editar: null })} />}
 
       {itens.length === 0 ? (

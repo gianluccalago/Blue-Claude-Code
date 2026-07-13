@@ -130,10 +130,6 @@ export function CobrancaTemporaria() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        A tabela é só referência — pacotes e combinações são livres (não tabelados). As cobranças entram no
-        demonstrativo do hóspede e no faturamento do mês.
-      </p>
     </div>
   );
 }
@@ -159,7 +155,6 @@ function TabelaReferencia({ tabela, podeEditar }: { tabela: TabelaDiaria[]; pode
             ))}
           </div>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">Valores orientativos por modalidade × grau. A cobrança real é lançada aberta.</p>
       </CardContent>
     </Card>
   );

@@ -142,7 +142,6 @@ export function FunilVendas() {
                   adicionar uma segunda série/sobreposição aqui. Correção por IPCA é
                   sofisticação futura (não aplicada). */}
               <BarrasMensais pontos={linhas.map((l) => ({ mes: l.mes, valor: l.ticketMedio ?? 0 }))} formatar={(n) => formatarMoeda(n)} tom="primary" />
-              <p className="mt-2 text-xs text-muted-foreground">Realizado (ticket médio das vendas do mês). Série "Meta" entra quando o módulo de OKR existir.</p>
             </CardContent>
           </Card>
 
@@ -187,10 +186,6 @@ export function FunilVendas() {
                   </tr>
                 </tfoot>
               </table>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Funil por coorte de criação (oportunidades criadas no mês e seu desfecho). Meses recentes ainda em maturação.
-                Vendas por tipo (LP/CP/SD) entram quando o CRM distinguir o tipo de admissão.
-              </p>
             </CardContent>
           </Card>
         </>

@@ -360,10 +360,6 @@ export function SupervisaoClinica() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 text-xs text-muted-foreground/80">
-                Grau "≠" sinaliza divergência entre o grau atual (última IVCF) e o contratual.
-                IVCF: atualizado / vencido &gt; 6 meses / sem avaliação.
-              </p>
             </>
           )}
         </CardContent>

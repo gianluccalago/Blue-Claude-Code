@@ -204,7 +204,6 @@ export function VigilanciaRelatorio() {
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
             <p className="text-secondary">
               Assinado por <span className="font-semibold">{RT_ASSINATURA.nome}</span> — {RT_ASSINATURA.crm} — CPF {RT_ASSINATURA.cpf}
-              <span className="block text-xs text-muted-foreground">Identificação fixa (não editável). Assinatura eletrônica institucional com hash de verificação.</span>
             </p>
           </div>
         </CardContent>
