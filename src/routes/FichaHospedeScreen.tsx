@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
+import { Users, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RegistrarSaidaModal } from "@/components/RegistrarSaidaModal";
 import { useAuth } from "@/auth/AuthProvider";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { useResidentes } from "@/hooks/usePlanos";
@@ -37,6 +39,9 @@ export function FichaHospedeScreen() {
   const search = useSearch({ strict: false }) as { hospede?: string };
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>(search.hospede);
   const [editando, setEditando] = useState(false);
+  const [registrandoSaida, setRegistrandoSaida] = useState(false);
+  // Registrar saída/óbito: mesma permissão do Mapa das Suítes (Master/Direção).
+  const podeRegistrarSaida = perfil === "master" || perfil === "direcao";
 
   const editar = useEditarResidente();
 
@@ -74,13 +79,18 @@ export function FichaHospedeScreen() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
-          <Users className="size-5" />
-        </div>
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+            <Users className="size-5" />
+          </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes</h1>
         </div>
+        {podeRegistrarSaida && hospede && (
+          <Button variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => setRegistrandoSaida(true)}>
+            <LogOut className="size-4" /> Registrar saída
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -128,6 +138,10 @@ export function FichaHospedeScreen() {
       {/* Recado da equipe para a família — só Coordenação/Master. */}
       {hospede && (perfil === "coordenacao" || perfil === "master") && (
         <RecadoFamiliaEditor residenteId={hospede.id} nome={hospede.nome} />
+      )}
+
+      {registrandoSaida && hospede && (
+        <RegistrarSaidaModal residente={hospede} onFechar={() => setRegistrandoSaida(false)} />
       )}
     </div>
   );
