@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sun, CalendarClock, LogOut, Phone, Activity, Utensils, Pill } from "lucide-react";
+import { Sun, CalendarClock, LogOut, Phone } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFrequentadoresDayCare } from "@/hooks/usePlanos";
 import { useRegistrarSaida } from "@/hooks/useCicloVida";
@@ -42,17 +42,7 @@ export function DayCare() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Day Care (hoje)</h1>
-          <p className="text-sm text-muted-foreground">
-            Frequentadores do período da tarde · cuidado leve · não ocupam leito
-          </p>
         </div>
-      </div>
-
-      {/* Contexto do cuidado parcial */}
-      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><Activity className="size-3.5" /> Atividades (multidisciplinar)</span>
-        <span className="inline-flex items-center gap-1"><Utensils className="size-3.5" /> Lanche da tarde (aceitação do período)</span>
-        <span className="inline-flex items-center gap-1"><Pill className="size-3.5" /> Eventual medicação da tarde</span>
       </div>
 
       {frequentadores.length === 0 ? (
@@ -134,9 +124,6 @@ function EncerrarEstadia({ residente, onFechar }: { residente: Residente; onFech
               {MOTIVOS_SAIDA.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            O frequentador sai das telas operacionais; o histórico é preservado (mesma mecânica da saída de longa permanência). Reversível em "Hóspedes inativos".
-          </p>
         </div>
         <div className="mt-6 flex gap-3">
           <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={registrar.isPending}>Cancelar</Button>

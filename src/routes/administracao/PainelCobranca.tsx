@@ -22,7 +22,6 @@ import {
   Mail,
   Phone,
   CreditCard,
-  Info,
 } from "lucide-react";
 import { useFechamentoCobranca, type ItemCobranca, type GrupoCobranca } from "@/hooks/useFechamentoCobranca";
 import { useAtualizarCobranca } from "@/hooks/useMensalidades";
@@ -80,27 +79,12 @@ export function PainelCobranca() {
               <Receipt className="size-3.5" /> Cobrança · controle manual
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Painel de Cobrança</h1>
-            <p className="mt-1.5 max-w-2xl text-sm text-white/70">
-              Fatura por responsável financeiro (mensalidade + extras), com status e vencimento.
-            </p>
           </div>
           <Button variant="secondary" onClick={exportar} disabled={exportando || grupos.length === 0}>
             <FileDown className="size-4" /> {exportando ? "Exportando…" : "Exportar (Excel)"}
           </Button>
         </div>
       </div>
-
-      {/* Aviso honesto sobre a ausência de integração */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            Controle <span className="font-semibold">manual</span>: mova o status na mão (ex.: "Enviada" ao mandar o
-            boleto por fora, "Paga" ao confirmar). A cobrança automática (criar cobrança e receber a confirmação)
-            será integrada no futuro por uma camada de backend — ainda não disponível.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Navegação de mês */}
       <Card>

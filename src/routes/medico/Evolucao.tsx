@@ -4,7 +4,6 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -745,11 +744,6 @@ function ResultadoIVCFCard({
             </div>
           </div>
         )}
-
-        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm text-secondary/80">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
-          <span>Resultado deve ser interpretado por profissional de saúde no contexto clínico do hóspede.</span>
-        </div>
 
         <p className="text-xs text-muted-foreground">
           O grau de dependência do hóspede foi atualizado para <strong>{resultado.classificacao}</strong>.

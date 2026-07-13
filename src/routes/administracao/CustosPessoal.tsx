@@ -65,9 +65,6 @@ export function CustosPessoal() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-secondary">Custos de pessoal</h1>
-          <p className="text-sm text-muted-foreground">
-            Pagamento da equipe por mês — referência de custo e produção (não inclui folha CLT).
-          </p>
         </div>
         <Button
           variant="outline"

@@ -119,7 +119,7 @@ export function Equipe() {
       <div>
         <h2 className="text-2xl font-extrabold tracking-tight text-secondary">Equipe</h2>
         <p className="text-sm text-muted-foreground">
-          Gestão operacional da equipe · {equipe.length} membros (valores ficam na Administração)
+          {equipe.length} membros
         </p>
       </div>
 

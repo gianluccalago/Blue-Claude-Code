@@ -79,9 +79,6 @@ export function VigilanciaVacinacao() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
           <Syringe className="size-6 text-primary" /> Controle de vacinação
         </h2>
-        <p className="text-sm text-muted-foreground">
-          RDC 502/2021 Art. 39 · carteira vacinal dos residentes. Anexar pela ficha do hóspede.
-        </p>
       </div>
 
       {/* Cobertura */}

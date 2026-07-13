@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Scale, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
+import { Scale, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useProporcaoTurno, useHistoricoProporcao } from "@/hooks/useProporcaoRh";
 import { PROPORCAO_RDC, STATUS_PROPORCAO_LABEL, STATUS_PROPORCAO_VARIANTE } from "@/lib/proporcaoRh";
 import { TURNOS_COBERTURA, TURNO_LABEL, turnoCorrente } from "@/lib/cobertura";
@@ -36,22 +36,7 @@ export function VigilanciaProporcao() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
           <Scale className="size-6 text-primary" /> Proporção mínima de cuidadores
         </h2>
-        <p className="text-sm text-muted-foreground">
-          RDC 502/2021 Art. 16, II · I 1:{PROPORCAO_RDC.I} · II 1:{PROPORCAO_RDC.II} · III 1:{PROPORCAO_RDC.III} (ou fração).
-        </p>
       </div>
-
-      {/* Aviso de apoio */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            Verificação de <span className="font-semibold">apoio</span> baseada na proporção da RDC 502 (pelo grau
-            REAL dos hóspedes × escala). O dimensionamento final é responsabilidade da gestão/RT. Interpretação
-            conservadora (Grau I incluído por turno) — ajustável no código.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Seletor data + turno */}
       <Card>
@@ -133,9 +118,6 @@ export function VigilanciaProporcao() {
               <Badge variant="destructive" className="ml-1">{hist.data.abaixo} abaixo do mínimo</Badge>
             )}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Turnos com escala registrada e o status da proporção (para corrigir o dimensionamento).
-          </p>
         </CardHeader>
         <CardContent>
           {hist.isLoading ? (

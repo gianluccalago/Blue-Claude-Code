@@ -51,7 +51,6 @@ export function CrmOrigens() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Origens</h1>
-          <p className="text-sm text-muted-foreground">Como a família chegou até nós (canais de captação)</p>
         </div>
       </div>
 

@@ -102,7 +102,7 @@ export function Residentes() {
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes</h2>
           <p className="text-sm text-muted-foreground">
-            {contadores.total} hóspedes ativos · ficha completa editável
+            {contadores.total} hóspedes ativos
           </p>
         </div>
         <Button onClick={() => setModo("novo")}>

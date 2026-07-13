@@ -109,7 +109,7 @@ export function MapaSuites() {
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Mapa das Suítes</h1>
             <p className="text-sm text-muted-foreground">
-              Hóspedes ativos por tempo de casa · {formatarMesReferencia(mes)}
+              Hóspedes ativos · {formatarMesReferencia(mes)}
             </p>
           </div>
         </div>

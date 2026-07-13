@@ -119,10 +119,6 @@ export function PainelServicos() {
             <Sparkles className="size-3.5" /> Supervisão · leitura + sinalização
           </span>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Serviços</h1>
-          <p className="mt-1.5 max-w-2xl text-sm text-white/70">
-            Acompanhe Hotelaria, Serviços Gerais e Lavanderia. A gestão prioriza chamados (um
-            empurrão), mas não executa nem resolve.
-          </p>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sun, Moon, MapPin, LogIn, LogOut, AlertTriangle } from "lucide-react";
+import { Sun, Moon, LogIn, LogOut, AlertTriangle } from "lucide-react";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useMinhaEscala } from "@/hooks/useTurnos";
 import { useProfissionalAtual, useRegistrarPonto, type TipoPonto } from "@/hooks/usePonto";
@@ -191,14 +191,6 @@ function PontoBloco({ turno: t, isento }: { turno: Turno; isento: boolean }) {
         </p>
       )}
 
-      {isento ? (
-        <p className="text-xs text-muted-foreground">Controle interno — não substitui o ponto eletrônico oficial.</p>
-      ) : (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="size-3.5" /> Controle interno — exige localização no estabelecimento (raio de{" "}
-          {ESTABELECIMENTO.raioCheckinMetros}m).
-        </p>
-      )}
     </div>
   );
 }

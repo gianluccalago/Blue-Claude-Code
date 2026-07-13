@@ -83,7 +83,6 @@ export function CustosMateriais() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Custos de materiais</h1>
-            <p className="text-sm text-muted-foreground">Limpeza e manutenção · alimenta o resultado do mês</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

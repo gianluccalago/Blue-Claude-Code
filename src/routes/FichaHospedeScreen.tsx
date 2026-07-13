@@ -80,9 +80,6 @@ export function FichaHospedeScreen() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes</h1>
-          <p className="text-sm text-muted-foreground">
-            {restrito ? "Seus hóspedes designados" : "Ficha completa do hóspede"}
-          </p>
         </div>
       </div>
 

@@ -69,7 +69,6 @@ export function Peso() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Peso e IMC</h1>
-          <p className="text-sm text-muted-foreground">Pesagem mensal, IMC e tendência (referência geriátrica).</p>
         </div>
       </div>
 

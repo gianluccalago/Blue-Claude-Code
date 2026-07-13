@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
-  ClipboardList, FileDown, AlertTriangle, Activity, Hospital, Plus, ExternalLink, CalendarClock, Info, Loader2,
+  ClipboardList, FileDown, AlertTriangle, Activity, Hospital, Plus, ExternalLink, CalendarClock, Loader2,
 } from "lucide-react";
 import { usePatologiasPrevalentes, useRecursosSaude } from "@/hooks/usePatologias";
 import { usePlanosSaude, useSalvarPlano } from "@/hooks/usePlanoSaude";
@@ -64,22 +64,7 @@ export function VigilanciaPlano() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
           <ClipboardList className="size-6 text-primary" /> Plano de Atenção à Saúde — apoio
         </h2>
-        <p className="text-sm text-muted-foreground">
-          RDC 502/2021 Art. 36-38 · insumos do plano + documento e lembretes. O plano é elaborado pelo RT.
-        </p>
       </div>
-
-      {/* Aviso */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            O app <span className="font-semibold">não gera</span> o Plano de Atenção à Saúde — ele é responsabilidade
-            do RT, articulado com o gestor local de saúde. Aqui ficam os <span className="font-semibold">insumos</span>
-            {" "}(patologias prevalentes e recursos por residente) e o <span className="font-semibold">documento</span> do plano com os lembretes legais.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Alertas de revisão/avaliação */}
       {(st.revisaoVencida || st.revisaoProxima || st.avaliacaoVencida || st.avaliacaoProxima) && (

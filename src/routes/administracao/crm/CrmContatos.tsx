@@ -250,9 +250,6 @@ function ContatoModal({
             <select value={baseLegal} onChange={(e) => setBaseLegal(e.target.value as BaseLegal)} className={inputBase}>
               {Object.entries(BASE_LEGAL_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Registre a base legal que autoriza o tratamento dos dados desta família/idoso.
-            </p>
           </div>
 
           <div>

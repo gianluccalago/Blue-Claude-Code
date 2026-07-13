@@ -50,9 +50,6 @@ export function EvolucaoAdmissao() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <ClipboardPlus className="size-6 text-primary" /> Evolução de admissão
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Avaliação geriátrica inicial. Alimenta o cadastro: comorbidades, prescrição contínua, alergias e peso.
-          </p>
         </div>
       </div>
 

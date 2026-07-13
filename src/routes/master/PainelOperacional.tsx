@@ -175,9 +175,6 @@ export function PainelOperacional() {
             <Sparkles className="size-3.5" /> Tempo real
           </span>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Painel operacional</h2>
-          <p className="mt-1 text-sm text-white/70">
-            Supervisão consolidada de toda a operação · modo leitura
-          </p>
         </div>
       </div>
 

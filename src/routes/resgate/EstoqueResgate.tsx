@@ -461,9 +461,6 @@ function FormReposicao({
           <PackagePlus className="size-5 text-primary" />
           Cadastrar novo item de resgate
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Para repor itens existentes, use o botão "Repor" ao lado de cada medicamento no estoque.
-        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">

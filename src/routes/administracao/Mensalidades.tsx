@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, Info, Pencil } from "lucide-react";
+import { AlertCircle, Pencil } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import {
   useAjustarMensalidade,
@@ -64,17 +64,6 @@ export function Mensalidades() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            Aqui você define o <span className="font-semibold">valor</span> da mensalidade e o responsável
-            financeiro de cada hóspede. O <span className="font-semibold">status de pagamento</span> (enviado,
-            pago, vencido) fica em <span className="font-semibold">Cobrança</span> — fonte única.
-          </p>
-        </CardContent>
-      </Card>
-
       <div className="space-y-4">
         {residentes.data.map((r) => (
           <ResidenteMensalidade key={r.id} residente={r} valorSugerido={precoSugerido(r)} />

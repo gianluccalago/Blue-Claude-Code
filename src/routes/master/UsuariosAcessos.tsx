@@ -106,7 +106,7 @@ export function UsuariosAcessos() {
             Usuários e acessos
           </h2>
           <p className="text-sm text-muted-foreground">
-            {totalAtivos} ativos · {lista.length} no total · o e-mail será o login de cada usuário
+            {totalAtivos} ativos · {lista.length} no total
           </p>
         </div>
         <Button

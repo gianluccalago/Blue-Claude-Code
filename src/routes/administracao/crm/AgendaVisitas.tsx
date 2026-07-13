@@ -128,9 +128,6 @@ export function AgendaVisitas() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <CalendarDays className="size-6 text-primary" /> Agenda de Visitas
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Fonte única, compartilhada com o site. Disponível · Ocupado · Bloqueado.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setGrade(true)}>

@@ -213,7 +213,7 @@ export function PainelHotelaria() {
           <p className="text-sm text-muted-foreground">
             {chamadosAbertos === 0
               ? "Nenhum chamado em aberto direcionado à Hotelaria."
-              : `${chamadosAbertos} chamado(s) em aberto/andamento direcionados à Hotelaria (governança/limpeza). A manutenção predial é de Serviços Gerais.`}
+              : `${chamadosAbertos} chamado(s) em aberto/andamento direcionados à Hotelaria.`}
           </p>
         </CardContent>
       </Card>

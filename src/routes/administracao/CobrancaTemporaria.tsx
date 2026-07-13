@@ -94,7 +94,6 @@ export function CobrancaTemporaria() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Cobrança de temporários</h1>
-            <p className="text-sm text-muted-foreground">Curta permanência e day care · diária/pacote (valor livre)</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

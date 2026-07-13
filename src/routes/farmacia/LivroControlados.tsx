@@ -6,7 +6,6 @@ import {
   ShieldAlert,
   Plus,
   Undo2,
-  Lock,
   FileSearch,
 } from "lucide-react";
 import { usuarioAtual } from "@/auth/usuarioAtual";
@@ -102,9 +101,6 @@ export function LivroControlados() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <BookLock className="size-6 text-primary" /> Livro de controlados
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Portaria 344/98 · registro de medicamentos sujeitos a controle especial.
-          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={rodarVerificacao} loading={verificar.isPending}>
@@ -116,13 +112,6 @@ export function LivroControlados() {
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Aviso permanente de imutabilidade */}
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-        <Lock className="size-4 shrink-0 text-secondary" />
-        Assentos são definitivos: não podem ser editados nem excluídos por nenhum acesso.
-        Para corrigir, registre um <strong className="text-secondary">estorno</strong> — o erro e a correção ficam ambos no livro.
       </div>
 
       {/* Resultado da verificação */}

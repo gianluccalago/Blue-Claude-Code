@@ -27,7 +27,6 @@ import {
   DollarSign,
   History,
   Lock,
-  CalendarClock,
 } from "lucide-react";
 import { useDefinirPrecoVigencia, useTabelaPreco } from "@/hooks/useMensalidades";
 import {
@@ -82,21 +81,6 @@ export function TabelaPrecos() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <p className="text-sm text-muted-foreground">
-            Valores de referência por tipo de suíte × grau de dependência × ocupação (27
-            combinações), com <strong>histórico por data de vigência</strong>. Esses valores
-            sugerem a mensalidade de novos hóspedes (pelo preço vigente na data de entrada),
-            mas podem ser ajustados individualmente por hóspede.
-          </p>
-          <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-secondary">
-            <CalendarClock className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>
-              Um reajuste vale <strong>a partir da data de vigência</strong> escolhida e afeta
-              somente <strong>novos contratos</strong>. Residentes atuais não são reajustados
-              automaticamente — a mensalidade de cada um continua no valor já definido.
-            </span>
-          </div>
-
           {!podeEditar && (
             <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               <Lock className="mt-0.5 size-4 shrink-0" />

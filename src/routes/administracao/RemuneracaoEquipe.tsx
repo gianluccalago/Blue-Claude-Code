@@ -35,10 +35,6 @@ export function RemuneracaoEquipe() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-secondary">Remuneração da equipe</h1>
-        <p className="text-sm text-muted-foreground">
-          Valores de referência para pagamento (mensal fixo ou por plantão). Não inclui cálculo de folha CLT
-          (impostos/encargos).
-        </p>
       </div>
 
       <div className="space-y-4">

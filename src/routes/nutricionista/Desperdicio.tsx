@@ -15,7 +15,6 @@ import {
   X,
   Scale,
   TrendingDown,
-  AlertTriangle,
 } from "lucide-react";
 import { usePratos, useTodosPratoInsumos } from "@/hooks/usePratos";
 import { useInsumos } from "@/hooks/useInsumos";
@@ -106,20 +105,8 @@ export function Desperdicio() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Desperdício</h1>
-          <p className="text-sm text-muted-foreground">Peso descartado e valor ESTIMADO (aproximado).</p>
         </div>
       </div>
-
-      {/* Aviso de estimativa */}
-      <Card className="border-warning/40 bg-warning/5">
-        <CardContent className="flex items-start gap-2 py-3 text-xs text-secondary">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
-          <span>
-            O <strong>valor é estimado</strong> (peso × custo médio por kg), não é dado contábil. Serve para
-            acompanhar tendência e calibrar a produção.
-          </span>
-        </CardContent>
-      </Card>
 
       {/* Registrar */}
       <FormDesperdicio custoPorcao={custoPorcao} />

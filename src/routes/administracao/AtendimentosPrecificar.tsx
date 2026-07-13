@@ -96,10 +96,6 @@ export function AtendimentosPrecificar() {
             <Stethoscope className="size-3.5" /> Atendimentos individuais
           </span>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Atendimentos a precificar</h1>
-          <p className="mt-1.5 max-w-2xl text-sm text-white/70">
-            Decida por hóspede: não cobrar (incluso), cobrar individual ou agrupar num pacote. A
-            cobrança vira upselling.
-          </p>
         </div>
       </div>
 

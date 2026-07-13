@@ -1,11 +1,11 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { Brain, Save, Image as ImageIcon, Info } from "lucide-react";
+import { Brain, Save, Image as ImageIcon } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useRegistrarTesteCognitivo } from "@/hooks/useTestesCognitivos";
 import { HistoricoTestesCognitivos } from "@/components/medico/HistoricoTestesCognitivos";
 import {
-  itensDoTeste, pontuacaoTotal, calcularMoca, limitar, AVISO_INTERPRETACAO, TOTAL_MAX, type TipoTeste,
+  itensDoTeste, pontuacaoTotal, calcularMoca, limitar, TOTAL_MAX, type TipoTeste,
 } from "@/lib/testesCognitivos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,6 @@ export function TestesCognitivos() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
           <Brain className="size-6 text-primary" /> Testes cognitivos
         </h2>
-        <p className="text-sm text-muted-foreground">
-          MEEM e MoCA — avaliativos (não alteram o grau). Aplique no material oficial; registre a pontuação aqui.
-        </p>
       </div>
 
       <Card>
@@ -125,15 +122,6 @@ function NovoTeste({ residenteId }: { residenteId: string }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Aviso de direitos autorais */}
-        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-secondary">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p>
-            Aplique o teste no <span className="font-semibold">material oficial (papel)</span> e registre aqui só a
-            pontuação por item/seção. O app não reproduz os estímulos protegidos do instrumento.
-          </p>
-        </div>
-
         {/* Itens pontuados */}
         <div className="space-y-1.5">
           {itens.map((it) => (
@@ -186,7 +174,6 @@ function NovoTeste({ residenteId }: { residenteId: string }) {
           <textarea value={interpretacao} onChange={(e) => setInterpretacao(e.target.value)} rows={2}
             className="w-full resize-none rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Síntese clínica (sem classificação automática)…" />
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" /> {AVISO_INTERPRETACAO}</p>
         </div>
 
         <Button onClick={salvar} disabled={registrar.isPending}>

@@ -80,9 +80,6 @@ export function DocumentosInstitucionais() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <FolderCheck className="size-6 text-primary" /> Documentação Institucional
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Documentos da casa (Lei 13.725/04 · RDC 283/05→502/21 · Port. 344/98). Adicione, edite e acompanhe validades.
-          </p>
         </div>
         <Button onClick={() => setCriando(true)}>
           <Plus className="size-4" /> Adicionar documento

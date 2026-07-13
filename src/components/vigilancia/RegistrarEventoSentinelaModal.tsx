@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { AlertTriangle, X, ShieldAlert } from "lucide-react";
+import { X, ShieldAlert } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useRegistrarEventoSentinela } from "@/hooks/useEventosSentinela";
-import { TIPO_SENTINELA, TIPO_SENTINELA_ARTIGO } from "@/lib/vigilancia";
+import { TIPO_SENTINELA } from "@/lib/vigilancia";
 import { Button } from "@/components/ui/button";
 import type { TipoEventoSentinela } from "@/types/database";
 
@@ -86,16 +86,6 @@ export function RegistrarEventoSentinelaModal({
             <ShieldAlert className="size-5 text-destructive" /> Registrar evento sentinela
           </h2>
           <button onClick={onFechar} className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted"><X className="size-4" /></button>
-        </div>
-
-        {/* Alerta legal explícito */}
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <p>
-            Evento de <strong>notificação compulsória</strong> ({TIPO_SENTINELA_ARTIGO[tipo]} da RDC 502/2021) —
-            requer notificação à autoridade sanitária. Após registrar, o Responsável Técnico documenta a
-            notificação na aba Vigilância Sanitária.
-          </p>
         </div>
 
         <div className="space-y-3">

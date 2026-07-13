@@ -51,7 +51,6 @@ export function AtendimentosIndividuais() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Atendimentos individuais</h1>
-          <p className="text-sm text-muted-foreground">Sessões individuais com evolução clínica.</p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Activity, ChevronLeft, ChevronRight, FileDown, Plus, CalendarClock, Info } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, FileDown, Plus, CalendarClock } from "lucide-react";
 import { useDadosIndicadoresRdc } from "@/hooks/useAgravos";
 import { RegistrarAgravoModal } from "@/components/vigilancia/RegistrarAgravoModal";
 import {
@@ -59,9 +59,6 @@ export function VigilanciaIndicadores() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <Activity className="size-6 text-primary" /> Indicadores obrigatórios — RDC 502/2021
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Art. 58-60 e Anexo · cálculo mensal automático. População de referência = residentes no dia 15.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => exportar(ano)}>
@@ -89,18 +86,6 @@ export function VigilanciaIndicadores() {
           </CardContent>
         </Card>
       )}
-
-      {/* Aviso de transparência */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            Cada indicador é calculado por <span className="font-semibold">numerador ÷ denominador × 100</span>,
-            com os valores visíveis para auditoria. <span className="font-semibold">Taxa 0% é um resultado
-            válido</span> (sem casos no período).
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Navegação de mês */}
       <Card>

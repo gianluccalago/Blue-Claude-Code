@@ -192,9 +192,6 @@ export function PainelEstrategico() {
               <Sparkles className="size-3.5" /> Visão executiva
             </span>
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Painel estratégico</h2>
-            <p className="mt-1 text-sm text-white/70">
-              Voo-alto da operação · indicadores em dados reais
-            </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 backdrop-blur-sm">
             <CalendarDays className="ml-1 size-4 text-white/70" />

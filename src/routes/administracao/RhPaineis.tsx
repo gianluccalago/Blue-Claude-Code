@@ -102,7 +102,6 @@ export function RhPaineis() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Painéis de RH</h1>
-            <p className="text-sm text-muted-foreground">Cobertura de escala · turnover · absenteísmo</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

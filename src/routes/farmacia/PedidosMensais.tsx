@@ -168,10 +168,6 @@ export function PedidosMensais() {
             <FileText className="size-3.5" /> Emissão em lote
           </span>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Pedidos mensais</h1>
-          <p className="mt-1.5 max-w-2xl text-sm text-white/70">
-            Selecione os hóspedes e extraia as receitas (PDF) para enviar à farmácia externa.
-            Cada receita sai assinada pelo médico que a prescreveu.
-          </p>
         </div>
       </div>
 

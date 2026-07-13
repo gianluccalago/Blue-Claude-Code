@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, FileDown, Pencil, History, Info, ShieldCheck } from "lucide-react";
+import { FileText, FileDown, Pencil, History, ShieldCheck } from "lucide-react";
 import { useDadosRelatorio, useRelatoriosExtraidos, useSalvarRelatorioExtraido } from "@/hooks/useRelatorioSanitario";
 import {
   calcularValoresRelatorio, rotuloPeriodo, RT_ASSINATURA,
@@ -104,22 +104,7 @@ export function VigilanciaRelatorio() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
           <FileText className="size-6 text-primary" /> Extrair Relatório Sanitário
         </h2>
-        <p className="text-sm text-muted-foreground">
-          PDF consolidado dos indicadores RDC 502/2021, revisado e assinado pelo Responsável Técnico.
-        </p>
       </div>
-
-      {/* Aviso de validação/edição */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            O sistema calcula os valores; você pode <span className="font-semibold">auditar e editar</span> qualquer
-            número antes de extrair (o PDF é uma <span className="font-semibold">validação do RT</span>). A edição
-            NÃO altera os registros do sistema — fica guardada na trilha interna (original × editado), que não aparece no PDF.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Período */}
       <Card>

@@ -80,9 +80,6 @@ export function EscalaCozinha() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Escala da cozinha</h1>
-          <p className="text-sm text-muted-foreground">
-            Escala própria da cozinha (CLT) · controle interno da Nutrição · sem ponto.
-          </p>
         </div>
       </div>
 

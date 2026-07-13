@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { X, Activity, AlertTriangle } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useRegistrarAgravo } from "@/hooks/useAgravos";
-import { INDICADORES_RDC, AGRAVO_LABEL, TIPO_REGISTRO_DE } from "@/lib/indicadoresRdc";
+import { INDICADORES_RDC, AGRAVO_LABEL } from "@/lib/indicadoresRdc";
 import { Button } from "@/components/ui/button";
 import { hojeISO } from "@/lib/utils";
 import type { TipoAgravo } from "@/types/database";
@@ -50,15 +50,13 @@ export function RegistrarAgravoModal({ onFechar }: { onFechar: () => void }) {
     }
   }
 
-  const medida = TIPO_REGISTRO_DE[tipo] === "incidencia" ? "Incidência (caso novo no mês)" : "Prevalência (caso presente no mês)";
-
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Registrar agravo" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
-            <Activity className="size-5 text-primary" /> Registrar agravo (RDC 502)
+            <Activity className="size-5 text-primary" /> Registrar agravo
           </h2>
           <button onClick={onFechar} className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted"><X className="size-4" /></button>
         </div>
@@ -77,7 +75,6 @@ export function RegistrarAgravoModal({ onFechar }: { onFechar: () => void }) {
             <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoAgravo)} className={inputBase}>
               {INDICADORES_RDC.map((d) => <option key={d.key} value={d.key}>{AGRAVO_LABEL[d.key]}</option>)}
             </select>
-            <p className="text-xs text-muted-foreground">{medida}</p>
           </div>
 
           <div className="space-y-1">

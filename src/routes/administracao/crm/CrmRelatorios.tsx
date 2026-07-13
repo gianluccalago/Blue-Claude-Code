@@ -56,7 +56,6 @@ export function CrmRelatorios() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Relatórios do funil</h1>
-            <p className="text-sm text-muted-foreground">Conversão, origens, perdas e tempo até admissão</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -30,7 +30,6 @@ export function CrmConfig() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Configurações do funil</h1>
-            <p className="text-sm text-muted-foreground">Etapas do pipeline e motivos de perda</p>
           </div>
         </div>
 

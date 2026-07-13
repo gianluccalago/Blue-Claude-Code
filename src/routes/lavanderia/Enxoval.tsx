@@ -85,9 +85,6 @@ export function Enxoval() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Enxoval da casa</h1>
-            <p className="text-sm text-muted-foreground">
-              Patrimônio (jogos de cama, toalhas, cobertores): quanto existe, disponível limpo e reposição.
-            </p>
           </div>
         </div>
         {podeEditar && !cadastrando && !editando && (
@@ -396,12 +393,6 @@ function FormMovimento({
           )}
         </label>
       </div>
-      {ajuste && (
-        <p className="text-xs text-muted-foreground">
-          Acerto da contagem de peças limpas (reflete o que voltou da lavagem / saiu para uso).
-          O patrimônio total não muda.
-        </p>
-      )}
       <div className="flex gap-2">
         <Button size="sm" onClick={submit} disabled={!valido || mov.isPending}>
           <Check className="size-4" /> {mov.isPending ? "Salvando…" : "Confirmar"}
@@ -501,11 +492,6 @@ function FormItem({ item, onFechar }: { item: Enxoval | null; onFechar: () => vo
             />
           </label>
         </div>
-        {editando && (
-          <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            As quantidades (total e disponível) mudam pelos movimentos: Entrada, Baixa por perda e Ajuste.
-          </p>
-        )}
         <div className="flex gap-2">
           <Button onClick={submit} disabled={!valido || salvar.isPending}>
             <Check className="size-4" /> {salvar.isPending ? "Salvando…" : "Salvar"}

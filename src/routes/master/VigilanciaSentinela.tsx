@@ -103,9 +103,6 @@ export function VigilanciaSentinela() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-secondary">
             <ShieldAlert className="size-6 text-primary" /> Eventos sentinela e notificação compulsória
           </h2>
-          <p className="text-sm text-muted-foreground">
-            RDC 502/2021 · Art. 54 e 55 — controle de notificação à vigilância (Responsável Técnico).
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={exportar} disabled={filtrados.length === 0}>
@@ -116,18 +113,6 @@ export function VigilanciaSentinela() {
           </Button>
         </div>
       </div>
-
-      {/* Aviso legal honesto */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex items-start gap-3 py-3">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-xs text-secondary">
-            Registrar a notificação aqui <span className="font-semibold">documenta</span> o cumprimento da
-            obrigação legal — <span className="font-semibold">não substitui</span> a notificação real à
-            autoridade sanitária, que deve ser feita pelos canais oficiais.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* KPIs */}
       <div className="grid gap-3 sm:grid-cols-3">
@@ -339,10 +324,6 @@ function NotificacaoModal({ evento, onFechar }: { evento: EventoSentinelaComNome
           </p>
           <p className="text-xs text-muted-foreground">Ocorrência: {formatarDataHoraBR(evento.data_ocorrencia)}</p>
         </div>
-
-        <p className="mb-3 text-xs text-muted-foreground">
-          Documente a notificação feita à autoridade sanitária (este registro não a substitui).
-        </p>
 
         <div className="space-y-3">
           <div className="space-y-1">

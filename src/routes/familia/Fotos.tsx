@@ -24,9 +24,6 @@ export function Fotos() {
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="size-5 text-primary" /> Fotos das atividades
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Registros visuais das atividades em que o hóspede participou. Apenas visualização.
-          </p>
         </CardHeader>
       </Card>
 

@@ -331,9 +331,6 @@ function TelefonePlantaoCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Número FIXO do aparelho da casa que fica com a enfermagem de plantão. Aparece em destaque no portal da família.
-        </p>
         <div className="flex flex-wrap items-center gap-2">
           <input value={texto} onChange={(e) => setValor(e.target.value)} placeholder="(41) 0000-0000" className="h-11 w-56 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           <Button onClick={handleSalvar} disabled={salvar.isPending || atual.isLoading}>{salvar.isPending ? "Salvando…" : "Salvar"}</Button>

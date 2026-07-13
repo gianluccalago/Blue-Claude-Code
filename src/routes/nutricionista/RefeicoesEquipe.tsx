@@ -64,9 +64,6 @@ export function RefeicoesEquipe() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Custo de refeições da equipe</h1>
-          <p className="text-sm text-muted-foreground">
-            Estimativa do custo da alimentação dos funcionários (benefício — não gera cobrança).
-          </p>
         </div>
       </div>
 

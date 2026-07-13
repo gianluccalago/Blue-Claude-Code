@@ -73,7 +73,6 @@ export function Cardapios() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Cardápios</h1>
-          <p className="text-sm text-muted-foreground">Monte o cardápio do dia por tipo de restrição.</p>
         </div>
       </div>
 

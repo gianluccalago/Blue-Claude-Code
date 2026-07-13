@@ -45,7 +45,7 @@ export function HospedesInativos() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes inativos</h1>
           <p className="text-sm text-muted-foreground">
-            Histórico de saídas · {lista.length} hóspede{lista.length !== 1 ? "s" : ""}. Prontuário e financeiro preservados.
+            {lista.length} hóspede{lista.length !== 1 ? "s" : ""}
           </p>
         </div>
       </div>

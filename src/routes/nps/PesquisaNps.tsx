@@ -78,9 +78,6 @@ export function PesquisaNps() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Pesquisa NPS</h1>
-          <p className="text-sm text-muted-foreground">
-            Conduza a conversa e registre as notas (0 a 10) de cada dimensão.
-          </p>
         </div>
       </div>
 

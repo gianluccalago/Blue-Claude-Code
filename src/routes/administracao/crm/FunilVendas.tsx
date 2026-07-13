@@ -92,7 +92,7 @@ export function FunilVendas() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Funil de Vendas</h1>
-            <p className="text-sm text-muted-foreground">Visão histórica e de conversão · 12 meses até {formatarMesReferencia(mesAte)}</p>
+            <p className="text-sm text-muted-foreground">12 meses até {formatarMesReferencia(mesAte)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

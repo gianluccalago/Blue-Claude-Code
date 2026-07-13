@@ -179,7 +179,6 @@ export function AnaliseSaidas() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Análise de Saídas</h1>
-            <p className="text-sm text-muted-foreground">Churn dos hóspedes · motivos e tempo de permanência</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

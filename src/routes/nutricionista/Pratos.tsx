@@ -76,7 +76,6 @@ export function Pratos() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Pratos</h1>
-          <p className="text-sm text-muted-foreground">Fichas técnicas com custo por porção.</p>
         </div>
       </div>
 

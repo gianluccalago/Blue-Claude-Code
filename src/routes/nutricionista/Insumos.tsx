@@ -41,7 +41,6 @@ export function Insumos() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Insumos e contratos</h1>
-          <p className="text-sm text-muted-foreground">Custos de contrato dos insumos e fornecedores.</p>
         </div>
       </div>
 
