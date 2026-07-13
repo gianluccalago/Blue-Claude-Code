@@ -81,7 +81,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Controle de vacinação", to: "/app/master/vigilancia-vacinacao", grupo: "Vigilância Sanitária" },
       { label: "Proporção de cuidadores", to: "/app/master/vigilancia-proporcao", grupo: "Vigilância Sanitária" },
       { label: "Patologias e Plano de Saúde", to: "/app/master/vigilancia-plano", grupo: "Vigilância Sanitária" },
-      { label: "Documentos da casa", to: "/app/master/documentos-institucionais", grupo: "Vigilância Sanitária" },
+      { label: "Documentação Institucional", to: "/app/master/documentos-institucionais", grupo: "Vigilância Sanitária" },
       { label: "Livro de controlados", to: "/app/master/livro-controlados", grupo: "Vigilância Sanitária" },
       { label: "Extrair relatório sanitário", to: "/app/master/vigilancia-relatorio", grupo: "Vigilância Sanitária" },
       // SISTEMA
@@ -327,7 +327,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Day Care", to: "/app/administracao/day-care", grupo: "Operacional" },
       { label: "Serviços", to: "/app/administracao/servicos", grupo: "Operacional" },
       { label: "Enxoval", to: "/app/administracao/enxoval", grupo: "Operacional" },
-      { label: "Documentos da casa", to: "/app/administracao/documentos-institucionais", grupo: "Operacional" },
+      { label: "Documentação Institucional", to: "/app/administracao/documentos-institucionais", grupo: "Operacional" },
       { label: "Solicitações da família", to: "/app/administracao/solicitacoes-familia", grupo: "Operacional" },
       // ESTRATÉGICO
       { label: "Painel da Administração", to: "/app/administracao", grupo: "Estratégico" },
@@ -369,7 +369,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Day Care", to: "/app/direcao/day-care", grupo: "Operacional" },
       { label: "Serviços", to: "/app/direcao/servicos", grupo: "Operacional" },
       { label: "Enxoval", to: "/app/direcao/enxoval", grupo: "Operacional" },
-      { label: "Documentos da casa", to: "/app/direcao/documentos-institucionais", grupo: "Operacional" },
+      { label: "Documentação Institucional", to: "/app/direcao/documentos-institucionais", grupo: "Operacional" },
       { label: "Livro de controlados", to: "/app/direcao/livro-controlados", grupo: "Operacional" },
       { label: "Solicitações da família", to: "/app/direcao/solicitacoes-familia", grupo: "Operacional" },
       // ESTRATÉGICO

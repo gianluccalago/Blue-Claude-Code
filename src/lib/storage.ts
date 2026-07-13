@@ -303,12 +303,12 @@ export const BUCKET_DOCUMENTOS_INSTITUCIONAIS = "documentos-institucionais";
 /**
  * Upload de um documento institucional da ILPI (alvará, AVCB, contrato etc.).
  * Bucket PRIVADO — retorna o CAMINHO do objeto (exibição por URL assinada).
- * `null` em caso de falha.
+ * Nome único (uuid) — modelo livre, sem pasta por tipo. `null` em caso de falha.
  */
-export async function uploadDocumentoInstitucional(file: File, tipo: string): Promise<string | null> {
+export async function uploadDocumentoInstitucional(file: File): Promise<string | null> {
   try {
     const ext = file.name.split(".").pop() || "pdf";
-    const path = `${tipo}/${Date.now()}.${ext}`;
+    const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage
       .from(BUCKET_DOCUMENTOS_INSTITUCIONAIS)
       .upload(path, file, { upsert: false });
@@ -316,5 +316,15 @@ export async function uploadDocumentoInstitucional(file: File, tipo: string): Pr
     return path;
   } catch {
     return null;
+  }
+}
+
+/** Remove o objeto de um documento institucional (na exclusão/substituição). */
+export async function removerDocumentoInstitucional(path: string | null | undefined): Promise<void> {
+  if (!path || /^https?:\/\//i.test(path)) return; // ignora vazio/URL legada
+  try {
+    await supabase.storage.from(BUCKET_DOCUMENTOS_INSTITUCIONAIS).remove([path]);
+  } catch {
+    /* falha ao remover o arquivo não deve travar a exclusão do registro */
   }
 }

@@ -2152,7 +2152,7 @@ export interface Database {
       documento_institucional: {
         Row: {
           id: string;
-          tipo: string;
+          tipo: string | null;
           nome: string;
           identificador: string | null;
           orgao_emissor: string | null;
@@ -2165,7 +2165,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          tipo: string;
+          tipo?: string | null;
           nome: string;
           identificador?: string | null;
           orgao_emissor?: string | null;
