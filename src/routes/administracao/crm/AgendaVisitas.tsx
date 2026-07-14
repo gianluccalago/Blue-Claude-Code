@@ -167,19 +167,21 @@ export function AgendaVisitas() {
         <EmptyState label="Sem grade de horários nesta semana. Use “Editar grade” para criar." />
       ) : (
         <Card>
-          <CardContent className="planilha-fixa p-0">
-            <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
+          <CardContent className="p-0">
+            {/* Grade semanal SEM scroll interno: colunas estreitas de largura
+                fixa (table-fixed) e rótulos condensados para caber na tela. */}
+            <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-20 bg-card px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    Horário
+                  <th className="w-16 bg-card px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Hora
                   </th>
                   {dias.map((d) => {
                     const dataISO = isoLocal(d);
                     const slotsDoDia = slots.filter((s) => s.data === dataISO);
                     const todosBloq = slotsDoDia.length > 0 && slotsDoDia.every((s) => s.bloqueada);
                     return (
-                      <th key={dataISO} className="bg-card px-2 py-2 text-center align-top">
+                      <th key={dataISO} className="bg-card px-1 py-2 text-center align-top">
                         <div className="text-xs font-bold text-secondary">
                           {DIAS_SEMANA[isodow(d) - 1].curto} {d.getDate()}/{d.getMonth() + 1}
                         </div>
@@ -194,7 +196,7 @@ export function AgendaVisitas() {
               <tbody>
                 {horarios.map((h) => (
                   <tr key={h}>
-                    <td className="sticky left-0 z-10 border-t bg-card px-3 py-1.5 text-xs font-semibold tabular-nums text-secondary">
+                    <td className="border-t bg-card px-2 py-1.5 text-xs font-semibold tabular-nums text-secondary">
                       {h}
                     </td>
                     {dias.map((d) => {
@@ -202,7 +204,7 @@ export function AgendaVisitas() {
                       const slot = slotPorChave.get(chaveSlot(dataISO, h));
                       const ocup = ocupados.get(chaveSlot(dataISO, h));
                       return (
-                        <td key={dataISO} className="border-t px-1.5 py-1.5 text-center">
+                        <td key={dataISO} className="border-t px-1 py-1.5 text-center">
                           <CelulaSlot
                             slot={slot}
                             ocupado={ocup}

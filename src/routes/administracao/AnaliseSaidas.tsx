@@ -277,43 +277,48 @@ export function AnaliseSaidas() {
                 <Grid3x3 className="size-4 text-secondary" /> Matriz tempo de casa × motivo
               </CardTitle>
             </CardHeader>
-            <CardContent className="planilha-fixa">
-              <table className="w-full min-w-[760px] text-sm">
+            <CardContent>
+              {/* Sem scroll interno: % vira sub-linha do Total e o padding é
+                  menor para a matriz caber inteira na tela. */}
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2 pr-3">Tempo de casa</th>
+                    <th className="pb-2 pr-2">Tempo de casa</th>
                     {MOTIVOS_SAIDA.map((m) => (
-                      <th key={m} className="pb-2 px-2 text-center" title={m}>{abreviarMotivo(m)}</th>
+                      <th key={m} className="pb-2 px-1.5 text-center" title={m}>{abreviarMotivo(m)}</th>
                     ))}
-                    <th className="pb-2 pl-2 text-right">Total</th>
-                    <th className="pb-2 pl-2 text-right">%</th>
+                    <th className="pb-2 pl-1.5 text-right" title="Total (e % das saídas)">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {matriz.map((linha) => (
-                    <tr key={linha.faixa} className="text-secondary">
-                      <td className="py-2.5 pr-3 font-medium">{linha.faixa}</td>
+                    <tr key={linha.faixa} className="text-secondary align-top">
+                      <td className="py-2.5 pr-2 font-medium">{linha.faixa}</td>
                       {MOTIVOS_SAIDA.map((m) => (
-                        <td key={m} className="py-2.5 px-2 text-center tabular-nums">
+                        <td key={m} className="py-2.5 px-1.5 text-center tabular-nums">
                           {linha.porMotivo[m] > 0 ? linha.porMotivo[m] : <span className="text-muted-foreground">—</span>}
                         </td>
                       ))}
-                      <td className="py-2.5 pl-2 text-right font-bold tabular-nums">{linha.total}</td>
-                      <td className="py-2.5 pl-2 text-right tabular-nums text-muted-foreground">{linha.pct}%</td>
+                      <td className="py-2.5 pl-1.5 text-right tabular-nums">
+                        <span className="font-bold">{linha.total}</span>
+                        <div className="text-xs text-muted-foreground">{linha.pct}%</div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 font-bold text-secondary">
-                    <td className="pt-2 pr-3">Total</td>
+                  <tr className="border-t-2 font-bold text-secondary align-top">
+                    <td className="pt-2 pr-2">Total</td>
                     {MOTIVOS_SAIDA.map((m) => {
                       const col = matriz.reduce((s, l) => s + l.porMotivo[m], 0);
                       return (
-                        <td key={m} className="pt-2 px-2 text-center tabular-nums">{col || ""}</td>
+                        <td key={m} className="pt-2 px-1.5 text-center tabular-nums">{col || ""}</td>
                       );
                     })}
-                    <td className="pt-2 pl-2 text-right tabular-nums">{saidas.length}</td>
-                    <td className="pt-2 pl-2 text-right tabular-nums">100%</td>
+                    <td className="pt-2 pl-1.5 text-right tabular-nums">
+                      {saidas.length}
+                      <div className="text-xs font-normal text-muted-foreground">100%</div>
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -345,8 +350,10 @@ export function AnaliseSaidas() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Saídas detalhadas ({linhas.length})</CardTitle>
             </CardHeader>
-            <CardContent className="planilha-fixa">
-              <table className="w-full min-w-[760px] text-sm">
+            <CardContent>
+              {/* Sem scroll interno: tipo de suíte vira sub-linha do hóspede
+                  para a tabela caber inteira na tela. */}
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <th className="pb-2 pr-3">Hóspede</th>
@@ -361,19 +368,20 @@ export function AnaliseSaidas() {
                         Permanência <ArrowUpDown className="size-3" />
                       </button>
                     </th>
-                    <th className="pb-2 pr-3">Motivo</th>
-                    <th className="pb-2">Tipo de suíte</th>
+                    <th className="pb-2">Motivo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {linhas.map((r: Residente) => (
-                    <tr key={r.id} className="text-secondary">
-                      <td className="py-2.5 pr-3 font-medium">{r.nome}</td>
+                    <tr key={r.id} className="text-secondary align-top">
+                      <td className="py-2.5 pr-3">
+                        <div className="font-medium">{r.nome}</div>
+                        <div className="text-xs text-muted-foreground">suíte: {ouNaoInformado(r.tipo_suite)}</div>
+                      </td>
                       <td className="py-2.5 pr-3 tabular-nums">{r.data_admissao ? formatarDataBR(r.data_admissao) : "Não informado"}</td>
                       <td className="py-2.5 pr-3 tabular-nums">{r.data_saida ? formatarDataBR(r.data_saida) : "Não informado"}</td>
                       <td className="py-2.5 pr-3">{tempoPermanencia(r.data_admissao, r.data_saida)}</td>
-                      <td className="py-2.5 pr-3">{ouNaoInformado(r.motivo_saida)}</td>
-                      <td className="py-2.5">{ouNaoInformado(r.tipo_suite)}</td>
+                      <td className="py-2.5">{ouNaoInformado(r.motivo_saida)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -150,8 +150,10 @@ export function FunilVendas() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Funil histórico (por mês)</CardTitle>
             </CardHeader>
-            <CardContent className="planilha-fixa">
-              <table className="w-full min-w-[920px] text-sm">
+            <CardContent>
+              {/* Sem scroll interno: taxas de conversão e ticket viram sub-linha
+                  das colunas principais para a tabela caber inteira na tela. */}
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <th className="pb-2 pr-3">Mês/Ano</th>
@@ -159,11 +161,8 @@ export function FunilVendas() {
                     <th className="pb-2 px-2 text-right">Qualif.</th>
                     <th className="pb-2 px-2 text-right">Visitas</th>
                     <th className="pb-2 px-2 text-right">Vendas</th>
-                    <th className="pb-2 px-2 text-right">% Vis/Lead</th>
-                    <th className="pb-2 px-2 text-right">% Ven/Vis</th>
-                    <th className="pb-2 px-2 text-right">% Ven/Lead</th>
-                    <th className="pb-2 px-2 text-right">Receita</th>
-                    <th className="pb-2 pl-2 text-right">Ticket médio</th>
+                    <th className="pb-2 px-2 text-right" title="% Vendas / Leads">Conv.</th>
+                    <th className="pb-2 pl-2 text-right">Receita</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -172,17 +171,25 @@ export function FunilVendas() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 font-bold text-secondary">
+                  <tr className="border-t-2 font-bold text-secondary align-top">
                     <td className="pt-2 pr-3">Média / Total</td>
                     <td className="pt-2 px-2 text-right tabular-nums">{resumo.leads}</td>
                     <td className="pt-2 px-2 text-right tabular-nums">{linhas.reduce((s, l) => s + l.qualificados, 0)}</td>
-                    <td className="pt-2 px-2 text-right tabular-nums">{linhas.reduce((s, l) => s + l.visitas, 0)}</td>
-                    <td className="pt-2 px-2 text-right tabular-nums">{resumo.vendas}</td>
-                    <td className="pt-2 px-2 text-right tabular-nums">{fmtPct(medias.visitasLeads)}</td>
-                    <td className="pt-2 px-2 text-right tabular-nums">{fmtPct(medias.vendasVisitas)}</td>
+                    <td className="pt-2 px-2 text-right tabular-nums">
+                      {linhas.reduce((s, l) => s + l.visitas, 0)}
+                      <div className="text-xs font-normal text-muted-foreground">{fmtPct(medias.visitasLeads)} dos leads</div>
+                    </td>
+                    <td className="pt-2 px-2 text-right tabular-nums">
+                      {resumo.vendas}
+                      <div className="text-xs font-normal text-muted-foreground">{fmtPct(medias.vendasVisitas)} das visitas</div>
+                    </td>
                     <td className="pt-2 px-2 text-right tabular-nums">{fmtPct(medias.vendasLeads)}</td>
-                    <td className="pt-2 px-2 text-right tabular-nums">{formatarMoeda(resumo.receita)}</td>
-                    <td className="pt-2 pl-2 text-right tabular-nums">{medias.ticket == null ? "—" : formatarMoeda(medias.ticket)}</td>
+                    <td className="pt-2 pl-2 text-right tabular-nums">
+                      {formatarMoeda(resumo.receita)}
+                      <div className="text-xs font-normal text-muted-foreground">
+                        ticket {medias.ticket == null ? "—" : formatarMoeda(medias.ticket)}
+                      </div>
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -195,19 +202,27 @@ export function FunilVendas() {
 }
 
 function LinhaTabela({ l }: { l: LinhaFunil }) {
-  const traco = (v: number | null) => (v == null ? <span className="text-muted-foreground">—</span> : `${v}%`);
+  const traco = (v: number | null) => (v == null ? "—" : `${v}%`);
   return (
-    <tr className="text-secondary">
+    <tr className="text-secondary align-top">
       <td className="py-2.5 pr-3 font-medium">{formatarMesReferencia(l.mes)}</td>
       <td className="py-2.5 px-2 text-right tabular-nums">{l.leads || <span className="text-muted-foreground">—</span>}</td>
       <td className="py-2.5 px-2 text-right tabular-nums">{l.qualificados || <span className="text-muted-foreground">—</span>}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums">{l.visitas || <span className="text-muted-foreground">—</span>}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums font-semibold">{l.vendas || <span className="text-muted-foreground">—</span>}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums">{traco(l.pctVisitasLeads)}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums">{traco(l.pctVendasVisitas)}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums">{traco(l.pctVendasLeads)}</td>
-      <td className="py-2.5 px-2 text-right tabular-nums">{l.receita > 0 ? formatarMoeda(l.receita) : <span className="text-muted-foreground">—</span>}</td>
-      <td className="py-2.5 pl-2 text-right tabular-nums">{l.ticketMedio == null ? <span className="text-muted-foreground">—</span> : formatarMoeda(l.ticketMedio)}</td>
+      <td className="py-2.5 px-2 text-right tabular-nums">
+        {l.visitas || <span className="text-muted-foreground">—</span>}
+        <div className="text-xs text-muted-foreground">{traco(l.pctVisitasLeads)} dos leads</div>
+      </td>
+      <td className="py-2.5 px-2 text-right tabular-nums font-semibold">
+        {l.vendas || <span className="font-normal text-muted-foreground">—</span>}
+        <div className="text-xs font-normal text-muted-foreground">{traco(l.pctVendasVisitas)} das visitas</div>
+      </td>
+      <td className="py-2.5 px-2 text-right tabular-nums">{l.pctVendasLeads == null ? <span className="text-muted-foreground">—</span> : `${l.pctVendasLeads}%`}</td>
+      <td className="py-2.5 pl-2 text-right tabular-nums">
+        {l.receita > 0 ? formatarMoeda(l.receita) : <span className="text-muted-foreground">—</span>}
+        <div className="text-xs text-muted-foreground">
+          ticket {l.ticketMedio == null ? "—" : formatarMoeda(l.ticketMedio)}
+        </div>
+      </td>
     </tr>
   );
 }

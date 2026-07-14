@@ -22,6 +22,16 @@ import { cn } from "@/lib/utils";
 // resultado VÁLIDO (taxa 0% é um bom resultado, não um erro).
 // ===========================================================================
 
+// Rótulos curtos das colunas do consolidado anual (label completo no title).
+const INDICADOR_CURTO: Record<string, string> = {
+  obito: "Mortalid.",
+  diarreia_aguda: "Diarreia",
+  escabiose: "Escabiose",
+  desidratacao: "Desidrat.",
+  ulcera_decubito: "Úlcera dec.",
+  desnutricao: "Desnutr.",
+};
+
 export function VigilanciaIndicadores() {
   const dados = useDadosIndicadoresRdc();
 
@@ -130,47 +140,49 @@ export function VigilanciaIndicadores() {
             <Button variant="outline" size="icon" onClick={() => setAno((a) => a + 1)}><ChevronRight className="size-4" /></Button>
           </div>
         </CardHeader>
-        <CardContent className="planilha-fixa p-0">
-          <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+        <CardContent className="p-0">
+          {/* Sem scroll interno: meses como LINHAS e indicadores como colunas
+              (cabeçalhos abreviados; rótulo completo no title) para a tabela
+              caber inteira na tela. */}
+          <table className="w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th className="sticky left-0 z-20 bg-card px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Indicador
+                <th className="bg-card px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Mês
                 </th>
-                {MESES_CURTOS.map((m) => (
-                  <th key={m} className="bg-card px-2 py-2 text-center text-xs font-bold text-secondary">{m}</th>
+                <th className="bg-card px-2 py-2 text-right text-xs font-bold text-muted-foreground" title="População de referência (dia 15)">
+                  Pop.
+                </th>
+                {(doAno[0]?.indicadores ?? []).map((ind) => (
+                  <th
+                    key={ind.key}
+                    title={`${ind.numero}. ${ind.label} (${ind.medida})`}
+                    className="bg-card px-2 py-2 text-right text-xs font-bold text-secondary"
+                  >
+                    {ind.numero}. {INDICADOR_CURTO[ind.key] ?? ind.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="sticky left-0 z-10 border-t bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
-                  População (dia 15)
-                </td>
-                {doAno.map((m) => (
-                  <td key={m.mes} className="border-t px-2 py-2 text-center tabular-nums text-secondary">{m.populacao}</td>
-                ))}
-              </tr>
-              {(doAno[0]?.indicadores ?? []).map((_, idx) => (
-                <tr key={idx}>
-                  <td className="sticky left-0 z-10 border-t bg-card px-3 py-2 text-xs font-medium text-secondary">
-                    {doAno[0].indicadores[idx].numero}. {doAno[0].indicadores[idx].label}
+              {doAno.map((m) => (
+                <tr key={m.mes}>
+                  <td className="border-t bg-card px-3 py-2 text-xs font-semibold text-secondary">
+                    {MESES_CURTOS[m.mes - 1]}
                   </td>
-                  {doAno.map((m) => {
-                    const ind = m.indicadores[idx];
-                    return (
-                      <td
-                        key={m.mes}
-                        title={`${ind.numerador} / ${ind.denominador}`}
-                        className={cn(
-                          "border-t px-2 py-2 text-center tabular-nums",
-                          ind.taxa && ind.taxa > 0 ? "font-semibold text-secondary" : "text-muted-foreground",
-                        )}
-                      >
-                        {formatarTaxa(ind.taxa)}
-                      </td>
-                    );
-                  })}
+                  <td className="border-t px-2 py-2 text-right tabular-nums text-muted-foreground">{m.populacao}</td>
+                  {m.indicadores.map((ind) => (
+                    <td
+                      key={ind.key}
+                      title={`${ind.numero}. ${ind.label} — ${ind.numerador} / ${ind.denominador}`}
+                      className={cn(
+                        "border-t px-2 py-2 text-right tabular-nums",
+                        ind.taxa && ind.taxa > 0 ? "font-semibold text-secondary" : "text-muted-foreground",
+                      )}
+                    >
+                      {formatarTaxa(ind.taxa)}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

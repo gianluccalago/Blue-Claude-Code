@@ -149,18 +149,19 @@ function SecaoCobertura({ ano, meses, profs, deslig, turnos, aus }: {
     if (ok) toast.success("Cobertura exportada em Excel."); else toast.error("Não foi possível exportar.");
   }
 
-  const linhas: { rotulo: string; valor: (m: MetricasCobertura) => string }[] = [
-    { rotulo: "Funcionários (ativos)", valor: (m) => String(m.funcionarios) },
-    { rotulo: "Plantões (total)", valor: (m) => String(m.plantoes) },
-    { rotulo: "Plantões descobertos", valor: (m) => String(m.descobertos) },
-    { rotulo: "Cobertura · atestado", valor: (m) => String(m.coberturasPorTipo.atestado) },
-    { rotulo: "Cobertura · licença mat./INSS", valor: (m) => String(m.coberturasPorTipo.licenca_maternidade + m.coberturasPorTipo.licenca_inss) },
-    { rotulo: "Cobertura · falta s/ atestado", valor: (m) => String(m.coberturasPorTipo.falta_sem_atestado) },
-    { rotulo: "Cobertura · férias", valor: (m) => String(m.coberturasPorTipo.ferias) },
-    { rotulo: "Cobertura · evento", valor: (m) => String(m.coberturasPorTipo.evento) },
-    { rotulo: "Total de coberturas", valor: (m) => String(m.totalCoberturas) },
-    { rotulo: "% Atestados / plantões", valor: (m) => (m.pctAtestadosSobrePlantoes == null ? "—" : `${m.pctAtestadosSobrePlantoes.toFixed(1)}%`) },
-    { rotulo: "% Coberturas / plantões", valor: (m) => (m.pctCoberturasSobrePlantoes == null ? "—" : `${m.pctCoberturasSobrePlantoes.toFixed(1)}%`) },
+  // Colunas da tabela (rótulo completo no title do cabeçalho abreviado).
+  const colunas: { rotulo: string; curto: string; valor: (m: MetricasCobertura) => string }[] = [
+    { rotulo: "Funcionários (ativos)", curto: "Func.", valor: (m) => String(m.funcionarios) },
+    { rotulo: "Plantões (total)", curto: "Plant.", valor: (m) => String(m.plantoes) },
+    { rotulo: "Plantões descobertos", curto: "Descob.", valor: (m) => String(m.descobertos) },
+    { rotulo: "Cobertura · atestado", curto: "Cob. atest.", valor: (m) => String(m.coberturasPorTipo.atestado) },
+    { rotulo: "Cobertura · licença mat./INSS", curto: "Cob. lic.", valor: (m) => String(m.coberturasPorTipo.licenca_maternidade + m.coberturasPorTipo.licenca_inss) },
+    { rotulo: "Cobertura · falta s/ atestado", curto: "Cob. falta", valor: (m) => String(m.coberturasPorTipo.falta_sem_atestado) },
+    { rotulo: "Cobertura · férias", curto: "Cob. férias", valor: (m) => String(m.coberturasPorTipo.ferias) },
+    { rotulo: "Cobertura · evento", curto: "Cob. evento", valor: (m) => String(m.coberturasPorTipo.evento) },
+    { rotulo: "Total de coberturas", curto: "Cob. total", valor: (m) => String(m.totalCoberturas) },
+    { rotulo: "% Atestados / plantões", curto: "% Atest.", valor: (m) => (m.pctAtestadosSobrePlantoes == null ? "—" : `${m.pctAtestadosSobrePlantoes.toFixed(1)}%`) },
+    { rotulo: "% Coberturas / plantões", curto: "% Cob.", valor: (m) => (m.pctCoberturasSobrePlantoes == null ? "—" : `${m.pctCoberturasSobrePlantoes.toFixed(1)}%`) },
   ];
 
   return (
@@ -169,22 +170,30 @@ function SecaoCobertura({ ano, meses, profs, deslig, turnos, aus }: {
         <CardTitle className="text-base">Cobertura de escala — {ano}</CardTitle>
         <Button variant="outline" size="sm" className="gap-2" onClick={exportar} disabled={!temDados}><Download className="size-4" /> Excel</Button>
       </CardHeader>
-      <CardContent className="planilha-fixa">
+      <CardContent>
         {!temDados ? (
           <EmptyState label="Sem dados de escala/cobertura no período." />
         ) : (
-          <table className="w-full min-w-[720px] text-sm">
+          /* Sem scroll interno: meses como LINHAS e métricas como colunas
+             (cabeçalhos abreviados; rótulo completo no title). */
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2 pr-3 text-left">Métrica</th>
-                {meses.map((m) => <th key={m} className="pb-2 px-2 text-right">{mesCurto(m)}</th>)}
+                <th className="pb-2 pr-2 text-left">Mês</th>
+                {colunas.map((c, i) => (
+                  <th key={i} title={c.rotulo} className="pb-2 px-1.5 text-right">{c.curto}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {linhas.map((l, i) => (
-                <tr key={i} className={i >= 9 ? "font-semibold text-secondary" : "text-secondary"}>
-                  <td className="py-2 pr-3">{l.rotulo}</td>
-                  {metricas.map((m) => <td key={m.mes} className="py-2 px-2 text-right tabular-nums">{l.valor(m)}</td>)}
+              {metricas.map((m) => (
+                <tr key={m.mes} className="text-secondary">
+                  <td className="py-2 pr-2 font-medium">{mesCurto(m.mes)}</td>
+                  {colunas.map((c, i) => (
+                    <td key={i} className={`py-2 px-1.5 text-right tabular-nums${i >= 9 ? " font-semibold" : ""}`}>
+                      {c.valor(m)}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -297,22 +306,24 @@ function SecaoAbsenteismo({ ano, meses, mesesAnt, profs, deslig, afa, aus }: {
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Absenteísmo por cargo (dias de afastamento) — {ano}</CardTitle></CardHeader>
-        <CardContent className="planilha-fixa">
+        <CardContent>
           {cargoMes.length === 0 ? <EmptyState label="Sem afastamentos no ano." /> : (
-            <table className="w-full min-w-[640px] text-sm">
+            /* Matriz cargo × mês sem scroll interno: colunas estreitas (padding
+               menor, meses abreviados) para caber inteira na tela. */
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 pr-3 text-left">Cargo</th>
-                  {meses.map((m) => <th key={m} className="pb-2 px-2 text-right">{mesCurto(m)}</th>)}
-                  <th className="pb-2 pl-2 text-right">Total</th>
+                  <th className="pb-2 pr-2 text-left">Cargo</th>
+                  {meses.map((m) => <th key={m} className="pb-2 px-1 text-right">{mesCurto(m)}</th>)}
+                  <th className="pb-2 pl-1.5 text-right">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {cargoMes.map((l) => (
                   <tr key={l.cargo} className="text-secondary">
-                    <td className="py-2 pr-3 font-medium">{l.cargo}</td>
-                    {l.porMes.map((v, i) => <td key={i} className="py-2 px-2 text-right tabular-nums">{v || <span className="text-muted-foreground">—</span>}</td>)}
-                    <td className="py-2 pl-2 text-right font-bold tabular-nums">{l.total}</td>
+                    <td className="py-2 pr-2 font-medium">{l.cargo}</td>
+                    {l.porMes.map((v, i) => <td key={i} className="py-2 px-1 text-right tabular-nums">{v || <span className="text-muted-foreground">—</span>}</td>)}
+                    <td className="py-2 pl-1.5 text-right font-bold tabular-nums">{l.total}</td>
                   </tr>
                 ))}
               </tbody>
