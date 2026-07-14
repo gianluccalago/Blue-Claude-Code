@@ -1,7 +1,6 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import {
-  HardHat,
   Camera,
   CheckCircle2,
   Circle,
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
-  useObraAtiva,
   useFasesObra,
   useEtapasObra,
   useChecklistObra,
@@ -48,12 +46,11 @@ import type { ObraEtapa, ObraFase } from "@/types/database";
 const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 
-export function Obra() {
+export function ObraExecucao() {
   const { usuarioEfetivo } = useAuth();
   const perfil = usuarioEfetivo?.perfil;
   const podeEditar = perfil === "master" || perfil === "direcao";
 
-  const ativa = useObraAtiva();
   const fases = useFasesObra();
   const etapas = useEtapasObra();
   const checklist = useChecklistObra();
@@ -67,10 +64,6 @@ export function Obra() {
     () => ultimaVerificacaoPorEtapa(checklist.data ?? []),
     [checklist.data],
   );
-
-  if (ativa.isLoading) return <LoadingState />;
-  if (ativa.data === false)
-    return <EmptyState label="O módulo Obra está desativado. Ative-o em obra_config (modulo_obra_ativo) para usar." />;
 
   if (fases.isLoading || etapas.isLoading || checklist.isLoading) return <LoadingState />;
   if (fases.isError) return <ErrorState error={fases.error} />;
@@ -92,19 +85,13 @@ export function Obra() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
-            <HardHat className="size-5" />
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Obra</h1>
-        </div>
-        {podeEditar && (
+      {podeEditar && (
+        <div className="flex justify-end">
           <Button variant="outline" onClick={() => setEditandoPesos(true)}>
             <SlidersHorizontal className="size-4" /> Pesos da fase
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Cards das 4 fases (sequência contratual) */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

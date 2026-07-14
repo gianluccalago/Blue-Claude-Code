@@ -129,6 +129,21 @@ export function useAtualizarPesos() {
   });
 }
 
+/** Define a data de conclusão prevista da fase (base da multa/bônus). */
+export function useAtualizarFaseCronograma() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { faseId: string; dataFimPrevista: string | null }) => {
+      const { error } = await supabase
+        .from("obra_fases")
+        .update({ data_fim_prevista: args.dataFimPrevista })
+        .eq("id", args.faseId);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarObra(qc),
+  });
+}
+
 /** Inicia uma fase respeitando a sequência contratual (TRP da anterior). */
 export function useIniciarFase() {
   const qc = useQueryClient();

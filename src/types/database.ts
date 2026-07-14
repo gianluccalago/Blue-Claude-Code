@@ -34,6 +34,10 @@ export type OcupacaoSuite = "simples" | "duplo" | "triplo";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
 /** Módulo Obra: ciclo de vida sequencial de uma fase da obra. */
 export type ObraFaseStatus = "nao_iniciada" | "em_andamento" | "trp_emitido" | "trd_emitido";
+/** Módulo Obra: fluxo canônico de uma medição (BM) da MO. */
+export type ObraMedicaoStatus = "Pendente" | "Em análise" | "Aprovado" | "Reprovado" | "Pago";
+/** Documentos mensais obrigatórios da construtora (gate de pagamento). */
+export type ObraDocMensalTipo = "inss" | "fgts" | "iss" | "folha";
 /** Tipos de assento do livro de controlados (Port. 344/98). */
 export type TipoAssentoControlado =
   | "entrada"
@@ -2169,6 +2173,7 @@ export interface Database {
           ipca_pct: number | null;
           status: ObraFaseStatus;
           data_inicio: string | null;
+          data_fim_prevista: string | null;
           data_trp: string | null;
           data_trd: string | null;
           criado_em: string;
@@ -2178,9 +2183,129 @@ export interface Database {
           ipca_pct: number | null;
           status: ObraFaseStatus;
           data_inicio: string | null;
+          data_fim_prevista: string | null;
           data_trp: string | null;
           data_trd: string | null;
         }>;
+        Relationships: [];
+      };
+      obra_documentos_mensais: {
+        Row: {
+          id: string;
+          mes: string;
+          tipo: ObraDocMensalTipo;
+          arquivo_url: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          mes: string;
+          tipo: ObraDocMensalTipo;
+          arquivo_url: string;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["obra_documentos_mensais"]["Insert"]>;
+        Relationships: [];
+      };
+      obra_medicoes: {
+        Row: {
+          id: string;
+          fase_id: string;
+          mes: string;
+          percentual_medido: number;
+          preco_m2_aplicado: number;
+          valor_bruto: number;
+          retencao_pct: number;
+          retencao_valor: number;
+          inss_pct: number;
+          inss_valor: number;
+          iss_pct: number;
+          iss_valor: number;
+          outras_valor: number;
+          valor_liquido: number;
+          status: ObraMedicaoStatus;
+          motivo: string | null;
+          nf_numero: string | null;
+          nf_url: string | null;
+          data_aprovacao: string | null;
+          data_pagamento: string | null;
+          aprovado_por: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id: string;
+          mes: string;
+          percentual_medido: number;
+          preco_m2_aplicado: number;
+          valor_bruto: number;
+          retencao_pct: number;
+          retencao_valor: number;
+          inss_pct?: number;
+          inss_valor?: number;
+          iss_pct?: number;
+          iss_valor?: number;
+          outras_valor?: number;
+          valor_liquido: number;
+          status?: ObraMedicaoStatus;
+          motivo?: string | null;
+          nf_numero?: string | null;
+          nf_url?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{
+          status: ObraMedicaoStatus;
+          motivo: string | null;
+          nf_numero: string | null;
+          nf_url: string | null;
+          data_aprovacao: string | null;
+          aprovado_por: string | null;
+        }>;
+        Relationships: [];
+      };
+      obra_medicao_etapas: {
+        Row: { id: string; medicao_id: string; etapa_id: string };
+        Insert: { id?: string; medicao_id: string; etapa_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      obra_retencoes_ledger: {
+        Row: {
+          id: string;
+          fase_id: string;
+          medicao_id: string | null;
+          tipo: "retido" | "liberado_trp" | "liberado_trd";
+          valor: number;
+          observacao: string | null;
+          registrado_por: string | null;
+          evento_em: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      obra_recebimento_pendencias: {
+        Row: {
+          id: string;
+          fase_id: string;
+          descricao: string;
+          sanada: boolean;
+          sanada_em: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id: string;
+          descricao: string;
+          sanada?: boolean;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ descricao: string; sanada: boolean; sanada_em: string | null }>;
         Relationships: [];
       };
       obra_etapas: {
@@ -2549,6 +2674,21 @@ export interface Database {
         Args: Record<string, never>;
         Returns: { integro: boolean; primeiro_numero_violado: number | null; total_assentos: number }[];
       };
+      // Obra: pagar medição (gate dos 4 documentos + NF; posta retenção no ledger).
+      obra_pagar_medicao: {
+        Args: { p_medicao_id: string };
+        Returns: undefined;
+      };
+      // Obra: emitir TRP (libera 50% da retenção da fase). Retorna o valor liberado.
+      obra_emitir_trp: {
+        Args: { p_fase_id: string };
+        Returns: number;
+      };
+      // Obra: emitir TRD (90 dias + pendências sanadas; libera o saldo restante).
+      obra_emitir_trd: {
+        Args: { p_fase_id: string };
+        Returns: number;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -2582,6 +2722,11 @@ export type ObraFase = Database["public"]["Tables"]["obra_fases"]["Row"];
 export type ObraEtapa = Database["public"]["Tables"]["obra_etapas"]["Row"];
 export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist_execucao"]["Row"];
 export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
+export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
+export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];
+export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
+export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
+export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];
 export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
 export type PatologiaResidente = Database["public"]["Tables"]["patologia_residente"]["Row"];
 export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];

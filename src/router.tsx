@@ -72,7 +72,7 @@ import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
-import { Obra } from "@/routes/obra/Obra";
+import { ObraShell } from "@/routes/obra/ObraShell";
 import { LivroControlados } from "@/routes/farmacia/LivroControlados";
 import { DocumentosInstitucionais } from "@/routes/administracao/DocumentosInstitucionais";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
@@ -330,7 +330,7 @@ const documentosInstitucionaisRoute = createRoute({
 const obraRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "obra",
-  component: Obra,
+  component: ObraShell,
 });
 const pedidosMensaisRoute = createRoute({
   getParentRoute: () => appRoute,

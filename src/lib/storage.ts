@@ -317,6 +317,19 @@ export async function uploadFotoObra(file: File, faseNumero: number, etapaId: st
   }
 }
 
+/** Upload de documento/NF da obra (PDF/imagem) no bucket privado `obra`. */
+export async function uploadArquivoObra(file: File, prefixo: string): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${prefixo}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_OBRA).upload(path, file, { upsert: false });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
 export const BUCKET_DOCUMENTOS_INSTITUCIONAIS = "documentos-institucionais";
 
 /**

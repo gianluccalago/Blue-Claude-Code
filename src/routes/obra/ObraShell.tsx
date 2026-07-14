@@ -1,0 +1,45 @@
+import { HardHat } from "lucide-react";
+import { useObraAtiva } from "@/hooks/useObra";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LoadingState, EmptyState } from "@/components/states";
+import { ObraExecucao } from "@/routes/obra/Obra";
+import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
+
+// ===========================================================================
+// MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
+// desligada, a rota mostra aviso amigável. Execução (Fase 1) e Medições (Fase 2).
+// ===========================================================================
+
+export function ObraShell() {
+  const ativa = useObraAtiva();
+
+  if (ativa.isLoading) return <LoadingState />;
+  if (ativa.data === false)
+    return (
+      <EmptyState label="O módulo Obra está desativado. Ative-o em obra_config (modulo_obra_ativo = true) para usar." />
+    );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+          <HardHat className="size-5" />
+        </div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Obra</h1>
+      </div>
+
+      <Tabs defaultValue="execucao" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="execucao">Execução</TabsTrigger>
+          <TabsTrigger value="medicoes">Medições e pagamentos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="execucao">
+          <ObraExecucao />
+        </TabsContent>
+        <TabsContent value="medicoes">
+          <ObraMedicoes />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

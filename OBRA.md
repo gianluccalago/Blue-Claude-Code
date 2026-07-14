@@ -60,19 +60,41 @@ financeiro é consequência aritmética dos pesos.
 2. **Carimbo na foto**: data/autor são gravados no REGISTRO (banco + auditoria)
    e exibidos sobre a imagem na galeria — não se queima pixel (frágil,
    pesado no celular do canteiro e não é evidência melhor que o registro).
-3. **Testes de cálculo**: o projeto não tem framework de teste; Fases 0–1 não
-   têm cálculo não-trivial (avanço = soma de pesos). Vitest entra na Fase 2
-   junto com medição/retenção/multa/IPCA — com os números do contrato como
-   casos de teste, como pede o prompt.
+3. **Testes de cálculo**: Vitest foi adicionado na Fase 2 (`npm test`). As
+   funções financeiras vivem em `src/lib/obraCalc.ts` (puras) e são cobertas por
+   19 casos com os números do contrato. A UI e as RPCs consomem esses cálculos.
 4. **Trava dos pesos**: a condição "trava após a 1ª medição" referencia
    `obra_medicoes` (Fase 2) — o guard definitivo (trigger) entra lá; hoje a
    edição é restrita a master/direção e 100% auditada.
 5. **Disciplinas semeadas na Fase 0** (dados fixos), mas leitura restrita a
    master/direção até a Fase 3 definir o que o prestador vê do próprio fluxo.
 
+### ✅ Fase 2 — Medições e pagamentos da MO (migration `0100_obra_medicoes.sql`)
+- `obra_medicoes` (BM): mês, fase, etapas reivindicadas, % medido, e SNAPSHOT da
+  memória (bruto, retenção 5%, INSS, ISS, outras, líquido). Fluxo canônico
+  Pendente → Em análise → Aprovado/Reprovado (c/ motivo) → NF → Pago.
+- `obra_medicao_etapas`: etapas de cada BM; uma etapa só é medida uma vez
+  (liberada se o BM for reprovado — guarda na app via `useEtapasMedidas`).
+- `obra_documentos_mensais` (INSS/FGTS/ISS/folha por mês) = **gate de pagamento**.
+- `obra_retencoes_ledger` por fase (retido / liberado_trp / liberado_trd); saldo
+  em mãos = Σ retido − Σ liberado. **Só master/direção leem** (financeiro).
+- `obra_recebimento_pendencias`: vícios do TRP; o TRD exige 90 dias + todas sanadas.
+- **RPCs atômicas (SECURITY DEFINER, auditadas)**:
+  - `obra_pagar_medicao` — GATE server-side (4 documentos do mês + NF + status
+    Aprovado), marca Pago e posta a retenção no ledger (advisory lock por fase).
+  - `obra_emitir_trp` — exige 100% físico verificado + medições pagas; libera 50%.
+  - `obra_emitir_trd` — exige 90 dias desde o TRP + pendências sanadas; libera saldo.
+- Multa/bônus de fase vs cronograma (`obra_fases.data_fim_prevista` × TRP).
+- **Cálculos puros e TESTADOS** (`src/lib/obraCalc.ts` + `obraCalc.test.ts`,
+  vitest, 19 casos com os números do contrato): medição/retenção/INSS/ISS/líquido,
+  reajuste IPCA, saldo de retenção, multa (teto 5%) e bônus (30d, teto 2%).
+  Ex. verificado: Fundações 8% Fase 1 → bruto 216.036,11 · líquido 170.668,52.
+- UI em abas (shell `ObraShell`): **Execução** (Fase 1) e **Medições e pagamentos**
+  (documentos do mês com contador 0/4, BMs com memória de cálculo, fluxo de
+  status, "Aprovar pagamento" bloqueado com o motivo, TRP/TRD com guardas,
+  retenções, multa/bônus, pendências). Botões bloqueados sempre explicam o porquê.
+
 ## Próximas fases (aguardando "execute a Fase N")
-- **Fase 2** — Medições (BM), gates de documentos mensais, retenções (ledger
-  TRP/TRD), multa/bônus, memória de cálculo + vitest dos cálculos.
 - **Fase 3** — Projetos complementares (marcos 25/40/25/10, revisões, ART, BIM).
 - **Fase 4** — Materiais (planejamento → cotações → OC → recebimento → consumo
   → perdas/glosa → estoque reposição, curva ABC).
