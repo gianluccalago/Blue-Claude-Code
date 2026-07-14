@@ -131,24 +131,22 @@ export function EstoqueResgate() {
           {itens.length === 0 ? (
             <EmptyState label="Nenhum item de resgate cadastrado." />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs font-semibold text-muted-foreground">
-                    <th className="pb-2 text-left">Medicamento</th>
-                    <th className="pb-2 text-right">Saldo</th>
-                    <th className="pb-2 text-left pl-4">Unidade</th>
-                    <th className="pb-2 text-center">Status</th>
-                    {isFarmacia && <th className="pb-2" />}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {itens.map((item) => (
-                    <LinhaResgate key={item.id} item={item} isFarmacia={isFarmacia} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs font-semibold text-muted-foreground">
+                  <th className="pb-2 text-left">Medicamento</th>
+                  <th className="pb-2 text-right">Saldo</th>
+                  <th className="pb-2 text-left pl-4">Unidade</th>
+                  <th className="pb-2 text-center">Status</th>
+                  {isFarmacia && <th className="pb-2" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {itens.map((item) => (
+                  <LinhaResgate key={item.id} item={item} isFarmacia={isFarmacia} />
+                ))}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>

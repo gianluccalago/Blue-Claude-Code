@@ -481,9 +481,8 @@ function VisaoMes({
   const celulas = Array.from({ length: 42 }, (_, i) => somarDias(base, i));
   return (
     <div className="space-y-4">
-      {/* Mobile: rola na horizontal com largura mínima para as células não esmagarem. */}
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <div className="grid min-w-[34rem] grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
+      {/* Grade mensal cabe na tela: células compactas, sem scroll interno — a página rola. */}
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
         {DIAS.map((d) => (
           <div key={d} className="bg-muted/50 py-2 text-center text-xs font-bold text-secondary">
             {d}
@@ -503,14 +502,14 @@ function VisaoMes({
               key={iso}
               onClick={() => onSelecionarDia(selecionado ? null : iso)}
               className={cn(
-                "min-h-20 bg-card p-2 text-left align-top transition-colors hover:bg-accent",
+                "min-h-16 bg-card p-1 text-left align-top transition-colors hover:bg-accent sm:min-h-20 sm:p-1.5",
                 foraDoMes && "bg-muted/30 text-muted-foreground/50",
                 selecionado && "ring-2 ring-inset ring-primary",
               )}
             >
               <div
                 className={cn(
-                  "mb-1 inline-grid size-6 place-items-center rounded-full text-xs font-bold",
+                  "mb-0.5 inline-grid size-5 place-items-center rounded-full text-[11px] font-bold sm:mb-1 sm:size-6 sm:text-xs",
                   ehHoje ? "bg-primary text-primary-foreground" : "text-secondary",
                 )}
               >
@@ -531,7 +530,6 @@ function VisaoMes({
             </button>
           );
         })}
-      </div>
       </div>
 
       {/* Detalhe do dia selecionado */}

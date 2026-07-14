@@ -293,24 +293,22 @@ function ConteudoEstoque({
           {itensEstoque.length === 0 ? (
             <EmptyState label="Nenhum estoque provisionado para este mês." />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs font-semibold text-muted-foreground">
-                    <th className="pb-2 text-left">Medicamento</th>
-                    <th className="pb-2 text-right">Provisionado</th>
-                    <th className="pb-2 text-right">Saldo atual</th>
-                    <th className="pb-2 text-left pl-4">Unidade</th>
-                    <th className="pb-2 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {itensEstoque.map((item) => (
-                    <LinhaEstoque key={item.id} item={item} controlado={medsControlados.has(item.medicamento)} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs font-semibold text-muted-foreground">
+                  <th className="pb-2 text-left">Medicamento</th>
+                  <th className="pb-2 text-right">Provisionado</th>
+                  <th className="pb-2 text-right">Saldo</th>
+                  <th className="pb-2 text-left pl-4">Unidade</th>
+                  <th className="pb-2 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {itensEstoque.map((item) => (
+                  <LinhaEstoque key={item.id} item={item} controlado={medsControlados.has(item.medicamento)} />
+                ))}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>
