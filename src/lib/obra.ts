@@ -1,9 +1,10 @@
 import type { ObraChecklistExecucao, ObraEtapa, ObraFase, ObraFaseStatus } from "@/types/database";
 
 // ===========================================================================
-// Módulo Obra — domínio puro (sem I/O). Princípio do produto: nenhum
-// percentual subjetivo; avanço físico = soma dos PESOS das etapas cujo último
-// registro de verificação in loco está "concluído" (binário + foto).
+// Módulo Obra — domínio puro (sem I/O). Avanço físico = soma dos PESOS
+// PONDERADOS pelo % de conclusão do último registro de cada etapa (evolução
+// visual granular). O DINHEIRO da MO permanece objetivo: uma etapa só é
+// "medível" no BM ao atingir 100% (etapaConcluida).
 // ===========================================================================
 
 export const OBRA_FASE_STATUS_LABEL: Record<ObraFaseStatus, string> = {
@@ -32,16 +33,26 @@ export function ultimaVerificacaoPorEtapa(
   return mapa;
 }
 
+/** % de conclusão atual da etapa (último registro; 0 se nunca registrada). */
+export function percentualEtapa(
+  etapaId: string,
+  ultimaPorEtapa: Map<string, ObraChecklistExecucao>,
+): number {
+  return ultimaPorEtapa.get(etapaId)?.percentual ?? 0;
+}
+
+/** Etapa "concluída" (medível no BM) = último registro em 100%. */
 export function etapaConcluida(
   etapaId: string,
   ultimaPorEtapa: Map<string, ObraChecklistExecucao>,
 ): boolean {
-  return ultimaPorEtapa.get(etapaId)?.concluido ?? false;
+  return percentualEtapa(etapaId, ultimaPorEtapa) >= 100;
 }
 
-/** Avanço físico da fase (%) = soma dos pesos das etapas concluídas. */
+/** Avanço físico da fase (%) = soma dos pesos PONDERADOS pelo % de cada etapa. */
 export function avancoFisico(etapas: ObraEtapa[], ultimaPorEtapa: Map<string, ObraChecklistExecucao>): number {
-  return etapas.reduce((s, e) => s + (etapaConcluida(e.id, ultimaPorEtapa) ? e.peso_pct : 0), 0);
+  const total = etapas.reduce((s, e) => s + (e.peso_pct * percentualEtapa(e.id, ultimaPorEtapa)) / 100, 0);
+  return Math.round(total * 10) / 10;
 }
 
 /** Soma dos pesos da fase (a UI valida contra 100 antes de salvar edição). */

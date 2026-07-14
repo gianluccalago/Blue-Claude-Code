@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { Activity, CalendarClock, PiggyBank, ShieldAlert, Zap, FileWarning } from "lucide-react";
+import { Activity, CalendarClock, PiggyBank, ShieldAlert, Zap, FileWarning, Coins } from "lucide-react";
 import { useFasesObra, useEtapasObra, useChecklistObra } from "@/hooks/useObra";
 import { useMedicoes, useRetencoesLedger } from "@/hooks/useObraMedicoes";
 import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useInsumos, useNaoConformidades, useDocumentosObra } from "@/hooks/useObraTransversais";
+import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { ultimaVerificacaoPorEtapa, avancoFisico } from "@/lib/obra";
 import { saldoRetencao } from "@/lib/obraCalc";
 import { nivelPrazo, type NivelPrazo } from "@/lib/obraFinanceiro";
@@ -32,6 +33,7 @@ export function ObraPainel() {
   const insumos = useInsumos();
   const ncs = useNaoConformidades();
   const docs = useDocumentosObra();
+  const custos = useCustosIndiretos();
 
   const ultimaPorEtapa = useMemo(() => ultimaVerificacaoPorEtapa(checklist.data ?? []), [checklist.data]);
 
@@ -57,6 +59,9 @@ export function ObraPainel() {
   const totalPagar30 = pagamentos.reduce((s, p) => s + p.valor, 0);
 
   const saldoRet = saldoRetencao((retencoes.data ?? []).map((r) => ({ tipo: r.tipo, valor: r.valor })));
+  const custoIndiretoTotal = (custos.data ?? []).reduce((s, c) => s + c.valor, 0);
+  const mesAtual = hoje.slice(0, 7);
+  const custoIndiretoMes = (custos.data ?? []).filter((c) => c.competencia === mesAtual).reduce((s, c) => s + c.valor, 0);
   const ncsAbertas = (ncs.data ?? []).filter((n) => n.status !== "encerrada");
   const docsVencendo = (docs.data ?? []).filter((d) => { const n = nivelPrazo(d.data_validade, hoje, 30); return n === "critico" || n === "atencao"; });
   const insumosAlerta = (insumos.data ?? []).filter((i) => i.status !== "ok" && (nivelPrazo(i.prazo_limite, hoje, 30) === "critico" || nivelPrazo(i.prazo_limite, hoje, 30) === "atencao"));
@@ -64,10 +69,11 @@ export function ObraPainel() {
   return (
     <div className="space-y-6 pb-8">
       {/* KPIs executivos */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Kpi icone={<Activity className="size-5" />} rotulo="Avanço físico geral" valor={`${fisicoGeral.toFixed(1)}%`} />
         <Kpi icone={<CalendarClock className="size-5" />} rotulo="A pagar em 30 dias" valor={formatarMoeda(totalPagar30)} tom="warning" />
         <Kpi icone={<PiggyBank className="size-5" />} rotulo="Retenções em mãos" valor={formatarMoeda(saldoRet)} tom="success" />
+        <Kpi icone={<Coins className="size-5" />} rotulo={`Indiretos (mês ${formatarMoeda(custoIndiretoMes)})`} valor={formatarMoeda(custoIndiretoTotal)} />
         <Kpi icone={<ShieldAlert className="size-5" />} rotulo="NCs abertas" valor={String(ncsAbertas.length)} tom={ncsAbertas.length > 0 ? "destructive" : "secondary"} />
       </div>
 

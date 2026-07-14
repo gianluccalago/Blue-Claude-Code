@@ -2541,7 +2541,7 @@ export interface Database {
           id: string;
           pacote: string;
           rotulo: string;
-          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas";
+          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas" | "indiretos";
           valor_orcado: number;
           observacao: string | null;
           criado_em: string;
@@ -2550,7 +2550,7 @@ export interface Database {
           id?: string;
           pacote: string;
           rotulo: string;
-          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas";
+          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas" | "indiretos";
           valor_orcado?: number;
           observacao?: string | null;
         };
@@ -2605,7 +2605,8 @@ export interface Database {
           id: string;
           etapa_id: string;
           concluido: boolean;
-          foto_url: string;
+          percentual: number;
+          foto_url: string | null;
           observacao: string | null;
           registrado_por: string;
           perfil_registrador: string;
@@ -2615,12 +2616,44 @@ export interface Database {
           id?: string;
           etapa_id: string;
           concluido: boolean;
-          foto_url: string;
+          percentual?: number;
+          foto_url?: string | null;
           observacao?: string | null;
           registrado_por: string;
           perfil_registrador: string;
         };
         Update: never;
+        Relationships: [];
+      };
+      obra_checklist_foto: {
+        Row: { id: string; registro_id: string; foto_url: string; criado_em: string };
+        Insert: { id?: string; registro_id: string; foto_url: string };
+        Update: never;
+        Relationships: [];
+      };
+      obra_custos_indiretos: {
+        Row: {
+          id: string;
+          competencia: string;
+          categoria: string;
+          descricao: string;
+          valor: number;
+          recorrente: boolean;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          competencia: string;
+          categoria: string;
+          descricao: string;
+          valor: number;
+          recorrente?: boolean;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ competencia: string; categoria: string; descricao: string; valor: number; recorrente: boolean; observacao: string | null }>;
         Relationships: [];
       };
       obra_disciplinas: {
@@ -3068,6 +3101,8 @@ export type AssentoControlado = Database["public"]["Tables"]["livro_controlados"
 export type ObraFase = Database["public"]["Tables"]["obra_fases"]["Row"];
 export type ObraEtapa = Database["public"]["Tables"]["obra_etapas"]["Row"];
 export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist_execucao"]["Row"];
+export type ObraChecklistFoto = Database["public"]["Tables"]["obra_checklist_foto"]["Row"];
+export type ObraCustoIndireto = Database["public"]["Tables"]["obra_custos_indiretos"]["Row"];
 export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
 export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
 export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];

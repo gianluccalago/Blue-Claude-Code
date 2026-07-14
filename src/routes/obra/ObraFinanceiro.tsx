@@ -6,6 +6,7 @@ import { useFasesObra } from "@/hooks/useObra";
 import { useMedicoes } from "@/hooks/useObraMedicoes";
 import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
+import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useBaseline, useAtualizarBaseline } from "@/hooks/useObraFinanceiro";
 import {
   serieAcumuladaMensal,
@@ -27,6 +28,7 @@ import type { ObraBaseline } from "@/types/database";
 const GRUPO_LABEL: Record<string, string> = {
   mo: "Mão de obra", projetos: "Projetos", materiais: "Materiais",
   fornecedores: "Fornecedores diretos", ensaios: "Ensaios", taxas: "Taxas",
+  indiretos: "Custos indiretos",
 };
 
 export function ObraFinanceiro() {
@@ -39,6 +41,7 @@ export function ObraFinanceiro() {
   const marcos = useMarcos();
   const disciplinas = useDisciplinas();
   const ordens = useOrdensCompra();
+  const custos = useCustosIndiretos();
 
   const [editando, setEditando] = useState<ObraBaseline | null>(null);
 
@@ -76,6 +79,12 @@ export function ObraFinanceiro() {
       grupo: "materiais", rotulo: GRUPO_LABEL.materiais, orcado: orcPorGrupo("materiais"),
       comprometido: listaOC.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.valor_total, 0),
       realizado: listaOC.filter((o) => o.status === "Entregue").reduce((s, o) => s + o.valor_total, 0),
+    },
+    {
+      // Custos indiretos: já incorridos → comprometido = realizado = soma dos lançamentos.
+      grupo: "indiretos", rotulo: GRUPO_LABEL.indiretos, orcado: orcPorGrupo("indiretos"),
+      comprometido: (custos.data ?? []).reduce((s, c) => s + c.valor, 0),
+      realizado: (custos.data ?? []).reduce((s, c) => s + c.valor, 0),
     },
     ...(["fornecedores", "ensaios", "taxas"] as const).map((g) => ({
       grupo: g, rotulo: GRUPO_LABEL[g], orcado: orcPorGrupo(g), comprometido: 0, realizado: 0,

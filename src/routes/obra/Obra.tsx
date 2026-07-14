@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import {
   Camera,
   CheckCircle2,
-  Circle,
   Play,
   SlidersHorizontal,
   Images,
@@ -14,7 +13,8 @@ import {
   useFasesObra,
   useEtapasObra,
   useChecklistObra,
-  useRegistrarVerificacao,
+  useRegistrarAcompanhamento,
+  useFotosAcompanhamento,
   useAtualizarPesos,
   useIniciarFase,
 } from "@/hooks/useObra";
@@ -22,7 +22,7 @@ import {
   OBRA_FASE_STATUS_LABEL,
   OBRA_FASE_STATUS_VARIANTE,
   ultimaVerificacaoPorEtapa,
-  etapaConcluida,
+  percentualEtapa,
   avancoFisico,
   somaPesos,
   podeIniciarFase,
@@ -37,10 +37,10 @@ import { cn, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
 import type { ObraEtapa, ObraFase } from "@/types/database";
 
 // ===========================================================================
-// MÓDULO OBRA — Fase 1: mapa da fase com etapas BINÁRIAS verificáveis in loco.
-// Nenhum percentual subjetivo: avanço físico = soma dos pesos das etapas cujo
-// último registro de verificação (com FOTO obrigatória) está concluído.
-// Acesso: master/direção (total) e obra_prestador (leitura; portal na Fase 6).
+// MÓDULO OBRA — Execução: mapa da fase com % de conclusão editável por etapa e
+// galeria de fotos datadas (evolução). Avanço físico = pesos ponderados pelo %.
+// A etapa vira medível no BM ao chegar a 100% (o dinheiro da MO segue objetivo).
+// Acesso: master/direção (edita) e obra_prestador (leitura; portal na Fase 6).
 // ===========================================================================
 
 const inputBase =
@@ -54,11 +54,12 @@ export function ObraExecucao() {
   const fases = useFasesObra();
   const etapas = useEtapasObra();
   const checklist = useChecklistObra();
+  const fotos = useFotosAcompanhamento();
 
   const [faseSel, setFaseSel] = useState<number>(1);
-  const [verificando, setVerificando] = useState<ObraEtapa | null>(null);
+  const [acompanhando, setAcompanhando] = useState<ObraEtapa | null>(null);
   const [editandoPesos, setEditandoPesos] = useState(false);
-  const [galeriaAberta, setGaleriaAberta] = useState(false);
+  const [galeriaEtapa, setGaleriaEtapa] = useState<ObraEtapa | null>(null);
 
   const ultimaPorEtapa = useMemo(
     () => ultimaVerificacaoPorEtapa(checklist.data ?? []),
@@ -79,9 +80,9 @@ export function ObraExecucao() {
     .filter((e) => e.fase_id === fase.id)
     .sort((a, b) => a.ordem - b.ordem);
   const avanco = avancoFisico(etapasDaFase, ultimaPorEtapa);
-  const fotosDaFase = (checklist.data ?? []).filter((c) =>
-    etapasDaFase.some((e) => e.id === c.etapa_id),
-  );
+  // Nº de fotos por etapa (galeria de evolução).
+  const fotosPorEtapa = new Map<string, number>();
+  for (const f of fotos.data ?? []) fotosPorEtapa.set(f.etapa_id, (fotosPorEtapa.get(f.etapa_id) ?? 0) + 1);
 
   return (
     <div className="space-y-6 pb-8">
@@ -137,9 +138,6 @@ export function ObraExecucao() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setGaleriaAberta(true)} disabled={fotosDaFase.length === 0}>
-                <Images className="size-4" /> Fotos ({fotosDaFase.length})
-              </Button>
               {podeEditar && fase.status === "nao_iniciada" && (
                 <BotaoIniciarFase fase={fase} todas={listaFases} />
               )}
@@ -154,45 +152,50 @@ export function ObraExecucao() {
             <BarraAvanco valor={avanco} className="mt-1.5" alta />
           </div>
 
-          {/* Etapas binárias */}
+          {/* Etapas com % de conclusão editável + galeria de fotos por etapa */}
           <div className="divide-y">
             {etapasDaFase.map((e) => {
               const ultima = ultimaPorEtapa.get(e.id);
-              const concluida = etapaConcluida(e.id, ultimaPorEtapa);
+              const pct = percentualEtapa(e.id, ultimaPorEtapa);
+              const concluida = pct >= 100;
+              const nFotos = fotosPorEtapa.get(e.id) ?? 0;
               return (
                 <div key={e.id} className="flex flex-wrap items-center gap-3 py-3">
                   <span
                     className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-lg",
-                      concluida ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+                      "grid size-9 shrink-0 place-items-center rounded-lg text-xs font-bold tabular-nums",
+                      concluida ? "bg-success/15 text-success" : pct > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                     )}
                   >
-                    {concluida ? <CheckCircle2 className="size-5" /> : <Circle className="size-5" />}
+                    {concluida ? <CheckCircle2 className="size-5" /> : `${pct}%`}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-secondary">{e.nome}</span>
-                      <Badge variant="muted" className="tabular-nums">{e.peso_pct}%</Badge>
-                      {concluida && ultima && (
+                      <Badge variant="muted" className="tabular-nums">peso {e.peso_pct}%</Badge>
+                      {ultima && (
                         <span className="text-xs text-muted-foreground">
-                          verificada em {formatarDataHoraBR(ultima.registrado_em)} · {ultima.registrado_por}
+                          atualizada em {formatarDataHoraBR(ultima.registrado_em)}
                         </span>
                       )}
                     </div>
                     {e.descricao && <p className="text-xs text-muted-foreground">{e.descricao}</p>}
-                    {!concluida && ultima && ultima.observacao && (
-                      <p className="text-xs text-warning-foreground">Reaberta: {ultima.observacao}</p>
+                    {/* Barra de conclusão da etapa */}
+                    <BarraAvanco valor={pct} className="mt-1.5" />
+                    {ultima?.observacao && <p className="mt-1 text-xs text-muted-foreground">{ultima.observacao}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {nFotos > 0 && (
+                      <Button size="sm" variant="ghost" onClick={() => setGaleriaEtapa(e)} title="Fotos da evolução">
+                        <Images className="size-4" /> {nFotos}
+                      </Button>
+                    )}
+                    {podeEditar && (
+                      <Button size="sm" variant="outline" onClick={() => setAcompanhando(e)}>
+                        <Camera className="size-4" /> Atualizar
+                      </Button>
                     )}
                   </div>
-                  {podeEditar && (
-                    <Button
-                      size="sm"
-                      variant={concluida ? "ghost" : "outline"}
-                      onClick={() => setVerificando(e)}
-                    >
-                      <Camera className="size-4" /> {concluida ? "Reabrir/rever" : "Verificar"}
-                    </Button>
-                  )}
                 </div>
               );
             })}
@@ -200,29 +203,24 @@ export function ObraExecucao() {
         </CardContent>
       </Card>
 
-      {verificando && (
-        <ModalVerificacao
-          etapa={verificando}
+      {acompanhando && (
+        <ModalAcompanhamento
+          etapa={acompanhando}
           faseNumero={fase.numero}
-          concluidaAtual={etapaConcluida(verificando.id, ultimaPorEtapa)}
-          onFechar={() => setVerificando(null)}
+          percentualAtual={percentualEtapa(acompanhando.id, ultimaPorEtapa)}
+          onFechar={() => setAcompanhando(null)}
         />
       )}
       {editandoPesos && (
         <ModalPesos fase={fase} etapas={etapasDaFase} onFechar={() => setEditandoPesos(false)} />
       )}
-      {galeriaAberta && (
+      {galeriaEtapa && (
         <ModalGaleria
-          fotos={fotosDaFase.map((c) => ({
-            id: c.id,
-            path: c.foto_url,
-            etapa: etapasDaFase.find((e) => e.id === c.etapa_id)?.nome ?? "",
-            quando: c.registrado_em,
-            quem: c.registrado_por,
-            concluido: c.concluido,
-          }))}
-          titulo={`${fase.nome} — fotos de vistoria`}
-          onFechar={() => setGaleriaAberta(false)}
+          titulo={`${galeriaEtapa.nome} — evolução`}
+          fotos={(fotos.data ?? [])
+            .filter((f) => f.etapa_id === galeriaEtapa.id)
+            .map((f) => ({ id: f.id, path: f.foto_url, quando: f.quando }))}
+          onFechar={() => setGaleriaEtapa(null)}
         />
       )}
     </div>
@@ -311,101 +309,76 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
   );
 }
 
-/** Verificação in loco: binário + FOTO OBRIGATÓRIA + observação. */
-function ModalVerificacao({
+/**
+ * Acompanhamento in loco: define o % de conclusão (0–100, editável) e anexa
+ * VÁRIAS fotos datadas. Cada registro é um ponto no tempo (a etapa acumula a
+ * evolução na galeria). A etapa fica medível no BM ao chegar a 100%.
+ */
+function ModalAcompanhamento({
   etapa,
   faseNumero,
-  concluidaAtual,
+  percentualAtual,
   onFechar,
 }: {
   etapa: ObraEtapa;
   faseNumero: number;
-  concluidaAtual: boolean;
+  percentualAtual: number;
   onFechar: () => void;
 }) {
-  const registrar = useRegistrarVerificacao();
-  const [concluido, setConcluido] = useState(!concluidaAtual);
-  const [foto, setFoto] = useState<File | null>(null);
+  const registrar = useRegistrarAcompanhamento();
+  const [percentual, setPercentual] = useState(percentualAtual);
+  const [fotos, setFotos] = useState<File[]>([]);
   const [observacao, setObservacao] = useState("");
 
-  // Reabrir uma etapa concluída exige justificativa.
-  const reabrindo = concluidaAtual && !concluido;
-  const podeSalvar = !!foto && (!reabrindo || observacao.trim() !== "");
-
-  function onArquivo(e: ChangeEvent<HTMLInputElement>) {
-    setFoto(e.target.files?.[0] ?? null);
+  function onArquivos(e: ChangeEvent<HTMLInputElement>) {
+    setFotos(e.target.files ? Array.from(e.target.files) : []);
   }
 
   async function salvar() {
-    if (!foto) {
-      toast.error("A verificação exige foto tirada no local.");
-      return;
-    }
-    if (reabrindo && observacao.trim() === "") {
-      toast.error("Para reabrir uma etapa concluída, justifique na observação.");
-      return;
-    }
     try {
-      await registrar.mutateAsync({
-        etapaId: etapa.id,
-        faseNumero,
-        concluido,
-        foto,
-        observacao,
-      });
-      toast.success(concluido ? "Etapa verificada como concluída." : "Verificação registrada.");
+      await registrar.mutateAsync({ etapaId: etapa.id, faseNumero, percentual, fotos, observacao });
+      toast.success(percentual >= 100 ? "Etapa concluída (100%)." : `Progresso atualizado para ${percentual}%.`);
       onFechar();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível registrar a verificação.");
+      toast.error(e instanceof Error ? e.message : "Não foi possível registrar o acompanhamento.");
     }
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Verificar ${etapa.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label={`Atualizar ${etapa.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="text-lg font-bold text-secondary">{etapa.nome}</h2>
         {etapa.descricao && <p className="mt-1 text-sm text-muted-foreground">{etapa.descricao}</p>}
 
         <div className="mt-5 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setConcluido(true)}
-              className={cn(
-                "flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition-colors",
-                concluido ? "border-success bg-success/10 text-success" : "border-border text-muted-foreground hover:border-success/50",
-              )}
-            >
-              <CheckCircle2 className="size-4" /> Concluída
-            </button>
-            <button
-              type="button"
-              onClick={() => setConcluido(false)}
-              className={cn(
-                "flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition-colors",
-                !concluido ? "border-warning bg-warning/10 text-warning-foreground" : "border-border text-muted-foreground hover:border-warning/60",
-              )}
-            >
-              <Circle className="size-4" /> Não concluída
-            </button>
+          {/* % de conclusão editável */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-secondary">Percentual de conclusão</label>
+              <span className="text-lg font-extrabold tabular-nums text-primary">{percentual}%</span>
+            </div>
+            <input
+              type="range" min={0} max={100} step={5} value={percentual}
+              onChange={(e) => setPercentual(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <BarraAvanco valor={percentual} alta />
           </div>
 
+          {/* Várias fotos datadas */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-secondary">Foto do local (obrigatória)</label>
+            <label className="text-sm font-semibold text-secondary">Fotos de acompanhamento (pode anexar várias)</label>
             <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={onArquivo}
+              type="file" accept="image/*" capture="environment" multiple
+              onChange={onArquivos}
               className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground hover:file:bg-primary-strong"
             />
+            {fotos.length > 0 && <p className="text-xs text-success">{fotos.length} foto(s) selecionada(s) — serão datadas hoje.</p>}
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-secondary">
-              Observação{reabrindo ? " (obrigatória ao reabrir)" : ""}
-            </label>
+            <label className="text-sm font-medium text-secondary">Observação</label>
             <input type="text" value={observacao} onChange={(e) => setObservacao(e.target.value)} className={inputBase} />
           </div>
         </div>
@@ -414,11 +387,9 @@ function ModalVerificacao({
           <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={registrar.isPending}>
             Cancelar
           </Button>
-          <span className="flex-1" title={podeSalvar ? undefined : !foto ? "Anexe a foto tirada no local" : "Justifique a reabertura na observação"}>
-            <Button size="lg" className="w-full" onClick={salvar} disabled={!podeSalvar || registrar.isPending} loading={registrar.isPending}>
-              Registrar
-            </Button>
-          </span>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={registrar.isPending}>
+            Registrar
+          </Button>
         </div>
       </div>
     </div>
@@ -495,13 +466,13 @@ function ModalPesos({ fase, etapas, onFechar }: { fase: ObraFase; etapas: ObraEt
   );
 }
 
-/** Galeria de fotos de vistoria — carimbo (etapa · data · autor) sobre a imagem. */
+/** Galeria de evolução da etapa — fotos ordenadas por data (mais recente 1º). */
 function ModalGaleria({
   fotos,
   titulo,
   onFechar,
 }: {
-  fotos: { id: string; path: string; etapa: string; quando: string; quem: string; concluido: boolean }[];
+  fotos: { id: string; path: string; quando: string }[];
   titulo: string;
   onFechar: () => void;
 }) {
@@ -515,19 +486,20 @@ function ModalGaleria({
             <X className="size-5" />
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {fotos.map((f) => (
-            <figure key={f.id} className="overflow-hidden rounded-lg border">
-              <FotoSegura bucket={BUCKET_OBRA} stored={f.path} alt={f.etapa} className="aspect-square w-full object-cover" />
-              <figcaption className="space-y-0.5 bg-muted/30 px-2 py-1.5 text-[11px] leading-tight text-muted-foreground">
-                <span className="block truncate font-semibold text-secondary">
-                  {f.etapa} {f.concluido ? "· concluída" : "· pendência"}
-                </span>
-                {formatarDataHoraBR(f.quando)} · {f.quem}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        {fotos.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">Sem fotos ainda.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {fotos.map((f) => (
+              <figure key={f.id} className="overflow-hidden rounded-lg border">
+                <FotoSegura bucket={BUCKET_OBRA} stored={f.path} alt={titulo} className="aspect-square w-full object-cover" />
+                <figcaption className="bg-muted/30 px-2 py-1.5 text-[11px] leading-tight text-muted-foreground">
+                  {formatarDataHoraBR(f.quando)}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

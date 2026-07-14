@@ -8,6 +8,7 @@ import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraMateriais } from "@/routes/obra/ObraMateriais";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
+import { ObraCustos } from "@/routes/obra/ObraCustos";
 import { PortalPrestador } from "@/routes/obra/PortalPrestador";
 import { ObraPainel } from "@/routes/obra/ObraPainel";
 import { ObraControles } from "@/routes/obra/ObraControles";
@@ -47,6 +48,7 @@ export function ObraShell() {
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="materiais">Materiais</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="indiretos">Indiretos</TabsTrigger>
           <TabsTrigger value="controles">Controles</TabsTrigger>
         </TabsList>
         <TabsContent value="painel">
@@ -66,6 +68,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="financeiro">
           <ObraFinanceiro />
+        </TabsContent>
+        <TabsContent value="indiretos">
+          <ObraCustos />
         </TabsContent>
         <TabsContent value="controles">
           <ObraControles />

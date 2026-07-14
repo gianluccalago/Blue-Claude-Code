@@ -162,14 +162,14 @@ function MiniMarcos({ marcos }: { marcos: ObraDisciplinaMarco[] }) {
           key={m.id}
           title={`${m.rotulo} · ${m.status}`}
           className={cn(
-            "grid size-6 place-items-center rounded text-[10px] font-bold tabular-nums",
+            "grid h-6 min-w-8 place-items-center rounded px-1 text-[10px] font-bold tabular-nums",
             m.status === "Pago" ? "bg-success/15 text-success"
             : m.status === "Aprovado" ? "bg-primary/15 text-primary"
             : m.status === "Reprovado" ? "bg-destructive/15 text-destructive"
             : "bg-muted text-muted-foreground",
           )}
         >
-          {m.percentual}
+          {m.percentual}%
         </span>
       ))}
     </div>

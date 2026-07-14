@@ -2,9 +2,11 @@
 
 Acompanhamento da construção da ILPI (13.688,56 m², Curitiba, construtora
 TRÍADE — MO por empreitada por medida R$ 914,66/m² + projetos R$ 500.000).
-Princípio inegociável: **nenhum percentual subjetivo** — avanço físico = etapas
-binárias verificáveis in loco (concluído sim/não + foto obrigatória); o
-financeiro é consequência aritmética dos pesos.
+Princípio inegociável: **o dinheiro nunca depende de percentual subjetivo** — a
+medição da MO só ocorre com a etapa 100% concluída (verificada in loco, com
+foto). O acompanhamento gerencial usa um % de conclusão editável por etapa (com
+galeria de fotos datadas para evidência), mas o financeiro segue sendo
+consequência aritmética dos pesos e das etapas fechadas.
 
 ## Fases executadas
 
@@ -202,10 +204,31 @@ Auditoria de segurança (2 auditores: SQL e front) pós-Fase 7. Corrigido:
 p/ reinspeção", "Apontar"), pendente de ensaio sem permissão vira selo
 "aguardando resultado", nota didática do orçamento removida.
 
-## Módulo completo (Fases 0–7 + hardening)
-**Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106.
-Todas idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e crie o
-usuário da construtora com perfil `obra_prestador` em Equipe e Acessos.
+### ✅ Acompanhamento por % + galeria + custos indiretos (migration `0107_obra_acompanhamento_custos.sql`)
+Três pedidos de uso (com telas na mão):
+- **Execução vira registro de acompanhamento.** Cada etapa agora tem uma **barra
+  de percentual de conclusão (0–100, editável)** — não mais só "concluída sim/não".
+  A etapa acumula **várias fotos datadas** ao longo do tempo (tabela filha
+  `obra_checklist_foto`, N por registro): a galeria mostra a evolução com carimbo
+  de data. `obra_checklist_execucao` ganhou `percentual` (backfill = 100 onde já
+  concluído) e `foto_url` deixou de ser obrigatória (um registro pode ser só
+  atualização de %). O avanço físico passou a ser **ponderado pelo %**
+  (`avancoFisico` usa `peso_pct × percentual/100`). **O dinheiro da MO segue
+  objetivo:** a etapa só fica medível no BM ao atingir 100% (`etapaConcluida` =
+  `percentual >= 100`) — o % serve para visão/gestão, não relaxa a medição.
+- **Projetos:** os chips de marco agora exibem **`%`** explicitamente (era só o
+  número solto — ambíguo).
+- **Nova aba "Indiretos"** (`obra_custos_indiretos`, master/direção): registra
+  honorário de engenharia, assinaturas de software, administrativo, taxas e
+  gastos gerais **por competência mensal** (com flag de recorrente). KPIs
+  (total, recorrente/mês, lançamentos), controle mensal agrupado, evolução e
+  CSV. Alimenta o **painel** (5º KPI "Indiretos") e o **financeiro consolidado**
+  (grupo `indiretos` no baseline; orçado editável, realizado = soma dos custos).
+
+## Módulo completo (Fases 0–7 + hardening + acompanhamento)
+**Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
+→ 0107. Todas idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e
+crie o usuário da construtora com perfil `obra_prestador` em Equipe e Acessos.
 
 **Pendências conhecidas (documentadas):**
 - Envio de e-mail das notificações (Fase 6) precisa de uma Edge Function/provedor

@@ -72,6 +72,7 @@ function invalidarObra(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["obra-fases"] });
   qc.invalidateQueries({ queryKey: ["obra-etapas"] });
   qc.invalidateQueries({ queryKey: ["obra-checklist"] });
+  qc.invalidateQueries({ queryKey: ["obra-checklist-fotos"] });
 }
 
 /**
@@ -79,29 +80,71 @@ function invalidarObra(qc: ReturnType<typeof useQueryClient>) {
  * módulo: binário verificável + evidência datada). Reabrir = novo registro
  * com concluido=false e justificativa.
  */
-export function useRegistrarVerificacao() {
+/**
+ * Registra um acompanhamento da etapa: define o % de conclusão (0–100,
+ * editável) e anexa VÁRIAS fotos datadas (opcionais). `concluido` fica em sync
+ * com % >= 100 (o BM só mede etapa 100%). Cada registro é um ponto no tempo —
+ * a etapa acumula sua evolução (galeria).
+ */
+export function useRegistrarAcompanhamento() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
       etapaId: string;
       faseNumero: number;
-      concluido: boolean;
-      foto: File;
+      percentual: number;
+      fotos: File[];
       observacao?: string;
     }) => {
-      const path = await uploadFotoObra(args.foto, args.faseNumero, args.etapaId);
-      if (!path) throw new Error("Falha no upload da foto. A verificação exige foto — tente novamente.");
-      const { error } = await supabase.from("obra_checklist_execucao").insert({
-        etapa_id: args.etapaId,
-        concluido: args.concluido,
-        foto_url: path,
-        observacao: args.observacao?.trim() || null,
-        registrado_por: usuarioAtual.nome,
-        perfil_registrador: usuarioAtual.perfil,
-      });
+      const pct = Math.max(0, Math.min(100, Math.round(args.percentual)));
+      // Sobe as fotos (se houver) antes de gravar o registro.
+      const paths: string[] = [];
+      for (const f of args.fotos) {
+        const p = await uploadFotoObra(f, args.faseNumero, args.etapaId);
+        if (!p) throw new Error("Falha no upload de uma das fotos. Tente novamente.");
+        paths.push(p);
+      }
+      const { data: reg, error } = await supabase
+        .from("obra_checklist_execucao")
+        .insert({
+          etapa_id: args.etapaId,
+          concluido: pct >= 100,
+          percentual: pct,
+          foto_url: paths[0] ?? null,
+          observacao: args.observacao?.trim() || null,
+          registrado_por: usuarioAtual.nome,
+          perfil_registrador: usuarioAtual.perfil,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (paths.length > 0) {
+        const { error: e2 } = await supabase
+          .from("obra_checklist_foto")
+          .insert(paths.map((foto_url) => ({ registro_id: reg.id, foto_url })));
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => invalidarObra(qc),
+  });
+}
+
+/** Todas as fotos de acompanhamento (com etapa + data) para a galeria por etapa. */
+export function useFotosAcompanhamento() {
+  return useQuery({
+    queryKey: ["obra-checklist-fotos"],
+    queryFn: async (): Promise<{ id: string; etapa_id: string; foto_url: string; quando: string }[]> => {
+      const { data, error } = await supabase
+        .from("obra_checklist_foto")
+        .select("id, foto_url, criado_em, registro:obra_checklist_execucao!inner(etapa_id, registrado_em)")
+        .order("criado_em", { ascending: false });
+      if (error) return [];
+      type Linha = { id: string; foto_url: string; criado_em: string; registro: { etapa_id: string; registrado_em: string } | { etapa_id: string; registrado_em: string }[] };
+      return ((data ?? []) as unknown as Linha[]).map((r) => {
+        const reg = Array.isArray(r.registro) ? r.registro[0] : r.registro;
+        return { id: r.id, etapa_id: reg?.etapa_id, foto_url: r.foto_url, quando: reg?.registrado_em ?? r.criado_em };
+      });
+    },
   });
 }
 
