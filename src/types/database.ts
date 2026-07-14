@@ -2469,6 +2469,21 @@ export interface Database {
         Update: Partial<{ entregue: boolean; entregue_em: string | null; observacao: string | null }>;
         Relationships: [];
       };
+      obra_notificacoes: {
+        Row: {
+          id: string;
+          destinatario: string;
+          tipo: string;
+          titulo: string;
+          corpo: string | null;
+          referencia_id: string | null;
+          lida: boolean;
+          criado_em: string;
+        };
+        Insert: never;
+        Update: Partial<{ lida: boolean }>;
+        Relationships: [];
+      };
       obra_baseline: {
         Row: {
           id: string;
@@ -2959,6 +2974,16 @@ export interface Database {
         Args: { p_marco_id: string };
         Returns: undefined;
       };
+      // Obra Fase 6: prestador submete BM (valores calculados no servidor). Retorna o id.
+      obra_submeter_bm: {
+        Args: { p_fase_id: string; p_mes: string; p_etapa_ids: string[] };
+        Returns: string;
+      };
+      // Obra Fase 6: prestador submete a entrega de um marco de projeto → Em análise.
+      obra_submeter_entrega: {
+        Args: { p_marco_id: string; p_arquivo_url: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -3004,6 +3029,7 @@ export type ObraConsumo = Database["public"]["Tables"]["obra_consumo"]["Row"];
 export type ObraEstoqueReposicao = Database["public"]["Tables"]["obra_estoque_reposicao"]["Row"];
 export type ObraTolerancia = Database["public"]["Tables"]["obra_tolerancias_perdas"]["Row"];
 export type ObraBaseline = Database["public"]["Tables"]["obra_baseline"]["Row"];
+export type ObraNotificacao = Database["public"]["Tables"]["obra_notificacoes"]["Row"];
 export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
 export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
 export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];

@@ -145,8 +145,24 @@ financeiro é consequência aritmética dos pesos.
 - Cálculos testados (Vitest, +6 = **35 casos**): série acumulada mensal, soma por
   mês, custo/m², saldo orçamentário.
 
+### ✅ Fase 6 — Portal do prestador (migration `0104_obra_portal_prestador.sql`)
+- Tela própria e isolada (`PortalPrestador`, roteada no `ObraShell` quando o
+  perfil é `obra_prestador`): cronograma/avanço das fases, minhas medições
+  (status + motivo de reprovação), documentos do mês, entregas de projeto e BIM,
+  pendências, feed de notificações. **Nada de financeiro do Contratante.**
+- **RPC `obra_submeter_bm`** (SECURITY DEFINER): o prestador escolhe mês + etapas
+  concluídas; o servidor VALIDA (etapa da fase, concluída, ainda não medida) e
+  CALCULA os valores (bruto/retenção/INSS/ISS/líquido) — entra como Pendente. O
+  prestador nunca digita valor.
+- **RPC `obra_submeter_entrega`**: upload da entrega de um marco → Em análise.
+- RLS pontual: prestador insere/atualiza os 4 documentos mensais, insere rodadas
+  BIM e lê o cronograma das disciplinas (sem cotações/OCs/ledger/baseline).
+- **Notificações**: fila `obra_notificacoes` + trigger que enfileira "BM
+  reprovado"; feed in-app no portal. **Envio por e-mail** depende de uma Edge
+  Function/provedor (fora deste repo) — a fila e o feed já ficam prontos; os
+  avisos de "documento vencendo / marco próximo" são calculados na tela por data.
+
 ## Próximas fases (aguardando "execute a Fase N")
-- **Fase 6** — Portal do prestador (submissão de BM/documentos/entregas).
 - **Fase 7** — Transversais (insumos críticos, ensaios, diário, NCs,
   documentos da obra, aditivos, dashboard executivo).
 

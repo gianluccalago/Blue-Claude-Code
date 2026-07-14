@@ -1,5 +1,6 @@
 import { HardHat } from "lucide-react";
 import { useObraAtiva } from "@/hooks/useObra";
+import { useAuth } from "@/auth/AuthProvider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState } from "@/components/states";
 import { ObraExecucao } from "@/routes/obra/Obra";
@@ -7,6 +8,7 @@ import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraMateriais } from "@/routes/obra/ObraMateriais";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
+import { PortalPrestador } from "@/routes/obra/PortalPrestador";
 
 // ===========================================================================
 // MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
@@ -15,12 +17,16 @@ import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
 
 export function ObraShell() {
   const ativa = useObraAtiva();
+  const { usuarioEfetivo } = useAuth();
 
   if (ativa.isLoading) return <LoadingState />;
   if (ativa.data === false)
     return (
       <EmptyState label="O módulo Obra está desativado. Ative-o em obra_config (modulo_obra_ativo = true) para usar." />
     );
+
+  // O prestador (construtora) tem um portal próprio, isolado do restante.
+  if (usuarioEfetivo?.perfil === "obra_prestador") return <PortalPrestador />;
 
   return (
     <div className="space-y-5">
