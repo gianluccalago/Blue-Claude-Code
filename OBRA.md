@@ -131,8 +131,21 @@ financeiro é consequência aritmética dos pesos.
 - UI: aba "Materiais" — métricas, tabela de perdas, curva ABC e as seções da
   cadeia com modais (planejar, cotar/emitir OC, receber com foto, consumo, reposição).
 
+### ✅ Fase 5 — Financeiro consolidado (migration `0103_obra_baseline.sql`)
+- `obra_baseline`: orçado por pacote (MO por fase + Projetos semeados do
+  contrato; Materiais/Fornecedores/Ensaios/Taxas editáveis pelo master). RLS
+  master/direção (financeiro).
+- Painel: **orçado × comprometido × realizado × saldo** por grupo (MO = medições
+  bruto; Projetos = marcos; Materiais = OCs), com total.
+- **Curva S física × financeira** (SVG inline): física = % medido acumulado sobre
+  a área total; financeira = pago acumulado sobre o orçado.
+- **Custo/m² acumulado**; **contas a pagar** (agenda por vencimento: medições
+  Aprovadas, marcos Aprovados, OCs com previsão) e **fluxo de caixa mensal**.
+- **Export CSV** de qualquer grade (`lib/exportCsv.ts`, genérico).
+- Cálculos testados (Vitest, +6 = **35 casos**): série acumulada mensal, soma por
+  mês, custo/m², saldo orçamentário.
+
 ## Próximas fases (aguardando "execute a Fase N")
-- **Fase 5** — Financeiro consolidado (baseline, curva S, contas a pagar, CSV).
 - **Fase 6** — Portal do prestador (submissão de BM/documentos/entregas).
 - **Fase 7** — Transversais (insumos críticos, ensaios, diário, NCs,
   documentos da obra, aditivos, dashboard executivo).

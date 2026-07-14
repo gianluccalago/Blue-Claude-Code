@@ -1,0 +1,334 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import { Wallet, TrendingUp, CalendarClock, Download, Ruler, X, Pencil } from "lucide-react";
+import { useAuth } from "@/auth/AuthProvider";
+import { useFasesObra } from "@/hooks/useObra";
+import { useMedicoes } from "@/hooks/useObraMedicoes";
+import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
+import { useOrdensCompra } from "@/hooks/useObraMateriais";
+import { useBaseline, useAtualizarBaseline } from "@/hooks/useObraFinanceiro";
+import {
+  serieAcumuladaMensal,
+  somaPorMes,
+  custoM2,
+  saldoOrcamentario,
+  type LinhaResumo,
+} from "@/lib/obraFinanceiro";
+import { arred } from "@/lib/obraCalc";
+import { exportarCSV } from "@/lib/exportCsv";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { LoadingState, EmptyState, ErrorState } from "@/components/states";
+import { formatarMoeda } from "@/lib/mensalidade";
+import { cn, formatarDataBR, hojeISO } from "@/lib/utils";
+import type { ObraBaseline } from "@/types/database";
+
+const GRUPO_LABEL: Record<string, string> = {
+  mo: "Mão de obra", projetos: "Projetos", materiais: "Materiais",
+  fornecedores: "Fornecedores diretos", ensaios: "Ensaios", taxas: "Taxas",
+};
+
+export function ObraFinanceiro() {
+  const { usuarioEfetivo } = useAuth();
+  const podeEditar = usuarioEfetivo?.perfil === "master" || usuarioEfetivo?.perfil === "direcao";
+
+  const baseline = useBaseline();
+  const fases = useFasesObra();
+  const medicoes = useMedicoes();
+  const marcos = useMarcos();
+  const disciplinas = useDisciplinas();
+  const ordens = useOrdensCompra();
+
+  const [editando, setEditando] = useState<ObraBaseline | null>(null);
+
+  const carregando = baseline.isLoading || fases.isLoading || medicoes.isLoading;
+  if (carregando) return <LoadingState />;
+  if (fases.isError) return <ErrorState error={fases.error} />;
+
+  const listaBase = baseline.data ?? [];
+  if (listaBase.length === 0)
+    return <EmptyState label="Baseline não encontrado — rode a migration 0103 no Supabase (financeiro é master/direção)." />;
+
+  const listaFases = fases.data ?? [];
+  const areaPorFase = new Map(listaFases.map((f) => [f.id, f.area_m2]));
+  const totalArea = listaFases.reduce((s, f) => s + f.area_m2, 0);
+  const listaMed = medicoes.data ?? [];
+  const listaMarcos = marcos.data ?? [];
+  const listaOC = ordens.data ?? [];
+  const nomeDisc = new Map((disciplinas.data ?? []).map((d) => [d.id, d.nome]));
+  const marcoDisc = new Map(listaMarcos.map((m) => [m.id, m.disciplina_id]));
+
+  // ── Resumo por grupo (orçado × comprometido × realizado) ──
+  const orcPorGrupo = (g: string) => listaBase.filter((b) => b.grupo === g).reduce((s, b) => s + b.valor_orcado, 0);
+  const resumo: LinhaResumo[] = [
+    {
+      grupo: "mo", rotulo: GRUPO_LABEL.mo, orcado: orcPorGrupo("mo"),
+      comprometido: listaMed.filter((m) => m.status !== "Reprovado").reduce((s, m) => s + m.valor_bruto, 0),
+      realizado: listaMed.filter((m) => m.status === "Pago").reduce((s, m) => s + m.valor_bruto, 0),
+    },
+    {
+      grupo: "projetos", rotulo: GRUPO_LABEL.projetos, orcado: orcPorGrupo("projetos"),
+      comprometido: listaMarcos.filter((m) => m.status !== "Reprovado").reduce((s, m) => s + m.valor, 0),
+      realizado: listaMarcos.filter((m) => m.status === "Pago").reduce((s, m) => s + m.valor, 0),
+    },
+    {
+      grupo: "materiais", rotulo: GRUPO_LABEL.materiais, orcado: orcPorGrupo("materiais"),
+      comprometido: listaOC.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.valor_total, 0),
+      realizado: listaOC.filter((o) => o.status === "Entregue").reduce((s, o) => s + o.valor_total, 0),
+    },
+    ...(["fornecedores", "ensaios", "taxas"] as const).map((g) => ({
+      grupo: g, rotulo: GRUPO_LABEL[g], orcado: orcPorGrupo(g), comprometido: 0, realizado: 0,
+    })),
+  ].map((l) => ({ ...l, orcado: arred(l.orcado), comprometido: arred(l.comprometido), realizado: arred(l.realizado) }));
+
+  const totOrcado = arred(resumo.reduce((s, l) => s + l.orcado, 0));
+  const totComprometido = arred(resumo.reduce((s, l) => s + l.comprometido, 0));
+  const totRealizado = arred(resumo.reduce((s, l) => s + l.realizado, 0));
+
+  // ── Curva S física × financeira ──
+  const evFisica = listaMed
+    .filter((m) => m.status === "Aprovado" || m.status === "Pago")
+    .map((m) => ({ mes: m.mes, valor: m.percentual_medido * (areaPorFase.get(m.fase_id) ?? 0) }));
+  const serieFisica = serieAcumuladaMensal(evFisica);
+  const evFin = [
+    ...listaMed.filter((m) => m.status === "Pago" && m.data_pagamento).map((m) => ({ mes: m.data_pagamento!.slice(0, 7), valor: m.valor_bruto })),
+    ...listaMarcos.filter((m) => m.status === "Pago" && m.data_pagamento).map((m) => ({ mes: m.data_pagamento!.slice(0, 7), valor: m.valor })),
+  ];
+  const serieFin = serieAcumuladaMensal(evFin);
+  const areaFisicaFinal = serieFisica.length ? serieFisica[serieFisica.length - 1].acumulado : 0; // em m²·%? → normaliza abaixo
+  const meses = [...new Set([...serieFisica.map((p) => p.mes), ...serieFin.map((p) => p.mes)])].sort();
+  const curva = meses.map((mes) => {
+    const fis = serieFisica.filter((p) => p.mes <= mes).at(-1)?.acumulado ?? 0;
+    const fin = serieFin.filter((p) => p.mes <= mes).at(-1)?.acumulado ?? 0;
+    return {
+      mes,
+      fisicaPct: totalArea > 0 ? arred((fis / totalArea) * 100) : 0,
+      financeiraPct: totOrcado > 0 ? arred((fin / totOrcado) * 100) : 0,
+    };
+  });
+
+  // Custo/m² acumulado = realizado ÷ área física concluída.
+  const areaFisicaM2 = totalArea > 0 ? areaFisicaFinal / 100 : 0; // acumulado = Σ(%×área); /100 = m² equivalentes
+  const custoPorM2 = custoM2(totRealizado, areaFisicaM2);
+
+  // ── Contas a pagar (agenda por vencimento) ──
+  const contas = [
+    ...listaMed.filter((m) => m.status === "Aprovado").map((m) => ({
+      tipo: "Medição", ref: `BM ${m.mes}`, valor: m.valor_liquido, venc: m.data_aprovacao ?? hojeISO(),
+    })),
+    ...listaMarcos.filter((m) => m.status === "Aprovado").map((m) => ({
+      tipo: "Projeto", ref: `${nomeDisc.get(marcoDisc.get(m.id) ?? "") ?? "?"} · ${m.rotulo}`, valor: m.valor, venc: m.data_aprovacao ?? hojeISO(),
+    })),
+    ...listaOC.filter((o) => (o.status === "Emitida" || o.status === "Entregue parcial") && o.previsao_entrega).map((o) => ({
+      tipo: "Material (OC)", ref: `${o.item} · ${o.fornecedor}`, valor: o.valor_total, venc: o.previsao_entrega!,
+    })),
+  ].sort((a, b) => a.venc.localeCompare(b.venc));
+  const totalAPagar = arred(contas.reduce((s, c) => s + c.valor, 0));
+  const fluxo = somaPorMes(contas.map((c) => ({ mes: c.venc.slice(0, 7), valor: c.valor })));
+
+  function exportBaseline() {
+    const ok = exportarCSV("obra-orcamento", resumo.map((l) => ({
+      Grupo: l.rotulo, "Orçado (R$)": l.orcado, "Comprometido (R$)": l.comprometido,
+      "Realizado (R$)": l.realizado, "Saldo (R$)": saldoOrcamentario(l),
+    })));
+    if (!ok) toast.error("Nada para exportar.");
+  }
+  function exportContas() {
+    const ok = exportarCSV("obra-contas-a-pagar", contas.map((c) => ({
+      Vencimento: formatarDataBR(c.venc), Tipo: c.tipo, Referência: c.ref, "Valor (R$)": c.valor,
+    })));
+    if (!ok) toast.error("Nada para exportar.");
+  }
+
+  return (
+    <div className="space-y-6 pb-8">
+      {/* Totais */}
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Kpi icone={<Wallet className="size-5" />} rotulo="Orçado (baseline)" valor={formatarMoeda(totOrcado)} />
+        <Kpi icone={<TrendingUp className="size-5" />} rotulo="Comprometido" valor={formatarMoeda(totComprometido)} tom="warning" />
+        <Kpi icone={<Wallet className="size-5" />} rotulo="Realizado (pago)" valor={formatarMoeda(totRealizado)} tom="success" />
+        <Kpi icone={<Ruler className="size-5" />} rotulo="Custo/m² acumulado" valor={formatarMoeda(custoPorM2)} />
+      </div>
+
+      {/* Baseline por pacote */}
+      <Card>
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-secondary"><Wallet className="size-5 text-primary" /> Orçamento por pacote</h2>
+            <Button size="sm" variant="outline" onClick={exportBaseline}><Download className="size-4" /> CSV</Button>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="pb-2">Pacote</th>
+                <th className="pb-2 text-right">Orçado</th>
+                <th className="pb-2 text-right">Comprometido</th>
+                <th className="pb-2 text-right">Realizado</th>
+                <th className="pb-2 text-right">Saldo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {resumo.map((l) => {
+                const base = listaBase.find((b) => b.grupo === l.grupo && (l.grupo === "mo" || l.grupo === "projetos" ? false : true));
+                return (
+                  <tr key={l.grupo} className="text-secondary">
+                    <td className="py-2">
+                      {l.rotulo}
+                      {podeEditar && base && (l.grupo === "materiais" || l.grupo === "fornecedores" || l.grupo === "ensaios" || l.grupo === "taxas") && (
+                        <button onClick={() => setEditando(base)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar orçado"><Pencil className="inline size-3.5" /></button>
+                      )}
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-muted-foreground">{formatarMoeda(l.orcado)}</td>
+                    <td className="py-2 text-right tabular-nums">{formatarMoeda(l.comprometido)}</td>
+                    <td className="py-2 text-right tabular-nums text-success">{formatarMoeda(l.realizado)}</td>
+                    <td className={cn("py-2 text-right tabular-nums font-semibold", saldoOrcamentario(l) < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(saldoOrcamentario(l))}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 font-bold text-secondary">
+                <td className="pt-2">TOTAL</td>
+                <td className="pt-2 text-right tabular-nums">{formatarMoeda(totOrcado)}</td>
+                <td className="pt-2 text-right tabular-nums">{formatarMoeda(totComprometido)}</td>
+                <td className="pt-2 text-right tabular-nums text-success">{formatarMoeda(totRealizado)}</td>
+                <td className="pt-2 text-right tabular-nums">{formatarMoeda(arred(totOrcado - totComprometido))}</td>
+              </tr>
+            </tfoot>
+          </table>
+          <p className="text-xs text-muted-foreground">MO por fase e Projetos vêm do contrato; edite Materiais/Fornecedores/Ensaios/Taxas conforme o planejado.</p>
+        </CardContent>
+      </Card>
+
+      {/* Curva S */}
+      <Card>
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-secondary"><TrendingUp className="size-5 text-primary" /> Curva S — física × financeira</h2>
+          {curva.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ainda sem medições/pagamentos para traçar a curva.</p>
+          ) : (
+            <CurvaS pontos={curva} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Contas a pagar */}
+      <Card>
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-secondary"><CalendarClock className="size-5 text-primary" /> Contas a pagar · {formatarMoeda(totalAPagar)}</h2>
+            <Button size="sm" variant="outline" onClick={exportContas} disabled={contas.length === 0}><Download className="size-4" /> CSV</Button>
+          </div>
+          {contas.length === 0 ? <EmptyState label="Nada a pagar no momento." /> : (
+            <>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <th className="pb-2">Vencimento</th><th className="pb-2">Tipo</th><th className="pb-2">Referência</th><th className="pb-2 text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {contas.map((c, i) => (
+                    <tr key={i} className="text-secondary">
+                      <td className="py-2 tabular-nums">{formatarDataBR(c.venc)}</td>
+                      <td className="py-2"><Badge variant="muted">{c.tipo}</Badge></td>
+                      <td className="py-2 text-muted-foreground">{c.ref}</td>
+                      <td className="py-2 text-right font-semibold tabular-nums">{formatarMoeda(c.valor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {/* Fluxo de caixa mensal projetado */}
+              <div>
+                <p className="mb-1 text-sm font-semibold text-secondary">Fluxo projetado por mês</p>
+                <div className="flex flex-wrap gap-2">
+                  {fluxo.map((f) => (
+                    <span key={f.mes} className="rounded-lg border border-border bg-muted/20 px-3 py-1.5 text-xs">
+                      <span className="text-muted-foreground">{f.mes}</span> · <strong className="tabular-nums text-secondary">{formatarMoeda(f.valor)}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {editando && <ModalBaseline base={editando} onFechar={() => setEditando(null)} />}
+    </div>
+  );
+}
+
+function Kpi({ icone, rotulo, valor, tom = "secondary" }: { icone: React.ReactNode; rotulo: string; valor: string; tom?: "secondary" | "warning" | "success" }) {
+  const cor = tom === "warning" ? "text-warning" : tom === "success" ? "text-success" : "text-secondary";
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
+      <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg bg-card", cor)}>{icone}</span>
+      <div><p className={cn("text-lg font-extrabold tabular-nums", cor)}>{valor}</p><p className="text-xs text-muted-foreground">{rotulo}</p></div>
+    </div>
+  );
+}
+
+/** Curva S em SVG (duas polilinhas: física × financeira, 0–100%). */
+function CurvaS({ pontos }: { pontos: { mes: string; fisicaPct: number; financeiraPct: number }[] }) {
+  const W = 640, H = 200, P = 28;
+  const n = pontos.length;
+  const x = (i: number) => P + (n <= 1 ? 0 : (i / (n - 1)) * (W - 2 * P));
+  const y = (v: number) => H - P - (Math.min(100, v) / 100) * (H - 2 * P);
+  const linha = (sel: (p: typeof pontos[number]) => number) => pontos.map((p, i) => `${x(i)},${y(sel(p))}`).join(" ");
+  return (
+    <div className="overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[520px]" role="img" aria-label="Curva S">
+        {[0, 25, 50, 75, 100].map((g) => (
+          <g key={g}>
+            <line x1={P} x2={W - P} y1={y(g)} y2={y(g)} stroke="hsl(var(--border))" strokeWidth={1} />
+            <text x={4} y={y(g) + 3} fontSize={9} fill="hsl(var(--muted-foreground))">{g}%</text>
+          </g>
+        ))}
+        <polyline points={linha((p) => p.fisicaPct)} fill="none" stroke="hsl(var(--primary))" strokeWidth={2} />
+        <polyline points={linha((p) => p.financeiraPct)} fill="none" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="4 3" />
+        {pontos.map((p, i) => (
+          <text key={p.mes} x={x(i)} y={H - 8} fontSize={8} fill="hsl(var(--muted-foreground))" textAnchor="middle">{p.mes.slice(2)}</text>
+        ))}
+      </svg>
+      <div className="mt-1 flex gap-4 text-xs">
+        <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-primary" /> Física</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-success" /> Financeira</span>
+      </div>
+    </div>
+  );
+}
+
+function ModalBaseline({ base, onFechar }: { base: ObraBaseline; onFechar: () => void }) {
+  const atualizar = useAtualizarBaseline();
+  const [valor, setValor] = useState(String(base.valor_orcado));
+  const [obs, setObs] = useState(base.observacao ?? "");
+
+  async function salvar() {
+    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    if (!Number.isFinite(v) || v < 0) { toast.error("Valor inválido."); return; }
+    try { await atualizar.mutateAsync({ id: base.id, valorOrcado: v, observacao: obs || null }); toast.success("Orçado atualizado."); onFechar(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-secondary">{base.rotulo}</h2>
+          <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
+        </div>
+        <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor orçado (R$)</span>
+          <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" /></label>
+        <label className="mt-3 block space-y-1"><span className="text-sm font-medium text-secondary">Observação</span>
+          <input value={obs} onChange={(e) => setObs(e.target.value)} className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" /></label>
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={atualizar.isPending}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={atualizar.isPending}>Salvar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}

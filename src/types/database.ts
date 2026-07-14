@@ -2469,6 +2469,27 @@ export interface Database {
         Update: Partial<{ entregue: boolean; entregue_em: string | null; observacao: string | null }>;
         Relationships: [];
       };
+      obra_baseline: {
+        Row: {
+          id: string;
+          pacote: string;
+          rotulo: string;
+          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas";
+          valor_orcado: number;
+          observacao: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          pacote: string;
+          rotulo: string;
+          grupo: "mo" | "projetos" | "materiais" | "fornecedores" | "ensaios" | "taxas";
+          valor_orcado?: number;
+          observacao?: string | null;
+        };
+        Update: Partial<{ rotulo: string; valor_orcado: number; observacao: string | null }>;
+        Relationships: [];
+      };
       obra_recebimento_pendencias: {
         Row: {
           id: string;
@@ -2982,6 +3003,7 @@ export type ObraRecebimento = Database["public"]["Tables"]["obra_recebimentos"][
 export type ObraConsumo = Database["public"]["Tables"]["obra_consumo"]["Row"];
 export type ObraEstoqueReposicao = Database["public"]["Tables"]["obra_estoque_reposicao"]["Row"];
 export type ObraTolerancia = Database["public"]["Tables"]["obra_tolerancias_perdas"]["Row"];
+export type ObraBaseline = Database["public"]["Tables"]["obra_baseline"]["Row"];
 export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
 export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
 export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];
