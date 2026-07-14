@@ -38,6 +38,8 @@ export type ObraFaseStatus = "nao_iniciada" | "em_andamento" | "trp_emitido" | "
 export type ObraMedicaoStatus = "Pendente" | "Em análise" | "Aprovado" | "Reprovado" | "Pago";
 /** Documentos mensais obrigatórios da construtora (gate de pagamento). */
 export type ObraDocMensalTipo = "inss" | "fgts" | "iss" | "folha";
+/** Fluxo de um marco de pagamento de disciplina de projeto. */
+export type ObraMarcoStatus = "Pendente" | "Em análise" | "Aprovado" | "Reprovado" | "Pago";
 /** Tipos de assento do livro de controlados (Port. 344/98). */
 export type TipoAssentoControlado =
   | "entrada"
@@ -2366,6 +2368,9 @@ export interface Database {
           status: string;
           motivo: string | null;
           observacao: string | null;
+          art_url: string | null;
+          data_base: string | null;
+          data_conclusao: string | null;
           criado_em: string;
         };
         Insert: never;
@@ -2373,6 +2378,66 @@ export interface Database {
           status: string;
           motivo: string | null;
           revisoes_usadas: number;
+          observacao: string | null;
+          art_url: string | null;
+          data_base: string | null;
+          data_conclusao: string | null;
+        }>;
+        Relationships: [];
+      };
+      obra_disciplina_marcos: {
+        Row: {
+          id: string;
+          disciplina_id: string;
+          ordem: number;
+          chave: "inicio" | "r00" | "r01" | "retido" | "entrega";
+          rotulo: string;
+          percentual: number;
+          valor: number;
+          exige_entrega: boolean;
+          entrega_url: string | null;
+          status: ObraMarcoStatus;
+          motivo: string | null;
+          data_aprovacao: string | null;
+          data_pagamento: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: never;
+        Update: Partial<{
+          entrega_url: string | null;
+          status: ObraMarcoStatus;
+          motivo: string | null;
+          data_aprovacao: string | null;
+          registrado_por: string | null;
+        }>;
+        Relationships: [];
+      };
+      obra_bim_rodadas: {
+        Row: {
+          id: string;
+          numero: number;
+          final: boolean;
+          relatorio_url: string | null;
+          ifc_url: string | null;
+          observacao: string | null;
+          data_rodada: string;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          numero: number;
+          final?: boolean;
+          relatorio_url?: string | null;
+          ifc_url?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{
+          final: boolean;
+          relatorio_url: string | null;
+          ifc_url: string | null;
           observacao: string | null;
         }>;
         Relationships: [];
@@ -2689,6 +2754,11 @@ export interface Database {
         Args: { p_fase_id: string };
         Returns: number;
       };
+      // Obra: pagar marco de disciplina (gate: entrega aprovada + ART; retido exige BIM final).
+      obra_pagar_marco: {
+        Args: { p_marco_id: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -2724,6 +2794,8 @@ export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist
 export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
 export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
 export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];
+export type ObraDisciplinaMarco = Database["public"]["Tables"]["obra_disciplina_marcos"]["Row"];
+export type ObraBimRodada = Database["public"]["Tables"]["obra_bim_rodadas"]["Row"];
 export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
 export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
 export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];

@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState } from "@/components/states";
 import { ObraExecucao } from "@/routes/obra/Obra";
 import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
+import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 
 // ===========================================================================
 // MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
@@ -32,12 +33,16 @@ export function ObraShell() {
         <TabsList>
           <TabsTrigger value="execucao">Execução</TabsTrigger>
           <TabsTrigger value="medicoes">Medições e pagamentos</TabsTrigger>
+          <TabsTrigger value="projetos">Projetos complementares</TabsTrigger>
         </TabsList>
         <TabsContent value="execucao">
           <ObraExecucao />
         </TabsContent>
         <TabsContent value="medicoes">
           <ObraMedicoes />
+        </TabsContent>
+        <TabsContent value="projetos">
+          <ObraProjetos />
         </TabsContent>
       </Tabs>
     </div>

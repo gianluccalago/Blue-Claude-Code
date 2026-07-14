@@ -96,6 +96,33 @@ export function diffDias(aISO: string, bISO: string): number {
   return Math.round((b.getTime() - a.getTime()) / 86_400_000);
 }
 
+/** Soma dias a uma data ISO, devolvendo ISO (AAAA-MM-DD). null se base ausente. */
+export function somarDiasISO(baseISO: string | null, dias: number | null): string | null {
+  if (!baseISO || dias == null) return null;
+  const d = new Date(`${baseISO}T00:00:00`);
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Multa de atraso de uma DISCIPLINA de projeto: 0,15%/dia de atraso sobre o
+ * valor da disciplina, teto 10%. dataReal = conclusão (ou "hoje" se em curso).
+ * Sem data prevista/real → zero.
+ */
+export function calcularMultaDisciplina(args: {
+  valorDisciplina: number;
+  dataPrevista: string | null;
+  dataReal: string | null;
+  multaDiaPct: number;
+  tetoPct: number;
+}): { diasAtraso: number; multa: number } {
+  if (!args.dataPrevista || !args.dataReal) return { diasAtraso: 0, multa: 0 };
+  const diasAtraso = Math.max(0, diffDias(args.dataPrevista, args.dataReal));
+  const bruta = args.valorDisciplina * (args.multaDiaPct / 100) * diasAtraso;
+  const teto = args.valorDisciplina * (args.tetoPct / 100);
+  return { diasAtraso, multa: arred(Math.min(bruta, teto)) };
+}
+
 export interface MultaBonusFase {
   diasAtraso: number;
   diasAntecipacao: number;

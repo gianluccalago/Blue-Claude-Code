@@ -4,6 +4,8 @@ import {
   calcularMedicao,
   saldoRetencao,
   calcularMultaBonusFase,
+  calcularMultaDisciplina,
+  somarDiasISO,
   diffDias,
 } from "@/lib/obraCalc";
 
@@ -145,5 +147,32 @@ describe("calcularMultaBonusFase", () => {
   it("sem cronograma definido → tudo zero", () => {
     const r = calcularMultaBonusFase({ ...base, dataPrevista: null, dataReal: "2026-02-03" });
     expect(r).toEqual({ diasAtraso: 0, diasAntecipacao: 0, multa: 0, bonus: 0 });
+  });
+});
+
+describe("somarDiasISO (prazo com data-base)", () => {
+  it("Estrutural: 45 dias a partir do laudo geotécnico", () => {
+    expect(somarDiasISO("2026-01-01", 45)).toBe("2026-02-15");
+  });
+  it("sem base ou sem prazo → null", () => {
+    expect(somarDiasISO(null, 45)).toBeNull();
+    expect(somarDiasISO("2026-01-01", null)).toBeNull();
+  });
+});
+
+describe("calcularMultaDisciplina — Estrutural (R$ 98.800, 0,15%/dia teto 10%)", () => {
+  const base = { valorDisciplina: 98_800, multaDiaPct: 0.15, tetoPct: 10 };
+  it("10 dias de atraso", () => {
+    const r = calcularMultaDisciplina({ ...base, dataPrevista: "2026-02-15", dataReal: "2026-02-25" });
+    expect(r.diasAtraso).toBe(10);
+    expect(r.multa).toBe(1_482); // 98.800 × 0,0015 × 10
+  });
+  it("atraso longo trava no teto de 10%", () => {
+    const r = calcularMultaDisciplina({ ...base, dataPrevista: "2026-02-15", dataReal: "2026-06-01" });
+    expect(r.multa).toBe(9_880); // 10% de 98.800
+  });
+  it("no prazo (data real ≤ prevista) → sem multa", () => {
+    const r = calcularMultaDisciplina({ ...base, dataPrevista: "2026-02-15", dataReal: "2026-02-10" });
+    expect(r.multa).toBe(0);
   });
 });

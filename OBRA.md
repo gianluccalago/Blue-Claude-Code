@@ -94,8 +94,28 @@ financeiro é consequência aritmética dos pesos.
   status, "Aprovar pagamento" bloqueado com o motivo, TRP/TRD com guardas,
   retenções, multa/bônus, pendências). Botões bloqueados sempre explicam o porquê.
 
+### ✅ Fase 3 — Projetos complementares (migration `0101_obra_projetos.sql`)
+- `obra_disciplina_marcos`: marcos de pagamento por disciplina, semeados por
+  valor — **> R$ 10.000**: Início 25% → R00 40% → R01 25% → Retido 10%;
+  **≤ R$ 10.000**: Início 50% → Entrega 50%. Cada marco tem entrega, status
+  (Pendente→Em análise→Aprovado/Reprovado→Pago) e valor (snapshot).
+- `obra_disciplinas` ganhou `art_url`, `data_base` (base do prazo) e
+  `data_conclusao`. Prazo previsto = data-base + prazo_dias (Estrutural: laudo
+  geotécnico + estudo de elevadores). Contador de revisões `0/max` com alerta.
+- `obra_bim_rodadas`: rodadas de compatibilização (mín. 3 + final com IFC).
+- **RPC `obra_pagar_marco`** (atômica, auditada): gate de entrega Aprovada + ART
+  da disciplina anexada; o marco **Retido** só libera após a compatibilização
+  final do BIM (rodada final com IFC). Ao pagar todos os marcos → disciplina
+  Concluída.
+- **Multa de projeto** 0,15%/dia sobre a disciplina, teto 10% (calc pura testada).
+- UI (aba "Projetos complementares"): resumo global (contratado/pago/BIM),
+  lista de disciplinas com status/prazo/multa/revisões/ART e marcos; modal por
+  disciplina (data-base, ART, revisões, marcos com pagar/aprovar/reprovar); painel
+  BIM (rodadas + registrar com relatório/IFC). Pagamentos bloqueados explicam o motivo.
+- Testes: +5 casos (multa de disciplina com Estrutural R$ 98.800; prazo data-base).
+  Total **24 casos** verdes.
+
 ## Próximas fases (aguardando "execute a Fase N")
-- **Fase 3** — Projetos complementares (marcos 25/40/25/10, revisões, ART, BIM).
 - **Fase 4** — Materiais (planejamento → cotações → OC → recebimento → consumo
   → perdas/glosa → estoque reposição, curva ABC).
 - **Fase 5** — Financeiro consolidado (baseline, curva S, contas a pagar, CSV).
