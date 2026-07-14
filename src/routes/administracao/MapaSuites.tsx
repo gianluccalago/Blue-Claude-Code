@@ -168,22 +168,19 @@ export function MapaSuites() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Hóspedes ativos ({linhas.length})</CardTitle>
           </CardHeader>
-          <CardContent className="planilha-fixa">
-            <table className="w-full min-w-[920px] text-sm">
+          <CardContent>
+            {/* Sem scroll interno: colunas condensadas (dados secundários viram
+                sub-linha) para a tabela caber inteira na tela do tablet. */}
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <th className="pb-2 pr-3">Hóspede</th>
-                  <th className="pb-2 pr-3">Sexo</th>
                   <th className="pb-2 pr-3">Suíte</th>
-                  <th className="pb-2 pr-3">Tipo</th>
-                  <th className="pb-2 pr-3">Ocupação</th>
-                  <th className="pb-2 pr-3">Entrada</th>
-                  <th className="pb-2 pr-3">Grau ingresso</th>
-                  <th className="pb-2 pr-3">Grau atual</th>
+                  <th className="pb-2 pr-3">Grau</th>
                   <th className="pb-2 pr-3 text-right">Mensalidade</th>
-                  <th className="pb-2 pr-3 text-right">Upsell fixo</th>
+                  <th className="pb-2 pr-3 text-right">Upsell</th>
                   <th className="pb-2 text-right">Total</th>
-                  {podeRegistrarSaida && <th className="pb-2 pl-3 text-right">Ações</th>}
+                  {podeRegistrarSaida && <th className="pb-2 pl-2 text-right" />}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -198,7 +195,7 @@ export function MapaSuites() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 font-bold text-secondary">
-                  <td className="pt-2 pr-3" colSpan={8}>TOTAL · {totais.hospedes} ativos</td>
+                  <td className="pt-2 pr-3" colSpan={3}>TOTAL · {totais.hospedes} ativos</td>
                   <td className="pt-2 pr-3 text-right tabular-nums">{formatarMoeda(totais.mensalidade)}</td>
                   <td className="pt-2 pr-3 text-right tabular-nums">{formatarMoeda(totais.upsell)}</td>
                   <td className="pt-2 text-right tabular-nums">{formatarMoeda(totais.total)}</td>
@@ -237,30 +234,38 @@ function LinhaSuite({
           {r.nome}
           <SeloModalidade modalidade={r.modalidade} />
         </div>
-        <div className="text-xs text-muted-foreground">{r.numero_hospede ?? "Não informado"}</div>
+        <div className="text-xs text-muted-foreground">
+          {r.numero_hospede ?? "Não informado"}
+          {r.sexo ? ` · ${SEXO_LABEL[r.sexo]}` : ""}
+          {r.data_admissao ? ` · desde ${formatarDataBR(r.data_admissao)}` : ""}
+        </div>
       </td>
-      <td className="py-2.5 pr-3">{r.sexo ? SEXO_LABEL[r.sexo] : "Não informado"}</td>
-      <td className="py-2.5 pr-3 font-medium">{formatarQuarto(r.quarto) ?? "Não informado"}</td>
-      <td className="py-2.5 pr-3">{r.tipo_suite ?? "Não informado"}</td>
-      <td className="py-2.5 pr-3">{r.ocupacao ? OCUPACAO_LABEL[r.ocupacao] : "Não informado"}</td>
-      <td className="py-2.5 pr-3 tabular-nums">{r.data_admissao ? formatarDataBR(r.data_admissao) : "Não informado"}</td>
-      <td className="py-2.5 pr-3">{grauLabel(r.grau_contratual)}</td>
+      <td className="py-2.5 pr-3">
+        <div className="font-medium">{formatarQuarto(r.quarto) ?? "Não informado"}</div>
+        <div className="text-xs text-muted-foreground">
+          {r.tipo_suite ?? "Não informado"}
+          {r.ocupacao ? ` · ${OCUPACAO_LABEL[r.ocupacao]}` : ""}
+        </div>
+      </td>
       <td className="py-2.5 pr-3">
         {divergeGrau ? (
           <Badge variant="warning" className="gap-1">
             <AlertTriangle className="size-3" /> {grauLabel(r.grau_dependencia)}
           </Badge>
         ) : (
-          grauLabel(r.grau_dependencia)
+          <span>{grauLabel(r.grau_dependencia)}</span>
+        )}
+        {r.grau_contratual && (
+          <div className="text-xs text-muted-foreground">ingresso: Grau {r.grau_contratual}</div>
         )}
       </td>
       <td className="py-2.5 pr-3 text-right tabular-nums">{formatarMoeda(r.mensalidade_valor ?? 0)}</td>
       <td className="py-2.5 pr-3 text-right tabular-nums">{linha.upsellFixo > 0 ? formatarMoeda(linha.upsellFixo) : "—"}</td>
       <td className="py-2.5 text-right font-bold tabular-nums">{formatarMoeda(linha.total)}</td>
       {podeRegistrarSaida && (
-        <td className="py-2.5 pl-3 text-right">
-          <Button variant="ghost" size="sm" className="gap-1 text-destructive" onClick={onSaida}>
-            <LogOut className="size-3.5" /> Saída
+        <td className="py-2.5 pl-2 text-right">
+          <Button variant="ghost" size="sm" className="gap-1 text-destructive" onClick={onSaida} title="Registrar saída">
+            <LogOut className="size-3.5" />
           </Button>
         </td>
       )}
