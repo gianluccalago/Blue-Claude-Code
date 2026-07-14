@@ -72,8 +72,11 @@ export function useEtapasMedidas() {
         .select("etapa_id, medicao:obra_medicoes!inner(status)");
       if (error) throw error;
       const bloqueadas = new Set<string>();
-      for (const r of (data ?? []) as unknown as { etapa_id: string; medicao: { status: ObraMedicaoStatus } }[]) {
-        if (r.medicao.status !== "Reprovado") bloqueadas.add(r.etapa_id);
+      // O PostgREST pode devolver a relação como objeto ou array — normaliza.
+      type Linha = { etapa_id: string; medicao: { status: ObraMedicaoStatus } | { status: ObraMedicaoStatus }[] };
+      for (const r of (data ?? []) as unknown as Linha[]) {
+        const status = Array.isArray(r.medicao) ? r.medicao[0]?.status : r.medicao?.status;
+        if (status !== "Reprovado") bloqueadas.add(r.etapa_id);
       }
       return bloqueadas;
     },

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   Zap, FlaskConical, BookText, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload,
 } from "lucide-react";
+import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra } from "@/hooks/useObra";
 import {
   useInsumos, useEnsaios, useDiario, useNaoConformidades, useDocumentosObra, useAditivos,
@@ -25,16 +26,18 @@ const NC_STATUS: Record<string, "destructive" | "warning" | "default" | "success
 const NC_PROXIMO: Record<string, "em_correcao" | "reinspecao" | "encerrada"> = { aberta: "em_correcao", em_correcao: "reinspecao", reinspecao: "encerrada" };
 
 export function ObraControles() {
+  const { usuarioEfetivo } = useAuth();
+  const podeEditar = usuarioEfetivo?.perfil === "master" || usuarioEfetivo?.perfil === "direcao";
   const insumos = useInsumos();
   if (insumos.isLoading) return <LoadingState />;
   return (
     <div className="space-y-6 pb-8">
-      <InsumosCriticos />
-      <Ensaios />
-      <NaoConformidades />
-      <DocumentosObra />
-      <Aditivos />
-      <Diario />
+      <InsumosCriticos podeEditar={podeEditar} />
+      <Ensaios podeEditar={podeEditar} />
+      <NaoConformidades podeEditar={podeEditar} />
+      <DocumentosObra podeEditar={podeEditar} />
+      <Aditivos podeEditar={podeEditar} />
+      <Diario podeEditar={podeEditar} />
     </div>
   );
 }
@@ -63,7 +66,7 @@ function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: (
 }
 
 // ── Insumos críticos ────────────────────────────────────────────────────────
-function InsumosCriticos() {
+function InsumosCriticos({ podeEditar }: { podeEditar: boolean }) {
   const insumos = useInsumos();
   const [editar, setEditar] = useState<ObraInsumoCritico | null>(null);
   const hoje = hojeISO();
@@ -73,7 +76,7 @@ function InsumosCriticos() {
         {(insumos.data ?? []).map((i) => {
           const nivel: NivelPrazo = i.status === "ok" ? "ok" : nivelPrazo(i.prazo_limite, hoje, 30);
           return (
-            <button key={i.id} onClick={() => setEditar(i)} className="flex w-full items-center gap-3 py-2.5 text-left hover:bg-muted/20">
+            <button key={i.id} onClick={() => podeEditar && setEditar(i)} className={cn("flex w-full items-center gap-3 py-2.5 text-left", podeEditar && "hover:bg-muted/20")}>
               <span className={cn("size-3 shrink-0 rounded-full", SEMAFORO[nivel])} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-secondary">{i.nome}</p>
@@ -118,7 +121,7 @@ function ModalInsumo({ insumo, onFechar }: { insumo: ObraInsumoCritico; onFechar
 }
 
 // ── Ensaios ───────────────────────────────────────────────────────────────
-function Ensaios() {
+function Ensaios({ podeEditar }: { podeEditar: boolean }) {
   const ensaios = useEnsaios();
   const fases = useFasesObra();
   const criar = useCriarEnsaio();
@@ -131,7 +134,7 @@ function Ensaios() {
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
   }
   return (
-    <Secao titulo="Ensaios / controle tecnológico" icone={<FlaskConical className="size-5 text-primary" />} acao={<Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Agendar</Button>}>
+    <Secao titulo="Ensaios / controle tecnológico" icone={<FlaskConical className="size-5 text-primary" />} acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Agendar</Button>}>
       {(ensaios.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhum ensaio agendado.</p> : (
         <div className="divide-y">
           {(ensaios.data ?? []).map((e) => {
@@ -145,12 +148,12 @@ function Ensaios() {
                     <p className="text-xs text-muted-foreground">{e.data_agendada ? `agendado ${formatarDataBR(e.data_agendada)}` : "sem data"}{atrasado ? " · ATRASADO" : ""}</p>
                   </div>
                 </div>
-                {e.resultado === "pendente" ? (
+                {e.resultado === "pendente" && podeEditar ? (
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => registrar(e.id, "conforme")}>Conforme</Button>
-                    <Button size="sm" variant="destructive" onClick={() => registrar(e.id, "nao_conforme")}>Não conf.</Button>
+                    <Button size="sm" variant="outline" disabled={resultado.isPending} onClick={() => registrar(e.id, "conforme")}>Conforme</Button>
+                    <Button size="sm" variant="destructive" disabled={resultado.isPending} onClick={() => registrar(e.id, "nao_conforme")}>Não conforme</Button>
                   </div>
-                ) : <Badge variant={e.resultado === "conforme" ? "success" : "destructive"}>{e.resultado === "conforme" ? "Conforme" : "Não conforme"}</Badge>}
+                ) : e.resultado === "pendente" ? <Badge variant="warning">aguardando resultado</Badge> : <Badge variant={e.resultado === "conforme" ? "success" : "destructive"}>{e.resultado === "conforme" ? "Conforme" : "Não conforme"}</Badge>}
               </div>
             );
           })}
@@ -171,7 +174,7 @@ function Ensaios() {
 }
 
 // ── Não-conformidades ────────────────────────────────────────────────────
-function NaoConformidades() {
+function NaoConformidades({ podeEditar }: { podeEditar: boolean }) {
   const ncs = useNaoConformidades();
   const criar = useCriarNC();
   const atualizar = useAtualizarNC();
@@ -192,7 +195,7 @@ function NaoConformidades() {
   const abertas = (ncs.data ?? []).filter((n) => n.status !== "encerrada").length;
   return (
     <Secao titulo="Não-conformidades" icone={<ShieldAlert className="size-5 text-primary" />} acao={
-      <div className="flex items-center gap-2">{abertas > 0 && <Badge variant="destructive">{abertas} aberta(s)</Badge>}<Button size="sm" onClick={() => setNova(true)}><Plus className="size-4" /> NC</Button></div>
+      <div className="flex items-center gap-2">{abertas > 0 && <Badge variant="destructive">{abertas} aberta(s)</Badge>}{podeEditar && <Button size="sm" onClick={() => setNova(true)}><Plus className="size-4" /> Apontar</Button>}</div>
     }>
       {(ncs.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma NC registrada.</p> : (
         <div className="divide-y">
@@ -206,13 +209,13 @@ function NaoConformidades() {
                 </div>
                 <p className="text-xs text-muted-foreground">{n.responsavel ? `${n.responsavel} · ` : ""}{n.prazo ? `prazo ${formatarDataBR(n.prazo)}` : "sem prazo"} · origem {n.origem}</p>
               </div>
-              {n.status !== "encerrada" && (
+              {podeEditar && n.status !== "encerrada" && (
                 <div className="flex gap-1">
                   {n.status === "em_correcao" && (
                     <label className="cursor-pointer rounded-md border border-input px-2 py-1 text-xs font-semibold text-primary hover:bg-accent"><Upload className="mr-1 inline size-3.5" />Reinspeção<input type="file" accept="image/*" className="hidden" onChange={(e) => reinspecao(n.id, e)} /></label>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => avancar(n)}>
-                    {n.status === "aberta" ? "Em correção" : n.status === "em_correcao" ? "Reinspeção" : "Encerrar"}
+                  <Button size="sm" variant="outline" disabled={atualizar.isPending} onClick={() => avancar(n)}>
+                    {n.status === "aberta" ? "Iniciar correção" : n.status === "em_correcao" ? "Enviar p/ reinspeção" : "Encerrar"}
                   </Button>
                 </div>
               )}
@@ -234,14 +237,14 @@ function NaoConformidades() {
 }
 
 // ── Documentos da obra ────────────────────────────────────────────────────
-function DocumentosObra() {
+function DocumentosObra({ podeEditar }: { podeEditar: boolean }) {
   const docs = useDocumentosObra();
   const criar = useCriarDocumentoObra();
   const [novo, setNovo] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const hoje = hojeISO();
   return (
-    <Secao titulo="Documentos da obra" icone={<FileWarning className="size-5 text-primary" />} acao={<Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Documento</Button>}>
+    <Secao titulo="Documentos da obra" icone={<FileWarning className="size-5 text-primary" />} acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Adicionar</Button>}>
       {(docs.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhum documento da obra.</p> : (
         <div className="divide-y">
           {(docs.data ?? []).map((d) => {
@@ -265,7 +268,14 @@ function DocumentosObra() {
           await criar.mutateAsync({ tipo: v.tipo || "outro", nome: v.nome, identificador: v.identificador, dataValidade: v.validade || null, arquivo });
         }} campos={[
           { key: "nome", label: "Nome (ex.: Alvará de construção)", tipo: "text", req: true },
-          { key: "tipo", label: "Tipo (alvara/art/cno_inss/apolice/licenca_ambiental)", tipo: "text" },
+          { key: "tipo", label: "Tipo", tipo: "select", opcoes: [
+            { value: "alvara", label: "Alvará" },
+            { value: "art", label: "ART" },
+            { value: "cno_inss", label: "CNO / INSS da obra" },
+            { value: "apolice", label: "Apólice de seguro" },
+            { value: "licenca_ambiental", label: "Licença ambiental" },
+            { value: "outro", label: "Outro" },
+          ] },
           { key: "identificador", label: "Nº / protocolo", tipo: "text" },
           { key: "validade", label: "Validade", tipo: "date" },
         ]} pending={criar.isPending} />
@@ -275,14 +285,14 @@ function DocumentosObra() {
 }
 
 // ── Aditivos ──────────────────────────────────────────────────────────────
-function Aditivos() {
+function Aditivos({ podeEditar }: { podeEditar: boolean }) {
   const aditivos = useAditivos();
   const fases = useFasesObra();
   const criar = useCriarAditivo();
   const [novo, setNovo] = useState(false);
   const [pdf, setPdf] = useState<File | null>(null);
   return (
-    <Secao titulo="Aditivos" icone={<FilePlus2 className="size-5 text-primary" />} acao={<Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Aditivo</Button>}>
+    <Secao titulo="Aditivos" icone={<FilePlus2 className="size-5 text-primary" />} acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Registrar</Button>}>
       {(aditivos.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhum aditivo registrado.</p> : (
         <div className="divide-y">
           {(aditivos.data ?? []).map((a) => (
@@ -304,11 +314,16 @@ function Aditivos() {
         } onSalvar={async (v) => {
           await criar.mutateAsync({ numero: v.numero, tipo: (v.tipo as "escopo" | "valor" | "prazo" | "misto") || "misto", descricao: v.descricao, valorDelta: v.valor ? parseFloat(v.valor.replace(",", ".")) : 0, prazoDeltaDias: v.prazo ? parseInt(v.prazo, 10) : 0, faseId: v.faseId || null, pdf, dataAssinatura: v.assinatura || null });
         }} campos={[
-          { key: "numero", label: "Número", tipo: "text" },
-          { key: "descricao", label: "Descrição / escopo", tipo: "text", req: true },
-          { key: "tipo", label: "Tipo (escopo/valor/prazo/misto)", tipo: "text" },
-          { key: "valor", label: "Δ valor (R$)", tipo: "text" },
-          { key: "prazo", label: "Δ prazo (dias)", tipo: "text" },
+          { key: "numero", label: "Número do aditivo", tipo: "text" },
+          { key: "descricao", label: "O que muda (escopo)", tipo: "text", req: true },
+          { key: "tipo", label: "Tipo", tipo: "select", opcoes: [
+            { value: "misto", label: "Misto (valor + prazo)" },
+            { value: "escopo", label: "Escopo" },
+            { value: "valor", label: "Valor" },
+            { value: "prazo", label: "Prazo" },
+          ] },
+          { key: "valor", label: "Mudança de valor (R$, se houver)", tipo: "text" },
+          { key: "prazo", label: "Mudança de prazo (dias, se houver)", tipo: "text" },
           { key: "assinatura", label: "Data de assinatura", tipo: "date" },
           { key: "faseId", label: "Fase", tipo: "fase", fases: fases.data ?? [] },
         ]} pending={criar.isPending} />
@@ -318,13 +333,13 @@ function Aditivos() {
 }
 
 // ── Diário ────────────────────────────────────────────────────────────────
-function Diario() {
+function Diario({ podeEditar }: { podeEditar: boolean }) {
   const diario = useDiario();
   const criar = useCriarDiario();
   const [novo, setNovo] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
   return (
-    <Secao titulo="Diário de obra" icone={<BookText className="size-5 text-primary" />} acao={<Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Registro</Button>}>
+    <Secao titulo="Diário de obra" icone={<BookText className="size-5 text-primary" />} acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Novo registro</Button>}>
       {(diario.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Sem registros.</p> : (
         <div className="divide-y">
           {(diario.data ?? []).slice(0, 20).map((d) => (
@@ -348,7 +363,7 @@ function Diario() {
 }
 
 // ── Form genérico reutilizável ──────────────────────────────────────────────
-type Campo = { key: string; label: string; tipo: "text" | "date" | "fase"; req?: boolean; fases?: { id: string; nome: string }[] };
+type Campo = { key: string; label: string; tipo: "text" | "date" | "fase" | "select"; req?: boolean; fases?: { id: string; nome: string }[]; opcoes?: { value: string; label: string }[] };
 function FormModal({ titulo, campos, onSalvar, onFechar, pending, extra }: {
   titulo: string; campos: Campo[]; onSalvar: (v: Record<string, string>) => Promise<void>; onFechar: () => void; pending: boolean; extra?: ReactNode;
 }) {
@@ -367,6 +382,10 @@ function FormModal({ titulo, campos, onSalvar, onFechar, pending, extra }: {
             {c.tipo === "fase" ? (
               <select value={v[c.key] ?? ""} onChange={(e) => setV((p) => ({ ...p, [c.key]: e.target.value }))} className={inputBase}>
                 <option value="">— Sem fase —</option>{(c.fases ?? []).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select>
+            ) : c.tipo === "select" ? (
+              <select value={v[c.key] ?? (c.opcoes?.[0]?.value ?? "")} onChange={(e) => setV((p) => ({ ...p, [c.key]: e.target.value }))} className={inputBase}>
+                {(c.opcoes ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             ) : (
               <input type={c.tipo} value={v[c.key] ?? ""} onChange={(e) => setV((p) => ({ ...p, [c.key]: e.target.value }))} className={inputBase} />

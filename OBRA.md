@@ -180,8 +180,30 @@ financeiro é consequência aritmética dos pesos.
 - Cálculos testados (Vitest, +5 = **40 casos**): `nivelPrazo` (semáforo com janelas
   15/30 dias).
 
-## Módulo completo (Fases 0–7)
-**Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105.
+### ✅ Hardening + polimento (migration `0106_obra_hardening.sql`)
+Auditoria de segurança (2 auditores: SQL e front) pós-Fase 7. Corrigido:
+- **[MÉDIA→ALTA] Storage escopado por pasta**: o prestador lia/listava TODO o
+  bucket `obra` (inclusive PDFs de aditivos, apólices e laudos). Agora SELECT
+  dele é restrito a `checklist/ documentos/ entregas/ bim/ nf/` e INSERT a
+  `documentos/ entregas/ bim/`.
+- **[MÉDIA] Gate do BIM**: o prestador podia inserir rodada `final=true` com IFC
+  e destravar sozinho o marco Retido (10%). Agora só insere rodadas NÃO-finais;
+  a final é ato do master/direção.
+- **[BAIXA] TOCTOU de NC**: `obra_pagar_medicao` agora reavalia NC aberta nas
+  etapas (NC criada entre a aprovação e o pagamento também bloqueia).
+- **[Front] Curva S física** tinha fator 100× (saturava em 100%) — corrigido.
+- **[Front] ObraControles** ganhou guard de perfil (era a única aba sem) e
+  `disabled` nos botões de mutação (revisão de disciplina não era idempotente).
+- **[Front] Fail-safe** no join de `useEtapasMedidas` (objeto OU array).
+
+**Polimento de usabilidade:** abas curtas (Medições/Projetos), meses por extenso
+("Medição de Janeiro/2026"), tipos de documento e de aditivo viraram dropdowns
+(nada de "digite o tipo"), rótulos de ação claros ("Iniciar correção", "Enviar
+p/ reinspeção", "Apontar"), pendente de ensaio sem permissão vira selo
+"aguardando resultado", nota didática do orçamento removida.
+
+## Módulo completo (Fases 0–7 + hardening)
+**Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106.
 Todas idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e crie o
 usuário da construtora com perfil `obra_prestador` em Equipe e Acessos.
 

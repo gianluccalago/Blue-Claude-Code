@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, hojeISO } from "@/lib/utils";
+import { formatarMesReferencia } from "@/lib/mensalidade";
 import type { ObraFase } from "@/types/database";
 
 const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -98,7 +99,7 @@ export function PortalPrestador() {
                 <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-secondary">BM {m.mes}</span>
+                      <span className="font-semibold text-secondary">Medição de {formatarMesReferencia(m.mes)}</span>
                       <Badge variant={MED_VARIANTE[m.status]}>{m.status}</Badge>
                       <span className="text-xs tabular-nums text-muted-foreground">{m.percentual_medido}% medido</span>
                     </div>

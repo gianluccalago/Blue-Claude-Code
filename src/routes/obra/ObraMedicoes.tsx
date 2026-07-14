@@ -43,7 +43,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { formatarMoeda } from "@/lib/mensalidade";
+import { formatarMoeda, formatarMesReferencia } from "@/lib/mensalidade";
 import { cn, formatarDataBR, hojeISO } from "@/lib/utils";
 import type { ObraFase, ObraMedicao, ObraMedicaoStatus, ObraDocMensalTipo } from "@/types/database";
 
@@ -156,7 +156,7 @@ export function ObraMedicoes() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-secondary">BM {m.mes}</span>
+                      <span className="font-semibold text-secondary">Medição de {formatarMesReferencia(m.mes)}</span>
                       <Badge variant={STATUS_VARIANTE[m.status]}>{m.status}</Badge>
                       <span className="text-xs tabular-nums text-muted-foreground">{m.percentual_medido}% medido</span>
                     </div>
@@ -634,7 +634,7 @@ function ModalDetalheMedicao({
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-secondary">BM {medicao.mes}</h2>
+            <h2 className="text-lg font-bold text-secondary">Medição de {formatarMesReferencia(medicao.mes)}</h2>
             <p className="text-sm text-muted-foreground">{medicao.percentual_medido}% medido · {medicao.status}</p>
           </div>
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>

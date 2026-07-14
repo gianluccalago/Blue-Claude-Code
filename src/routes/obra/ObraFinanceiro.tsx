@@ -103,7 +103,8 @@ export function ObraFinanceiro() {
     const fin = serieFin.filter((p) => p.mes <= mes).at(-1)?.acumulado ?? 0;
     return {
       mes,
-      fisicaPct: totalArea > 0 ? arred((fis / totalArea) * 100) : 0,
+      // fis = Σ(pct×área) já traz o % embutido (0–100) → divide só pela área.
+      fisicaPct: totalArea > 0 ? arred(fis / totalArea) : 0,
       financeiraPct: totOrcado > 0 ? arred((fin / totOrcado) * 100) : 0,
     };
   });
@@ -170,13 +171,16 @@ export function ObraFinanceiro() {
             </thead>
             <tbody className="divide-y">
               {resumo.map((l) => {
-                const base = listaBase.find((b) => b.grupo === l.grupo && (l.grupo === "mo" || l.grupo === "projetos" ? false : true));
+                // MO e Projetos vêm do contrato (não editáveis); os demais grupos
+                // têm um pacote único na baseline, editável pelo master/direção.
+                const editavel = l.grupo !== "mo" && l.grupo !== "projetos";
+                const base = editavel ? listaBase.find((b) => b.grupo === l.grupo) : undefined;
                 return (
                   <tr key={l.grupo} className="text-secondary">
                     <td className="py-2">
                       {l.rotulo}
-                      {podeEditar && base && (l.grupo === "materiais" || l.grupo === "fornecedores" || l.grupo === "ensaios" || l.grupo === "taxas") && (
-                        <button onClick={() => setEditando(base)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar orçado"><Pencil className="inline size-3.5" /></button>
+                      {podeEditar && base && (
+                        <button onClick={() => setEditando(base)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>
                       )}
                     </td>
                     <td className="py-2 text-right tabular-nums text-muted-foreground">{formatarMoeda(l.orcado)}</td>
@@ -197,7 +201,6 @@ export function ObraFinanceiro() {
               </tr>
             </tfoot>
           </table>
-          <p className="text-xs text-muted-foreground">MO por fase e Projetos vêm do contrato; edite Materiais/Fornecedores/Ensaios/Taxas conforme o planejado.</p>
         </CardContent>
       </Card>
 

@@ -277,7 +277,9 @@ function ModalDisciplina({
           <div className={cn("mt-2 flex items-center justify-between gap-2 rounded-lg border p-3", revisaoAlerta ? "border-warning/50 bg-warning/5" : "border-border")}>
             <span className="text-sm text-secondary">Revisões usadas: <strong className="tabular-nums">{d.revisoes_usadas}/{d.revisoes_max}</strong>{revisaoAlerta && " — última disponível"}</span>
             {podeEditar && d.revisoes_usadas < d.revisoes_max && (
-              <button onClick={registrarRevisao} className="text-xs font-semibold text-primary hover:underline">Registrar revisão</button>
+              <button onClick={registrarRevisao} disabled={atualizar.isPending} className="text-xs font-semibold text-primary hover:underline disabled:opacity-50">
+                Registrar revisão
+              </button>
             )}
           </div>
         )}

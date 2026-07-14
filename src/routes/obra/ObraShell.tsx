@@ -43,8 +43,8 @@ export function ObraShell() {
         <TabsList>
           <TabsTrigger value="painel">Painel</TabsTrigger>
           <TabsTrigger value="execucao">Execução</TabsTrigger>
-          <TabsTrigger value="medicoes">Medições e pagamentos</TabsTrigger>
-          <TabsTrigger value="projetos">Projetos complementares</TabsTrigger>
+          <TabsTrigger value="medicoes">Medições</TabsTrigger>
+          <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="materiais">Materiais</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="controles">Controles</TabsTrigger>
