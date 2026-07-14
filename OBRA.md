@@ -162,9 +162,31 @@ financeiro é consequência aritmética dos pesos.
   Function/provedor (fora deste repo) — a fila e o feed já ficam prontos; os
   avisos de "documento vencendo / marco próximo" são calculados na tela por data.
 
-## Próximas fases (aguardando "execute a Fase N")
-- **Fase 7** — Transversais (insumos críticos, ensaios, diário, NCs,
-  documentos da obra, aditivos, dashboard executivo).
+### ✅ Fase 7 — Transversais + dashboard executivo (migration `0105_obra_transversais.sql`)
+- **Insumos críticos do Contratante** (semeados: elevadores/SPDA/gás/AVAC/gerador/
+  laboratório) com responsável, prazo-limite e **semáforo** (verde/amarelo/vermelho).
+- **Ensaios** (`obra_ensaios`): agenda + resultado (conforme/não conforme); ensaio
+  pendente e atrasado é alerta vermelho.
+- **Diário de obra** (`obra_diario`): registro + foto.
+- **Não-conformidades** (`obra_nao_conformidades`): apontamento → em correção →
+  reinspeção (foto) → encerramento. **NC aberta em etapa BLOQUEIA a aprovação da
+  medição** que reivindica a etapa (trigger `before update` em `obra_medicoes`).
+- **Documentos da obra** (`obra_documentos`): alvará/ART/CNO-INSS/apólices/licenças
+  com vencimento e alertas 30/15/5 dias.
+- **Aditivos** (`obra_aditivos`): escopo/valor/prazo + PDF assinado.
+- **Painel executivo** (aba "Painel", home do módulo): avanço físico × cronograma,
+  próximos pagamentos 30 dias, retenções em mãos, NCs abertas, semáforo de insumos
+  críticos, documentos a vencer.
+- Cálculos testados (Vitest, +5 = **40 casos**): `nivelPrazo` (semáforo com janelas
+  15/30 dias).
 
-**Para ativar:** rode a migration `0099` no Supabase (após a 0098). Crie o
+## Módulo completo (Fases 0–7)
+**Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105.
+Todas idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e crie o
 usuário da construtora com perfil `obra_prestador` em Equipe e Acessos.
+
+**Pendências conhecidas (documentadas):**
+- Envio de e-mail das notificações (Fase 6) precisa de uma Edge Function/provedor
+  — a fila `obra_notificacoes` e o feed in-app já estão prontos.
+- Trava dos pesos das etapas "após 1ª medição" (Fase 1) é por UI/auditoria; um
+  trigger duro pode endurecer se desejado.

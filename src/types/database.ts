@@ -2484,6 +2484,58 @@ export interface Database {
         Update: Partial<{ lida: boolean }>;
         Relationships: [];
       };
+      obra_insumos_criticos: {
+        Row: {
+          id: string; nome: string; dependencia: string | null; responsavel: string | null;
+          prazo_limite: string | null; status: "pendente" | "em_andamento" | "ok"; observacao: string | null; criado_em: string;
+        };
+        Insert: { id?: string; nome: string; dependencia?: string | null; responsavel?: string | null; prazo_limite?: string | null; status?: "pendente" | "em_andamento" | "ok"; observacao?: string | null };
+        Update: Partial<{ responsavel: string | null; prazo_limite: string | null; status: "pendente" | "em_andamento" | "ok"; observacao: string | null; dependencia: string | null }>;
+        Relationships: [];
+      };
+      obra_ensaios: {
+        Row: {
+          id: string; tipo: string; referencia: string | null; fase_id: string | null;
+          data_agendada: string | null; data_resultado: string | null;
+          resultado: "pendente" | "conforme" | "nao_conforme"; arquivo_url: string | null; observacao: string | null; registrado_por: string | null; criado_em: string;
+        };
+        Insert: { id?: string; tipo: string; referencia?: string | null; fase_id?: string | null; data_agendada?: string | null; observacao?: string | null; registrado_por?: string | null };
+        Update: Partial<{ data_agendada: string | null; data_resultado: string | null; resultado: "pendente" | "conforme" | "nao_conforme"; arquivo_url: string | null; observacao: string | null }>;
+        Relationships: [];
+      };
+      obra_diario: {
+        Row: { id: string; data: string; ocorrencias: string; foto_url: string | null; registrado_por: string | null; criado_em: string };
+        Insert: { id?: string; data?: string; ocorrencias: string; foto_url?: string | null; registrado_por?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      obra_nao_conformidades: {
+        Row: {
+          id: string; origem: "recebimento" | "etapa" | "geral"; etapa_id: string | null; descricao: string;
+          responsavel: string | null; prazo: string | null; status: "aberta" | "em_correcao" | "reinspecao" | "encerrada";
+          foto_apontamento_url: string | null; foto_reinspecao_url: string | null; observacao: string | null;
+          registrado_por: string | null; encerrada_em: string | null; criado_em: string;
+        };
+        Insert: { id?: string; origem?: "recebimento" | "etapa" | "geral"; etapa_id?: string | null; descricao: string; responsavel?: string | null; prazo?: string | null; foto_apontamento_url?: string | null; observacao?: string | null; registrado_por?: string | null };
+        Update: Partial<{ status: "aberta" | "em_correcao" | "reinspecao" | "encerrada"; responsavel: string | null; prazo: string | null; foto_reinspecao_url: string | null; observacao: string | null; encerrada_em: string | null }>;
+        Relationships: [];
+      };
+      obra_documentos: {
+        Row: { id: string; tipo: string; nome: string; identificador: string | null; data_validade: string | null; arquivo_url: string | null; observacao: string | null; registrado_por: string | null; criado_em: string };
+        Insert: { id?: string; tipo: string; nome: string; identificador?: string | null; data_validade?: string | null; arquivo_url?: string | null; observacao?: string | null; registrado_por?: string | null };
+        Update: Partial<{ nome: string; identificador: string | null; data_validade: string | null; arquivo_url: string | null; observacao: string | null }>;
+        Relationships: [];
+      };
+      obra_aditivos: {
+        Row: {
+          id: string; numero: string | null; tipo: "escopo" | "valor" | "prazo" | "misto"; descricao: string;
+          valor_delta: number | null; prazo_delta_dias: number | null; fase_id: string | null; pdf_url: string | null;
+          data_assinatura: string | null; registrado_por: string | null; criado_em: string;
+        };
+        Insert: { id?: string; numero?: string | null; tipo: "escopo" | "valor" | "prazo" | "misto"; descricao: string; valor_delta?: number | null; prazo_delta_dias?: number | null; fase_id?: string | null; pdf_url?: string | null; data_assinatura?: string | null; registrado_por?: string | null };
+        Update: Partial<{ numero: string | null; descricao: string; valor_delta: number | null; prazo_delta_dias: number | null; pdf_url: string | null; data_assinatura: string | null }>;
+        Relationships: [];
+      };
       obra_baseline: {
         Row: {
           id: string;
@@ -3030,6 +3082,12 @@ export type ObraEstoqueReposicao = Database["public"]["Tables"]["obra_estoque_re
 export type ObraTolerancia = Database["public"]["Tables"]["obra_tolerancias_perdas"]["Row"];
 export type ObraBaseline = Database["public"]["Tables"]["obra_baseline"]["Row"];
 export type ObraNotificacao = Database["public"]["Tables"]["obra_notificacoes"]["Row"];
+export type ObraInsumoCritico = Database["public"]["Tables"]["obra_insumos_criticos"]["Row"];
+export type ObraEnsaio = Database["public"]["Tables"]["obra_ensaios"]["Row"];
+export type ObraDiario = Database["public"]["Tables"]["obra_diario"]["Row"];
+export type ObraNaoConformidade = Database["public"]["Tables"]["obra_nao_conformidades"]["Row"];
+export type ObraDocumentoObra = Database["public"]["Tables"]["obra_documentos"]["Row"];
+export type ObraAditivo = Database["public"]["Tables"]["obra_aditivos"]["Row"];
 export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
 export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
 export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];

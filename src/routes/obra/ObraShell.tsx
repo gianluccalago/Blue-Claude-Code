@@ -9,6 +9,8 @@ import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraMateriais } from "@/routes/obra/ObraMateriais";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
 import { PortalPrestador } from "@/routes/obra/PortalPrestador";
+import { ObraPainel } from "@/routes/obra/ObraPainel";
+import { ObraControles } from "@/routes/obra/ObraControles";
 
 // ===========================================================================
 // MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
@@ -37,14 +39,19 @@ export function ObraShell() {
         <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Obra</h1>
       </div>
 
-      <Tabs defaultValue="execucao" className="space-y-4">
+      <Tabs defaultValue="painel" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="painel">Painel</TabsTrigger>
           <TabsTrigger value="execucao">Execução</TabsTrigger>
           <TabsTrigger value="medicoes">Medições e pagamentos</TabsTrigger>
           <TabsTrigger value="projetos">Projetos complementares</TabsTrigger>
           <TabsTrigger value="materiais">Materiais</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="controles">Controles</TabsTrigger>
         </TabsList>
+        <TabsContent value="painel">
+          <ObraPainel />
+        </TabsContent>
         <TabsContent value="execucao">
           <ObraExecucao />
         </TabsContent>
@@ -59,6 +66,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="financeiro">
           <ObraFinanceiro />
+        </TabsContent>
+        <TabsContent value="controles">
+          <ObraControles />
         </TabsContent>
       </Tabs>
     </div>

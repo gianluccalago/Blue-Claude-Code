@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { serieAcumuladaMensal, somaPorMes, custoM2, saldoOrcamentario } from "@/lib/obraFinanceiro";
+import { serieAcumuladaMensal, somaPorMes, custoM2, saldoOrcamentario, nivelPrazo } from "@/lib/obraFinanceiro";
 
 describe("serieAcumuladaMensal", () => {
   it("agrupa por mês, ordena e acumula", () => {
@@ -47,4 +47,13 @@ describe("saldoOrcamentario", () => {
     expect(saldoOrcamentario({ grupo: "mo", rotulo: "MO", orcado: 2_700_451.33, comprometido: 216_036.11, realizado: 0 }))
       .toBe(2_484_415.22);
   });
+});
+
+describe("nivelPrazo (semáforo)", () => {
+  const hoje = "2026-06-01";
+  it("vencido → crítico", () => expect(nivelPrazo("2026-05-20", hoje)).toBe("critico"));
+  it("dentro da janela de atenção → atenção", () => expect(nivelPrazo("2026-06-10", hoje, 15)).toBe("atencao"));
+  it("longe → ok", () => expect(nivelPrazo("2026-08-01", hoje, 15)).toBe("ok"));
+  it("sem prazo → neutro", () => expect(nivelPrazo(null, hoje)).toBe("neutro"));
+  it("documentos usam janela 30d", () => expect(nivelPrazo("2026-06-25", hoje, 30)).toBe("atencao"));
 });

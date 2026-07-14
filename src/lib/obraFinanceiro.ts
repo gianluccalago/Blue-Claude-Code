@@ -51,3 +51,24 @@ export interface LinhaResumo {
 export function saldoOrcamentario(l: LinhaResumo): number {
   return arred(l.orcado - l.comprometido);
 }
+
+export type NivelPrazo = "neutro" | "ok" | "atencao" | "critico";
+
+/** Dias inteiros de hoje até uma data ISO (negativo = venceu). */
+function diasAte(prazoISO: string, hojeISO: string): number {
+  const a = new Date(`${hojeISO}T00:00:00`);
+  const b = new Date(`${prazoISO}T00:00:00`);
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+/**
+ * Semáforo por prazo: vencido → crítico; dentro de `atencaoDias` → atenção;
+ * senão OK. Sem prazo → neutro. (Documentos usam atencaoDias=30.)
+ */
+export function nivelPrazo(prazoISO: string | null, hojeISO: string, atencaoDias = 15): NivelPrazo {
+  if (!prazoISO) return "neutro";
+  const d = diasAte(prazoISO, hojeISO);
+  if (d < 0) return "critico";
+  if (d <= atencaoDias) return "atencao";
+  return "ok";
+}
