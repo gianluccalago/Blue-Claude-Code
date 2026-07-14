@@ -18,7 +18,7 @@ import type {
 // diário, NCs, documentos da obra, aditivos). master/direção (RLS).
 // ===========================================================================
 
-function q<T>(key: string, table: string, order: string, asc = false) {
+function useListaObra<T>(key: string, table: string, order: string, asc = false) {
   return useQuery({
     queryKey: [key],
     queryFn: async (): Promise<T[]> => {
@@ -29,12 +29,12 @@ function q<T>(key: string, table: string, order: string, asc = false) {
   });
 }
 
-export function useInsumos() { return q<ObraInsumoCritico>("obra-insumos", "obra_insumos_criticos", "criado_em", true); }
-export function useEnsaios() { return q<ObraEnsaio>("obra-ensaios", "obra_ensaios", "data_agendada"); }
-export function useDiario() { return q<ObraDiario>("obra-diario", "obra_diario", "data"); }
-export function useNaoConformidades() { return q<ObraNaoConformidade>("obra-nc", "obra_nao_conformidades", "criado_em"); }
-export function useDocumentosObra() { return q<ObraDocumentoObra>("obra-docs", "obra_documentos", "data_validade", true); }
-export function useAditivos() { return q<ObraAditivo>("obra-aditivos", "obra_aditivos", "criado_em"); }
+export function useInsumos() { return useListaObra<ObraInsumoCritico>("obra-insumos", "obra_insumos_criticos", "criado_em", true); }
+export function useEnsaios() { return useListaObra<ObraEnsaio>("obra-ensaios", "obra_ensaios", "data_agendada"); }
+export function useDiario() { return useListaObra<ObraDiario>("obra-diario", "obra_diario", "data"); }
+export function useNaoConformidades() { return useListaObra<ObraNaoConformidade>("obra-nc", "obra_nao_conformidades", "criado_em"); }
+export function useDocumentosObra() { return useListaObra<ObraDocumentoObra>("obra-docs", "obra_documentos", "data_validade", true); }
+export function useAditivos() { return useListaObra<ObraAditivo>("obra-aditivos", "obra_aditivos", "criado_em"); }
 
 function inval(qc: ReturnType<typeof useQueryClient>, key: string) {
   qc.invalidateQueries({ queryKey: [key] });

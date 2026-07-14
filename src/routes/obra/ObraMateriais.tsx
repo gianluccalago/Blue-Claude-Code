@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import {
   Package,
@@ -92,8 +92,10 @@ export function ObraMateriais() {
   // ── Métricas ──
   const comprometido = listaOC.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.valor_total, 0);
 
-  // Preço médio por categoria (das OCs) para valorar a glosa.
-  const precoMedioCat = useMemo(() => {
+  // Preço médio por categoria (das OCs) para valorar a glosa. Cálculo direto
+  // (listas pequenas) — NUNCA useMemo aqui: hooks após return condicional
+  // quebram a ordem de hooks (React #310).
+  const precoMedioCat = (() => {
     const acc: Record<string, { valor: number; qtd: number }> = {};
     for (const o of listaOC) {
       if (o.status === "Cancelada") continue;
@@ -104,7 +106,7 @@ export function ObraMateriais() {
     const m: Record<string, number> = {};
     for (const [c, a] of Object.entries(acc)) m[c] = a.qtd > 0 ? a.valor / a.qtd : 0;
     return m;
-  }, [listaOC]);
+  })();
 
   // Perdas/glosa por categoria (consumo real × previsto × tolerância).
   const perdas = CATEGORIAS.map((cat) => {
@@ -116,15 +118,15 @@ export function ObraMateriais() {
   }).filter((p) => p.previsto > 0 || p.consumido > 0);
   const glosaTotal = perdas.reduce((s, p) => s + p.glosaValor, 0);
 
-  // Curva ABC por item (valor comprometido).
-  const abc = useMemo(() => {
+  // Curva ABC por item (valor comprometido) — cálculo direto, sem hook.
+  const abc = (() => {
     const porItem: Record<string, number> = {};
     for (const o of listaOC) {
       if (o.status === "Cancelada") continue;
       porItem[o.item] = (porItem[o.item] ?? 0) + o.valor_total;
     }
     return curvaABC(Object.entries(porItem).map(([item, valor]) => ({ item, valor })));
-  }, [listaOC]);
+  })();
 
   // ── Alertas ──
   const alertasOC = listaOC.filter(

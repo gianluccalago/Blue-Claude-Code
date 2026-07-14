@@ -319,7 +319,7 @@ async function calcular(
 
 // Builder de contagem por cabeçalho (sem trazer linhas). O cast evita o atrito
 // de tipos do nome de tabela dinâmico — todas as colunas usadas existem.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line
 function headCount(tabela: string): any {
   return supabase.from(tabela as never).select("id", { count: "exact", head: true });
 }
