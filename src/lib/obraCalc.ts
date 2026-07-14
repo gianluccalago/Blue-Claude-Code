@@ -105,6 +105,42 @@ export function somarDiasISO(baseISO: string | null, dias: number | null): strin
 }
 
 /**
+ * Perda de material por categoria vs tolerância, e proposta de GLOSA:
+ *   perda = consumo real − previsto; a glosa é o que passa da tolerância,
+ *   valorado pelo preço médio unitário. Perdas dentro da tolerância → glosa 0.
+ */
+export function calcularGlosaMaterial(args: {
+  previsto: number;
+  consumido: number;
+  toleranciaPct: number;
+  precoMedio: number;
+}): { perdaPct: number; glosaQtd: number; glosaValor: number; excede: boolean } {
+  if (args.previsto <= 0) return { perdaPct: 0, glosaQtd: 0, glosaValor: 0, excede: false };
+  const perdaPct = arred(((args.consumido - args.previsto) / args.previsto) * 100);
+  const limite = args.previsto * (1 + args.toleranciaPct / 100);
+  const glosaQtd = arred(Math.max(0, args.consumido - limite));
+  const glosaValor = arred(glosaQtd * args.precoMedio);
+  return { perdaPct, glosaQtd, glosaValor, excede: glosaQtd > 0 };
+}
+
+export type ClasseABC = "A" | "B" | "C";
+
+/** Curva ABC: A até 80% do valor acumulado, B até 95%, C o restante. */
+export function curvaABC<T extends { valor: number }>(
+  items: T[],
+): (T & { classe: ClasseABC; acumuladoPct: number })[] {
+  const total = items.reduce((s, i) => s + i.valor, 0);
+  const ordenados = [...items].sort((a, b) => b.valor - a.valor);
+  let cum = 0;
+  return ordenados.map((it) => {
+    cum += it.valor;
+    const pct = total > 0 ? (cum / total) * 100 : 0;
+    const classe: ClasseABC = pct <= 80 ? "A" : pct <= 95 ? "B" : "C";
+    return { ...it, classe, acumuladoPct: arred(pct) };
+  });
+}
+
+/**
  * Multa de atraso de uma DISCIPLINA de projeto: 0,15%/dia de atraso sobre o
  * valor da disciplina, teto 10%. dataReal = conclusão (ou "hoje" se em curso).
  * Sem data prevista/real → zero.

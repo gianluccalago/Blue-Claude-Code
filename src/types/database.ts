@@ -40,6 +40,8 @@ export type ObraMedicaoStatus = "Pendente" | "Em análise" | "Aprovado" | "Repro
 export type ObraDocMensalTipo = "inss" | "fgts" | "iss" | "folha";
 /** Fluxo de um marco de pagamento de disciplina de projeto. */
 export type ObraMarcoStatus = "Pendente" | "Em análise" | "Aprovado" | "Reprovado" | "Pago";
+/** Status de uma ordem de compra de material. */
+export type ObraOcStatus = "Emitida" | "Entregue parcial" | "Entregue" | "Cancelada";
 /** Tipos de assento do livro de controlados (Port. 344/98). */
 export type TipoAssentoControlado =
   | "entrada"
@@ -2290,6 +2292,183 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      obra_planejamento_materiais: {
+        Row: {
+          id: string;
+          fase_id: string | null;
+          categoria: string;
+          item: string;
+          unidade: string;
+          quantidade_prevista: number;
+          data_necessidade: string | null;
+          antecedencia_dias: number | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id?: string | null;
+          categoria: string;
+          item: string;
+          unidade?: string;
+          quantidade_prevista: number;
+          data_necessidade?: string | null;
+          antecedencia_dias?: number | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["obra_planejamento_materiais"]["Insert"]>;
+        Relationships: [];
+      };
+      obra_cotacoes: {
+        Row: {
+          id: string;
+          planejamento_id: string;
+          fornecedor: string;
+          preco_unitario: number;
+          prazo_entrega_dias: number | null;
+          validade: string | null;
+          escolhida: boolean;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          planejamento_id: string;
+          fornecedor: string;
+          preco_unitario: number;
+          prazo_entrega_dias?: number | null;
+          validade?: string | null;
+          escolhida?: boolean;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["obra_cotacoes"]["Insert"]>;
+        Relationships: [];
+      };
+      obra_ordens_compra: {
+        Row: {
+          id: string;
+          planejamento_id: string | null;
+          cotacao_id: string | null;
+          fase_id: string | null;
+          fornecedor: string;
+          categoria: string;
+          item: string;
+          unidade: string;
+          quantidade: number;
+          preco_unitario: number;
+          valor_total: number;
+          status: ObraOcStatus;
+          data_emissao: string;
+          previsao_entrega: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          planejamento_id?: string | null;
+          cotacao_id?: string | null;
+          fase_id?: string | null;
+          fornecedor: string;
+          categoria: string;
+          item: string;
+          unidade?: string;
+          quantidade: number;
+          preco_unitario: number;
+          valor_total: number;
+          status?: ObraOcStatus;
+          previsao_entrega?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ status: ObraOcStatus; previsao_entrega: string | null; observacao: string | null }>;
+        Relationships: [];
+      };
+      obra_recebimentos: {
+        Row: {
+          id: string;
+          ordem_compra_id: string;
+          quantidade_recebida: number;
+          foto_url: string | null;
+          divergencia: boolean;
+          gera_nc: boolean;
+          observacao: string | null;
+          conferido_por: string | null;
+          recebido_em: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          ordem_compra_id: string;
+          quantidade_recebida: number;
+          foto_url?: string | null;
+          divergencia?: boolean;
+          gera_nc?: boolean;
+          observacao?: string | null;
+          conferido_por?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      obra_consumo: {
+        Row: {
+          id: string;
+          fase_id: string | null;
+          etapa_id: string | null;
+          categoria: string;
+          item: string;
+          unidade: string;
+          quantidade_consumida: number;
+          data_consumo: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id?: string | null;
+          etapa_id?: string | null;
+          categoria: string;
+          item: string;
+          unidade?: string;
+          quantidade_consumida: number;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      obra_estoque_reposicao: {
+        Row: {
+          id: string;
+          fase_id: string | null;
+          categoria: string;
+          item: string;
+          unidade: string;
+          quantidade: number;
+          entregue: boolean;
+          entregue_em: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id?: string | null;
+          categoria: string;
+          item: string;
+          unidade?: string;
+          quantidade: number;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ entregue: boolean; entregue_em: string | null; observacao: string | null }>;
+        Relationships: [];
+      };
       obra_recebimento_pendencias: {
         Row: {
           id: string;
@@ -2796,6 +2975,13 @@ export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
 export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];
 export type ObraDisciplinaMarco = Database["public"]["Tables"]["obra_disciplina_marcos"]["Row"];
 export type ObraBimRodada = Database["public"]["Tables"]["obra_bim_rodadas"]["Row"];
+export type ObraPlanejamentoMaterial = Database["public"]["Tables"]["obra_planejamento_materiais"]["Row"];
+export type ObraCotacao = Database["public"]["Tables"]["obra_cotacoes"]["Row"];
+export type ObraOrdemCompra = Database["public"]["Tables"]["obra_ordens_compra"]["Row"];
+export type ObraRecebimento = Database["public"]["Tables"]["obra_recebimentos"]["Row"];
+export type ObraConsumo = Database["public"]["Tables"]["obra_consumo"]["Row"];
+export type ObraEstoqueReposicao = Database["public"]["Tables"]["obra_estoque_reposicao"]["Row"];
+export type ObraTolerancia = Database["public"]["Tables"]["obra_tolerancias_perdas"]["Row"];
 export type ObraDocumentoMensal = Database["public"]["Tables"]["obra_documentos_mensais"]["Row"];
 export type ObraRetencaoLedger = Database["public"]["Tables"]["obra_retencoes_ledger"]["Row"];
 export type ObraPendencia = Database["public"]["Tables"]["obra_recebimento_pendencias"]["Row"];

@@ -5,6 +5,8 @@ import {
   saldoRetencao,
   calcularMultaBonusFase,
   calcularMultaDisciplina,
+  calcularGlosaMaterial,
+  curvaABC,
   somarDiasISO,
   diffDias,
 } from "@/lib/obraCalc";
@@ -174,5 +176,44 @@ describe("calcularMultaDisciplina — Estrutural (R$ 98.800, 0,15%/dia teto 10%)
   it("no prazo (data real ≤ prevista) → sem multa", () => {
     const r = calcularMultaDisciplina({ ...base, dataPrevista: "2026-02-15", dataReal: "2026-02-10" });
     expect(r.multa).toBe(0);
+  });
+});
+
+describe("calcularGlosaMaterial — perdas × tolerância", () => {
+  it("concreto (tol. 5%): consumo dentro da tolerância → sem glosa", () => {
+    const r = calcularGlosaMaterial({ previsto: 100, consumido: 104, toleranciaPct: 5, precoMedio: 400 });
+    expect(r.glosaValor).toBe(0);
+    expect(r.excede).toBe(false);
+    expect(r.perdaPct).toBe(4);
+  });
+  it("concreto (tol. 5%): consumo além da tolerância → glosa do excedente", () => {
+    // previsto 100, limite 105, consumido 110 → glosa 5 m³ × R$ 400 = R$ 2.000
+    const r = calcularGlosaMaterial({ previsto: 100, consumido: 110, toleranciaPct: 5, precoMedio: 400 });
+    expect(r.glosaQtd).toBe(5);
+    expect(r.glosaValor).toBe(2_000);
+    expect(r.excede).toBe(true);
+    expect(r.perdaPct).toBe(10);
+  });
+  it("aço (tol. 8%): previsto 50t, consumido 60t → glosa 6t × R$ 5.000 = R$ 30.000", () => {
+    const r = calcularGlosaMaterial({ previsto: 50, consumido: 60, toleranciaPct: 8, precoMedio: 5_000 });
+    expect(r.glosaQtd).toBe(6);
+    expect(r.glosaValor).toBe(30_000);
+  });
+  it("sem previsto → sem glosa", () => {
+    expect(calcularGlosaMaterial({ previsto: 0, consumido: 10, toleranciaPct: 5, precoMedio: 400 }).glosaValor).toBe(0);
+  });
+});
+
+describe("curvaABC", () => {
+  it("classifica por valor acumulado (A≤80%, B≤95%, C resto)", () => {
+    const r = curvaABC([
+      { item: "x", valor: 5 },
+      { item: "y", valor: 50 },
+      { item: "z", valor: 30 },
+      { item: "w", valor: 15 },
+    ]);
+    // ordenado: 50(50%→A), 30(80%→A), 15(95%→B), 5(100%→C)
+    expect(r.map((i) => i.classe)).toEqual(["A", "A", "B", "C"]);
+    expect(r[0].item).toBe("y");
   });
 });

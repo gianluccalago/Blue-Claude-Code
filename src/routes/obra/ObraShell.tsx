@@ -5,6 +5,7 @@ import { LoadingState, EmptyState } from "@/components/states";
 import { ObraExecucao } from "@/routes/obra/Obra";
 import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
+import { ObraMateriais } from "@/routes/obra/ObraMateriais";
 
 // ===========================================================================
 // MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
@@ -34,6 +35,7 @@ export function ObraShell() {
           <TabsTrigger value="execucao">Execução</TabsTrigger>
           <TabsTrigger value="medicoes">Medições e pagamentos</TabsTrigger>
           <TabsTrigger value="projetos">Projetos complementares</TabsTrigger>
+          <TabsTrigger value="materiais">Materiais</TabsTrigger>
         </TabsList>
         <TabsContent value="execucao">
           <ObraExecucao />
@@ -43,6 +45,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="projetos">
           <ObraProjetos />
+        </TabsContent>
+        <TabsContent value="materiais">
+          <ObraMateriais />
         </TabsContent>
       </Tabs>
     </div>

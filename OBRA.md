@@ -115,9 +115,23 @@ financeiro é consequência aritmética dos pesos.
 - Testes: +5 casos (multa de disciplina com Estrutural R$ 98.800; prazo data-base).
   Total **24 casos** verdes.
 
+### ✅ Fase 4 — Materiais (migration `0102_obra_materiais.sql`)
+- Cadeia completa: `obra_planejamento_materiais` (lista da construtora, data de
+  necessidade/antecedência) → `obra_cotacoes` (mín. 3 fornecedores, escolher) →
+  `obra_ordens_compra` (valor comprometido, status, previsão) →
+  `obra_recebimentos` (conferência + foto; divergência sinaliza NC → Fase 7) →
+  `obra_consumo` (baixa por etapa/fase) → `obra_estoque_reposicao` (3% acabamentos).
+- **Perdas × tolerância → glosa** por categoria (consumo real × previsto vs
+  tolerância; excedente valorado pelo preço médio das OCs vira proposta de glosa
+  na medição do mês). **Curva ABC** dos itens (A≤80%/B≤95%/C).
+- **Alertas**: OC sem entrega a ≤7d do prazo; item sem OC a ≤15d da necessidade.
+- RLS: planejamento visível ao prestador; cotações/OCs/recebimentos/consumo/
+  reposição são master/direção (fornecedores e valores ocultos).
+- Cálculos testados (Vitest, +5 = **29 casos**): glosa por categoria e curva ABC.
+- UI: aba "Materiais" — métricas, tabela de perdas, curva ABC e as seções da
+  cadeia com modais (planejar, cotar/emitir OC, receber com foto, consumo, reposição).
+
 ## Próximas fases (aguardando "execute a Fase N")
-- **Fase 4** — Materiais (planejamento → cotações → OC → recebimento → consumo
-  → perdas/glosa → estoque reposição, curva ABC).
 - **Fase 5** — Financeiro consolidado (baseline, curva S, contas a pagar, CSV).
 - **Fase 6** — Portal do prestador (submissão de BM/documentos/entregas).
 - **Fase 7** — Transversais (insumos críticos, ensaios, diário, NCs,
