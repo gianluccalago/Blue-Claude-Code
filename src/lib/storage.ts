@@ -298,6 +298,25 @@ export async function uploadComprovanteUpselling(
   }
 }
 
+export const BUCKET_OBRA = "obra";
+
+/**
+ * Upload de foto de vistoria do módulo Obra (verificação de etapa). Bucket
+ * PRIVADO, path por entidade: checklist/<faseNumero>/<etapaId>/<ts>.<ext>.
+ * O "carimbo" (data/autor) é gravado no registro do checklist e exibido na UI.
+ */
+export async function uploadFotoObra(file: File, faseNumero: number, etapaId: string): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `checklist/fase-${faseNumero}/${etapaId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_OBRA).upload(path, file, { upsert: false });
+    if (error) return null;
+    return path;
+  } catch {
+    return null;
+  }
+}
+
 export const BUCKET_DOCUMENTOS_INSTITUCIONAIS = "documentos-institucionais";
 
 /**

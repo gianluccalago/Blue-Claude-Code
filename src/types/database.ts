@@ -20,7 +20,8 @@ export type PerfilUsuario =
   | "farmacia"
   | "administracao"
   | "direcao"
-  | "familia";
+  | "familia"
+  | "obra_prestador";
 
 export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfermeira";
 export type VinculoProfissional = "CLT" | "PJ";
@@ -31,6 +32,8 @@ export type GrauDependencia = "I" | "II" | "III";
 /** Ocupação da suíte. */
 export type OcupacaoSuite = "simples" | "duplo" | "triplo";
 export type ViaMedicacao = "oral" | "injetavel" | "insulina" | "sonda";
+/** Módulo Obra: ciclo de vida sequencial de uma fase da obra. */
+export type ObraFaseStatus = "nao_iniciada" | "em_andamento" | "trp_emitido" | "trd_emitido";
 /** Tipos de assento do livro de controlados (Port. 344/98). */
 export type TipoAssentoControlado =
   | "entrada"
@@ -2149,6 +2152,134 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["carteira_vacinal"]["Insert"]>;
         Relationships: [];
       };
+      obra_config: {
+        Row: { chave: string; valor: string; descricao: string | null; atualizado_em: string };
+        Insert: { chave: string; valor: string; descricao?: string | null };
+        Update: Partial<{ valor: string; descricao: string | null }>;
+        Relationships: [];
+      };
+      obra_fases: {
+        Row: {
+          id: string;
+          numero: number;
+          nome: string;
+          modulos: string;
+          area_m2: number;
+          reajustavel: boolean;
+          ipca_pct: number | null;
+          status: ObraFaseStatus;
+          data_inicio: string | null;
+          data_trp: string | null;
+          data_trd: string | null;
+          criado_em: string;
+        };
+        Insert: never;
+        Update: Partial<{
+          ipca_pct: number | null;
+          status: ObraFaseStatus;
+          data_inicio: string | null;
+          data_trp: string | null;
+          data_trd: string | null;
+        }>;
+        Relationships: [];
+      };
+      obra_etapas: {
+        Row: {
+          id: string;
+          fase_id: string;
+          ordem: number;
+          nome: string;
+          descricao: string | null;
+          peso_pct: number;
+          depende_de: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id: string;
+          ordem: number;
+          nome: string;
+          descricao?: string | null;
+          peso_pct: number;
+          depende_de?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["obra_etapas"]["Insert"]>;
+        Relationships: [];
+      };
+      obra_checklist_execucao: {
+        Row: {
+          id: string;
+          etapa_id: string;
+          concluido: boolean;
+          foto_url: string;
+          observacao: string | null;
+          registrado_por: string;
+          perfil_registrador: string;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          etapa_id: string;
+          concluido: boolean;
+          foto_url: string;
+          observacao?: string | null;
+          registrado_por: string;
+          perfil_registrador: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      obra_disciplinas: {
+        Row: {
+          id: string;
+          ordem: number;
+          nome: string;
+          valor: number;
+          prazo_dias: number | null;
+          revisoes_max: number;
+          revisoes_usadas: number;
+          status: string;
+          motivo: string | null;
+          observacao: string | null;
+          criado_em: string;
+        };
+        Insert: never;
+        Update: Partial<{
+          status: string;
+          motivo: string | null;
+          revisoes_usadas: number;
+          observacao: string | null;
+        }>;
+        Relationships: [];
+      };
+      obra_aliquotas: {
+        Row: { chave: string; rotulo: string; percentual: number; ativa: boolean; observacao: string | null };
+        Insert: never;
+        Update: Partial<{ percentual: number; ativa: boolean; observacao: string | null }>;
+        Relationships: [];
+      };
+      obra_tolerancias_perdas: {
+        Row: { categoria: string; percentual: number };
+        Insert: never;
+        Update: Partial<{ percentual: number }>;
+        Relationships: [];
+      };
+      obra_audit_log: {
+        Row: {
+          id: string;
+          tabela: string;
+          registro_id: string | null;
+          acao: string;
+          antes: unknown;
+          depois: unknown;
+          usuario: string | null;
+          perfil: string | null;
+          em: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       documento_institucional: {
         Row: {
           id: string;
@@ -2447,6 +2578,10 @@ export type TipoAgravo = AgravoEpidemiologico["tipo"];
 export type CarteiraVacinal = Database["public"]["Tables"]["carteira_vacinal"]["Row"];
 export type DocumentoInstitucional = Database["public"]["Tables"]["documento_institucional"]["Row"];
 export type AssentoControlado = Database["public"]["Tables"]["livro_controlados"]["Row"];
+export type ObraFase = Database["public"]["Tables"]["obra_fases"]["Row"];
+export type ObraEtapa = Database["public"]["Tables"]["obra_etapas"]["Row"];
+export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist_execucao"]["Row"];
+export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
 export type VacinaRegistro = Database["public"]["Tables"]["vacina_registro"]["Row"];
 export type PatologiaResidente = Database["public"]["Tables"]["patologia_residente"]["Row"];
 export type PlanoAtencaoSaude = Database["public"]["Tables"]["plano_atencao_saude"]["Row"];

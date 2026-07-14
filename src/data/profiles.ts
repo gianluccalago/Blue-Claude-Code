@@ -13,6 +13,7 @@ import {
   Shirt,
   Users,
   Briefcase,
+  HardHat,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,6 +69,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "RH — Painéis", to: "/app/master/rh-paineis", grupo: "Estratégico" },
       { label: "Resultados NPS", to: "/app/master/resultados-nps", grupo: "Estratégico" },
       { label: "Mapa das Suítes", to: "/app/master/mapa-suites", grupo: "Estratégico" },
+      { label: "Obra", to: "/app/master/obra", grupo: "Estratégico" },
       // COMERCIAL
       { label: "CRM", to: "/app/master/crm", grupo: "Comercial" },
       { label: "Funil de Vendas", to: "/app/master/funil-vendas", grupo: "Comercial" },
@@ -366,6 +368,7 @@ export const PERFIS: PerfilDef[] = [
       // OPERACIONAL
       { label: "Hóspedes", to: "/app/direcao/hospedes-gestao", grupo: "Operacional" },
       { label: "Mapa das Suítes", to: "/app/direcao/mapa-suites", grupo: "Operacional" },
+      { label: "Obra", to: "/app/direcao/obra", grupo: "Operacional" },
       { label: "Day Care", to: "/app/direcao/day-care", grupo: "Operacional" },
       { label: "Serviços", to: "/app/direcao/servicos", grupo: "Operacional" },
       { label: "Enxoval", to: "/app/direcao/enxoval", grupo: "Operacional" },
@@ -409,6 +412,21 @@ export const PERFIS: PerfilDef[] = [
       { label: "Solicitações", to: "/app/familia/solicitacoes" },
       { label: "Câmera do quarto", to: "/app/familia/camera-quarto" },
       { label: "Sinais vitais", to: "/app/familia/sinais-vitais" },
+    ],
+    emConstrucao: false,
+  },
+  {
+    // CONSTRUTORA (módulo Obra): acesso EXCLUSIVO ao módulo de obra — nunca vê
+    // financeiro do contratante, cotações, fornecedores nem áreas assistenciais
+    // (RLS nega no banco; o menu só tem a Obra).
+    id: "obra_prestador",
+    nome: "Construtora",
+    descricao: "Acompanhamento da obra (prestador)",
+    icon: HardHat,
+    cor: "bg-secondary text-secondary-foreground",
+    rotaInicial: "/app/obra_prestador/obra",
+    menu: [
+      { label: "Obra", to: "/app/obra_prestador/obra" },
     ],
     emConstrucao: false,
   },

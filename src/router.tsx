@@ -72,6 +72,7 @@ import { PainelHotelaria } from "@/routes/hotelaria/PainelHotelaria";
 import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
+import { Obra } from "@/routes/obra/Obra";
 import { LivroControlados } from "@/routes/farmacia/LivroControlados";
 import { DocumentosInstitucionais } from "@/routes/administracao/DocumentosInstitucionais";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
@@ -324,6 +325,12 @@ const documentosInstitucionaisRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "documentos-institucionais",
   component: DocumentosInstitucionais,
+});
+// Módulo Obra — master/direção (total) e obra_prestador (portal restrito).
+const obraRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "obra",
+  component: Obra,
 });
 const pedidosMensaisRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -714,6 +721,7 @@ const routeTree = rootRoute.addChildren([
     dispensacaoRoute,
     livroControladosRoute,
     documentosInstitucionaisRoute,
+    obraRoute,
     pedidosMensaisRoute,
     custosMedicamentoRoute,
     estoqueHospedeRoute,

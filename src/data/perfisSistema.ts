@@ -188,6 +188,7 @@ export const PERFIL_LABEL: Record<PerfilUsuario, string> = {
   servicos_gerais: "Serviços Gerais",
   lavanderia: "Lavanderia",
   familia: "Família / Hóspede",
+  obra_prestador: "Construtora (Obra)",
 };
 
 /**

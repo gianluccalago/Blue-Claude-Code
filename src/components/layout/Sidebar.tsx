@@ -66,6 +66,7 @@ import {
   ChevronDown,
   FolderCheck,
   BookLock,
+  HardHat,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -73,6 +74,7 @@ import { EditarPerfilDialog } from "@/components/EditarPerfilDialog";
 import { cn, ouNaoInformado } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
 import { useNotificacoes, type Badge as BadgeNotif } from "@/hooks/useNotificacoes";
+import { useObraAtiva } from "@/hooks/useObra";
 import { useFotoResidente, useDefinirMinhaFoto } from "@/hooks/useUsuarioFoto";
 import { uploadFotoUsuario, BUCKET_FOTOS_RESIDENTE, BUCKET_FOTOS_USUARIO } from "@/lib/storage";
 import { useUrlAssinada } from "@/components/AnexoSeguro";
@@ -99,6 +101,9 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/administracao/documentos-institucionais": FolderCheck,
   "/app/direcao/documentos-institucionais": FolderCheck,
   "/app/master/livro-controlados": BookLock,
+  "/app/master/obra": HardHat,
+  "/app/direcao/obra": HardHat,
+  "/app/obra_prestador/obra": HardHat,
   "/app/farmacia/livro-controlados": BookLock,
   "/app/coordenacao/livro-controlados": BookLock,
   "/app/enfermeira/livro-controlados": BookLock,
@@ -433,13 +438,19 @@ export function Sidebar({
     navigate({ to: "/" });
   }
 
+  // Feature flag do módulo Obra: desligada, o item "Obra" some do menu.
+  const obraAtiva = useObraAtiva();
+  const menuVisivel = perfil.menu.filter(
+    (m) => obraAtiva.data !== false || !m.to.endsWith("/obra"),
+  );
+
   // Agrupa o menu em blocos: seções (com `grupo`) viram acordeões recolhíveis;
   // itens sem grupo seguem na lista plana (perfis de ponta não mudam).
   const blocos: (
     | { grupo: string; itens: MenuItem[] }
     | { grupo: null; item: MenuItem }
   )[] = [];
-  for (const item of perfil.menu) {
+  for (const item of menuVisivel) {
     if (!item.grupo) {
       blocos.push({ grupo: null, item });
       continue;
