@@ -225,10 +225,25 @@ Três pedidos de uso (com telas na mão):
   CSV. Alimenta o **painel** (5º KPI "Indiretos") e o **financeiro consolidado**
   (grupo `indiretos` no baseline; orçado editável, realizado = soma dos custos).
 
+### ✅ Materiais fora do escopo do prestador (migration `0108_obra_prestador_sem_materiais.sql`)
+Decisão do Contratante: **custos de materiais, fornecedores diretos, demais
+custos e indiretos não fazem parte do acesso da construtora** e não aparecem para
+ela. Os custos já eram master/direção apenas — cotações, ordens de compra,
+recebimentos, consumo e reposição (0102); ledger de retenções (0100);
+baseline/indiretos (0103/0107); e a storage do prestador é restrita a pastas sem
+custo (checklist/documentos/entregas/bim/nf, 0106). Restava a **lista de
+planejamento de materiais** (`obra_planejamento_materiais` — quantidades
+previstas, sem preços), que o prestador ainda podia LER; a 0108 remove esse
+acesso (agora master/direção). O portal do prestador não renderiza materiais, então
+não há impacto funcional — apenas fecha a superfície de API. Escopo do prestador:
+só o próprio contrato (estrutura física, medições de MO, entregas de projeto/BIM,
+documentos do mês e notificações).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
-→ 0107. Todas idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e
-crie o usuário da construtora com perfil `obra_prestador` em Equipe e Acessos.
+→ 0107 → 0108. Todas idempotentes. **Para ativar:** rode-as no Supabase (após a
+0098) e crie o usuário da construtora com perfil `obra_prestador` em Equipe e
+Acessos.
 
 **Pendências conhecidas (documentadas):**
 - Envio de e-mail das notificações (Fase 6) precisa de uma Edge Function/provedor
