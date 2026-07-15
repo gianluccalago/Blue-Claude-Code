@@ -172,15 +172,16 @@ export function useAtualizarPesos() {
   });
 }
 
-/** Define a data de conclusão prevista da fase (base da multa/bônus). */
+/** Define as datas PREVISTAS da fase (início/fim — plano do Gantt e base da multa/bônus). */
 export function useAtualizarFaseCronograma() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { faseId: string; dataFimPrevista: string | null }) => {
-      const { error } = await supabase
-        .from("obra_fases")
-        .update({ data_fim_prevista: args.dataFimPrevista })
-        .eq("id", args.faseId);
+    mutationFn: async (args: { faseId: string; dataInicioPrevista?: string | null; dataFimPrevista: string | null }) => {
+      const patch: { data_fim_prevista: string | null; data_inicio_prevista?: string | null } = {
+        data_fim_prevista: args.dataFimPrevista,
+      };
+      if (args.dataInicioPrevista !== undefined) patch.data_inicio_prevista = args.dataInicioPrevista;
+      const { error } = await supabase.from("obra_fases").update(patch).eq("id", args.faseId);
       if (error) throw error;
     },
     onSuccess: () => invalidarObra(qc),

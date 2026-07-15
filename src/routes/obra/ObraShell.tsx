@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState } from "@/components/states";
 import { ObraExecucao } from "@/routes/obra/Obra";
+import { ObraCronograma } from "@/routes/obra/ObraCronograma";
 import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraMateriais } from "@/routes/obra/ObraMateriais";
@@ -50,6 +51,7 @@ export function ObraShell() {
       <Tabs defaultValue="painel" className="space-y-4">
         <TabsList>
           <TabsTrigger value="painel">Painel</TabsTrigger>
+          <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
           <TabsTrigger value="execucao">Execução</TabsTrigger>
           <TabsTrigger value="medicoes">Medições</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
@@ -60,6 +62,9 @@ export function ObraShell() {
         </TabsList>
         <TabsContent value="painel">
           <ObraPainel />
+        </TabsContent>
+        <TabsContent value="cronograma">
+          <ObraCronograma />
         </TabsContent>
         <TabsContent value="execucao">
           <ObraExecucao />

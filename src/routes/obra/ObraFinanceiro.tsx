@@ -43,7 +43,9 @@ export function ObraFinanceiro() {
   const ordens = useOrdensCompra();
   const custos = useCustosIndiretos();
 
-  const [editando, setEditando] = useState<ObraBaseline | null>(null);
+  // Edição do orçado: um grupo pode ter várias linhas (MO tem 4 fases) — o
+  // modal lista todas as linhas do grupo, cada uma editável.
+  const [editandoGrupo, setEditandoGrupo] = useState<ObraBaseline[] | null>(null);
 
   const carregando = baseline.isLoading || fases.isLoading || medicoes.isLoading;
   if (carregando) return <LoadingState />;
@@ -180,16 +182,20 @@ export function ObraFinanceiro() {
             </thead>
             <tbody className="divide-y">
               {resumo.map((l) => {
-                // MO e Projetos vêm do contrato (não editáveis); os demais grupos
-                // têm um pacote único na baseline, editável pelo master/direção.
-                const editavel = l.grupo !== "mo" && l.grupo !== "projetos";
-                const base = editavel ? listaBase.find((b) => b.grupo === l.grupo) : undefined;
+                // Todo grupo é editável (master/direção). MO e Projetos vêm do
+                // contrato como ponto de partida — os R$ 500 mil de projetos
+                // INTEGRAM o total (desconto incorporado; a MO por fase já é
+                // líquida do rateio, migration 0111).
+                const linhasGrupo = listaBase.filter((b) => b.grupo === l.grupo);
                 return (
                   <tr key={l.grupo} className="text-secondary">
                     <td className="py-2">
                       {l.rotulo}
-                      {podeEditar && base && (
-                        <button onClick={() => setEditando(base)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>
+                      {l.grupo === "projetos" && (
+                        <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">integra o total do contrato</span>
+                      )}
+                      {podeEditar && linhasGrupo.length > 0 && (
+                        <button onClick={() => setEditandoGrupo(linhasGrupo)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>
                       )}
                     </td>
                     <td className="py-2 text-right tabular-nums text-muted-foreground">{formatarMoeda(l.orcado)}</td>
@@ -267,7 +273,7 @@ export function ObraFinanceiro() {
         </CardContent>
       </Card>
 
-      {editando && <ModalBaseline base={editando} onFechar={() => setEditando(null)} />}
+      {editandoGrupo && <ModalBaselineGrupo linhas={editandoGrupo} onFechar={() => setEditandoGrupo(null)} />}
     </div>
   );
 }
@@ -312,30 +318,70 @@ function CurvaS({ pontos }: { pontos: { mes: string; fisicaPct: number; financei
   );
 }
 
-function ModalBaseline({ base, onFechar }: { base: ObraBaseline; onFechar: () => void }) {
+/**
+ * Edita o ORÇADO de um grupo do baseline. Grupos com várias linhas (MO tem uma
+ * por fase) mostram todas de uma vez; salva apenas as que mudaram.
+ */
+function ModalBaselineGrupo({ linhas, onFechar }: { linhas: ObraBaseline[]; onFechar: () => void }) {
   const atualizar = useAtualizarBaseline();
-  const [valor, setValor] = useState(String(base.valor_orcado));
-  const [obs, setObs] = useState(base.observacao ?? "");
+  const [valores, setValores] = useState<Record<string, string>>(() =>
+    Object.fromEntries(linhas.map((b) => [b.id, String(b.valor_orcado)])),
+  );
+  const [obs, setObs] = useState(linhas.length === 1 ? linhas[0].observacao ?? "" : "");
+
+  const parse = (s: string) => parseFloat(s.replace(/\./g, "").replace(",", "."));
 
   async function salvar() {
-    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
-    if (!Number.isFinite(v) || v < 0) { toast.error("Valor inválido."); return; }
-    try { await atualizar.mutateAsync({ id: base.id, valorOrcado: v, observacao: obs || null }); toast.success("Orçado atualizado."); onFechar(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+    const mudadas = linhas.filter((b) => parse(valores[b.id]) !== b.valor_orcado || (linhas.length === 1 && (obs || null) !== b.observacao));
+    for (const b of mudadas) {
+      const v = parse(valores[b.id]);
+      if (!Number.isFinite(v) || v < 0) { toast.error(`Valor inválido em "${b.rotulo}".`); return; }
+    }
+    if (mudadas.length === 0) { onFechar(); return; }
+    try {
+      for (const b of mudadas) {
+        await atualizar.mutateAsync({
+          id: b.id,
+          valorOrcado: parse(valores[b.id]),
+          observacao: linhas.length === 1 ? obs || null : b.observacao,
+        });
+      }
+      toast.success("Orçado atualizado.");
+      onFechar();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
   }
+
+  const total = linhas.reduce((s, b) => { const v = parse(valores[b.id]); return s + (Number.isFinite(v) ? v : 0); }, 0);
+  const titulo = GRUPO_LABEL[linhas[0].grupo] ?? linhas[0].rotulo;
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-secondary">{base.rotulo}</h2>
+          <h2 className="text-lg font-bold text-secondary">Orçado — {titulo}</h2>
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
         </div>
-        <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor orçado (R$)</span>
-          <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" /></label>
-        <label className="mt-3 block space-y-1"><span className="text-sm font-medium text-secondary">Observação</span>
-          <input value={obs} onChange={(e) => setObs(e.target.value)} className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" /></label>
+        {linhas[0].grupo === "mo" && (
+          <p className="mb-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-secondary">
+            Ponto de partida do contrato: área × preço/m² <span className="font-semibold">menos o rateio dos projetos</span> (os R$ 500.000 integram o total — desconto incorporado).
+          </p>
+        )}
+        <div className="space-y-3">
+          {linhas.map((b) => (
+            <label key={b.id} className="block space-y-1">
+              <span className="text-sm font-semibold text-secondary">{b.rotulo}</span>
+              <input value={valores[b.id]} onChange={(e) => setValores((p) => ({ ...p, [b.id]: e.target.value }))} inputMode="decimal" className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" />
+            </label>
+          ))}
+          {linhas.length > 1 && (
+            <p className="text-right text-sm font-semibold tabular-nums text-secondary">Total do grupo: {formatarMoeda(arred(total))}</p>
+          )}
+          {linhas.length === 1 && (
+            <label className="block space-y-1"><span className="text-sm font-medium text-secondary">Observação</span>
+              <input value={obs} onChange={(e) => setObs(e.target.value)} className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" /></label>
+          )}
+        </div>
         <div className="mt-6 flex gap-3">
           <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={atualizar.isPending}>Cancelar</Button>
           <Button size="lg" className="flex-1" onClick={salvar} loading={atualizar.isPending}>Salvar</Button>

@@ -239,11 +239,33 @@ não há impacto funcional — apenas fecha a superfície de API. Escopo do pres
 só o próprio contrato (estrutura física, medições de MO, entregas de projeto/BIM,
 documentos do mês e notificações).
 
-## Módulo completo (Fases 0–7 + hardening + acompanhamento)
+### ✅ Cronograma (Gantt) + correção do contrato (migration `0111_obra_cronograma_contrato.sql`)
+- **Aba "Cronograma"** (master/direção): Gantt com três seções — **fases** (barra
+  plano×real com preenchimento = avanço físico %, linha fina do previsto quando o
+  real divergiu, status por cor COM rótulo: concluída/andamento/atrasada/prevista),
+  **disciplinas de projeto** (data-base → data-base+prazo, marcador de conclusão)
+  e **marcos de prazo** (losangos: insumos críticos, vencimento de documentos,
+  ensaios agendados, entregas de OC; vencido = vermelho). Linha de HOJE, grade
+  mensal, rolagem horizontal, tooltips por barra. `obra_fases` ganhou
+  `data_inicio_prevista`; lápis na linha da fase edita início/fim previstos
+  (`useAtualizarFaseCronograma`). Cálculos puros em `lib/obraGantt.ts` (janela,
+  posições %, status) com **15 testes**.
+- **Correção do contrato:** os **R$ 500.000 de projetos INTEGRAM o total**
+  (desconto concedido pela contratada). O seed da 0103 somava MO (área×preço) +
+  500k, superestimando o total. A 0111 recalcula a MO por fase = área×preço
+  **menos o rateio dos projetos proporcional à área** → TOTAL (MO+projetos) =
+  área total × preço = contrato final (R$ 12.520.378,29). **MO e Projetos agora
+  são EDITÁVEIS** no financeiro (modal do grupo lista as 4 fases da MO de uma
+  vez; projetos com selo "integra o total do contrato"). Atenção: as MEDIÇÕES
+  continuam calculadas a área×preço/m² por etapa (regra contratual de medição) —
+  se o desconto se materializar como abatimento nos BMs finais, ajuste a MO
+  orçada ou o `preco_m2_mo` em obra_config conforme o acerto real.
+
+## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
-→ 0107 → 0108. Todas idempotentes. **Para ativar:** rode-as no Supabase (após a
-0098) e crie o usuário da construtora com perfil `obra_prestador` em Equipe e
-Acessos.
+→ 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas
+idempotentes. **Para ativar:** rode-as no Supabase (após a 0098) e crie o usuário
+da construtora com perfil `obra_prestador` em Equipe e Acessos.
 
 **Pendências conhecidas (documentadas):**
 - Envio de e-mail das notificações (Fase 6) precisa de uma Edge Function/provedor

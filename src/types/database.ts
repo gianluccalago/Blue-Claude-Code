@@ -2177,6 +2177,7 @@ export interface Database {
           ipca_pct: number | null;
           status: ObraFaseStatus;
           data_inicio: string | null;
+          data_inicio_prevista: string | null;
           data_fim_prevista: string | null;
           data_trp: string | null;
           data_trd: string | null;
@@ -2187,6 +2188,7 @@ export interface Database {
           ipca_pct: number | null;
           status: ObraFaseStatus;
           data_inicio: string | null;
+          data_inicio_prevista: string | null;
           data_fim_prevista: string | null;
           data_trp: string | null;
           data_trd: string | null;
