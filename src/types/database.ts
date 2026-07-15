@@ -2998,6 +2998,12 @@ export interface Database {
         Args: { p_nome: string };
         Returns: undefined;
       };
+      // Master define/reseta a senha de um usuário (cria a credencial no 1º
+      // acesso ou troca a senha). Valida internamente que quem chama é Master.
+      admin_definir_senha: {
+        Args: { p_email: string; p_senha: string };
+        Returns: undefined;
+      };
       // Slots de visita com vaga real (desconta ocupações). Pública (site usa via anon).
       visitas_slots_livres: {
         Args: { p_de: string; p_ate: string };

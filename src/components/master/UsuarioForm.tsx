@@ -1,6 +1,9 @@
 import { useId, useMemo, useState } from "react";
-import { Check, X } from "lucide-react";
+import { toast } from "sonner";
+import { Check, X, KeyRound, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/auth/AuthProvider";
+import { useDefinirSenhaUsuario } from "@/hooks/useUsuarios";
 import {
   PERFIS_SISTEMA,
   configPerfil,
@@ -86,6 +89,37 @@ export function UsuarioForm({
   const [f, setF] = useState<FormState>(() => estadoInicial(inicial));
   const cfg = configPerfil(f.seletor);
   const listaCargosId = useId();
+  const { ehMaster } = useAuth();
+  const definirSenha = useDefinirSenhaUsuario();
+  const [senhaNova, setSenhaNova] = useState("");
+
+  // Bloco de senha: só o Master, só em edição de usuário COM login (e-mail
+  // salvo). A senha é definida pela RPC admin_definir_senha (independente do
+  // "Salvar alterações" — é uma operação de Auth, não da linha `usuarios`).
+  const podeDefinirSenha = ehMaster && modoEdicao && !!inicial && !inicial.sem_acesso && !!inicial.email;
+
+  async function salvarSenha() {
+    if (!inicial?.email) return;
+    if (senhaNova.length < 6) {
+      toast.error("A senha deve ter ao menos 6 caracteres.");
+      return;
+    }
+    try {
+      await definirSenha.mutateAsync({ email: inicial.email, senha: senhaNova });
+      toast.success(`Senha definida para ${inicial.email}.`);
+      setSenhaNova("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao definir a senha.");
+    }
+  }
+
+  function gerarSenha() {
+    // Senha temporária legível (sem caracteres ambíguos) para entregar ao usuário.
+    const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghijkmnpqrstuvwxyz";
+    const bytes = new Uint32Array(12);
+    crypto.getRandomValues(bytes);
+    setSenhaNova(Array.from(bytes, (n) => alfabeto[n % alfabeto.length]).join(""));
+  }
 
   function set<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setF((atual) => ({ ...atual, [campo]: valor }));
@@ -218,6 +252,12 @@ export function UsuarioForm({
             />
             {f.email.trim() !== "" && !emailValido && (
               <p className="mt-1 text-xs text-destructive">E-mail inválido.</p>
+            )}
+            {!modoEdicao && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Após criar, clique em <span className="font-semibold">Editar</span> no usuário para
+                definir a senha de acesso.
+              </p>
             )}
           </div>
         )}
@@ -405,6 +445,40 @@ export function UsuarioForm({
         <p className="text-xs text-destructive">
           Selecione o residente acompanhado para o perfil Família.
         </p>
+      )}
+
+      {/* Senha de acesso — Master define a 1ª senha ou reseta (RPC de Auth). */}
+      {podeDefinirSenha && (
+        <div className="space-y-2 rounded-lg border border-border bg-card/60 p-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-secondary">
+            <KeyRound className="size-4 text-primary" /> Senha de acesso
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Define a 1ª senha (novo login) ou reseta a senha de{" "}
+            <span className="font-semibold">{inicial?.email}</span>. Informe ao usuário — ele pode
+            trocá-la depois em “Editar meu perfil”.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={senhaNova}
+              onChange={(e) => setSenhaNova(e.target.value)}
+              placeholder="Nova senha (mín. 6 caracteres)"
+              autoComplete="off"
+              className={`${inputBase} flex-1`}
+            />
+            <Button type="button" variant="outline" onClick={gerarSenha} disabled={definirSenha.isPending}>
+              <RefreshCw className="size-4" /> Gerar
+            </Button>
+            <Button
+              type="button"
+              onClick={salvarSenha}
+              disabled={senhaNova.length < 6 || definirSenha.isPending}
+            >
+              <KeyRound className="size-4" /> Definir senha
+            </Button>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3">

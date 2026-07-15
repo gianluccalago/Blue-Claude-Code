@@ -122,6 +122,23 @@ export function useDefinirAtivoUsuario() {
   });
 }
 
+/**
+ * Master define/reseta a senha de acesso de um usuário (RPC admin_definir_senha,
+ * SECURITY DEFINER — cria a credencial no 1º acesso ou troca a senha). A RPC
+ * valida no banco que quem chama é Master.
+ */
+export function useDefinirSenhaUsuario() {
+  return useMutation({
+    mutationFn: async (args: { email: string; senha: string }) => {
+      const { error } = await supabase.rpc("admin_definir_senha", {
+        p_email: args.email,
+        p_senha: args.senha,
+      });
+      if (error) throw error;
+    },
+  });
+}
+
 /** Define o horário fixo de trabalho (mensalistas administrativos/operacionais). */
 export function useDefinirHorarioTrabalho() {
   const qc = useQueryClient();
