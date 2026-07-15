@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Navigate } from "@tanstack/react-router";
-import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users } from "lucide-react";
+import { toast } from "sonner";
+import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users, KeyRound, UserPlus, X, Check, MailCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
+import { useSolicitarResetSenha, useSolicitarAcesso } from "@/hooks/useSolicitacoesAcesso";
 import { Logo } from "@/components/Logo";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,7 @@ export function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [modal, setModal] = useState<null | "reset" | "acesso">(null);
 
   // Já autenticado → vai direto para as telas do perfil.
   if (!carregando && usuario) {
@@ -158,6 +161,23 @@ export function Login() {
               {enviando ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
               {enviando ? "Entrando…" : "Entrar"}
             </Button>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setModal("reset")}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-strong hover:underline"
+              >
+                <KeyRound className="size-3.5" /> Esqueci minha senha
+              </button>
+              <button
+                type="button"
+                onClick={() => setModal("acesso")}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary hover:underline"
+              >
+                <UserPlus className="size-3.5" /> Solicitar acesso
+              </button>
+            </div>
           </form>
 
           <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
@@ -166,7 +186,166 @@ export function Login() {
           </p>
         </div>
       </main>
+
+      {modal === "reset" && <ModalReset onFechar={() => setModal(null)} />}
+      {modal === "acesso" && <ModalAcesso onFechar={() => setModal(null)} />}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Modais públicos: reset de senha e solicitação de acesso.
+// ---------------------------------------------------------------------------
+
+const modalInput =
+  "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function CascaModal({ titulo, icone, onFechar, children }: { titulo: string; icone: React.ReactNode; onFechar: () => void; children: React.ReactNode }) {
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">{icone} {titulo}</h2>
+          <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalReset({ onFechar }: { onFechar: () => void }) {
+  const solicitar = useSolicitarResetSenha();
+  const [email, setEmail] = useState("");
+  const [enviado, setEnviado] = useState(false);
+
+  async function enviar() {
+    try {
+      await solicitar.mutateAsync(email.trim());
+      setEnviado(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar a solicitação.");
+    }
+  }
+
+  return (
+    <CascaModal titulo="Esqueci minha senha" icone={<KeyRound className="size-5 text-primary" />} onFechar={onFechar}>
+      {enviado ? (
+        <div className="space-y-4 text-center">
+          <div className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-success"><Check className="size-6" /></div>
+          <p className="text-sm text-secondary">
+            Solicitação enviada. A administração vai <span className="font-semibold">redefinir sua senha</span> e informar você.
+          </p>
+          <Button className="w-full" onClick={onFechar}>Entendi</Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Informe o e-mail do seu acesso. A administração recebe o pedido e redefine sua senha (os avisos por e-mail ainda não estão ativos).
+          </p>
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold text-secondary">E-mail</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@blueseniorliving.com.br" className={modalInput} />
+          </label>
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onFechar} disabled={solicitar.isPending}>Cancelar</Button>
+            <Button className="flex-1" onClick={enviar} loading={solicitar.isPending} disabled={email.trim() === ""}>Enviar solicitação</Button>
+          </div>
+        </div>
+      )}
+    </CascaModal>
+  );
+}
+
+function ModalAcesso({ onFechar }: { onFechar: () => void }) {
+  const solicitar = useSolicitarAcesso();
+  const [tipo, setTipo] = useState<"familiar" | "colaborador">("familiar");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [contato, setContato] = useState("");
+  const [cargo, setCargo] = useState("");
+  const [residenteNome, setResidenteNome] = useState("");
+  const [parentesco, setParentesco] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const [enviado, setEnviado] = useState(false);
+
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const valido = nome.trim() !== "" && emailValido && contato.trim() !== "" &&
+    (tipo === "colaborador" ? cargo.trim() !== "" : residenteNome.trim() !== "");
+
+  async function enviar() {
+    try {
+      await solicitar.mutateAsync({ tipo, nome: nome.trim(), email: email.trim(), contato, cargo, residenteNome, parentesco, observacao });
+      setEnviado(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar a solicitação.");
+    }
+  }
+
+  if (enviado) {
+    return (
+      <CascaModal titulo="Solicitar acesso" icone={<UserPlus className="size-5 text-primary" />} onFechar={onFechar}>
+        <div className="space-y-4 text-center">
+          <div className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-success"><MailCheck className="size-6" /></div>
+          <p className="text-sm text-secondary">
+            Solicitação enviada para <span className="font-semibold">aprovação da administração</span>. Você receberá o acesso assim que for liberado.
+          </p>
+          <Button className="w-full" onClick={onFechar}>Entendi</Button>
+        </div>
+      </CascaModal>
+    );
+  }
+
+  return (
+    <CascaModal titulo="Solicitar acesso" icone={<UserPlus className="size-5 text-primary" />} onFechar={onFechar}>
+      <div className="space-y-3">
+        {/* Tipo */}
+        <div className="flex gap-1 rounded-lg bg-muted p-1">
+          {([["familiar", "Familiar"], ["colaborador", "Colaborador"]] as const).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setTipo(v)}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${tipo === v ? "bg-card text-secondary shadow-card" : "text-muted-foreground hover:text-secondary"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Nome completo</span>
+          <input value={nome} onChange={(e) => setNome(e.target.value)} className={modalInput} /></label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">E-mail</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={modalInput} /></label>
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Telefone / contato</span>
+            <input value={contato} onChange={(e) => setContato(e.target.value)} className={modalInput} /></label>
+        </div>
+
+        {tipo === "colaborador" ? (
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Cargo / função</span>
+            <input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Ex.: Cuidadora, Enfermeira, Recepcionista" className={modalInput} /></label>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Hóspede que acompanha</span>
+              <input value={residenteNome} onChange={(e) => setResidenteNome(e.target.value)} placeholder="Nome do residente" className={modalInput} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Parentesco</span>
+              <input value={parentesco} onChange={(e) => setParentesco(e.target.value)} placeholder="Ex.: Filho(a), Cônjuge" className={modalInput} /></label>
+          </div>
+        )}
+
+        <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Observação (opcional)</span>
+          <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} className={`${modalInput} h-auto py-2`} /></label>
+
+        {email.trim() !== "" && !emailValido && <p className="text-xs text-destructive">E-mail inválido.</p>}
+
+        <div className="flex gap-3 pt-1">
+          <Button variant="outline" className="flex-1" onClick={onFechar} disabled={solicitar.isPending}>Cancelar</Button>
+          <Button className="flex-1" onClick={enviar} loading={solicitar.isPending} disabled={!valido}>Enviar solicitação</Button>
+        </div>
+      </div>
+    </CascaModal>
   );
 }
 

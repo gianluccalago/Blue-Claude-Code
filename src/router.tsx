@@ -40,6 +40,7 @@ import { VigilanciaPlano } from "@/routes/master/VigilanciaPlano";
 import { VigilanciaRelatorio } from "@/routes/master/VigilanciaRelatorio";
 import { SupervisaoClinica } from "@/routes/master/SupervisaoClinica";
 import { UsuariosAcessos } from "@/routes/master/UsuariosAcessos";
+import { Solicitacoes } from "@/routes/master/Solicitacoes";
 import { Equipe } from "@/routes/master/Equipe";
 import { EquipeAcessos } from "@/routes/master/EquipeAcessos";
 import { HospedesMaster } from "@/routes/master/HospedesMaster";
@@ -578,6 +579,12 @@ const masterEquipeAcessosRoute = createRoute({
   path: "equipe-acessos",
   component: EquipeAcessos,
 });
+// Solicitações (Master): filas de reset de senha e de pedidos de acesso do login.
+const masterSolicitacoesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "solicitacoes",
+  component: Solicitacoes,
+});
 
 // Ficha do hóspede — disponível em todos os perfis (menos Família). Aceita
 // ?hospede=ID para abrir direto a partir de uma lista (ex.: Meus hóspedes).
@@ -687,6 +694,7 @@ const routeTree = rootRoute.addChildren([
     masterResidentesRoute,
     masterEquipeRoute,
     masterEquipeAcessosRoute,
+    masterSolicitacoesRoute,
     fichaHospedeRoute,
     crmPipelineRoute,
     crmNovaRoute,

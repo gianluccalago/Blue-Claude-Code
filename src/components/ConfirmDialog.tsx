@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 /**
  * Diálogo de confirmação simples (sem dependências externas), pensado para
  * uso em tablet: botões grandes, linguagem direta, fecha no Esc ou no fundo.
+ * `children` (opcional) entra entre a descrição e os botões — ex.: um campo.
  */
 export function ConfirmDialog({
   aberto,
@@ -14,6 +15,7 @@ export function ConfirmDialog({
   varianteConfirmar = "destructive",
   onConfirmar,
   onCancelar,
+  children,
 }: {
   aberto: boolean;
   titulo: string;
@@ -23,6 +25,7 @@ export function ConfirmDialog({
   varianteConfirmar?: "destructive" | "default" | "warning";
   onConfirmar: () => void;
   onCancelar: () => void;
+  children?: ReactNode;
 }) {
   useEffect(() => {
     if (!aberto) return;
@@ -53,6 +56,7 @@ export function ConfirmDialog({
       <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <h2 className="text-lg font-bold text-secondary">{titulo}</h2>
         {descricao && <p className="mt-1.5 text-sm text-muted-foreground">{descricao}</p>}
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex gap-3">
           <Button variant="outline" size="lg" className="flex-1" onClick={onCancelar} autoFocus>
             {textoCancelar}

@@ -45,14 +45,22 @@ interface FormState {
   horario: string;
 }
 
-function estadoInicial(u?: Usuario): FormState {
-  const seletor = u ? perfilParaSeletor(u.perfil) : "cuidador";
+/** Valores para pré-preencher o formulário de CRIAÇÃO (ex.: aprovar solicitação). */
+export interface PrefillUsuario {
+  nome?: string;
+  email?: string;
+  seletor?: PerfilSeletor;
+  funcao?: string;
+}
+
+function estadoInicial(u?: Usuario, prefill?: PrefillUsuario): FormState {
+  const seletor = u ? perfilParaSeletor(u.perfil) : prefill?.seletor ?? "cuidador";
   const cfg = configPerfil(seletor);
   return {
-    nome: u?.nome ?? "",
-    email: u?.email ?? "",
+    nome: u?.nome ?? prefill?.nome ?? "",
+    email: u?.email ?? prefill?.email ?? "",
     seletor,
-    funcao: u?.funcao ?? cfg.funcoes?.[0] ?? cfg.funcaoFixa ?? "",
+    funcao: u?.funcao ?? prefill?.funcao ?? cfg.funcoes?.[0] ?? cfg.funcaoFixa ?? "",
     vinculo: u?.vinculo ?? "CLT",
     registro: u?.registro_profissional ?? "",
     isento_ponto_app: u?.isento_ponto_app ?? true,
@@ -73,6 +81,7 @@ export function UsuarioForm({
   modoEdicao,
   residentes,
   cargosExistentes = [],
+  prefill,
   salvando,
   onSalvar,
   onCancelar,
@@ -82,11 +91,13 @@ export function UsuarioForm({
   residentes: Residente[];
   /** Cargos (funcao) já usados no sistema — alimentam as sugestões do combobox. */
   cargosExistentes?: string[];
+  /** Pré-preenchimento na CRIAÇÃO (ex.: aprovar uma solicitação de acesso). */
+  prefill?: PrefillUsuario;
   salvando: boolean;
   onSalvar: (valor: UsuarioValor) => void;
   onCancelar: () => void;
 }) {
-  const [f, setF] = useState<FormState>(() => estadoInicial(inicial));
+  const [f, setF] = useState<FormState>(() => estadoInicial(inicial, prefill));
   const cfg = configPerfil(f.seletor);
   const listaCargosId = useId();
   const { ehMaster } = useAuth();
@@ -110,6 +121,17 @@ export function UsuarioForm({
       setSenhaNova("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao definir a senha.");
+    }
+  }
+
+  async function resetarPadrao() {
+    if (!inicial?.email) return;
+    try {
+      await definirSenha.mutateAsync({ email: inicial.email, senha: "blue" });
+      toast.success(`Senha de ${inicial.email} redefinida para "blue".`);
+      setSenhaNova("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao redefinir a senha.");
     }
   }
 
@@ -478,6 +500,14 @@ export function UsuarioForm({
               <KeyRound className="size-4" /> Definir senha
             </Button>
           </div>
+          <button
+            type="button"
+            onClick={resetarPadrao}
+            disabled={definirSenha.isPending}
+            className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+          >
+            Resetar para a senha padrão “blue”
+          </button>
         </div>
       )}
 

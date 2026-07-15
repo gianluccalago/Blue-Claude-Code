@@ -2631,6 +2631,54 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      solicitacao_reset_senha: {
+        Row: {
+          id: string;
+          email: string;
+          status: "pendente" | "atendido" | "descartado";
+          criado_em: string;
+          atendido_por: string | null;
+          atendido_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          status?: "pendente" | "atendido" | "descartado";
+        };
+        Update: Partial<{ status: "pendente" | "atendido" | "descartado"; atendido_por: string | null; atendido_em: string | null }>;
+        Relationships: [];
+      };
+      solicitacao_acesso: {
+        Row: {
+          id: string;
+          tipo: "familiar" | "colaborador";
+          nome: string;
+          email: string;
+          contato: string | null;
+          cargo: string | null;
+          residente_nome: string | null;
+          parentesco: string | null;
+          observacao: string | null;
+          status: "pendente" | "aprovada" | "recusada";
+          motivo_recusa: string | null;
+          criado_em: string;
+          revisado_por: string | null;
+          revisado_em: string | null;
+        };
+        Insert: {
+          id?: string;
+          tipo: "familiar" | "colaborador";
+          nome: string;
+          email: string;
+          contato?: string | null;
+          cargo?: string | null;
+          residente_nome?: string | null;
+          parentesco?: string | null;
+          observacao?: string | null;
+        };
+        Update: Partial<{ status: "pendente" | "aprovada" | "recusada"; motivo_recusa: string | null; revisado_por: string | null; revisado_em: string | null }>;
+        Relationships: [];
+      };
       obra_custos_indiretos: {
         Row: {
           id: string;
@@ -3004,6 +3052,25 @@ export interface Database {
         Args: { p_email: string; p_senha: string };
         Returns: undefined;
       };
+      // Público (anon): registra pedido de reset de senha para a fila do Master.
+      solicitar_reset_senha: {
+        Args: { p_email: string };
+        Returns: undefined;
+      };
+      // Público (anon): registra pedido de acesso (familiar/colaborador).
+      solicitar_acesso: {
+        Args: {
+          p_tipo: string;
+          p_nome: string;
+          p_email: string;
+          p_contato: string | null;
+          p_cargo: string | null;
+          p_residente_nome: string | null;
+          p_parentesco: string | null;
+          p_observacao: string | null;
+        };
+        Returns: undefined;
+      };
       // Slots de visita com vaga real (desconta ocupações). Pública (site usa via anon).
       visitas_slots_livres: {
         Args: { p_de: string; p_ate: string };
@@ -3085,6 +3152,8 @@ export interface Database {
 export type Residente = Database["public"]["Tables"]["residentes"]["Row"];
 export type CrmEtapa = Database["public"]["Tables"]["crm_etapa"]["Row"];
 export type CrmMotivoPerda = Database["public"]["Tables"]["crm_motivo_perda"]["Row"];
+export type SolicitacaoResetSenha = Database["public"]["Tables"]["solicitacao_reset_senha"]["Row"];
+export type SolicitacaoAcesso = Database["public"]["Tables"]["solicitacao_acesso"]["Row"];
 export type CrmOrigem = Database["public"]["Tables"]["crm_origem"]["Row"];
 export type CrmContato = Database["public"]["Tables"]["crm_contato"]["Row"];
 export type CrmOportunidade = Database["public"]["Tables"]["crm_oportunidade"]["Row"];
