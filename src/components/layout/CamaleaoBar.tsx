@@ -166,7 +166,13 @@ export function CamaleaoBar() {
       ) : (
         <div className="relative">
           <button
-            onClick={() => setAberto((v) => !v)}
+            onClick={() => {
+              // Ao ABRIR, rebusca a lista: pega usuários criados fora do app
+              // (ex.: via SQL) — a barra fica sempre montada e o app não
+              // refaz queries no foco da janela.
+              if (!aberto) void usuariosQ.refetch();
+              setAberto((v) => !v);
+            }}
             className={cn(
               "flex h-9 min-w-[230px] items-center gap-2 rounded-lg border px-2.5 text-xs font-medium transition-all",
               aberto

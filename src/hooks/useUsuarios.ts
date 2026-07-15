@@ -141,6 +141,10 @@ function invalidarUsuarios(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["usuarios"] });
   // O módulo de Escalas lista profissionais a partir de usuarios.
   qc.invalidateQueries({ queryKey: ["profissionais"] });
+  // O "Ver como…" do Camaleão usa consulta própria e fica SEMPRE montado —
+  // sem esta invalidação, um usuário recém-criado não aparece no seletor
+  // (refetchOnWindowFocus é false no app; ver main.tsx).
+  qc.invalidateQueries({ queryKey: ["camaleao-usuarios"] });
 }
 
 // ---------------------------------------------------------------------------
