@@ -1,4 +1,5 @@
 import { HardHat } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
 import { useObraAtiva } from "@/hooks/useObra";
 import { useAuth } from "@/auth/AuthProvider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -21,6 +22,7 @@ import { ObraControles } from "@/routes/obra/ObraControles";
 export function ObraShell() {
   const ativa = useObraAtiva();
   const { usuarioEfetivo } = useAuth();
+  const { perfil: perfilRota } = useParams({ strict: false }) as { perfil?: string };
 
   if (ativa.isLoading) return <LoadingState />;
   if (ativa.data === false)
@@ -28,8 +30,13 @@ export function ObraShell() {
       <EmptyState label="O módulo Obra está desativado. Ative-o em obra_config (modulo_obra_ativo = true) para usar." />
     );
 
-  // O prestador (construtora) tem um portal próprio, isolado do restante.
-  if (usuarioEfetivo?.perfil === "obra_prestador") return <PortalPrestador />;
+  // O prestador (construtora) tem um portal próprio, isolado do restante — sem
+  // financeiro, materiais, indiretos nem controles do Contratante. Renderiza-o
+  // tanto para o prestador logado/personificado (perfil efetivo) QUANTO quando
+  // o Master visita a rota do prestador por URL: assim a "visão da construtora"
+  // é sempre idêntica ao que o prestador realmente vê. (A trava real é a RLS.)
+  if (usuarioEfetivo?.perfil === "obra_prestador" || perfilRota === "obra_prestador")
+    return <PortalPrestador />;
 
   return (
     <div className="space-y-5">
