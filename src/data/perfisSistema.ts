@@ -12,6 +12,7 @@ import {
   Shirt,
   Users,
   Briefcase,
+  HardHat,
   type LucideIcon,
 } from "lucide-react";
 import type { PerfilUsuario } from "@/types/database";
@@ -19,7 +20,7 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 // MASTER-3 · Metadados dos perfis do sistema para a gestão de usuários.
 //
-// Este módulo descreve OS 13 PERFIS que o Master cria/edita e os campos
+// Este módulo descreve OS 14 PERFIS que o Master cria/edita e os campos
 // condicionais de cada um. É a base da autenticação que será ligada depois:
 // o email será o login e cada perfil cairá direto nas suas telas (sem a tela
 // de seleção de perfil). Mantém compatibilidade com o schema atual — o grupo
@@ -29,7 +30,7 @@ import type { PerfilUsuario } from "@/types/database";
 // ===========================================================================
 
 /**
- * Valor do SELETOR de perfil no formulário (13 opções). Para o grupo de
+ * Valor do SELETOR de perfil no formulário (14 opções). Para o grupo de
  * cuidados usamos "cuidador" como base; o perfil real ('cuidador' ou
  * 'enfermagem') é derivado da função na hora de salvar. "enfermeira" é um
  * perfil PRÓPRIO (Coordenação reduzida) — não confundir com o grupo de ponta.
@@ -48,7 +49,8 @@ export type PerfilSeletor =
   | "hotelaria"
   | "servicos_gerais"
   | "lavanderia"
-  | "familia";
+  | "familia"
+  | "obra_prestador";
 
 export interface ConfigPerfil {
   value: PerfilSeletor;
@@ -72,7 +74,7 @@ export interface ConfigPerfil {
   vinculaResidente?: boolean;
 }
 
-/** Os 13 perfis, na ordem do seletor. */
+/** Os 14 perfis, na ordem do seletor. */
 export const PERFIS_SISTEMA: ConfigPerfil[] = [
   { value: "master", label: "Master", icon: Shield, cargosSugeridos: ["Diretor Geral", "Administrador"] },
   {
@@ -164,6 +166,21 @@ export const PERFIS_SISTEMA: ConfigPerfil[] = [
     cargosSugeridos: ["Lavanderia", "Rouparia", "Auxiliar de Lavanderia", "Passadeira"],
   },
   { value: "familia", label: "Família / Hóspede", icon: Users, vinculaResidente: true },
+  {
+    // Construtora (módulo Obra): acesso externo EXCLUSIVO ao módulo de obra.
+    // Sem vínculo/ponto/remuneração (é prestador externo, não folha) — a RLS no
+    // banco nega todo o resto e o menu só tem "Obra".
+    value: "obra_prestador",
+    label: "Construtora (Obra)",
+    icon: HardHat,
+    cargosSugeridos: [
+      "Engenheiro Responsável",
+      "Engenheira Responsável",
+      "Engenheiro de Planejamento",
+      "Mestre de Obras",
+      "Preposto",
+    ],
+  },
 ];
 
 /** Config do seletor pelo valor. */
