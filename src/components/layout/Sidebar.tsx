@@ -92,7 +92,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/residentes": Users2,
   "/app/master/equipe": UserCog,
   "/app/master/equipe-acessos": Shield,
-  "/app/master/solicitacoes": Inbox,
+  "/app/master/solicitacoes-acesso": Inbox,
   "/app/master/vigilancia-sentinela": ShieldAlert,
   "/app/master/vigilancia-indicadores": Activity,
   "/app/master/vigilancia-vacinacao": Syringe,

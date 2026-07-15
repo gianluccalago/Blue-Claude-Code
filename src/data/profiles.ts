@@ -88,7 +88,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Extrair relatório sanitário", to: "/app/master/vigilancia-relatorio", grupo: "Vigilância Sanitária" },
       // SISTEMA
       { label: "Equipe e acessos", to: "/app/master/equipe-acessos", grupo: "Sistema" },
-      { label: "Solicitações de acesso", to: "/app/master/solicitacoes", grupo: "Sistema" },
+      { label: "Solicitações de acesso", to: "/app/master/solicitacoes-acesso", grupo: "Sistema" },
       { label: "RH — Eventos de pessoal", to: "/app/master/rh-eventos", grupo: "Sistema" },
     ],
     emConstrucao: false,

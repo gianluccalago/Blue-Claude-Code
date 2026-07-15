@@ -579,10 +579,12 @@ const masterEquipeAcessosRoute = createRoute({
   path: "equipe-acessos",
   component: EquipeAcessos,
 });
-// Solicitações (Master): filas de reset de senha e de pedidos de acesso do login.
+// Solicitações (Master): filas de reset de senha e de pedidos de acesso do
+// login. O path NÃO pode ser "solicitacoes" — a Família já usa esse path no
+// mesmo pai ($perfil) e paths duplicados derrubam o router no boot.
 const masterSolicitacoesRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "solicitacoes",
+  path: "solicitacoes-acesso",
   component: Solicitacoes,
 });
 
