@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  Zap, FlaskConical, BookText, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload,
+  Zap, FlaskConical, BookText, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra } from "@/hooks/useObra";
@@ -9,7 +9,10 @@ import {
   useInsumos, useEnsaios, useDiario, useNaoConformidades, useDocumentosObra, useAditivos,
   useAtualizarInsumo, useCriarEnsaio, useRegistrarResultadoEnsaio, useCriarDiario,
   useCriarNC, useAtualizarNC, useCriarDocumentoObra, useCriarAditivo,
+  useCriarInsumo, useExcluirInsumo, useExcluirEnsaio, useExcluirNC,
+  useExcluirDocumentoObraLinha, useExcluirAditivo, useExcluirDiario,
 } from "@/hooks/useObraTransversais";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { nivelPrazo, type NivelPrazo } from "@/lib/obraFinanceiro";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,6 +55,26 @@ function Secao({ titulo, icone, acao, children }: { titulo: string; icone: React
   );
 }
 
+/** Lixeira com confirmação embutida — padrão das exclusões desta tela. */
+function BotaoExcluir({ titulo, descricao, onConfirmar, pequeno = false }: { titulo: string; descricao?: string; onConfirmar: () => void; pequeno?: boolean }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <button onClick={() => setAberto(true)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Excluir">
+        <Trash2 className={pequeno ? "size-3.5" : "size-4"} />
+      </button>
+      <ConfirmDialog
+        aberto={aberto}
+        titulo={titulo}
+        descricao={descricao}
+        textoConfirmar="Excluir"
+        onConfirmar={() => { setAberto(false); onConfirmar(); }}
+        onCancelar={() => setAberto(false)}
+      />
+    </>
+  );
+}
+
 function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: ReactNode }) {
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -68,30 +91,56 @@ function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: (
 // ── Insumos críticos ────────────────────────────────────────────────────────
 function InsumosCriticos({ podeEditar }: { podeEditar: boolean }) {
   const insumos = useInsumos();
+  const criar = useCriarInsumo();
+  const excluir = useExcluirInsumo();
   const [editar, setEditar] = useState<ObraInsumoCritico | null>(null);
+  const [novo, setNovo] = useState(false);
   const hoje = hojeISO();
   return (
-    <Secao titulo="Insumos críticos do Contratante" icone={<Zap className="size-5 text-primary" />}>
+    <Secao
+      titulo="Insumos críticos do Contratante"
+      icone={<Zap className="size-5 text-primary" />}
+      acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Novo insumo</Button>}
+    >
       <div className="divide-y">
         {(insumos.data ?? []).map((i) => {
           const nivel: NivelPrazo = i.status === "ok" ? "ok" : nivelPrazo(i.prazo_limite, hoje, 30);
           return (
-            <button key={i.id} onClick={() => podeEditar && setEditar(i)} className={cn("flex w-full items-center gap-3 py-2.5 text-left", podeEditar && "hover:bg-muted/20")}>
-              <span className={cn("size-3 shrink-0 rounded-full", SEMAFORO[nivel])} />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-secondary">{i.nome}</p>
-                <p className="text-xs text-muted-foreground">
-                  {i.dependencia}
-                  {i.responsavel ? ` · ${i.responsavel}` : ""}
-                  {i.prazo_limite ? ` · limite ${formatarDataBR(i.prazo_limite)}` : ""}
-                </p>
-              </div>
-              <Badge variant={i.status === "ok" ? "success" : i.status === "em_andamento" ? "warning" : "muted"}>{i.status}</Badge>
-            </button>
+            <div key={i.id} className="flex items-center gap-3 py-2.5">
+              <button onClick={() => podeEditar && setEditar(i)} className={cn("flex min-w-0 flex-1 items-center gap-3 text-left", podeEditar && "hover:opacity-80")}>
+                <span className={cn("size-3 shrink-0 rounded-full", SEMAFORO[nivel])} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-secondary">{i.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {i.dependencia}
+                    {i.responsavel ? ` · ${i.responsavel}` : ""}
+                    {i.prazo_limite ? ` · limite ${formatarDataBR(i.prazo_limite)}` : ""}
+                  </p>
+                </div>
+                <Badge variant={i.status === "ok" ? "success" : i.status === "em_andamento" ? "warning" : "muted"}>{i.status}</Badge>
+              </button>
+              {podeEditar && (
+                <BotaoExcluir
+                  titulo="Excluir insumo crítico?"
+                  descricao={i.nome}
+                  onConfirmar={() => excluir.mutate(i.id, { onSuccess: () => toast.success("Insumo excluído."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
+                />
+              )}
+            </div>
           );
         })}
       </div>
       {editar && <ModalInsumo insumo={editar} onFechar={() => setEditar(null)} />}
+      {novo && (
+        <FormModal titulo="Novo insumo crítico" onFechar={() => setNovo(false)} onSalvar={async (v) => {
+          await criar.mutateAsync({ nome: v.nome, dependencia: v.dependencia || null, responsavel: v.responsavel || null, prazo_limite: v.prazo || null });
+        }} campos={[
+          { key: "nome", label: "Nome (ex.: Grupo gerador)", tipo: "text", req: true },
+          { key: "dependencia", label: "Dependência / por que é crítico", tipo: "text" },
+          { key: "responsavel", label: "Responsável", tipo: "text" },
+          { key: "prazo", label: "Prazo-limite", tipo: "date" },
+        ]} pending={criar.isPending} />
+      )}
     </Secao>
   );
 }
@@ -126,6 +175,7 @@ function Ensaios({ podeEditar }: { podeEditar: boolean }) {
   const fases = useFasesObra();
   const criar = useCriarEnsaio();
   const resultado = useRegistrarResultadoEnsaio();
+  const excluir = useExcluirEnsaio();
   const [novo, setNovo] = useState(false);
   const hoje = hojeISO();
 
@@ -148,12 +198,21 @@ function Ensaios({ podeEditar }: { podeEditar: boolean }) {
                     <p className="text-xs text-muted-foreground">{e.data_agendada ? `agendado ${formatarDataBR(e.data_agendada)}` : "sem data"}{atrasado ? " · ATRASADO" : ""}</p>
                   </div>
                 </div>
-                {e.resultado === "pendente" && podeEditar ? (
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" disabled={resultado.isPending} onClick={() => registrar(e.id, "conforme")}>Conforme</Button>
-                    <Button size="sm" variant="destructive" disabled={resultado.isPending} onClick={() => registrar(e.id, "nao_conforme")}>Não conforme</Button>
-                  </div>
-                ) : e.resultado === "pendente" ? <Badge variant="warning">aguardando resultado</Badge> : <Badge variant={e.resultado === "conforme" ? "success" : "destructive"}>{e.resultado === "conforme" ? "Conforme" : "Não conforme"}</Badge>}
+                <div className="flex items-center gap-2">
+                  {e.resultado === "pendente" && podeEditar ? (
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" disabled={resultado.isPending} onClick={() => registrar(e.id, "conforme")}>Conforme</Button>
+                      <Button size="sm" variant="destructive" disabled={resultado.isPending} onClick={() => registrar(e.id, "nao_conforme")}>Não conforme</Button>
+                    </div>
+                  ) : e.resultado === "pendente" ? <Badge variant="warning">aguardando resultado</Badge> : <Badge variant={e.resultado === "conforme" ? "success" : "destructive"}>{e.resultado === "conforme" ? "Conforme" : "Não conforme"}</Badge>}
+                  {podeEditar && (
+                    <BotaoExcluir
+                      titulo="Excluir ensaio?"
+                      descricao={`${e.tipo}${e.referencia ? ` · ${e.referencia}` : ""}`}
+                      onConfirmar={() => excluir.mutate(e.id, { onSuccess: () => toast.success("Ensaio excluído."), onError: (err) => toast.error(err instanceof Error ? err.message : "Falha.") })}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -178,6 +237,7 @@ function NaoConformidades({ podeEditar }: { podeEditar: boolean }) {
   const ncs = useNaoConformidades();
   const criar = useCriarNC();
   const atualizar = useAtualizarNC();
+  const excluir = useExcluirNC();
   const [nova, setNova] = useState(false);
 
   async function avancar(nc: ObraNaoConformidade) {
@@ -209,14 +269,21 @@ function NaoConformidades({ podeEditar }: { podeEditar: boolean }) {
                 </div>
                 <p className="text-xs text-muted-foreground">{n.responsavel ? `${n.responsavel} · ` : ""}{n.prazo ? `prazo ${formatarDataBR(n.prazo)}` : "sem prazo"} · origem {n.origem}</p>
               </div>
-              {podeEditar && n.status !== "encerrada" && (
-                <div className="flex gap-1">
+              {podeEditar && (
+                <div className="flex items-center gap-1">
                   {n.status === "em_correcao" && (
                     <label className="cursor-pointer rounded-md border border-input px-2 py-1 text-xs font-semibold text-primary hover:bg-accent"><Upload className="mr-1 inline size-3.5" />Reinspeção<input type="file" accept="image/*" className="hidden" onChange={(e) => reinspecao(n.id, e)} /></label>
                   )}
-                  <Button size="sm" variant="outline" disabled={atualizar.isPending} onClick={() => avancar(n)}>
-                    {n.status === "aberta" ? "Iniciar correção" : n.status === "em_correcao" ? "Enviar p/ reinspeção" : "Encerrar"}
-                  </Button>
+                  {n.status !== "encerrada" && (
+                    <Button size="sm" variant="outline" disabled={atualizar.isPending} onClick={() => avancar(n)}>
+                      {n.status === "aberta" ? "Iniciar correção" : n.status === "em_correcao" ? "Enviar p/ reinspeção" : "Encerrar"}
+                    </Button>
+                  )}
+                  <BotaoExcluir
+                    titulo="Excluir não-conformidade?"
+                    descricao={`"${n.descricao}". Apontada por engano? A exclusão libera a medição das etapas ligadas a ela.`}
+                    onConfirmar={() => excluir.mutate(n.id, { onSuccess: () => toast.success("NC excluída."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
+                  />
                 </div>
               )}
             </div>
@@ -240,6 +307,7 @@ function NaoConformidades({ podeEditar }: { podeEditar: boolean }) {
 function DocumentosObra({ podeEditar }: { podeEditar: boolean }) {
   const docs = useDocumentosObra();
   const criar = useCriarDocumentoObra();
+  const excluir = useExcluirDocumentoObraLinha();
   const [novo, setNovo] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const hoje = hojeISO();
@@ -256,6 +324,13 @@ function DocumentosObra({ podeEditar }: { podeEditar: boolean }) {
                   <p className="text-xs text-muted-foreground">{d.identificador ? `${d.identificador} · ` : ""}{d.data_validade ? `vence ${formatarDataBR(d.data_validade)}` : "sem vencimento"}</p></div>
                 {nivel === "critico" && <Badge variant="destructive">vencido</Badge>}
                 {nivel === "atencao" && <Badge variant="warning">vence em breve</Badge>}
+                {podeEditar && (
+                  <BotaoExcluir
+                    titulo="Excluir documento?"
+                    descricao={d.nome}
+                    onConfirmar={() => excluir.mutate(d.id, { onSuccess: () => toast.success("Documento excluído."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
+                  />
+                )}
               </div>
             );
           })}
@@ -289,6 +364,7 @@ function Aditivos({ podeEditar }: { podeEditar: boolean }) {
   const aditivos = useAditivos();
   const fases = useFasesObra();
   const criar = useCriarAditivo();
+  const excluir = useExcluirAditivo();
   const [novo, setNovo] = useState(false);
   const [pdf, setPdf] = useState<File | null>(null);
   return (
@@ -303,7 +379,16 @@ function Aditivos({ podeEditar }: { podeEditar: boolean }) {
                   {(a.prazo_delta_dias ?? 0) !== 0 ? `${a.prazo_delta_dias}d · ` : ""}
                   {a.data_assinatura ? `assinado ${formatarDataBR(a.data_assinatura)}` : "sem assinatura"}
                 </p></div>
-              {a.pdf_url && <Badge variant="success">PDF</Badge>}
+              <div className="flex items-center gap-2">
+                {a.pdf_url && <Badge variant="success">PDF</Badge>}
+                {podeEditar && (
+                  <BotaoExcluir
+                    titulo="Excluir aditivo?"
+                    descricao={a.descricao}
+                    onConfirmar={() => excluir.mutate(a.id, { onSuccess: () => toast.success("Aditivo excluído."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
+                  />
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -336,6 +421,7 @@ function Aditivos({ podeEditar }: { podeEditar: boolean }) {
 function Diario({ podeEditar }: { podeEditar: boolean }) {
   const diario = useDiario();
   const criar = useCriarDiario();
+  const excluir = useExcluirDiario();
   const [novo, setNovo] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
   return (
@@ -343,9 +429,19 @@ function Diario({ podeEditar }: { podeEditar: boolean }) {
       {(diario.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Sem registros.</p> : (
         <div className="divide-y">
           {(diario.data ?? []).slice(0, 20).map((d) => (
-            <div key={d.id} className="py-2.5">
-              <p className="text-xs font-semibold text-muted-foreground">{formatarDataBR(d.data)}{d.registrado_por ? ` · ${d.registrado_por}` : ""}</p>
-              <p className="text-sm text-secondary">{d.ocorrencias}</p>
+            <div key={d.id} className="flex items-start gap-2 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-muted-foreground">{formatarDataBR(d.data)}{d.registrado_por ? ` · ${d.registrado_por}` : ""}</p>
+                <p className="text-sm text-secondary">{d.ocorrencias}</p>
+              </div>
+              {podeEditar && (
+                <BotaoExcluir
+                  pequeno
+                  titulo="Excluir registro do diário?"
+                  descricao={`${formatarDataBR(d.data)}: ${d.ocorrencias.slice(0, 80)}`}
+                  onConfirmar={() => excluir.mutate(d.id, { onSuccess: () => toast.success("Registro excluído."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
+                />
+              )}
             </div>
           ))}
         </div>

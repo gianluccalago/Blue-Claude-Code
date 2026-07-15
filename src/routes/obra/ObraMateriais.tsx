@@ -11,6 +11,7 @@ import {
   Recycle,
   X,
   Check,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra } from "@/hooks/useObra";
@@ -25,11 +26,16 @@ import {
   useCriarCotacao,
   useEscolherCotacao,
   useCriarOC,
+  useAtualizarOC,
   useRegistrarRecebimento,
   useRegistrarConsumo,
   useCriarReposicao,
   useEntregarReposicao,
+  useExcluirPlanejamento,
+  useExcluirCotacao,
+  useExcluirConsumo,
 } from "@/hooks/useObraMateriais";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { calcularGlosaMaterial, curvaABC, diffDias } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +81,10 @@ export function ObraMateriais() {
   const [receberOc, setReceberOc] = useState<ObraOrdemCompra | null>(null);
   const [novoConsumo, setNovoConsumo] = useState(false);
   const [novaRepo, setNovaRepo] = useState(false);
+  const excluirPlan = useExcluirPlanejamento();
+  const excluirConsumo = useExcluirConsumo();
+  const atualizarOC = useAtualizarOC();
+  const [confirmacao, setConfirmacao] = useState<{ titulo: string; descricao: string; acao: () => void } | null>(null);
 
   const carregando = planejamento.isLoading || ordens.isLoading || tolerancias.isLoading;
   if (carregando) return <LoadingState />;
@@ -237,7 +247,25 @@ export function ObraMateriais() {
                       {p.data_necessidade ? ` · necessário em ${formatarDataBR(p.data_necessidade)}` : ""}
                     </p>
                   </div>
-                  {podeEditar && <Button size="sm" variant="outline" onClick={() => setCotarItem(p)}>Cotações / OC</Button>}
+                  {podeEditar && (
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button size="sm" variant="outline" onClick={() => setCotarItem(p)}>Cotações / OC</Button>
+                      <button
+                        onClick={() => setConfirmacao({
+                          titulo: "Excluir item do planejamento?",
+                          descricao: `${p.item} · ${p.quantidade_prevista} ${p.unidade}. As cotações dele saem junto; OCs já emitidas ficam.`,
+                          acao: () => excluirPlan.mutate(p.id, {
+                            onSuccess: () => toast.success("Item excluído."),
+                            onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao excluir."),
+                          }),
+                        })}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Excluir item"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -263,7 +291,23 @@ export function ObraMateriais() {
                   </p>
                 </div>
                 {podeEditar && o.status !== "Entregue" && o.status !== "Cancelada" && (
-                  <Button size="sm" variant="outline" onClick={() => setReceberOc(o)}><PackageCheck className="size-4" /> Receber</Button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setReceberOc(o)}><PackageCheck className="size-4" /> Receber</Button>
+                    <button
+                      onClick={() => setConfirmacao({
+                        titulo: "Cancelar esta OC?",
+                        descricao: `${o.item} · ${o.fornecedor} · ${formatarMoeda(o.valor_total)}. Sai do comprometido; a OC fica no histórico como Cancelada.`,
+                        acao: () => atualizarOC.mutate({ id: o.id, status: "Cancelada" }, {
+                          onSuccess: () => toast.success("OC cancelada."),
+                          onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar."),
+                        }),
+                      })}
+                      className="text-xs font-semibold text-muted-foreground hover:text-destructive hover:underline"
+                      title="Cancelar OC"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -278,7 +322,25 @@ export function ObraMateriais() {
             {listaConsumo.slice(0, 20).map((c) => (
               <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                 <span><strong className="text-secondary">{c.item}</strong> <Badge variant="muted">{CAT_LABEL[c.categoria] ?? c.categoria}</Badge></span>
-                <span className="tabular-nums text-muted-foreground">{c.quantidade_consumida} {c.unidade} · {formatarDataBR(c.data_consumo)}</span>
+                <span className="flex items-center gap-2">
+                  <span className="tabular-nums text-muted-foreground">{c.quantidade_consumida} {c.unidade} · {formatarDataBR(c.data_consumo)}</span>
+                  {podeEditar && (
+                    <button
+                      onClick={() => setConfirmacao({
+                        titulo: "Excluir lançamento de consumo?",
+                        descricao: `${c.item} · ${c.quantidade_consumida} ${c.unidade} em ${formatarDataBR(c.data_consumo)}. Perdas e glosa recalculam na hora.`,
+                        acao: () => excluirConsumo.mutate(c.id, {
+                          onSuccess: () => toast.success("Consumo excluído."),
+                          onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao excluir."),
+                        }),
+                      })}
+                      className="text-muted-foreground hover:text-destructive"
+                      title="Excluir lançamento"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -303,6 +365,14 @@ export function ObraMateriais() {
         )}
       </Secao>
 
+      <ConfirmDialog
+        aberto={!!confirmacao}
+        titulo={confirmacao?.titulo ?? ""}
+        descricao={confirmacao?.descricao}
+        textoConfirmar="Confirmar"
+        onConfirmar={() => { confirmacao?.acao(); setConfirmacao(null); }}
+        onCancelar={() => setConfirmacao(null)}
+      />
       {novoItem && <ModalNovoItem fases={fases.data ?? []} onFechar={() => setNovoItem(false)} />}
       {cotarItem && <ModalCotacoes item={cotarItem} cotacoes={listaCot.filter((c) => c.planejamento_id === cotarItem.id)} temOC={ocPorPlan.has(cotarItem.id)} onFechar={() => setCotarItem(null)} />}
       {receberOc && <ModalReceber oc={receberOc} onFechar={() => setReceberOc(null)} />}
@@ -405,6 +475,7 @@ function ModalCotacoes({ item, cotacoes, temOC, onFechar }: { item: ObraPlanejam
   const criar = useCriarCotacao();
   const escolher = useEscolherCotacao();
   const criarOC = useCriarOC();
+  const excluirCot = useExcluirCotacao();
   const [fornecedor, setFornecedor] = useState("");
   const [preco, setPreco] = useState("");
   const [prazo, setPrazo] = useState("");
@@ -433,7 +504,18 @@ function ModalCotacoes({ item, cotacoes, temOC, onFechar }: { item: ObraPlanejam
           cotacoes.map((c) => (
             <div key={c.id} className={cn("flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm", c.escolhida ? "border-success/50 bg-success/5" : "border-border")}>
               <span><strong className="text-secondary">{c.fornecedor}</strong> · {formatarMoeda(c.preco_unitario)}/{item.unidade}{c.prazo_entrega_dias ? ` · ${c.prazo_entrega_dias}d` : ""}</span>
-              {c.escolhida ? <Badge variant="success">escolhida</Badge> : !temOC && <button onClick={() => escolher.mutate({ cotacaoId: c.id, planejamentoId: item.id })} className="text-xs font-semibold text-primary hover:underline">Escolher</button>}
+              <span className="flex items-center gap-2">
+                {c.escolhida ? <Badge variant="success">escolhida</Badge> : !temOC && <button onClick={() => escolher.mutate({ cotacaoId: c.id, planejamentoId: item.id })} className="text-xs font-semibold text-primary hover:underline">Escolher</button>}
+                {!c.escolhida && (
+                  <button
+                    onClick={() => excluirCot.mutate(c.id, { onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao excluir.") })}
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Excluir cotação"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </span>
             </div>
           ))}
       </div>

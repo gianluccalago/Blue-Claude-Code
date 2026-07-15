@@ -261,6 +261,31 @@ documentos do mês e notificações).
   se o desconto se materializar como abatimento nos BMs finais, ajuste a MO
   orçada ou o `preco_m2_mo` em obra_config conforme o acerto real.
 
+### ✅ Flexibilização total do acesso interno (sem migration — só front)
+Decisão do Contratante: o módulo é ferramenta de **estrito controle interno**
+(master/direção) e não alimenta outras abas — rigidez é atrito. O banco já
+permitia tudo (policies `for all`); as travas eram do front. O que abriu:
+- **Execução:** histórico de acompanhamentos por etapa com **exclusão de
+  registro errado** (fotos caem junto, auditoria preserva); **Editar fase**
+  (status, datas reais TRP/TRD, IPCA — correção livre); **iniciar fase FORA da
+  sequência contratual** com confirmação explícita (checkbox + auditoria);
+  editor de etapas completo (**renomear, adicionar, excluir**, pesos — única
+  regra dura que ficou: soma 100%; etapa já medida não sai — FK restrict).
+- **Projetos:** **Nova disciplina** personalizada (valor, prazo, revisões e
+  marcos próprios com % livres somando 100); **editar contrato** da disciplina
+  (nome/valor/prazo/revisões — marcos não pagos recalculam; pagos ficam);
+  **excluir disciplina** sem marco pago; **desfazer aprovação** de marco.
+- **Indiretos:** lançamentos agora **editáveis** (além de criar/excluir).
+- **Materiais:** excluir item de planejamento (cotações caem junto; OCs ficam),
+  excluir cotação, **cancelar OC** e excluir lançamento de consumo (perdas e
+  glosa recalculam).
+- **Controles:** **novo insumo crítico** (lista deixou de ser fechada) e
+  exclusão em tudo — insumos, ensaios, NCs (excluir NC apontada por engano
+  libera a medição), documentos, aditivos e diário.
+Invariantes que permaneceram (dinheiro/técnica): pesos = 100%, etapa medida não
+some, marco PAGO é imutável, medição via RPC, glosa por tolerância, RLS do
+prestador intacta.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

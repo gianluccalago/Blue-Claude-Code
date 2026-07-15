@@ -8,6 +8,9 @@ import {
   AlertTriangle,
   X,
   CircleDollarSign,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useObraConfig } from "@/hooks/useObraMedicoes";
@@ -19,7 +22,11 @@ import {
   useAtualizarMarco,
   usePagarMarco,
   useRegistrarRodadaBim,
+  useCriarDisciplina,
+  useEditarDisciplina,
+  useExcluirDisciplina,
 } from "@/hooks/useObraProjetos";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +58,7 @@ export function ObraProjetos() {
   const config = useObraConfig();
 
   const [detalhe, setDetalhe] = useState<ObraDisciplina | null>(null);
+  const [novaDisciplina, setNovaDisciplina] = useState(false);
 
   if (disciplinas.isLoading || marcos.isLoading || bim.isLoading || config.isLoading) return <LoadingState />;
   if (disciplinas.isError) return <ErrorState error={disciplinas.error} />;
@@ -78,10 +86,17 @@ export function ObraProjetos() {
   return (
     <div className="space-y-6 pb-8">
       {/* Resumo global */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Resumo icone={<Ruler className="size-5" />} rotulo="Contratado (projetos)" valor={formatarMoeda(totalContratado)} />
-        <Resumo icone={<CircleDollarSign className="size-5" />} rotulo="Pago" valor={formatarMoeda(totalPago)} tom="success" />
-        <Resumo icone={<Boxes className="size-5" />} rotulo="Compatibilização BIM" valor={compatFinal ? "Consolidada" : "Pendente"} tom={compatFinal ? "success" : "warning"} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid flex-1 gap-3 sm:grid-cols-3">
+          <Resumo icone={<Ruler className="size-5" />} rotulo="Contratado (projetos)" valor={formatarMoeda(totalContratado)} />
+          <Resumo icone={<CircleDollarSign className="size-5" />} rotulo="Pago" valor={formatarMoeda(totalPago)} tom="success" />
+          <Resumo icone={<Boxes className="size-5" />} rotulo="Compatibilização BIM" valor={compatFinal ? "Consolidada" : "Pendente"} tom={compatFinal ? "success" : "warning"} />
+        </div>
+        {podeEditar && (
+          <Button variant="outline" onClick={() => setNovaDisciplina(true)}>
+            <Plus className="size-4" /> Nova disciplina
+          </Button>
+        )}
       </div>
 
       {/* Disciplinas */}
@@ -137,6 +152,89 @@ export function ObraProjetos() {
           onFechar={() => setDetalhe(null)}
         />
       )}
+      {novaDisciplina && (
+        <ModalNovaDisciplina
+          proximaOrdem={listaDisc.reduce((m, d) => Math.max(m, d.ordem), 0) + 1}
+          onFechar={() => setNovaDisciplina(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Nova disciplina personalizada (fora do Anexo III) com marcos proporcionais. */
+function ModalNovaDisciplina({ proximaOrdem, onFechar }: { proximaOrdem: number; onFechar: () => void }) {
+  const criar = useCriarDisciplina();
+  const [nome, setNome] = useState("");
+  const [valor, setValor] = useState("");
+  const [prazo, setPrazo] = useState("");
+  const [revisoes, setRevisoes] = useState("2");
+  const [marcos, setMarcos] = useState<{ rotulo: string; pct: string; exige: boolean }[]>([
+    { rotulo: "Início", pct: "25", exige: false },
+    { rotulo: "R00", pct: "40", exige: true },
+    { rotulo: "R01", pct: "25", exige: true },
+    { rotulo: "Retido", pct: "10", exige: false },
+  ]);
+
+  const somaPct = marcos.reduce((s, m) => s + (parseFloat(m.pct.replace(",", ".")) || 0), 0);
+  const somaOk = marcos.length === 0 || Math.round(somaPct * 100) / 100 === 100;
+
+  async function salvar() {
+    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    if (!nome.trim() || !Number.isFinite(v) || v < 0) { toast.error("Informe nome e valor."); return; }
+    try {
+      await criar.mutateAsync({
+        nome,
+        valor: v,
+        prazoDias: prazo.trim() === "" ? null : parseInt(prazo, 10),
+        revisoesMax: parseInt(revisoes, 10) || 0,
+        marcos: marcos.map((m) => ({ rotulo: m.rotulo, percentual: parseFloat(m.pct.replace(",", ".")) || 0, exigeEntrega: m.exige })),
+        ordem: proximaOrdem,
+      });
+      toast.success("Disciplina criada.");
+      onFechar();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao criar."); }
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Nova disciplina" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+        <h2 className="text-lg font-bold text-secondary">Nova disciplina</h2>
+        <div className="mt-4 space-y-3">
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Nome</span>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Paisagismo executivo" className={inputBase} /></label>
+          <div className="grid grid-cols-3 gap-3">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor (R$)</span>
+              <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={inputBase} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Prazo (dias)</span>
+              <input value={prazo} onChange={(e) => setPrazo(e.target.value)} inputMode="numeric" className={inputBase} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Revisões</span>
+              <input value={revisoes} onChange={(e) => setRevisoes(e.target.value)} inputMode="numeric" className={inputBase} /></label>
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-sm font-semibold text-secondary">Marcos de pagamento (% do valor)</span>
+            {marcos.map((m, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input value={m.rotulo} onChange={(e) => setMarcos((p) => p.map((x, idx) => idx === i ? { ...x, rotulo: e.target.value } : x))} className="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm" />
+                <input value={m.pct} onChange={(e) => setMarcos((p) => p.map((x, idx) => idx === i ? { ...x, pct: e.target.value } : x))} inputMode="decimal" className="h-9 w-14 rounded-md border border-input bg-card px-2 text-right text-sm tabular-nums" />
+                <label className="flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground" title="Exige entrega de arquivo para aprovação">
+                  <input type="checkbox" checked={m.exige} onChange={(e) => setMarcos((p) => p.map((x, idx) => idx === i ? { ...x, exige: e.target.checked } : x))} className="size-3.5 accent-primary" /> entrega
+                </label>
+                <button onClick={() => setMarcos((p) => p.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-3.5" /></button>
+              </div>
+            ))}
+            <button onClick={() => setMarcos((p) => [...p, { rotulo: "", pct: "0", exige: false }])} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+              <Plus className="size-3.5" /> Adicionar marco
+            </button>
+            <p className={cn("text-right text-xs font-bold tabular-nums", somaOk ? "text-success" : "text-destructive")}>Soma: {somaPct.toFixed(1)}%</p>
+          </div>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={criar.isPending}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} disabled={!somaOk || criar.isPending} loading={criar.isPending}>Criar</Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -192,7 +290,16 @@ function ModalDisciplina({
   onFechar: () => void;
 }) {
   const atualizar = useAtualizarDisciplina();
+  const editarContrato = useEditarDisciplina();
+  const excluirDisc = useExcluirDisciplina();
   const [dataBase, setDataBase] = useState(d.data_base ?? "");
+  const [editando, setEditando] = useState(false);
+  const [nome, setNome] = useState(d.nome);
+  const [valor, setValor] = useState(String(d.valor));
+  const [prazo, setPrazo] = useState(d.prazo_dias != null ? String(d.prazo_dias) : "");
+  const [revMax, setRevMax] = useState(String(d.revisoes_max));
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const temPago = marcos.some((m) => m.status === "Pago");
 
   const prevista = somarDiasISO(dataBase || d.data_base, d.prazo_dias);
   const multa = calcularMultaDisciplina({
@@ -217,6 +324,22 @@ function ModalDisciplina({
     try { await atualizar.mutateAsync({ id: d.id, revisoesUsadas: d.revisoes_usadas + 1 }); toast.success("Revisão registrada."); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
   }
+  async function salvarContrato() {
+    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    try {
+      await editarContrato.mutateAsync({
+        id: d.id, nome, valor: v,
+        prazoDias: prazo.trim() === "" ? null : parseInt(prazo, 10),
+        revisoesMax: parseInt(revMax, 10) || 0,
+      });
+      toast.success("Disciplina atualizada — marcos não pagos recalculados.");
+      setEditando(false);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
+  }
+  async function excluir() {
+    try { await excluirDisc.mutateAsync(d.id); toast.success("Disciplina excluída."); onFechar(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao excluir."); }
+  }
 
   const revisaoAlerta = d.revisoes_max > 0 && d.revisoes_usadas >= d.revisoes_max - 1;
 
@@ -232,8 +355,43 @@ function ModalDisciplina({
               {d.observacao ? ` · ${d.observacao}` : ""}
             </p>
           </div>
-          <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
+          <div className="flex shrink-0 items-center gap-1">
+            {podeEditar && (
+              <>
+                <button onClick={() => setEditando((v) => !v)} className="text-muted-foreground hover:text-primary" title="Editar contrato da disciplina"><Pencil className="size-4" /></button>
+                <button
+                  onClick={() => !temPago && setConfirmandoExclusao(true)}
+                  className={cn("text-muted-foreground", temPago ? "cursor-not-allowed opacity-40" : "hover:text-destructive")}
+                  title={temPago ? "Disciplina com marco pago não pode ser excluída" : "Excluir disciplina"}
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </>
+            )}
+            <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
+          </div>
         </div>
+
+        {/* Edição do contrato da disciplina (controle interno) */}
+        {editando && (
+          <div className="mt-3 space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <label className="block space-y-1"><span className="text-xs font-semibold text-secondary">Nome</span>
+              <input value={nome} onChange={(e) => setNome(e.target.value)} className={cn(inputBase, "h-9")} /></label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="block space-y-1"><span className="text-xs font-semibold text-secondary">Valor (R$)</span>
+                <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={cn(inputBase, "h-9")} /></label>
+              <label className="block space-y-1"><span className="text-xs font-semibold text-secondary">Prazo (dias)</span>
+                <input value={prazo} onChange={(e) => setPrazo(e.target.value)} inputMode="numeric" className={cn(inputBase, "h-9")} /></label>
+              <label className="block space-y-1"><span className="text-xs font-semibold text-secondary">Revisões máx.</span>
+                <input value={revMax} onChange={(e) => setRevMax(e.target.value)} inputMode="numeric" className={cn(inputBase, "h-9")} /></label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Ao mudar o valor, marcos NÃO pagos são recalculados; pagos ficam como estão.</p>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditando(false)} disabled={editarContrato.isPending}>Cancelar</Button>
+              <Button size="sm" onClick={salvarContrato} loading={editarContrato.isPending}>Salvar</Button>
+            </div>
+          </div>
+        )}
 
         {/* Prazo / data-base / multa */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -292,6 +450,14 @@ function ModalDisciplina({
           ))}
         </div>
       </div>
+      <ConfirmDialog
+        aberto={confirmandoExclusao}
+        titulo="Excluir disciplina?"
+        descricao={`${d.nome} · ${formatarMoeda(d.valor)}. Os marcos (não pagos) saem junto. A auditoria preserva o rastro.`}
+        textoConfirmar="Excluir"
+        onConfirmar={() => { setConfirmandoExclusao(false); void excluir(); }}
+        onCancelar={() => setConfirmandoExclusao(false)}
+      />
     </div>
   );
 }
@@ -367,11 +533,21 @@ function MarcoLinha({
             </>
           )}
           {m.status === "Aprovado" && (
-            <span title={motivoPagamento ?? undefined}>
-              <Button size="sm" onClick={pagarMarco} disabled={!!motivoPagamento || pagar.isPending} loading={pagar.isPending}>
-                Pagar {m.percentual}%
-              </Button>
-            </span>
+            <>
+              <span title={motivoPagamento ?? undefined}>
+                <Button size="sm" onClick={pagarMarco} disabled={!!motivoPagamento || pagar.isPending} loading={pagar.isPending}>
+                  Pagar {m.percentual}%
+                </Button>
+              </span>
+              <button
+                onClick={() => transicao("Pendente")}
+                disabled={atualizar.isPending}
+                className="text-[11px] font-semibold text-muted-foreground hover:text-destructive hover:underline disabled:opacity-50"
+                title="Aprovou por engano? Volta o marco para Pendente."
+              >
+                Desfazer aprovação
+              </button>
+            </>
           )}
           {m.status === "Aprovado" && motivoPagamento && <span className="text-[11px] text-muted-foreground">{motivoPagamento}</span>}
         </div>

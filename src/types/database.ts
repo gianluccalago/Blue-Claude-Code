@@ -2723,8 +2723,20 @@ export interface Database {
           data_conclusao: string | null;
           criado_em: string;
         };
-        Insert: never;
+        Insert: {
+          id?: string;
+          ordem: number;
+          nome: string;
+          valor: number;
+          prazo_dias?: number | null;
+          revisoes_max?: number;
+          observacao?: string | null;
+        };
         Update: Partial<{
+          nome: string;
+          valor: number;
+          prazo_dias: number | null;
+          revisoes_max: number;
           status: string;
           motivo: string | null;
           revisoes_usadas: number;
@@ -2753,8 +2765,21 @@ export interface Database {
           registrado_por: string | null;
           criado_em: string;
         };
-        Insert: never;
+        Insert: {
+          id?: string;
+          disciplina_id: string;
+          ordem: number;
+          chave: "inicio" | "r00" | "r01" | "retido" | "entrega";
+          rotulo: string;
+          percentual: number;
+          valor: number;
+          exige_entrega?: boolean;
+        };
         Update: Partial<{
+          rotulo: string;
+          percentual: number;
+          valor: number;
+          exige_entrega: boolean;
           entrega_url: string | null;
           status: ObraMarcoStatus;
           motivo: string | null;

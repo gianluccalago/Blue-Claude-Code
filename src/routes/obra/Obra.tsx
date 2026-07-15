@@ -7,6 +7,11 @@ import {
   SlidersHorizontal,
   Images,
   X,
+  History,
+  Pencil,
+  Trash2,
+  Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -15,7 +20,9 @@ import {
   useChecklistObra,
   useRegistrarAcompanhamento,
   useFotosAcompanhamento,
-  useAtualizarPesos,
+  useExcluirRegistroAcompanhamento,
+  useEditarFase,
+  useSalvarEtapas,
   useIniciarFase,
 } from "@/hooks/useObra";
 import {
@@ -29,12 +36,13 @@ import {
 } from "@/lib/obra";
 import { BUCKET_OBRA } from "@/lib/storage";
 import { FotoSegura } from "@/components/AnexoSeguro";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataBR, formatarDataHoraBR } from "@/lib/utils";
-import type { ObraEtapa, ObraFase } from "@/types/database";
+import type { ObraChecklistExecucao, ObraEtapa, ObraFase, ObraFaseStatus } from "@/types/database";
 
 // ===========================================================================
 // MÓDULO OBRA — Execução: mapa da fase com % de conclusão editável por etapa e
@@ -60,6 +68,8 @@ export function ObraExecucao() {
   const [acompanhando, setAcompanhando] = useState<ObraEtapa | null>(null);
   const [editandoPesos, setEditandoPesos] = useState(false);
   const [galeriaEtapa, setGaleriaEtapa] = useState<ObraEtapa | null>(null);
+  const [historicoEtapa, setHistoricoEtapa] = useState<ObraEtapa | null>(null);
+  const [editandoFase, setEditandoFase] = useState(false);
 
   const ultimaPorEtapa = useMemo(
     () => ultimaVerificacaoPorEtapa(checklist.data ?? []),
@@ -83,13 +93,16 @@ export function ObraExecucao() {
   // Nº de fotos por etapa (galeria de evolução).
   const fotosPorEtapa = new Map<string, number>();
   for (const f of fotos.data ?? []) fotosPorEtapa.set(f.etapa_id, (fotosPorEtapa.get(f.etapa_id) ?? 0) + 1);
+  // Nº de registros de acompanhamento por etapa (histórico corrigível).
+  const registrosPorEtapa = new Map<string, number>();
+  for (const r of checklist.data ?? []) registrosPorEtapa.set(r.etapa_id, (registrosPorEtapa.get(r.etapa_id) ?? 0) + 1);
 
   return (
     <div className="space-y-6 pb-8">
       {podeEditar && (
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => setEditandoPesos(true)}>
-            <SlidersHorizontal className="size-4" /> Pesos da fase
+            <SlidersHorizontal className="size-4" /> Etapas e pesos
           </Button>
         </div>
       )}
@@ -141,6 +154,11 @@ export function ObraExecucao() {
               {podeEditar && fase.status === "nao_iniciada" && (
                 <BotaoIniciarFase fase={fase} todas={listaFases} />
               )}
+              {podeEditar && (
+                <Button size="sm" variant="ghost" onClick={() => setEditandoFase(true)} title="Editar status e datas da fase">
+                  <Pencil className="size-4" /> Editar fase
+                </Button>
+              )}
             </div>
           </div>
 
@@ -190,6 +208,11 @@ export function ObraExecucao() {
                         <Images className="size-4" /> {nFotos}
                       </Button>
                     )}
+                    {podeEditar && (registrosPorEtapa.get(e.id) ?? 0) > 0 && (
+                      <Button size="sm" variant="ghost" onClick={() => setHistoricoEtapa(e)} title="Histórico de registros (corrigir/excluir)">
+                        <History className="size-4" />
+                      </Button>
+                    )}
                     {podeEditar && (
                       <Button size="sm" variant="outline" onClick={() => setAcompanhando(e)}>
                         <Camera className="size-4" /> Atualizar
@@ -223,6 +246,138 @@ export function ObraExecucao() {
           onFechar={() => setGaleriaEtapa(null)}
         />
       )}
+      {historicoEtapa && (
+        <ModalHistorico
+          etapa={historicoEtapa}
+          registros={(checklist.data ?? []).filter((r) => r.etapa_id === historicoEtapa.id)}
+          onFechar={() => setHistoricoEtapa(null)}
+        />
+      )}
+      {editandoFase && <ModalEditarFase fase={fase} onFechar={() => setEditandoFase(false)} />}
+    </div>
+  );
+}
+
+/** Histórico de acompanhamentos da etapa — registros equivocados podem ser excluídos. */
+function ModalHistorico({
+  etapa,
+  registros,
+  onFechar,
+}: {
+  etapa: ObraEtapa;
+  registros: ObraChecklistExecucao[];
+  onFechar: () => void;
+}) {
+  const excluir = useExcluirRegistroAcompanhamento();
+  const [aExcluir, setAExcluir] = useState<ObraChecklistExecucao | null>(null);
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Histórico — ${etapa.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-secondary">Histórico — {etapa.nome}</h2>
+          <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          O estado da etapa é o registro mais recente. Registro lançado errado? Exclua — as fotos dele saem junto e a auditoria guarda o rastro.
+        </p>
+        <div className="divide-y">
+          {registros.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 py-2.5">
+              <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg text-xs font-bold tabular-nums", r.percentual >= 100 ? "bg-success/15 text-success" : "bg-primary/10 text-primary")}>
+                {r.percentual}%
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-secondary">{formatarDataHoraBR(r.registrado_em)} · {r.registrado_por ?? "—"}</p>
+                {r.observacao && <p className="truncate text-xs text-muted-foreground">{r.observacao}</p>}
+              </div>
+              <button onClick={() => setAExcluir(r)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Excluir registro">
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      <ConfirmDialog
+        aberto={!!aExcluir}
+        titulo="Excluir este registro?"
+        descricao={aExcluir ? `${aExcluir.percentual}% em ${formatarDataHoraBR(aExcluir.registrado_em)}. As fotos deste registro também serão removidas.` : ""}
+        textoConfirmar="Excluir"
+        onConfirmar={async () => {
+          const r = aExcluir; setAExcluir(null);
+          if (!r) return;
+          try { await excluir.mutateAsync(r.id); toast.success("Registro excluído."); }
+          catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao excluir."); }
+        }}
+        onCancelar={() => setAExcluir(null)}
+      />
+    </div>
+  );
+}
+
+/** Edição livre da fase (controle interno): status, datas reais e IPCA. */
+function ModalEditarFase({ fase, onFechar }: { fase: ObraFase; onFechar: () => void }) {
+  const editar = useEditarFase();
+  const [status, setStatus] = useState<ObraFaseStatus>(fase.status);
+  const [dataInicio, setDataInicio] = useState(fase.data_inicio ?? "");
+  const [dataTrp, setDataTrp] = useState(fase.data_trp ?? "");
+  const [dataTrd, setDataTrd] = useState(fase.data_trd ?? "");
+  const [ipca, setIpca] = useState(fase.ipca_pct != null ? String(fase.ipca_pct) : "");
+
+  async function salvar() {
+    const ipcaNum = ipca.trim() === "" ? null : parseFloat(ipca.replace(",", "."));
+    if (ipca.trim() !== "" && (!Number.isFinite(ipcaNum!) || ipcaNum! < 0)) { toast.error("IPCA inválido."); return; }
+    try {
+      await editar.mutateAsync({
+        faseId: fase.id,
+        status,
+        dataInicio: dataInicio || null,
+        dataTrp: dataTrp || null,
+        dataTrd: dataTrd || null,
+        ipcaPct: fase.reajustavel ? ipcaNum : null,
+      });
+      toast.success("Fase atualizada.");
+      onFechar();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Editar ${fase.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+        <h2 className="text-lg font-bold text-secondary">Editar {fase.nome}</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Controle interno: corrija status, datas reais e IPCA livremente — tudo fica na auditoria.
+        </p>
+        <div className="mt-4 space-y-3">
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Status</span>
+            <select value={status} onChange={(e) => setStatus(e.target.value as ObraFaseStatus)} className={inputBase}>
+              <option value="nao_iniciada">Não iniciada</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="trp_emitido">TRP emitido</option>
+              <option value="trd_emitido">TRD emitido</option>
+            </select></label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Início real</span>
+              <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className={inputBase} /></label>
+            {fase.reajustavel && (
+              <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">IPCA (%)</span>
+                <input value={ipca} onChange={(e) => setIpca(e.target.value)} inputMode="decimal" placeholder="Ex.: 7,35" className={inputBase} /></label>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data TRP</span>
+              <input type="date" value={dataTrp} onChange={(e) => setDataTrp(e.target.value)} className={inputBase} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data TRD</span>
+              <input type="date" value={dataTrd} onChange={(e) => setDataTrd(e.target.value)} className={inputBase} /></label>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={editar.isPending}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={editar.isPending}>Salvar</Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -238,11 +393,15 @@ function BarraAvanco({ valor, className, alta = false }: { valor: number; classN
   );
 }
 
-/** Iniciar fase com guarda de sequência — botão bloqueado SEMPRE explica o motivo. */
+/**
+ * Iniciar fase. A sequência contratual é a regra padrão, mas o Contratante
+ * pode iniciar FORA de sequência marcando a confirmação explícita (auditado).
+ */
 function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }) {
   const iniciar = useIniciarFase();
   const [confirmando, setConfirmando] = useState(false);
   const [ipca, setIpca] = useState("");
+  const [foraDeSequencia, setForaDeSequencia] = useState(false);
   const guarda = podeIniciarFase(fase, todas);
 
   async function confirmar() {
@@ -252,7 +411,7 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
       return;
     }
     try {
-      await iniciar.mutateAsync({ fase, todas, ipcaPct: ipcaNum });
+      await iniciar.mutateAsync({ fase, todas, ipcaPct: ipcaNum, forcar: !guarda.pode && foraDeSequencia });
       toast.success(`${fase.nome} iniciada.`);
       setConfirmando(false);
     } catch (e) {
@@ -262,14 +421,9 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
 
   return (
     <>
-      <span title={guarda.pode ? undefined : guarda.motivo ?? undefined}>
-        <Button size="sm" onClick={() => setConfirmando(true)} disabled={!guarda.pode}>
-          <Play className="size-4" /> Iniciar fase
-        </Button>
-      </span>
-      {!guarda.pode && guarda.motivo && (
-        <span className="text-xs text-muted-foreground">{guarda.motivo}</span>
-      )}
+      <Button size="sm" onClick={() => setConfirmando(true)}>
+        <Play className="size-4" /> Iniciar fase
+      </Button>
       {confirmando && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button aria-hidden tabIndex={-1} onClick={() => setConfirmando(false)} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
@@ -294,11 +448,20 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
                 />
               </label>
             )}
+            {!guarda.pode && guarda.motivo && (
+              <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-warning/50 bg-warning/5 p-3 text-sm text-secondary">
+                <input type="checkbox" checked={foraDeSequencia} onChange={(e) => setForaDeSequencia(e.target.checked)} className="mt-0.5 size-4 accent-primary" />
+                <span>
+                  <AlertTriangle className="mr-1 inline size-3.5 text-warning" />
+                  {guarda.motivo} Quero <span className="font-semibold">iniciar fora da sequência</span> mesmo assim (fica registrado na auditoria).
+                </span>
+              </label>
+            )}
             <div className="mt-6 flex gap-3">
               <Button variant="outline" size="lg" className="flex-1" onClick={() => setConfirmando(false)} disabled={iniciar.isPending}>
                 Cancelar
               </Button>
-              <Button size="lg" className="flex-1" onClick={confirmar} loading={iniciar.isPending}>
+              <Button size="lg" className="flex-1" onClick={confirmar} disabled={!guarda.pode && !foraDeSequencia} loading={iniciar.isPending}>
                 Iniciar
               </Button>
             </div>
@@ -396,67 +559,99 @@ function ModalAcompanhamento({
   );
 }
 
-/** Edição dos pesos da fase (master/direção, antes da 1ª medição). */
+/**
+ * Editor da ESTRUTURA de etapas da fase: renomear, ajustar pesos, adicionar e
+ * excluir etapas. Única regra dura: a soma dos pesos fecha 100% (é a base da
+ * medição). Etapa já medida não pode ser excluída (o banco garante).
+ */
 function ModalPesos({ fase, etapas, onFechar }: { fase: ObraFase; etapas: ObraEtapa[]; onFechar: () => void }) {
-  const atualizar = useAtualizarPesos();
-  const [pesos, setPesos] = useState<Record<string, string>>(
-    Object.fromEntries(etapas.map((e) => [e.id, String(e.peso_pct)])),
+  const salvarEtapas = useSalvarEtapas();
+  const [linhas, setLinhas] = useState<{ id?: string; nome: string; peso: string }[]>(
+    etapas.map((e) => ({ id: e.id, nome: e.nome, peso: String(e.peso_pct) })),
   );
+  const [excluidas, setExcluidas] = useState<string[]>([]);
 
-  const soma = somaPesos(
-    etapas.map((e) => ({ peso_pct: parseFloat((pesos[e.id] ?? "0").replace(",", ".")) || 0 })),
-  );
+  const soma = somaPesos(linhas.map((l) => ({ peso_pct: parseFloat(l.peso.replace(",", ".")) || 0 })));
   const somaOk = Math.round(soma * 100) / 100 === 100;
+  const nomesOk = linhas.every((l) => l.nome.trim() !== "");
+
+  function set(i: number, campo: "nome" | "peso", valor: string) {
+    setLinhas((p) => p.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)));
+  }
+  function remover(i: number) {
+    const l = linhas[i];
+    if (l.id) setExcluidas((p) => [...p, l.id!]);
+    setLinhas((p) => p.filter((_, idx) => idx !== i));
+  }
+  function adicionar() {
+    setLinhas((p) => [...p, { nome: "", peso: "0" }]);
+  }
 
   async function salvar() {
     try {
-      await atualizar.mutateAsync({
-        pesos: etapas.map((e) => ({
-          etapaId: e.id,
-          pesoPct: parseFloat((pesos[e.id] ?? "0").replace(",", ".")) || 0,
-        })),
+      await salvarEtapas.mutateAsync({
+        faseId: fase.id,
+        etapas: linhas.map((l, i) => ({ id: l.id, nome: l.nome, pesoPct: parseFloat(l.peso.replace(",", ".")) || 0, ordem: i + 1 })),
+        excluir: excluidas,
       });
-      toast.success("Pesos da fase atualizados.");
+      toast.success("Etapas da fase atualizadas.");
       onFechar();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível salvar os pesos.");
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar as etapas.");
     }
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Pesos da fase" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="Etapas da fase" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
-        <h2 className="text-lg font-bold text-secondary">Pesos — {fase.nome}</h2>
+        <h2 className="text-lg font-bold text-secondary">Etapas — {fase.nome}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Peso financeiro (%) de cada etapa. A soma precisa fechar em 100%.
+          Renomeie, ajuste pesos, adicione ou exclua etapas. A soma dos pesos precisa fechar 100%.
         </p>
 
         <div className="mt-4 space-y-2">
-          {etapas.map((e) => (
-            <div key={e.id} className="flex items-center gap-3">
-              <span className="min-w-0 flex-1 truncate text-sm text-secondary">{e.nome}</span>
+          {linhas.map((l, i) => (
+            <div key={l.id ?? `nova-${i}`} className="flex items-center gap-2">
+              <input
+                value={l.nome}
+                onChange={(ev) => set(i, "nome", ev.target.value)}
+                placeholder="Nome da etapa"
+                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
               <input
                 type="text"
                 inputMode="decimal"
-                value={pesos[e.id] ?? ""}
-                onChange={(ev) => setPesos((p) => ({ ...p, [e.id]: ev.target.value }))}
-                className="h-9 w-20 rounded-md border border-input bg-card px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={l.peso}
+                onChange={(ev) => set(i, "peso", ev.target.value)}
+                className="h-9 w-16 rounded-md border border-input bg-card px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
+              <button onClick={() => remover(i)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Excluir etapa">
+                <Trash2 className="size-4" />
+              </button>
             </div>
           ))}
         </div>
+        <button onClick={adicionar} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+          <Plus className="size-3.5" /> Adicionar etapa
+        </button>
+        {excluidas.length > 0 && (
+          <p className="mt-2 rounded-lg border border-warning/50 bg-warning/5 px-3 py-2 text-xs text-secondary">
+            <AlertTriangle className="mr-1 inline size-3.5 text-warning" />
+            {excluidas.length} etapa(s) serão excluídas ao salvar — os registros de acompanhamento delas saem junto. Etapa já medida é bloqueada pelo sistema.
+          </p>
+        )}
 
         <p className={cn("mt-3 text-right text-sm font-bold tabular-nums", somaOk ? "text-success" : "text-destructive")}>
           Soma: {soma.toFixed(2)}%
         </p>
 
         <div className="mt-4 flex gap-3">
-          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={atualizar.isPending}>
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={salvarEtapas.isPending}>
             Cancelar
           </Button>
-          <span className="flex-1" title={somaOk ? undefined : "A soma dos pesos precisa ser exatamente 100%"}>
-            <Button size="lg" className="w-full" onClick={salvar} disabled={!somaOk || atualizar.isPending} loading={atualizar.isPending}>
+          <span className="flex-1" title={somaOk ? (nomesOk ? undefined : "Toda etapa precisa de nome") : "A soma dos pesos precisa ser exatamente 100%"}>
+            <Button size="lg" className="w-full" onClick={salvar} disabled={!somaOk || !nomesOk || salvarEtapas.isPending} loading={salvarEtapas.isPending}>
               Salvar
             </Button>
           </span>

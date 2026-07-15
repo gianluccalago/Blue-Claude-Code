@@ -149,23 +149,93 @@ export function useFotosAcompanhamento() {
 }
 
 /**
- * Edita os pesos das etapas de uma fase (master, ANTES da 1ª medição — a
- * trava dura chega com o módulo de medições na Fase 2). Valida soma = 100.
+ * Exclui um registro de acompanhamento equivocado (master/direção). As fotos
+ * do registro caem junto (FK cascade); a auditoria preserva o rastro.
  */
-export function useAtualizarPesos() {
+export function useExcluirRegistroAcompanhamento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { pesos: { etapaId: string; pesoPct: number }[] }) => {
-      const soma = somaPesos(args.pesos.map((p) => ({ peso_pct: p.pesoPct })));
+    mutationFn: async (registroId: string) => {
+      const { error } = await supabase.from("obra_checklist_execucao").delete().eq("id", registroId);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarObra(qc),
+  });
+}
+
+/**
+ * Edição LIVRE da fase (controle interno do Contratante): status, datas reais
+ * e IPCA. Existe para corrigir lançamentos — a auditoria registra tudo.
+ */
+export function useEditarFase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      faseId: string;
+      status?: ObraFase["status"];
+      dataInicio?: string | null;
+      dataTrp?: string | null;
+      dataTrd?: string | null;
+      ipcaPct?: number | null;
+    }) => {
+      const patch: Partial<{
+        status: ObraFase["status"]; data_inicio: string | null; data_trp: string | null;
+        data_trd: string | null; ipca_pct: number | null;
+      }> = {};
+      if (args.status !== undefined) patch.status = args.status;
+      if (args.dataInicio !== undefined) patch.data_inicio = args.dataInicio;
+      if (args.dataTrp !== undefined) patch.data_trp = args.dataTrp;
+      if (args.dataTrd !== undefined) patch.data_trd = args.dataTrd;
+      if (args.ipcaPct !== undefined) patch.ipca_pct = args.ipcaPct;
+      const { error } = await supabase.from("obra_fases").update(patch).eq("id", args.faseId);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarObra(qc),
+  });
+}
+
+/**
+ * Salva a estrutura de etapas da fase: pesos/renomeações, NOVAS etapas e
+ * EXCLUSÕES. Soma dos pesos precisa fechar 100 (integridade da medição).
+ * Excluir etapa já MEDIDA é bloqueado pelo banco (FK restrict); etapa com
+ * registros de acompanhamento leva o histórico junto (cascade — a UI avisa).
+ */
+export function useSalvarEtapas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      faseId: string;
+      etapas: { id?: string; nome: string; pesoPct: number; ordem: number }[];
+      excluir: string[];
+    }) => {
+      const soma = somaPesos(args.etapas.map((p) => ({ peso_pct: p.pesoPct })));
       if (Math.round(soma * 100) / 100 !== 100) {
         throw new Error(`Os pesos precisam somar 100% (soma atual: ${soma.toFixed(2)}%).`);
       }
-      for (const p of args.pesos) {
-        const { error } = await supabase
-          .from("obra_etapas")
-          .update({ peso_pct: p.pesoPct })
-          .eq("id", p.etapaId);
-        if (error) throw error;
+      if (args.etapas.some((e) => !e.nome.trim())) throw new Error("Toda etapa precisa de nome.");
+      for (const id of args.excluir) {
+        const { error } = await supabase.from("obra_etapas").delete().eq("id", id);
+        if (error) {
+          throw new Error(
+            error.code === "23503"
+              ? "Uma das etapas excluídas já entrou em medição — ela não pode ser removida."
+              : error.message,
+          );
+        }
+      }
+      for (const e of args.etapas) {
+        if (e.id) {
+          const { error } = await supabase
+            .from("obra_etapas")
+            .update({ nome: e.nome.trim(), peso_pct: e.pesoPct, ordem: e.ordem })
+            .eq("id", e.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("obra_etapas")
+            .insert({ fase_id: args.faseId, nome: e.nome.trim(), peso_pct: e.pesoPct, ordem: e.ordem });
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => invalidarObra(qc),
@@ -188,13 +258,17 @@ export function useAtualizarFaseCronograma() {
   });
 }
 
-/** Inicia uma fase respeitando a sequência contratual (TRP da anterior). */
+/**
+ * Inicia uma fase. A sequência contratual (TRP da anterior) é a regra padrão,
+ * mas o Contratante pode INICIAR FORA DE SEQUÊNCIA com `forcar` (decisão
+ * consciente confirmada na UI; fica na auditoria).
+ */
 export function useIniciarFase() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { fase: ObraFase; todas: ObraFase[]; ipcaPct?: number | null }) => {
+    mutationFn: async (args: { fase: ObraFase; todas: ObraFase[]; ipcaPct?: number | null; forcar?: boolean }) => {
       const guarda = podeIniciarFase(args.fase, args.todas);
-      if (!guarda.pode) throw new Error(guarda.motivo ?? "Fase não pode ser iniciada.");
+      if (!guarda.pode && !args.forcar) throw new Error(guarda.motivo ?? "Fase não pode ser iniciada.");
       const { error } = await supabase
         .from("obra_fases")
         .update({

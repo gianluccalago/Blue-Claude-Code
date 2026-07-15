@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Coins, Plus, Trash2, Repeat, Download, X } from "lucide-react";
+import { Coins, Plus, Trash2, Repeat, Download, X, Pencil } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
-import { useCustosIndiretos, useCriarCustoIndireto, useExcluirCustoIndireto } from "@/hooks/useObraCustos";
+import { useCustosIndiretos, useCriarCustoIndireto, useEditarCustoIndireto, useExcluirCustoIndireto } from "@/hooks/useObraCustos";
 import { somaPorMes } from "@/lib/obraFinanceiro";
 import { arred } from "@/lib/obraCalc";
 import { exportarCSV } from "@/lib/exportCsv";
@@ -33,6 +33,7 @@ export function ObraCustos() {
   const custos = useCustosIndiretos();
   const excluir = useExcluirCustoIndireto();
   const [novo, setNovo] = useState(false);
+  const [editando, setEditando] = useState<ObraCustoIndireto | null>(null);
   const [aExcluir, setAExcluir] = useState<ObraCustoIndireto | null>(null);
 
   if (custos.isLoading) return <LoadingState />;
@@ -113,7 +114,10 @@ export function ObraCustos() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold tabular-nums text-secondary">{formatarMoeda(c.valor)}</span>
                           {podeEditar && (
-                            <button onClick={() => setAExcluir(c)} className="text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 className="size-4" /></button>
+                            <>
+                              <button onClick={() => setEditando(c)} className="text-muted-foreground hover:text-primary" title="Editar"><Pencil className="size-4" /></button>
+                              <button onClick={() => setAExcluir(c)} className="text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 className="size-4" /></button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -141,6 +145,7 @@ export function ObraCustos() {
       )}
 
       {novo && <ModalCusto onFechar={() => setNovo(false)} />}
+      {editando && <ModalCusto inicial={editando} onFechar={() => setEditando(null)} />}
       <ConfirmDialog
         aberto={!!aExcluir}
         titulo="Excluir lançamento?"
@@ -167,23 +172,30 @@ function Kpi({ rotulo, valor }: { rotulo: string; valor: string }) {
   );
 }
 
-function ModalCusto({ onFechar }: { onFechar: () => void }) {
+function ModalCusto({ inicial, onFechar }: { inicial?: ObraCustoIndireto; onFechar: () => void }) {
   const criar = useCriarCustoIndireto();
-  const [competencia, setCompetencia] = useState(hojeISO().slice(0, 7));
-  const [categoria, setCategoria] = useState("engenharia");
-  const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState("");
-  const [recorrente, setRecorrente] = useState(false);
-  const [observacao, setObservacao] = useState("");
+  const editar = useEditarCustoIndireto();
+  const [competencia, setCompetencia] = useState(inicial?.competencia ?? hojeISO().slice(0, 7));
+  const [categoria, setCategoria] = useState(inicial?.categoria ?? "engenharia");
+  const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
+  const [valor, setValor] = useState(inicial ? String(inicial.valor) : "");
+  const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false);
+  const [observacao, setObservacao] = useState(inicial?.observacao ?? "");
+  const salvando = criar.isPending || editar.isPending;
 
   async function salvar() {
     const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
     if (!descricao.trim() || !Number.isFinite(v) || v < 0) { toast.error("Informe descrição e valor."); return; }
     try {
-      await criar.mutateAsync({ competencia, categoria, descricao, valor: v, recorrente, observacao });
-      toast.success("Custo lançado.");
+      if (inicial) {
+        await editar.mutateAsync({ id: inicial.id, competencia, categoria, descricao, valor: v, recorrente, observacao });
+        toast.success("Lançamento atualizado.");
+      } else {
+        await criar.mutateAsync({ competencia, categoria, descricao, valor: v, recorrente, observacao });
+        toast.success("Custo lançado.");
+      }
       onFechar();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao lançar."); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
   }
 
   return (
@@ -191,7 +203,7 @@ function ModalCusto({ onFechar }: { onFechar: () => void }) {
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-secondary">Lançar custo indireto</h2>
+          <h2 className="text-lg font-bold text-secondary">{inicial ? "Editar custo indireto" : "Lançar custo indireto"}</h2>
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
         </div>
         <div className="space-y-3">
@@ -212,8 +224,8 @@ function ModalCusto({ onFechar }: { onFechar: () => void }) {
           <input value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observação (opcional)" className={inputBase} />
         </div>
         <div className="mt-6 flex gap-3">
-          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={criar.isPending}>Cancelar</Button>
-          <Button size="lg" className="flex-1" onClick={salvar} loading={criar.isPending}>Lançar</Button>
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={salvando}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>{inicial ? "Salvar" : "Lançar"}</Button>
         </div>
       </div>
     </div>

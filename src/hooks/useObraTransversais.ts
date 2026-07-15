@@ -40,7 +40,38 @@ function inval(qc: ReturnType<typeof useQueryClient>, key: string) {
   qc.invalidateQueries({ queryKey: [key] });
 }
 
+// ── Exclusões (controle interno: corrigir lançamentos errados) ──────────────
+// master/direção têm DELETE nas tabelas (RLS "for all"); a auditoria guarda o rastro.
+function useExcluir(tabela: "obra_insumos_criticos" | "obra_ensaios" | "obra_nao_conformidades" | "obra_documentos" | "obra_aditivos" | "obra_diario", chave: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from(tabela).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, chave),
+  });
+}
+export function useExcluirInsumo() { return useExcluir("obra_insumos_criticos", "obra-insumos"); }
+export function useExcluirEnsaio() { return useExcluir("obra_ensaios", "obra-ensaios"); }
+export function useExcluirNC() { return useExcluir("obra_nao_conformidades", "obra-nc"); }
+export function useExcluirDocumentoObraLinha() { return useExcluir("obra_documentos", "obra-docs"); }
+export function useExcluirAditivo() { return useExcluir("obra_aditivos", "obra-aditivos"); }
+export function useExcluirDiario() { return useExcluir("obra_diario", "obra-diario"); }
+
 // ── Insumos críticos ────────────────────────────────────────────────────────
+/** Cria um insumo crítico personalizado (a lista semeada não é fechada). */
+export function useCriarInsumo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: Database["public"]["Tables"]["obra_insumos_criticos"]["Insert"]) => {
+      const { error } = await supabase.from("obra_insumos_criticos").insert(args);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-insumos"),
+  });
+}
+
 export function useAtualizarInsumo() {
   const qc = useQueryClient();
   return useMutation({

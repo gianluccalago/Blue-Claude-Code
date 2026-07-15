@@ -112,6 +112,114 @@ export function useAtualizarMarco() {
   });
 }
 
+/**
+ * Cria uma disciplina PERSONALIZADA (controle interno) com marcos de pagamento
+ * proporcionais (percentuais informados; valores = % × valor da disciplina).
+ */
+export function useCriarDisciplina() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      nome: string;
+      valor: number;
+      prazoDias: number | null;
+      revisoesMax: number;
+      marcos: { rotulo: string; percentual: number; exigeEntrega: boolean }[];
+      ordem: number;
+    }) => {
+      if (!args.nome.trim()) throw new Error("Informe o nome da disciplina.");
+      if (!Number.isFinite(args.valor) || args.valor < 0) throw new Error("Valor inválido.");
+      const somaPct = args.marcos.reduce((s, m) => s + m.percentual, 0);
+      if (args.marcos.length > 0 && Math.round(somaPct * 100) / 100 !== 100)
+        throw new Error(`Os percentuais dos marcos precisam somar 100% (soma: ${somaPct}%).`);
+      const { data: disc, error } = await supabase
+        .from("obra_disciplinas")
+        .insert({
+          ordem: args.ordem,
+          nome: args.nome.trim(),
+          valor: args.valor,
+          prazo_dias: args.prazoDias,
+          revisoes_max: args.revisoesMax,
+          observacao: "Disciplina adicionada pelo Contratante (fora do Anexo III).",
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (args.marcos.length > 0) {
+        const CHAVES = ["inicio", "r00", "r01", "entrega", "retido"] as const;
+        const { error: e2 } = await supabase.from("obra_disciplina_marcos").insert(
+          args.marcos.map((m, i) => ({
+            disciplina_id: disc.id,
+            ordem: i + 1,
+            chave: CHAVES[Math.min(i, CHAVES.length - 1)],
+            rotulo: m.rotulo.trim() || `Marco ${i + 1}`,
+            percentual: m.percentual,
+            valor: Math.round(args.valor * m.percentual) / 100,
+            exige_entrega: m.exigeEntrega,
+          })),
+        );
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/**
+ * Edita o CONTRATO da disciplina (nome, valor, prazo, revisões máx.). Ao mudar
+ * o valor, os marcos NÃO PAGOS são recalculados (% × novo valor); marcos pagos
+ * ficam como estão (dinheiro já saiu — o histórico não se reescreve).
+ */
+export function useEditarDisciplina() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; nome: string; valor: number; prazoDias: number | null; revisoesMax: number }) => {
+      if (!args.nome.trim()) throw new Error("Informe o nome da disciplina.");
+      if (!Number.isFinite(args.valor) || args.valor < 0) throw new Error("Valor inválido.");
+      const { error } = await supabase
+        .from("obra_disciplinas")
+        .update({ nome: args.nome.trim(), valor: args.valor, prazo_dias: args.prazoDias, revisoes_max: args.revisoesMax })
+        .eq("id", args.id);
+      if (error) throw error;
+      // Recalcula os marcos não pagos a partir do novo valor.
+      const { data: marcos, error: e2 } = await supabase
+        .from("obra_disciplina_marcos")
+        .select("id, percentual, status")
+        .eq("disciplina_id", args.id);
+      if (e2) throw e2;
+      for (const m of marcos ?? []) {
+        if (m.status === "Pago") continue;
+        const { error: e3 } = await supabase
+          .from("obra_disciplina_marcos")
+          .update({ valor: Math.round(args.valor * m.percentual) / 100 })
+          .eq("id", m.id);
+        if (e3) throw e3;
+      }
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/** Exclui uma disciplina SEM marco pago (marcos caem por cascade). */
+export function useExcluirDisciplina() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: pagos, error } = await supabase
+        .from("obra_disciplina_marcos")
+        .select("id")
+        .eq("disciplina_id", id)
+        .eq("status", "Pago")
+        .limit(1);
+      if (error) throw error;
+      if ((pagos ?? []).length > 0) throw new Error("Disciplina com marco PAGO não pode ser excluída.");
+      const { error: e2 } = await supabase.from("obra_disciplinas").delete().eq("id", id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
 /** Paga um marco — RPC com gate (entrega aprovada + ART; retido exige BIM final). */
 export function usePagarMarco() {
   const qc = useQueryClient();

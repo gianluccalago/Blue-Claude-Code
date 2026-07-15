@@ -115,6 +115,42 @@ export function useCriarPlanejamento() {
   });
 }
 
+/** Exclui um item de planejamento (cotações caem junto; OCs existentes ficam). */
+export function useExcluirPlanejamento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("obra_planejamento_materiais").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-planejamento", "obra-cotacoes"),
+  });
+}
+
+/** Exclui uma cotação lançada errada (OC já emitida a partir dela não é afetada). */
+export function useExcluirCotacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("obra_cotacoes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-cotacoes"),
+  });
+}
+
+/** Exclui um lançamento de consumo equivocado (recalcula perdas/glosa na hora). */
+export function useExcluirConsumo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("obra_consumo").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-consumo"),
+  });
+}
+
 // ── Cotações ────────────────────────────────────────────────────────────────
 export function useCriarCotacao() {
   const qc = useQueryClient();

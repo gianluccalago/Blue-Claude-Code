@@ -49,6 +49,35 @@ export function useCriarCustoIndireto() {
   });
 }
 
+export function useEditarCustoIndireto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      id: string;
+      competencia: string;
+      categoria: string;
+      descricao: string;
+      valor: number;
+      recorrente: boolean;
+      observacao?: string;
+    }) => {
+      const { error } = await supabase
+        .from("obra_custos_indiretos")
+        .update({
+          competencia: args.competencia,
+          categoria: args.categoria,
+          descricao: args.descricao.trim(),
+          valor: args.valor,
+          recorrente: args.recorrente,
+          observacao: args.observacao?.trim() || null,
+        })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["obra-custos-indiretos"] }),
+  });
+}
+
 export function useExcluirCustoIndireto() {
   const qc = useQueryClient();
   return useMutation({
