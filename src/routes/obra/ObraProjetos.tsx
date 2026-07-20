@@ -25,6 +25,7 @@ import {
   useCriarDisciplina,
   useEditarDisciplina,
   useExcluirDisciplina,
+  useAtualizarProgresso,
 } from "@/hooks/useObraProjetos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
@@ -131,6 +132,12 @@ export function ObraProjetos() {
                       {prevista ? ` · prazo ${formatarDataBR(prevista)}` : d.prazo_dias ? ` · ${d.prazo_dias}d (defina a data-base)` : ""}
                       {d.revisoes_max > 0 ? ` · revisões ${d.revisoes_usadas}/${d.revisoes_max}` : ""}
                     </p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="h-1.5 max-w-64 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${Math.min(100, d.progresso_pct)}%` }} />
+                      </div>
+                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{d.progresso_pct}%</span>
+                    </div>
                   </div>
                   <MiniMarcos marcos={ms} />
                 </button>
@@ -275,7 +282,12 @@ function MiniMarcos({ marcos }: { marcos: ObraDisciplinaMarco[] }) {
   );
 }
 
-function ModalDisciplina({
+/**
+ * WORKSPACE da atividade — exportado: é o mesmo painel usado na Central e na
+ * lista de Projetos. Ciclo completo num lugar só: progresso semanal, contrato,
+ * ART, revisões e marcos de pagamento (entrada/R00/R01).
+ */
+export function ModalDisciplina({
   disciplina: d,
   marcos,
   compatFinal,
@@ -394,6 +406,14 @@ function ModalDisciplina({
           </div>
         )}
 
+        {/* Progresso da atividade (controle semanal) */}
+        {podeEditar && d.status !== "Concluído" && <BlocoProgresso disciplina={d} />}
+        {d.status === "Concluído" && (
+          <p className="mt-3 flex items-center gap-2 rounded-lg border border-success/40 bg-success/5 px-3 py-2 text-sm text-success">
+            <Check className="size-4" /> Atividade concluída{d.data_conclusao ? ` em ${formatarDataBR(d.data_conclusao)}` : ""}.
+          </p>
+        )}
+
         {/* Prazo / data-base / multa */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -463,6 +483,35 @@ function ModalDisciplina({
   );
 }
 
+/** Slider de progresso + apontamento semanal (grava histórico). */
+function BlocoProgresso({ disciplina: d }: { disciplina: ObraDisciplina }) {
+  const atualizar = useAtualizarProgresso();
+  const [pct, setPct] = useState(d.progresso_pct);
+  const [obs, setObs] = useState("");
+
+  async function salvar() {
+    try {
+      await atualizar.mutateAsync({ disciplinaId: d.id, progressoPct: pct, observacao: obs });
+      toast.success(`Progresso registrado: ${pct}%.`);
+      setObs("");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao registrar."); }
+  }
+
+  return (
+    <div className="mt-3 space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-secondary">Progresso da atividade</span>
+        <span className="text-lg font-extrabold tabular-nums text-primary">{pct}%</span>
+      </div>
+      <input type="range" min={0} max={100} step={5} value={pct} onChange={(e) => setPct(Number(e.target.value))} className="w-full accent-primary" />
+      <div className="flex gap-2">
+        <input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação da semana (opcional)" className={cn(inputBase, "h-9 flex-1")} />
+        <Button size="sm" onClick={salvar} disabled={pct === d.progresso_pct && !obs.trim()} loading={atualizar.isPending}>Registrar</Button>
+      </div>
+    </div>
+  );
+}
+
 function MarcoLinha({
   marco: m,
   disciplina: d,
@@ -506,6 +555,14 @@ function MarcoLinha({
     try { await pagar.mutateAsync(m.id); toast.success(`${m.rotulo} pago.`); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
   }
+  /** Entrada (50%): aprova e paga num clique — vence na data de início. */
+  async function aprovarEPagarEntrada() {
+    try {
+      await atualizar.mutateAsync({ id: m.id, status: "Aprovado" });
+      await pagar.mutateAsync(m.id);
+      toast.success(`Entrada de ${formatarMoeda(m.valor)} paga.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar a entrada."); }
+  }
 
   return (
     <div className="rounded-lg border border-border p-3">
@@ -527,7 +584,13 @@ function MarcoLinha({
             </label>
           )}
           {!m.exige_entrega && m.status === "Pendente" && (
-            <Button size="sm" variant="outline" onClick={() => transicao("Aprovado")} loading={atualizar.isPending}>Liberar início</Button>
+            m.chave === "inicio" ? (
+              <Button size="sm" onClick={aprovarEPagarEntrada} loading={atualizar.isPending || pagar.isPending}>
+                Pagar entrada ({formatarMoeda(m.valor)})
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => transicao("Aprovado")} loading={atualizar.isPending}>Liberar</Button>
+            )
           )}
           {m.status === "Em análise" && (
             <>

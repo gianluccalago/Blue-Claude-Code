@@ -54,6 +54,7 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["obra-disciplinas"] });
   qc.invalidateQueries({ queryKey: ["obra-marcos"] });
   qc.invalidateQueries({ queryKey: ["obra-bim"] });
+  qc.invalidateQueries({ queryKey: ["obra-disc-progresso"] });
 }
 
 /** Atualiza dados da disciplina (ART, data-base do prazo, revisões, status). */
@@ -109,6 +110,47 @@ export function useAtualizarMarco() {
       if (error) throw error;
     },
     onSuccess: () => invalidar(qc),
+  });
+}
+
+/**
+ * Registra o PROGRESSO da atividade (controle semanal do Contratante):
+ * atualiza o estado atual e grava o apontamento no histórico.
+ */
+export function useAtualizarProgresso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { disciplinaId: string; progressoPct: number; observacao?: string }) => {
+      const pct = Math.max(0, Math.min(100, Math.round(args.progressoPct)));
+      const { error } = await supabase
+        .from("obra_disciplinas")
+        .update({ progresso_pct: pct })
+        .eq("id", args.disciplinaId);
+      if (error) throw error;
+      const { error: e2 } = await supabase.from("obra_disciplina_progresso").insert({
+        disciplina_id: args.disciplinaId,
+        progresso_pct: pct,
+        observacao: args.observacao?.trim() || null,
+        registrado_por: usuarioAtual.nome,
+      });
+      if (e2) throw e2;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/** Histórico de apontamentos de progresso (todas as atividades). */
+export function useProgressoHistorico() {
+  return useQuery({
+    queryKey: ["obra-disc-progresso"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("obra_disciplina_progresso")
+        .select("*")
+        .order("registrado_em", { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
   });
 }
 

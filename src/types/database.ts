@@ -2721,6 +2721,7 @@ export interface Database {
           art_url: string | null;
           data_base: string | null;
           data_conclusao: string | null;
+          progresso_pct: number;
           criado_em: string;
         };
         Insert: {
@@ -2744,7 +2745,27 @@ export interface Database {
           art_url: string | null;
           data_base: string | null;
           data_conclusao: string | null;
+          progresso_pct: number;
         }>;
+        Relationships: [];
+      };
+      obra_disciplina_progresso: {
+        Row: {
+          id: string;
+          disciplina_id: string;
+          progresso_pct: number;
+          observacao: string | null;
+          registrado_por: string | null;
+          registrado_em: string;
+        };
+        Insert: {
+          id?: string;
+          disciplina_id: string;
+          progresso_pct: number;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: never;
         Relationships: [];
       };
       obra_disciplina_marcos: {

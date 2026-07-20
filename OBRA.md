@@ -305,6 +305,31 @@ Os cronogramas entregues pela construtora (XLSX financeiro + PDF físico,
 Seed idempotente (sentinela pelo nome da Sondagem) e ABORTA se houver marco
 pago (não reescreve dinheiro).
 
+### ✅ Reestruturação: controle da FASE ATUAL (migration `0113_obra_progresso_projetos.sql`)
+Com o cronograma real em mãos, o módulo foi reorganizado em torno do que está
+VIVO agora (desenvolvimento de projetos) — e não da obra física futura:
+- **Nova aba "Central" (padrão)** — o centro de controle do dia a dia:
+  · **Ações pendentes**: entradas a pagar (vencendo em ≤7 dias ou vencidas, com
+    botão "Pagar entrada" que aprova+paga num clique), entregas R00/R01 em
+    análise ("Analisar" abre o workspace) e marcos aprovados a pagar ("Pagar").
+  · **Esta semana**: o que começa, o que vence, o que está em andamento (com
+    barra de progresso) e o bloco vermelho de atrasadas.
+  · **Desembolso mês a mês**: previsto (entrada no início; R00/R01 no prazo) ×
+    pago, em barras por mês — a agenda dos R$ 500 mil.
+- **Progresso por atividade** (coluna do cronograma da TRÍADE que faltava):
+  `obra_disciplinas.progresso_pct` + histórico `obra_disciplina_progresso`
+  (apontamento semanal com observação; auditado). Slider no workspace da
+  atividade; barras de progresso na lista de Projetos e NAS BARRAS do Gantt;
+  atraso real = prazo vencido com progresso < 100.
+- **Workspace único da atividade** (`ModalDisciplina` exportado): aberto de
+  qualquer lugar (Central, Projetos), concentra progresso semanal, contrato,
+  ART, revisões e o ciclo de pagamento entrada→R00→R01.
+- **Abas reorganizadas**: Central · Cronograma · Projetos · Financeiro ·
+  Indiretos · **Obra física** (agrupa Painel/Execução/Medições/Materiais/
+  Controles — prontas para o canteiro, fora do caminho até lá).
+- **Financeiro**: contas a pagar agora projetam também R00/R01 pendentes no fim
+  do prazo de cada atividade — agenda completa de desembolso.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

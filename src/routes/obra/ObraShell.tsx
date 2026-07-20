@@ -4,20 +4,21 @@ import { useObraAtiva } from "@/hooks/useObra";
 import { useAuth } from "@/auth/AuthProvider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState } from "@/components/states";
-import { ObraExecucao } from "@/routes/obra/Obra";
+import { ObraCentral } from "@/routes/obra/ObraCentral";
 import { ObraCronograma } from "@/routes/obra/ObraCronograma";
-import { ObraMedicoes } from "@/routes/obra/ObraMedicoes";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
-import { ObraMateriais } from "@/routes/obra/ObraMateriais";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
 import { ObraCustos } from "@/routes/obra/ObraCustos";
+import { ObraFisica } from "@/routes/obra/ObraFisica";
 import { PortalPrestador } from "@/routes/obra/PortalPrestador";
-import { ObraPainel } from "@/routes/obra/ObraPainel";
-import { ObraControles } from "@/routes/obra/ObraControles";
 
 // ===========================================================================
-// MÓDULO OBRA — shell com abas. Gate da feature flag (modulo_obra_ativo):
-// desligada, a rota mostra aviso amigável. Execução (Fase 1) e Medições (Fase 2).
+// MÓDULO OBRA — shell com abas, organizado pela FASE ATUAL do empreendimento
+// (desenvolvimento de projetos, TRÍADE 16/07/26 → 18/04/27):
+//   Central (controle do dia a dia) · Cronograma (Gantt) · Projetos
+//   (atividades + pagamentos) · Financeiro · Indiretos · Obra física
+//   (execução/medições/materiais/controles — agrupadas até o canteiro abrir).
+// Gate da feature flag (modulo_obra_ativo). Prestador cai no portal próprio.
 // ===========================================================================
 
 export function ObraShell() {
@@ -48,35 +49,23 @@ export function ObraShell() {
         <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Obra</h1>
       </div>
 
-      <Tabs defaultValue="painel" className="space-y-4">
+      <Tabs defaultValue="central" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="painel">Painel</TabsTrigger>
+          <TabsTrigger value="central">Central</TabsTrigger>
           <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
-          <TabsTrigger value="execucao">Execução</TabsTrigger>
-          <TabsTrigger value="medicoes">Medições</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
-          <TabsTrigger value="materiais">Materiais</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="indiretos">Indiretos</TabsTrigger>
-          <TabsTrigger value="controles">Controles</TabsTrigger>
+          <TabsTrigger value="fisica">Obra física</TabsTrigger>
         </TabsList>
-        <TabsContent value="painel">
-          <ObraPainel />
+        <TabsContent value="central">
+          <ObraCentral />
         </TabsContent>
         <TabsContent value="cronograma">
           <ObraCronograma />
         </TabsContent>
-        <TabsContent value="execucao">
-          <ObraExecucao />
-        </TabsContent>
-        <TabsContent value="medicoes">
-          <ObraMedicoes />
-        </TabsContent>
         <TabsContent value="projetos">
           <ObraProjetos />
-        </TabsContent>
-        <TabsContent value="materiais">
-          <ObraMateriais />
         </TabsContent>
         <TabsContent value="financeiro">
           <ObraFinanceiro />
@@ -84,8 +73,8 @@ export function ObraShell() {
         <TabsContent value="indiretos">
           <ObraCustos />
         </TabsContent>
-        <TabsContent value="controles">
-          <ObraControles />
+        <TabsContent value="fisica">
+          <ObraFisica />
         </TabsContent>
       </Tabs>
     </div>

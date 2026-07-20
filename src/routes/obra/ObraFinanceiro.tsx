@@ -15,7 +15,7 @@ import {
   saldoOrcamentario,
   type LinhaResumo,
 } from "@/lib/obraFinanceiro";
-import { arred } from "@/lib/obraCalc";
+import { arred, somarDiasISO } from "@/lib/obraCalc";
 import { exportarCSV } from "@/lib/exportCsv";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -144,6 +144,21 @@ export function ObraFinanceiro() {
         valor: m.valor,
         venc: baseDisc.get(m.disciplina_id)!,
       })),
+    // R00/R01/entrega ainda não aprovados: previstos para o FIM do prazo da
+    // atividade — dá a agenda completa de desembolso dos R$ 500 mil.
+    ...listaMarcos
+      .filter((m) => m.chave !== "inicio" && (m.status === "Pendente" || m.status === "Em análise" || m.status === "Reprovado"))
+      .map((m) => {
+        const d = (disciplinas.data ?? []).find((x) => x.id === m.disciplina_id);
+        const venc = d ? somarDiasISO(d.data_base, d.prazo_dias) : null;
+        return venc ? {
+          tipo: "Projeto — previsto no prazo",
+          ref: `${nomeDisc.get(m.disciplina_id) ?? "?"} · ${m.rotulo}`,
+          valor: m.valor,
+          venc,
+        } : null;
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null),
     ...listaOC.filter((o) => (o.status === "Emitida" || o.status === "Entregue parcial") && o.previsao_entrega).map((o) => ({
       tipo: "Material (OC)", ref: `${o.item} · ${o.fornecedor}`, valor: o.valor_total, venc: o.previsao_entrega!,
     })),

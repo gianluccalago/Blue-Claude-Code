@@ -343,19 +343,23 @@ export function ObraCronograma() {
                         >
                           {fim ? (
                             <div
-                              className={cn("absolute top-[9px] h-[18px] cursor-default rounded", COR_SOLIDA[status], status === "prevista" && "opacity-60")}
+                              className={cn("absolute top-[9px] h-[18px] cursor-default overflow-hidden rounded", COR_TRILHA[status], status === "prevista" && "border border-dashed border-muted-foreground/40")}
                               style={{ left: `${posPct(d.data_base!, janela)}%`, width: `${Math.max(0.8, larguraPct(d.data_base!, fim, janela))}%` }}
                               onMouseMove={(e) => mostrarTooltip(e, {
                                 titulo: d.nome,
                                 status,
                                 linhas: [
+                                  `Progresso: ${d.progresso_pct}%`,
                                   `Status contratual: ${d.status}`,
                                   `Data-base ${formatarDataBR(d.data_base!)} · prazo ${d.prazo_dias}d → ${formatarDataBR(fim)}`,
                                   d.data_conclusao ? `Concluída em ${formatarDataBR(d.data_conclusao)}` : "",
                                 ].filter(Boolean),
                               })}
                               onMouseLeave={() => setTooltip(null)}
-                            />
+                            >
+                              {/* Preenchimento = progresso da atividade */}
+                              <div className={cn("h-full rounded-l", COR_SOLIDA[status])} style={{ width: `${Math.min(100, d.progresso_pct)}%` }} />
+                            </div>
                           ) : (
                             <Marco dataISO={d.data_base!} janela={janela} />
                           )}
