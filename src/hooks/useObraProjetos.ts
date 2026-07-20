@@ -57,7 +57,11 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["obra-disc-progresso"] });
 }
 
-/** Atualiza dados da disciplina (ART, data-base do prazo, revisões, status). */
+/**
+ * Atualiza dados da disciplina (controle interno — livre e reversível):
+ * ART, data-base, revisões usadas, status e data de conclusão. Passar `null`
+ * em dataConclusao limpa; string vazia em status é ignorada.
+ */
 export function useAtualizarDisciplina() {
   const qc = useQueryClient();
   return useMutation({
@@ -67,17 +71,31 @@ export function useAtualizarDisciplina() {
       revisoesUsadas?: number;
       art?: File | null;
       status?: string;
+      dataConclusao?: string | null;
     }) => {
       const patch: Database["public"]["Tables"]["obra_disciplinas"]["Update"] = {};
       if (args.dataBase !== undefined) patch.data_base = args.dataBase || null;
       if (args.revisoesUsadas !== undefined) patch.revisoes_usadas = args.revisoesUsadas;
       if (args.status) patch.status = args.status;
+      if (args.dataConclusao !== undefined) patch.data_conclusao = args.dataConclusao;
       if (args.art) {
         const path = await uploadArquivoObra(args.art, `art/${args.id}`);
         if (!path) throw new Error("Falha no upload da ART. Tente novamente.");
         patch.art_url = path;
       }
       const { error } = await supabase.from("obra_disciplinas").update(patch).eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/** Remove a ART anexada (controle interno — reversível). */
+export function useRemoverArtDisciplina() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("obra_disciplinas").update({ art_url: null }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => invalidar(qc),
@@ -242,21 +260,40 @@ export function useEditarDisciplina() {
   });
 }
 
-/** Exclui uma disciplina SEM marco pago (marcos caem por cascade). */
+/** Exclui uma disciplina (controle interno; marcos caem por cascade). A
+ * auditoria (obra_audit_log) registra a remoção — o rastro fica preservado. */
 export function useExcluirDisciplina() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data: pagos, error } = await supabase
-        .from("obra_disciplina_marcos")
-        .select("id")
-        .eq("disciplina_id", id)
-        .eq("status", "Pago")
-        .limit(1);
+      const { error } = await supabase.from("obra_disciplinas").delete().eq("id", id);
       if (error) throw error;
-      if ((pagos ?? []).length > 0) throw new Error("Disciplina com marco PAGO não pode ser excluída.");
-      const { error: e2 } = await supabase.from("obra_disciplinas").delete().eq("id", id);
-      if (e2) throw e2;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/**
+ * Desfaz o pagamento de um marco (controle interno — reversível): volta para
+ * Aprovado e limpa a data de pagamento. Se a disciplina estava Concluída por
+ * ter tudo pago, ela volta a "Aprovado". A auditoria registra.
+ */
+export function useDesfazerPagamentoMarco() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (marco: { id: string; disciplina_id: string }) => {
+      const { error } = await supabase
+        .from("obra_disciplina_marcos")
+        .update({ status: "Aprovado", data_pagamento: null })
+        .eq("id", marco.id);
+      if (error) throw error;
+      // Se a disciplina havia sido concluída pelo pagamento total, reabre.
+      const { data: disc } = await supabase
+        .from("obra_disciplinas").select("status").eq("id", marco.disciplina_id).maybeSingle();
+      if (disc?.status === "Concluído") {
+        await supabase.from("obra_disciplinas")
+          .update({ status: "Aprovado", data_conclusao: null }).eq("id", marco.disciplina_id);
+      }
     },
     onSuccess: () => invalidar(qc),
   });

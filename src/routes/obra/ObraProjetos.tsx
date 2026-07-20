@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Ruler,
@@ -26,6 +27,8 @@ import {
   useEditarDisciplina,
   useExcluirDisciplina,
   useAtualizarProgresso,
+  useRemoverArtDisciplina,
+  useDesfazerPagamentoMarco,
 } from "@/hooks/useObraProjetos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
@@ -44,10 +47,14 @@ const STATUS_VARIANTE: Record<string, "muted" | "default" | "success" | "destruc
   Pendente: "muted",
   "Em análise": "warning",
   Aprovado: "default",
+  "Aguardando input": "warning",
   Reprovado: "destructive",
   Pago: "success",
   Concluído: "success",
 };
+
+// Estados da disciplina — todos selecionáveis (controle interno, reversível).
+const STATUS_DISCIPLINA = ["Pendente", "Em análise", "Aguardando input", "Aprovado", "Reprovado", "Pago", "Concluído"] as const;
 
 export function ObraProjetos() {
   const { usuarioEfetivo } = useAuth();
@@ -121,7 +128,7 @@ export function ObraProjetos() {
                       <span className="font-semibold text-secondary">{d.nome}</span>
                       <Badge variant={STATUS_VARIANTE[d.status] ?? "muted"}>{d.status}</Badge>
                       {d.valor === 0 && <Badge variant="muted">sem desembolso</Badge>}
-                      {d.valor > 0 && !d.art_url && <Badge variant="warning">sem ART</Badge>}
+                      {d.valor > 0 && !d.art_url && d.status !== "Concluído" && <Badge variant="warning">sem ART</Badge>}
                       {d.revisoes_usadas >= d.revisoes_max && d.revisoes_max > 0 && (
                         <Badge variant="destructive">revisões esgotadas</Badge>
                       )}
@@ -305,6 +312,7 @@ export function ModalDisciplina({
   const atualizar = useAtualizarDisciplina();
   const editarContrato = useEditarDisciplina();
   const excluirDisc = useExcluirDisciplina();
+  const removerArt = useRemoverArtDisciplina();
   const [dataBase, setDataBase] = useState(d.data_base ?? "");
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState(d.nome);
@@ -313,6 +321,28 @@ export function ModalDisciplina({
   const [revMax, setRevMax] = useState(String(d.revisoes_max));
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const temPago = marcos.some((m) => m.status === "Pago");
+
+  // Estado editável (status + conclusão) — livre e reversível.
+  async function mudarStatus(novo: string) {
+    try {
+      await atualizar.mutateAsync({
+        id: d.id,
+        status: novo,
+        // Concluído sem data → carimba hoje; sair de Concluído limpa a conclusão.
+        dataConclusao: novo === "Concluído" ? (d.data_conclusao ?? hojeISO()) : null,
+      });
+      toast.success(`Status: ${novo}.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao mudar o status."); }
+  }
+  async function mudarConclusao(data: string) {
+    try {
+      await atualizar.mutateAsync({ id: d.id, dataConclusao: data || null });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+  }
+  async function tirarArt() {
+    try { await removerArt.mutateAsync(d.id); toast.success("ART removida."); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+  }
 
   const prevista = somarDiasISO(dataBase || d.data_base, d.prazo_dias);
   const multa = calcularMultaDisciplina({
@@ -356,26 +386,26 @@ export function ModalDisciplina({
 
   const revisaoAlerta = d.revisoes_max > 0 && d.revisoes_usadas >= d.revisoes_max - 1;
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label={d.nome} className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={d.nome} className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative my-auto w-full max-w-lg animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-secondary">{d.nome}</h2>
             <p className="text-sm text-muted-foreground">
-              {formatarMoeda(d.valor)} · {d.status}
+              {d.valor > 0 ? formatarMoeda(d.valor) : "sem desembolso"}
               {d.observacao ? ` · ${d.observacao}` : ""}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {podeEditar && (
               <>
-                <button onClick={() => setEditando((v) => !v)} className="text-muted-foreground hover:text-primary" title="Editar contrato da disciplina"><Pencil className="size-4" /></button>
+                <button onClick={() => setEditando((v) => !v)} className={cn("text-muted-foreground hover:text-primary", editando && "text-primary")} title="Editar contrato (nome, valor, prazo, revisões)"><Pencil className="size-4" /></button>
                 <button
-                  onClick={() => !temPago && setConfirmandoExclusao(true)}
-                  className={cn("text-muted-foreground", temPago ? "cursor-not-allowed opacity-40" : "hover:text-destructive")}
-                  title={temPago ? "Disciplina com marco pago não pode ser excluída" : "Excluir disciplina"}
+                  onClick={() => setConfirmandoExclusao(true)}
+                  className="text-muted-foreground hover:text-destructive"
+                  title={temPago ? "Excluir — atenção: há marco pago" : "Excluir disciplina"}
                 >
                   <Trash2 className="size-4" />
                 </button>
@@ -384,6 +414,22 @@ export function ModalDisciplina({
             <button onClick={onFechar} className="text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
           </div>
         </div>
+
+        {/* ESTADO — status + conclusão, sempre editável e reversível */}
+        {podeEditar && (
+          <div className="mt-3 grid gap-2 rounded-lg border border-border bg-muted/20 p-3 sm:grid-cols-2">
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">Status</span>
+              <select value={d.status} onChange={(e) => mudarStatus(e.target.value)} disabled={atualizar.isPending} className={cn(inputBase, "h-9")}>
+                {STATUS_DISCIPLINA.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">Data de conclusão</span>
+              <input type="date" value={d.data_conclusao ?? ""} onChange={(e) => mudarConclusao(e.target.value)} disabled={atualizar.isPending} className={cn(inputBase, "h-9")} />
+            </label>
+          </div>
+        )}
 
         {/* Edição do contrato da disciplina (controle interno) */}
         {editando && (
@@ -406,13 +452,8 @@ export function ModalDisciplina({
           </div>
         )}
 
-        {/* Progresso da atividade (controle semanal) */}
-        {podeEditar && d.status !== "Concluído" && <BlocoProgresso disciplina={d} />}
-        {d.status === "Concluído" && (
-          <p className="mt-3 flex items-center gap-2 rounded-lg border border-success/40 bg-success/5 px-3 py-2 text-sm text-success">
-            <Check className="size-4" /> Atividade concluída{d.data_conclusao ? ` em ${formatarDataBR(d.data_conclusao)}` : ""}.
-          </p>
-        )}
+        {/* Progresso da atividade (controle semanal) — sempre editável */}
+        {podeEditar && <BlocoProgresso disciplina={d} />}
 
         {/* Prazo / data-base / multa */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -446,19 +487,35 @@ export function ModalDisciplina({
             ART {d.art_url ? "anexada" : "pendente"}
           </span>
           {podeEditar && (
-            <label className="cursor-pointer text-xs font-semibold text-primary hover:underline">
-              <Upload className="mr-1 inline size-3.5" />{d.art_url ? "Substituir" : "Anexar ART"}
-              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={anexarArt} />
-            </label>
+            <span className="flex items-center gap-3">
+              {d.art_url && (
+                <button onClick={tirarArt} disabled={removerArt.isPending} className="text-xs font-semibold text-muted-foreground hover:text-destructive hover:underline disabled:opacity-50">
+                  Remover
+                </button>
+              )}
+              <label className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                <Upload className="mr-1 inline size-3.5" />{d.art_url ? "Substituir" : "Anexar ART"}
+                <input type="file" accept="application/pdf,image/*" className="hidden" onChange={anexarArt} />
+              </label>
+            </span>
           )}
         </div>
         {d.revisoes_max > 0 && (
           <div className={cn("mt-2 flex items-center justify-between gap-2 rounded-lg border p-3", revisaoAlerta ? "border-warning/50 bg-warning/5" : "border-border")}>
             <span className="text-sm text-secondary">Revisões usadas: <strong className="tabular-nums">{d.revisoes_usadas}/{d.revisoes_max}</strong>{revisaoAlerta && " — última disponível"}</span>
-            {podeEditar && d.revisoes_usadas < d.revisoes_max && (
-              <button onClick={registrarRevisao} disabled={atualizar.isPending} className="text-xs font-semibold text-primary hover:underline disabled:opacity-50">
-                Registrar revisão
-              </button>
+            {podeEditar && (
+              <span className="flex items-center gap-3">
+                {d.revisoes_usadas > 0 && (
+                  <button onClick={() => atualizar.mutate({ id: d.id, revisoesUsadas: d.revisoes_usadas - 1 })} disabled={atualizar.isPending} className="text-xs font-semibold text-muted-foreground hover:text-secondary hover:underline disabled:opacity-50">
+                    − Desfazer
+                  </button>
+                )}
+                {d.revisoes_usadas < d.revisoes_max && (
+                  <button onClick={registrarRevisao} disabled={atualizar.isPending} className="text-xs font-semibold text-primary hover:underline disabled:opacity-50">
+                    + Registrar revisão
+                  </button>
+                )}
+              </span>
             )}
           </div>
         )}
@@ -474,12 +531,13 @@ export function ModalDisciplina({
       <ConfirmDialog
         aberto={confirmandoExclusao}
         titulo="Excluir disciplina?"
-        descricao={`${d.nome} · ${formatarMoeda(d.valor)}. Os marcos (não pagos) saem junto. A auditoria preserva o rastro.`}
+        descricao={`${d.nome} · ${formatarMoeda(d.valor)}.${temPago ? " ATENÇÃO: há marco pago — o histórico financeiro será perdido." : " Os marcos saem junto."} A auditoria preserva o rastro.`}
         textoConfirmar="Excluir"
         onConfirmar={() => { setConfirmandoExclusao(false); void excluir(); }}
         onCancelar={() => setConfirmandoExclusao(false)}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -525,6 +583,7 @@ function MarcoLinha({
 }) {
   const atualizar = useAtualizarMarco();
   const pagar = usePagarMarco();
+  const desfazerPagamento = useDesfazerPagamentoMarco();
   const [reprovando, setReprovando] = useState(false);
   const [motivo, setMotivo] = useState("");
 
@@ -618,8 +677,23 @@ function MarcoLinha({
           {m.status === "Aprovado" && motivoPagamento && <span className="text-[11px] text-muted-foreground">{motivoPagamento}</span>}
         </div>
       )}
-      {m.status === "Pago" && m.data_pagamento && (
-        <p className="mt-1 text-xs text-success">Pago em {formatarDataBR(m.data_pagamento)}.</p>
+      {m.status === "Pago" && (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-success">{m.data_pagamento ? `Pago em ${formatarDataBR(m.data_pagamento)}.` : "Pago."}</p>
+          {podeEditar && (
+            <button
+              onClick={() => desfazerPagamento.mutate({ id: m.id, disciplina_id: d.id }, {
+                onSuccess: () => toast.success("Pagamento desfeito — marco voltou para Aprovado."),
+                onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao desfazer."),
+              })}
+              disabled={desfazerPagamento.isPending}
+              className="text-[11px] font-semibold text-muted-foreground hover:text-destructive hover:underline disabled:opacity-50"
+              title="Pagou por engano? Reverte o pagamento (volta a Aprovado)."
+            >
+              Desfazer pagamento
+            </button>
+          )}
+        </div>
       )}
 
       {reprovando && (

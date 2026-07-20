@@ -2805,6 +2805,7 @@ export interface Database {
           status: ObraMarcoStatus;
           motivo: string | null;
           data_aprovacao: string | null;
+          data_pagamento: string | null;
           registrado_por: string | null;
         }>;
         Relationships: [];
