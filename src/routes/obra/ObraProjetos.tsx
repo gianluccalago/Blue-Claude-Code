@@ -119,14 +119,15 @@ export function ObraProjetos() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-secondary">{d.nome}</span>
                       <Badge variant={STATUS_VARIANTE[d.status] ?? "muted"}>{d.status}</Badge>
-                      {!d.art_url && <Badge variant="warning">sem ART</Badge>}
+                      {d.valor === 0 && <Badge variant="muted">sem desembolso</Badge>}
+                      {d.valor > 0 && !d.art_url && <Badge variant="warning">sem ART</Badge>}
                       {d.revisoes_usadas >= d.revisoes_max && d.revisoes_max > 0 && (
                         <Badge variant="destructive">revisões esgotadas</Badge>
                       )}
                       {multa.multa > 0 && <Badge variant="destructive">multa {formatarMoeda(multa.multa)}</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatarMoeda(d.valor)} · marcos {pagos}/{ms.length} pagos
+                      {d.valor > 0 ? `${formatarMoeda(d.valor)} · marcos ${pagos}/${ms.length} pagos` : "acompanhamento físico"}
                       {prevista ? ` · prazo ${formatarDataBR(prevista)}` : d.prazo_dias ? ` · ${d.prazo_dias}d (defina a data-base)` : ""}
                       {d.revisoes_max > 0 ? ` · revisões ${d.revisoes_usadas}/${d.revisoes_max}` : ""}
                     </p>
@@ -478,9 +479,11 @@ function MarcoLinha({
   const [reprovando, setReprovando] = useState(false);
   const [motivo, setMotivo] = useState("");
 
+  // ART só é exigida em marcos COM entrega (a Entrada vence no início do
+  // projeto, antes de existir ART) — espelha o gate do RPC (0112).
   const motivoPagamento =
-    m.status !== "Aprovado" ? "A entrega do marco precisa estar Aprovada."
-    : !d.art_url ? "Anexe a ART da disciplina."
+    m.status !== "Aprovado" ? "O marco precisa estar Aprovado."
+    : m.exige_entrega && !d.art_url ? "Anexe a ART da disciplina."
     : m.chave === "retido" && !compatFinal ? "Retido só libera após a compatibilização final do BIM."
     : null;
 

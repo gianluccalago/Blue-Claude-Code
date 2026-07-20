@@ -286,6 +286,25 @@ Invariantes que permaneceram (dinheiro/técnica): pesos = 100%, etapa medida nã
 some, marco PAGO é imutável, medição via RPC, glosa por tolerância, RLS do
 prestador intacta.
 
+### ✅ Cronograma REAL da TRÍADE (migration `0112_cronograma_triade_projetos.sql`)
+Os cronogramas entregues pela construtora (XLSX financeiro + PDF físico,
+16/07/26 → 18/04/27) SUBSTITUÍRAM as disciplinas genéricas do Anexo III:
+- **21 atividades pagas = R$ 500.000 exatos** (fecha com o contrato/0111), cada
+  uma com data-base real, duração e marcos reais: **Entrada 50% na data de
+  início + R00 25% + R01 25%** (Sondagem: entrega única 100%, já Concluída).
+- **10 itens sem desembolso** (IFC arquitetônico, estudos de tráfego/elevadores,
+  HVAC e luminotécnico por módulo) com valor 0 — só linha do tempo.
+- **Gate de pagamento ajustado ao contrato**: ART agora só é exigida nos marcos
+  COM entrega (a Entrada vence no início, antes de existir ART). Retido→BIM
+  permanece.
+- Financeiro: **entradas pendentes entram nas Contas a Pagar** com vencimento =
+  data de início da atividade (agenda de desembolso conhecida de antemão).
+- Gantt ordena as disciplinas por data-base (cascata real do projeto).
+- Divergência tratada: Hidrossanitário Módulos 1 e 2 = 12/10/26 (PDF); o Excel
+  trazia 12/10/27 (digitação — estouraria a data final).
+Seed idempotente (sentinela pelo nome da Sondagem) e ABORTA se houver marco
+pago (não reescreve dinheiro).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

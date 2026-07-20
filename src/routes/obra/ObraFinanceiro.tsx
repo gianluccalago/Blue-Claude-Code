@@ -124,6 +124,10 @@ export function ObraFinanceiro() {
   const areaFisicaM2 = totalArea > 0 ? areaFisicaFinal / 100 : 0; // acumulado = Σ(%×área); /100 = m² equivalentes
   const custoPorM2 = custoM2(totRealizado, areaFisicaM2);
 
+  // Data-base por disciplina: a ENTRADA (50%) vence na data de início do
+  // projeto (cronograma TRÍADE) — entra na agenda mesmo antes de aprovada.
+  const baseDisc = new Map((disciplinas.data ?? []).map((d) => [d.id, d.data_base]));
+
   // ── Contas a pagar (agenda por vencimento) ──
   const contas = [
     ...listaMed.filter((m) => m.status === "Aprovado").map((m) => ({
@@ -132,6 +136,14 @@ export function ObraFinanceiro() {
     ...listaMarcos.filter((m) => m.status === "Aprovado").map((m) => ({
       tipo: "Projeto", ref: `${nomeDisc.get(marcoDisc.get(m.id) ?? "") ?? "?"} · ${m.rotulo}`, valor: m.valor, venc: m.data_aprovacao ?? hojeISO(),
     })),
+    ...listaMarcos
+      .filter((m) => m.chave === "inicio" && m.status === "Pendente" && baseDisc.get(m.disciplina_id))
+      .map((m) => ({
+        tipo: "Projeto — entrada prevista",
+        ref: `${nomeDisc.get(m.disciplina_id) ?? "?"} · ${m.rotulo}`,
+        valor: m.valor,
+        venc: baseDisc.get(m.disciplina_id)!,
+      })),
     ...listaOC.filter((o) => (o.status === "Emitida" || o.status === "Entregue parcial") && o.previsao_entrega).map((o) => ({
       tipo: "Material (OC)", ref: `${o.item} · ${o.fornecedor}`, valor: o.valor_total, venc: o.previsao_entrega!,
     })),

@@ -94,7 +94,9 @@ export function ObraCronograma() {
   if (fases.isError) return <ErrorState error={fases.error} />;
 
   const listaFases = [...(fases.data ?? [])].sort((a, b) => a.numero - b.numero);
-  const listaDisc = (disciplinas.data ?? []).filter((d) => d.data_base);
+  const listaDisc = (disciplinas.data ?? [])
+    .filter((d) => d.data_base)
+    .sort((a, b) => a.data_base!.localeCompare(b.data_base!));
   const discSemData = (disciplinas.data ?? []).length - listaDisc.length;
 
   // ── Marcos de prazo (losangos) ──
