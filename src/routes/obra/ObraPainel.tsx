@@ -154,7 +154,11 @@ function Kpi({ icone, rotulo, valor, tom = "secondary" }: { icone: React.ReactNo
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
       <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg bg-card", cor)}>{icone}</span>
-      <div><p className={cn("text-xl font-extrabold tabular-nums", cor)}>{valor}</p><p className="text-xs text-muted-foreground">{rotulo}</p></div>
+      {/* min-w-0 + truncate: valor nunca escapa do card (title mostra o completo) */}
+      <div className="min-w-0">
+        <p title={valor} className={cn("truncate text-lg font-extrabold tabular-nums xl:text-xl", cor)}>{valor}</p>
+        <p className="truncate text-xs text-muted-foreground" title={rotulo}>{rotulo}</p>
+      </div>
     </div>
   );
 }

@@ -93,7 +93,21 @@ export function ObraFinanceiro() {
     })),
   ].map((l) => ({ ...l, orcado: arred(l.orcado), comprometido: arred(l.comprometido), realizado: arred(l.realizado) }));
 
-  const totOrcado = arred(resumo.reduce((s, l) => s + l.orcado, 0));
+  // ── Separação: CONTRATO DA CONSTRUTORA (MO + projetos = R$ 12,52M) vs
+  //    CUSTOS DO CONTRATANTE (materiais, fornecedores, ensaios, taxas,
+  //    indiretos — dinheiro nosso, fora do contrato da TRÍADE). ──
+  const GRUPOS_CONTRATO = ["mo", "projetos"];
+  const secaoContrato = resumo.filter((l) => GRUPOS_CONTRATO.includes(l.grupo));
+  const secaoContratante = resumo.filter((l) => !GRUPOS_CONTRATO.includes(l.grupo));
+  const somaSecao = (linhas: LinhaResumo[]) => ({
+    orcado: arred(linhas.reduce((s, l) => s + l.orcado, 0)),
+    comprometido: arred(linhas.reduce((s, l) => s + l.comprometido, 0)),
+    realizado: arred(linhas.reduce((s, l) => s + l.realizado, 0)),
+  });
+  const subContrato = somaSecao(secaoContrato);
+  const subContratante = somaSecao(secaoContratante);
+
+  const totOrcado = arred(subContrato.orcado + subContratante.orcado);
   const totComprometido = arred(resumo.reduce((s, l) => s + l.comprometido, 0));
   const totRealizado = arred(resumo.reduce((s, l) => s + l.realizado, 0));
 
@@ -116,7 +130,8 @@ export function ObraFinanceiro() {
       mes,
       // fis = Σ(pct×área) já traz o % embutido (0–100) → divide só pela área.
       fisicaPct: totalArea > 0 ? arred(fis / totalArea) : 0,
-      financeiraPct: totOrcado > 0 ? arred((fin / totOrcado) * 100) : 0,
+      // Base financeira = CONTRATO da construtora (MO+projetos), não o total.
+      financeiraPct: subContrato.orcado > 0 ? arred((fin / subContrato.orcado) * 100) : 0,
     };
   });
 
@@ -182,11 +197,11 @@ export function ObraFinanceiro() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Totais */}
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Kpi icone={<Wallet className="size-5" />} rotulo="Orçado (baseline)" valor={formatarMoeda(totOrcado)} />
-        <Kpi icone={<TrendingUp className="size-5" />} rotulo="Comprometido" valor={formatarMoeda(totComprometido)} tom="warning" />
-        <Kpi icone={<Wallet className="size-5" />} rotulo="Realizado (pago)" valor={formatarMoeda(totRealizado)} tom="success" />
+      {/* Totais — o contrato da construtora NÃO se mistura com custos nossos */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi icone={<Wallet className="size-5" />} rotulo="Contrato construtora (MO + projetos)" valor={formatarMoeda(subContrato.orcado)} />
+        <Kpi icone={<TrendingUp className="size-5" />} rotulo="Custos do Contratante (orçado)" valor={formatarMoeda(subContratante.orcado)} />
+        <Kpi icone={<Wallet className="size-5" />} rotulo="Realizado (pago) — tudo" valor={formatarMoeda(totRealizado)} tom="success" />
         <Kpi icone={<Ruler className="size-5" />} rotulo="Custo/m² acumulado" valor={formatarMoeda(custoPorM2)} />
       </div>
 
@@ -208,34 +223,43 @@ export function ObraFinanceiro() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {resumo.map((l) => {
-                // Todo grupo é editável (master/direção). MO e Projetos vêm do
-                // contrato como ponto de partida — os R$ 500 mil de projetos
-                // INTEGRAM o total (desconto incorporado; a MO por fase já é
-                // líquida do rateio, migration 0111).
-                const linhasGrupo = listaBase.filter((b) => b.grupo === l.grupo);
-                return (
-                  <tr key={l.grupo} className="text-secondary">
-                    <td className="py-2">
-                      {l.rotulo}
-                      {l.grupo === "projetos" && (
-                        <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">integra o total do contrato</span>
-                      )}
-                      {podeEditar && linhasGrupo.length > 0 && (
-                        <button onClick={() => setEditandoGrupo(linhasGrupo)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>
-                      )}
-                    </td>
-                    <td className="py-2 text-right tabular-nums text-muted-foreground">{formatarMoeda(l.orcado)}</td>
-                    <td className="py-2 text-right tabular-nums">{formatarMoeda(l.comprometido)}</td>
-                    <td className="py-2 text-right tabular-nums text-success">{formatarMoeda(l.realizado)}</td>
-                    <td className={cn("py-2 text-right tabular-nums font-semibold", saldoOrcamentario(l) < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(saldoOrcamentario(l))}</td>
-                  </tr>
-                );
-              })}
+              {/* ── Seção 1: contrato da construtora (R$ 12,52M — só TRÍADE) ── */}
+              <tr>
+                <td colSpan={5} className="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-primary-strong">
+                  Contrato construtora — TRÍADE (MO + projetos)
+                </td>
+              </tr>
+              {secaoContrato.map((l) => (
+                <LinhaPacote key={l.grupo} linha={l} listaBase={listaBase} podeEditar={podeEditar} onEditar={setEditandoGrupo} />
+              ))}
+              <tr className="bg-muted/20 font-semibold text-secondary">
+                <td className="py-1.5 pl-2 text-xs">Subtotal do contrato</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(subContrato.orcado)}</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(subContrato.comprometido)}</td>
+                <td className="py-1.5 text-right tabular-nums text-success">{formatarMoeda(subContrato.realizado)}</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(arred(subContrato.orcado - subContrato.comprometido))}</td>
+              </tr>
+
+              {/* ── Seção 2: custos do Contratante (fora do contrato) ── */}
+              <tr>
+                <td colSpan={5} className="pt-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Custos do Contratante (fora do contrato da construtora)
+                </td>
+              </tr>
+              {secaoContratante.map((l) => (
+                <LinhaPacote key={l.grupo} linha={l} listaBase={listaBase} podeEditar={podeEditar} onEditar={setEditandoGrupo} />
+              ))}
+              <tr className="bg-muted/20 font-semibold text-secondary">
+                <td className="py-1.5 pl-2 text-xs">Subtotal do Contratante</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(subContratante.orcado)}</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(subContratante.comprometido)}</td>
+                <td className="py-1.5 text-right tabular-nums text-success">{formatarMoeda(subContratante.realizado)}</td>
+                <td className="py-1.5 text-right tabular-nums">{formatarMoeda(arred(subContratante.orcado - subContratante.comprometido))}</td>
+              </tr>
             </tbody>
             <tfoot>
               <tr className="border-t-2 font-bold text-secondary">
-                <td className="pt-2">TOTAL</td>
+                <td className="pt-2">EMPREENDIMENTO (contrato + Contratante)</td>
                 <td className="pt-2 text-right tabular-nums">{formatarMoeda(totOrcado)}</td>
                 <td className="pt-2 text-right tabular-nums">{formatarMoeda(totComprometido)}</td>
                 <td className="pt-2 text-right tabular-nums text-success">{formatarMoeda(totRealizado)}</td>
@@ -243,6 +267,10 @@ export function ObraFinanceiro() {
               </tr>
             </tfoot>
           </table>
+          <p className="text-[11px] text-muted-foreground">
+            O contrato da construtora ({formatarMoeda(subContrato.orcado)}) cobre APENAS mão de obra + projetos.
+            Materiais, fornecedores, ensaios, taxas e custos indiretos são desembolsos do Contratante, somados à parte.
+          </p>
         </CardContent>
       </Card>
 
@@ -310,8 +338,43 @@ function Kpi({ icone, rotulo, valor, tom = "secondary" }: { icone: React.ReactNo
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
       <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg bg-card", cor)}>{icone}</span>
-      <div><p className={cn("text-lg font-extrabold tabular-nums", cor)}>{valor}</p><p className="text-xs text-muted-foreground">{rotulo}</p></div>
+      <div className="min-w-0">
+        <p title={valor} className={cn("truncate text-lg font-extrabold tabular-nums", cor)}>{valor}</p>
+        <p className="text-xs text-muted-foreground">{rotulo}</p>
+      </div>
     </div>
+  );
+}
+
+/** Linha de um grupo do orçamento (editável pelo master/direção). */
+function LinhaPacote({
+  linha: l,
+  listaBase,
+  podeEditar,
+  onEditar,
+}: {
+  linha: LinhaResumo;
+  listaBase: ObraBaseline[];
+  podeEditar: boolean;
+  onEditar: (linhas: ObraBaseline[]) => void;
+}) {
+  const linhasGrupo = listaBase.filter((b) => b.grupo === l.grupo);
+  return (
+    <tr className="text-secondary">
+      <td className="py-2">
+        {l.rotulo}
+        {l.grupo === "projetos" && (
+          <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">integra o contrato</span>
+        )}
+        {podeEditar && linhasGrupo.length > 0 && (
+          <button onClick={() => onEditar(linhasGrupo)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>
+        )}
+      </td>
+      <td className="py-2 text-right tabular-nums text-muted-foreground">{formatarMoeda(l.orcado)}</td>
+      <td className="py-2 text-right tabular-nums">{formatarMoeda(l.comprometido)}</td>
+      <td className="py-2 text-right tabular-nums text-success">{formatarMoeda(l.realizado)}</td>
+      <td className={cn("py-2 text-right tabular-nums font-semibold", saldoOrcamentario(l) < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(saldoOrcamentario(l))}</td>
+    </tr>
   );
 }
 
