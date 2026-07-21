@@ -2,19 +2,21 @@ import { useMemo, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import {
   HardHat, Bell, FileText, Landmark, Ruler, Upload, Check, AlertTriangle, X, ClipboardCheck,
+  DraftingCompass, CircleDollarSign, TrendingUp,
 } from "lucide-react";
 import { useFasesObra, useEtapasObra, useChecklistObra } from "@/hooks/useObra";
 import { useMedicoes, useEtapasMedidas, useDocumentosMensais, useSubirDocumentoMensal, usePendencias } from "@/hooks/useObraMedicoes";
 import { useMarcos, useDisciplinas, useBimRodadas, useRegistrarRodadaBim } from "@/hooks/useObraProjetos";
 import { useSubmeterBM, useSubmeterEntrega, useNotificacoesObra, useMarcarNotificacaoLida } from "@/hooks/useObraPortal";
 import { ultimaVerificacaoPorEtapa, etapaConcluida, avancoFisico, OBRA_FASE_STATUS_LABEL } from "@/lib/obra";
+import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, formatarDataHoraBR, hojeISO } from "@/lib/utils";
-import { formatarMesReferencia } from "@/lib/mensalidade";
-import type { ObraFase } from "@/types/database";
+import { cn, formatarDataBR, formatarDataHoraBR, hojeISO } from "@/lib/utils";
+import { formatarMesReferencia, formatarMoeda } from "@/lib/mensalidade";
+import type { ObraDisciplina, ObraDisciplinaMarco, ObraFase } from "@/types/database";
 
 const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const DOC_TIPOS = ["inss", "fgts", "iss", "folha"] as const;
@@ -62,6 +64,9 @@ export function PortalPrestador() {
           </CardContent>
         </Card>
       )}
+
+      {/* Contrato de projetos: progresso medido + pagamentos (fase atual) */}
+      <ContratoProjetosPrestador />
 
       {/* Cronograma / avanço das fases */}
       <Card>
@@ -138,6 +143,141 @@ export function PortalPrestador() {
           onFechar={() => setSubmeterBM(false)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * CONTRATO DE PROJETOS — visão da construtora sobre o que é DELA:
+ * progresso medido pelo Contratante por atividade, valores por marco
+ * (entrada/R00/R01), o que já foi pago (com data) e o que vem a seguir.
+ * Nada de materiais, cotações ou custos do Contratante (RLS garante).
+ */
+function ContratoProjetosPrestador() {
+  const disciplinas = useDisciplinas();
+  const marcos = useMarcos();
+  const hoje = hojeISO();
+
+  if (disciplinas.isLoading || marcos.isLoading) return null;
+  const listaDisc = (disciplinas.data ?? [])
+    .filter((d) => d.data_base)
+    .sort((a, b) => a.data_base!.localeCompare(b.data_base!));
+  if (listaDisc.length === 0) return null;
+
+  const listaMarcos = marcos.data ?? [];
+  const discPorId = new Map(listaDisc.map((d) => [d.id, d]));
+  const marcosPorDisc = new Map<string, ObraDisciplinaMarco[]>();
+  for (const m of listaMarcos) {
+    const arr = marcosPorDisc.get(m.disciplina_id) ?? [];
+    arr.push(m);
+    marcosPorDisc.set(m.disciplina_id, arr);
+  }
+  const fimDe = (d: ObraDisciplina) => somarDiasISO(d.data_base, d.prazo_dias);
+
+  const comValor = listaDisc.filter((d) => d.valor > 0);
+  const totalContrato = arred(comValor.reduce((s, d) => s + d.valor, 0));
+  const recebido = arred(listaMarcos.filter((m) => m.status === "Pago").reduce((s, m) => s + m.valor, 0));
+  const aReceber = arred(listaMarcos.filter((m) => m.status === "Aprovado").reduce((s, m) => s + m.valor, 0));
+  const progressoGeral = totalContrato > 0
+    ? comValor.reduce((s, d) => s + d.valor * d.progresso_pct, 0) / totalContrato
+    : 0;
+
+  // Agenda de recebimentos: pagos (data real) e futuros (previsão contratual:
+  // entrada na data de início; R00/R01/entrega no fim do prazo).
+  const previsaoDe = (m: ObraDisciplinaMarco): string | null => {
+    const d = discPorId.get(m.disciplina_id);
+    if (!d) return null;
+    return m.chave === "inicio" ? d.data_base : fimDe(d);
+  };
+  const proximos = listaMarcos
+    .filter((m) => m.status !== "Pago" && discPorId.get(m.disciplina_id))
+    .map((m) => ({ m, d: discPorId.get(m.disciplina_id)!, prev: previsaoDe(m) }))
+    .filter((x): x is typeof x & { prev: string } => !!x.prev)
+    .sort((a, b) => a.prev.localeCompare(b.prev))
+    .slice(0, 6);
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
+          <DraftingCompass className="size-5 text-primary" /> Contrato de projetos — andamento e pagamentos
+        </h2>
+
+        {/* KPIs do contrato */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MiniKpi icone={<TrendingUp className="size-4" />} rotulo="Progresso geral (medido)" valor={`${progressoGeral.toFixed(1)}%`} />
+          <MiniKpi icone={<CircleDollarSign className="size-4" />} rotulo={`Recebido de ${formatarMoeda(totalContrato)}`} valor={formatarMoeda(recebido)} tom="success" />
+          <MiniKpi icone={<CircleDollarSign className="size-4" />} rotulo="Aprovado — a receber" valor={formatarMoeda(aReceber)} tom={aReceber > 0 ? "warning" : "secondary"} />
+        </div>
+
+        {/* Próximos recebimentos */}
+        {proximos.length > 0 && (
+          <div>
+            <p className="mb-1 text-sm font-semibold text-secondary">Próximos recebimentos (previsão contratual)</p>
+            <div className="divide-y">
+              {proximos.map(({ m, d, prev }) => (
+                <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-secondary">{d.nome} · {m.rotulo}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {m.status === "Aprovado" ? <Badge variant="default">liberado</Badge>
+                      : m.status === "Em análise" ? <Badge variant="warning">em análise</Badge>
+                      : <span className={cn("text-xs tabular-nums", prev < hoje ? "font-semibold text-warning" : "text-muted-foreground")}>{formatarDataBR(prev)}</span>}
+                    <strong className="tabular-nums text-secondary">{formatarMoeda(m.valor)}</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Atividades com progresso medido */}
+        <div>
+          <p className="mb-1 text-sm font-semibold text-secondary">Suas atividades (progresso medido pelo Contratante)</p>
+          <div className="divide-y">
+            {listaDisc.map((d) => {
+              const ms = (marcosPorDisc.get(d.id) ?? []).sort((a, b) => a.ordem - b.ordem);
+              const pagos = ms.filter((m) => m.status === "Pago");
+              const fim = fimDe(d);
+              const atrasada = d.status !== "Concluído" && d.progresso_pct < 100 && fim != null && fim < hoje;
+              return (
+                <div key={d.id} className="py-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-secondary">{d.nome}</span>
+                      {d.status === "Concluído" && <Badge variant="success">concluída</Badge>}
+                      {atrasada && <Badge variant="destructive">prazo vencido</Badge>}
+                      {d.valor === 0 && <Badge variant="muted">sem pagamento</Badge>}
+                    </div>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {d.valor > 0 ? `${formatarMoeda(arred(pagos.reduce((s, m) => s + m.valor, 0)))} recebidos de ${formatarMoeda(d.valor)}` : ""}
+                      {fim ? ` · até ${formatarDataBR(fim)}` : ""}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${Math.min(100, d.progresso_pct)}%` }} />
+                    </div>
+                    <span className="w-9 shrink-0 text-right text-[11px] font-semibold tabular-nums text-muted-foreground">{d.progresso_pct}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniKpi({ icone, rotulo, valor, tom = "secondary" }: { icone: React.ReactNode; rotulo: string; valor: string; tom?: "secondary" | "success" | "warning" }) {
+  const cor = tom === "success" ? "text-success" : tom === "warning" ? "text-warning" : "text-secondary";
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+      <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg bg-card", cor)}>{icone}</span>
+      <div className="min-w-0">
+        <p title={valor} className={cn("truncate text-base font-extrabold tabular-nums", cor)}>{valor}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{rotulo}</p>
+      </div>
     </div>
   );
 }

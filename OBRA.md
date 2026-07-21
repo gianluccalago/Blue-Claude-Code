@@ -330,6 +330,21 @@ VIVO agora (desenvolvimento de projetos) — e não da obra física futura:
 - **Financeiro**: contas a pagar agora projetam também R00/R01 pendentes no fim
   do prazo de cada atividade — agenda completa de desembolso.
 
+### ✅ Portal da construtora adequado à fase de projetos (migration `0114_portal_prestador_projetos.sql`)
+Nova seção **"Contrato de projetos — andamento e pagamentos"** no topo do
+portal do prestador (o que é DELES, e só isso):
+- KPIs: progresso geral medido (ponderado por valor), recebido de R$ 500 mil,
+  aprovado a receber.
+- **Próximos recebimentos** com previsão contratual (entrada na data de início;
+  R00/R01 no fim do prazo), "liberado" quando aprovado, alerta quando a
+  previsão passou.
+- **Suas atividades**: barra de progresso MEDIDO pelo Contratante, recebidos ×
+  valor da atividade, prazo, selos (concluída / prazo vencido / sem pagamento).
+- RLS: `obra_disciplinas` e `obra_disciplina_progresso` ganharam policy de
+  SELECT para `obra_prestador` (o contrato de projetos é da construtora). O
+  financeiro do Contratante segue fechado: materiais, cotações, OCs,
+  retenções, baseline e indiretos continuam master/direção.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas
