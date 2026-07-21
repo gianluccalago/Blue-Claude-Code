@@ -31,6 +31,7 @@ import {
   useDesfazerPagamentoMarco,
 } from "@/hooks/useObraProjetos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SliderPct } from "@/components/ui/slider";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -561,8 +562,8 @@ function BlocoProgresso({ disciplina: d }: { disciplina: ObraDisciplina }) {
         <span className="text-sm font-semibold text-secondary">Progresso da atividade</span>
         <span className="text-lg font-extrabold tabular-nums text-primary">{pct}%</span>
       </div>
-      <input type="range" min={0} max={100} step={5} value={pct} onChange={(e) => setPct(Number(e.target.value))} className="w-full accent-primary" />
-      <div className="flex gap-2">
+      <SliderPct valor={pct} onChange={setPct} />
+      <div className="flex gap-2 pt-1">
         <input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação da semana (opcional)" className={cn(inputBase, "h-9 flex-1")} />
         <Button size="sm" onClick={salvar} disabled={pct === d.progresso_pct && !obs.trim()} loading={atualizar.isPending}>Registrar</Button>
       </div>

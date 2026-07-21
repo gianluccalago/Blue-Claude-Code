@@ -37,6 +37,7 @@ import {
 import { BUCKET_OBRA } from "@/lib/storage";
 import { FotoSegura } from "@/components/AnexoSeguro";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SliderPct } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -521,12 +522,7 @@ function ModalAcompanhamento({
               <label className="text-sm font-semibold text-secondary">Percentual de conclusão</label>
               <span className="text-lg font-extrabold tabular-nums text-primary">{percentual}%</span>
             </div>
-            <input
-              type="range" min={0} max={100} step={5} value={percentual}
-              onChange={(e) => setPercentual(Number(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <BarraAvanco valor={percentual} alta />
+            <SliderPct valor={percentual} onChange={setPercentual} />
           </div>
 
           {/* Várias fotos datadas */}
