@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -38,12 +39,14 @@ export function ConfirmDialog({
 
   if (!aberto) return null;
 
-  return (
+  // Portal no <body>: nenhum ancestral com transform/filter consegue "prender"
+  // o position:fixed — o diálogo centraliza SEMPRE na tela visível.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={titulo}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
     >
       {/* fundo */}
       <button
@@ -71,6 +74,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -118,7 +118,12 @@
 }
 
 @layer utilities {
-  /* Entrada suave de conteúdo (usada nos painéis e dropdowns) */
+  /* Entrada suave de conteúdo (usada nos painéis e dropdowns).
+     IMPORTANTE: o keyframe final NÃO declara transform — com fill-mode "both",
+     um transform persistente no contêiner viraria "containing block" e
+     prenderia qualquer position:fixed descendente (modais presos no meio da
+     página em vez de centralizados na tela). Omitido no `to`, o transform
+     anima até o valor natural (none) e deixa de existir ao terminar. */
   @keyframes fade-in-up {
     from {
       opacity: 0;
@@ -126,7 +131,6 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
   .animate-fade-in-up {
@@ -145,7 +149,8 @@
     animation: fade-in 0.2s ease-out both;
   }
 
-  /* Transição de rota: fade + translateY sutil (só transform/opacity, ~180ms) */
+  /* Transição de rota: fade + translateY sutil. Sem transform no `to` —
+     ver nota do fade-in-up (senão TODO modal do app fica preso na página). */
   @keyframes route-in {
     from {
       opacity: 0;
@@ -153,14 +158,14 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
   .animate-route-in {
     animation: route-in 0.18s ease-out both;
   }
 
-  /* Entrada de modal/drawer: scale + fade (só transform/opacity) */
+  /* Entrada de modal/drawer: scale + fade. Sem transform no `to` — um diálogo
+     aninhado (ex.: ConfirmDialog dentro de um modal) também usa fixed. */
   @keyframes modal-in {
     from {
       opacity: 0;
@@ -168,7 +173,6 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
     }
   }
   .animate-modal-in {
