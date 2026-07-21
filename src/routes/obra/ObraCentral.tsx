@@ -12,8 +12,10 @@ import {
   useBimRodadas,
   useAtualizarMarco,
   usePagarMarco,
+  useDesfazerPagamentoMarco,
 } from "@/hooks/useObraProjetos";
 import { ModalDisciplina } from "@/routes/obra/ObraProjetos";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,8 +53,11 @@ export function ObraCentral() {
   const config = useObraConfig();
   const aprovarMarco = useAtualizarMarco();
   const pagarMarco = usePagarMarco();
+  const desfazerPagamento = useDesfazerPagamentoMarco();
 
   const [aberta, setAberta] = useState<ObraDisciplina | null>(null);
+  // Pagamento SEMPRE pede confirmação; o toast de sucesso oferece "Desfazer".
+  const [confirmando, setConfirmando] = useState<{ titulo: string; descricao: string; acao: () => void } | null>(null);
 
   if (disciplinas.isLoading || marcos.isLoading) return <LoadingState />;
   if (disciplinas.isError) return <ErrorState error={disciplinas.error} />;
@@ -136,18 +141,48 @@ export function ObraCentral() {
 
   function abrir(d: ObraDisciplina) { setAberta(d); }
 
-  async function pagarEntrada(x: { marco: ObraDisciplinaMarco; disc: ObraDisciplina }) {
-    try {
-      if (x.marco.status === "Pendente") await aprovarMarco.mutateAsync({ id: x.marco.id, status: "Aprovado" });
-      await pagarMarco.mutateAsync(x.marco.id);
-      toast.success(`Entrada de ${x.disc.nome} paga (${formatarMoeda(x.marco.valor)}).`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
+  /** Toast de sucesso com "Desfazer" (rollback em 1 clique, 12s de janela). */
+  function toastPagoComDesfazer(mensagem: string, marco: ObraDisciplinaMarco) {
+    toast.success(mensagem, {
+      duration: 12_000,
+      action: {
+        label: "Desfazer",
+        onClick: () =>
+          desfazerPagamento.mutate(
+            { id: marco.id, disciplina_id: marco.disciplina_id },
+            {
+              onSuccess: () => toast.success("Pagamento desfeito — marco voltou para Aprovado."),
+              onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao desfazer."),
+            },
+          ),
+      },
+    });
   }
-  async function pagar(x: { marco: ObraDisciplinaMarco; disc: ObraDisciplina }) {
-    try {
-      await pagarMarco.mutateAsync(x.marco.id);
-      toast.success(`${x.marco.rotulo} de ${x.disc.nome} pago.`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
+
+  function pagarEntrada(x: { marco: ObraDisciplinaMarco; disc: ObraDisciplina }) {
+    setConfirmando({
+      titulo: "Confirmar pagamento da entrada?",
+      descricao: `${x.disc.nome} — Entrada (50%) de ${formatarMoeda(x.marco.valor)}. Você poderá desfazer depois (no aviso ou dentro da atividade).`,
+      acao: async () => {
+        try {
+          if (x.marco.status === "Pendente") await aprovarMarco.mutateAsync({ id: x.marco.id, status: "Aprovado" });
+          await pagarMarco.mutateAsync(x.marco.id);
+          toastPagoComDesfazer(`Entrada de ${x.disc.nome} paga (${formatarMoeda(x.marco.valor)}).`, x.marco);
+        } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
+      },
+    });
+  }
+  function pagar(x: { marco: ObraDisciplinaMarco; disc: ObraDisciplina }) {
+    setConfirmando({
+      titulo: "Confirmar pagamento?",
+      descricao: `${x.disc.nome} — ${x.marco.rotulo} de ${formatarMoeda(x.marco.valor)}. Você poderá desfazer depois (no aviso ou dentro da atividade).`,
+      acao: async () => {
+        try {
+          await pagarMarco.mutateAsync(x.marco.id);
+          toastPagoComDesfazer(`${x.marco.rotulo} de ${x.disc.nome} pago (${formatarMoeda(x.marco.valor)}).`, x.marco);
+        } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
+      },
+    });
   }
 
   const ocupado = aprovarMarco.isPending || pagarMarco.isPending;
@@ -279,6 +314,16 @@ export function ObraCentral() {
           </p>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        aberto={!!confirmando}
+        titulo={confirmando?.titulo ?? ""}
+        descricao={confirmando?.descricao}
+        textoConfirmar="Confirmar pagamento"
+        varianteConfirmar="default"
+        onConfirmar={() => { const c = confirmando; setConfirmando(null); c?.acao(); }}
+        onCancelar={() => setConfirmando(null)}
+      />
 
       {aberta && (
         <ModalDisciplina

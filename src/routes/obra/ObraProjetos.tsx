@@ -586,6 +586,25 @@ function MarcoLinha({
   const desfazerPagamento = useDesfazerPagamentoMarco();
   const [reprovando, setReprovando] = useState(false);
   const [motivo, setMotivo] = useState("");
+  // Pagamento pede confirmação; o toast de sucesso oferece "Desfazer".
+  const [confirmandoPagamento, setConfirmandoPagamento] = useState<null | "pagar" | "entrada">(null);
+
+  function toastPagoComDesfazer(mensagem: string) {
+    toast.success(mensagem, {
+      duration: 12_000,
+      action: {
+        label: "Desfazer",
+        onClick: () =>
+          desfazerPagamento.mutate(
+            { id: m.id, disciplina_id: d.id },
+            {
+              onSuccess: () => toast.success("Pagamento desfeito — marco voltou para Aprovado."),
+              onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao desfazer."),
+            },
+          ),
+      },
+    });
+  }
 
   // ART só é exigida em marcos COM entrega (a Entrada vence no início do
   // projeto, antes de existir ART) — espelha o gate do RPC (0112).
@@ -611,15 +630,17 @@ function MarcoLinha({
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
   }
   async function pagarMarco() {
-    try { await pagar.mutateAsync(m.id); toast.success(`${m.rotulo} pago.`); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
+    try {
+      await pagar.mutateAsync(m.id);
+      toastPagoComDesfazer(`${m.rotulo} pago (${formatarMoeda(m.valor)}).`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar."); }
   }
-  /** Entrada (50%): aprova e paga num clique — vence na data de início. */
+  /** Entrada (50%): aprova e paga — vence na data de início. */
   async function aprovarEPagarEntrada() {
     try {
       await atualizar.mutateAsync({ id: m.id, status: "Aprovado" });
       await pagar.mutateAsync(m.id);
-      toast.success(`Entrada de ${formatarMoeda(m.valor)} paga.`);
+      toastPagoComDesfazer(`Entrada de ${formatarMoeda(m.valor)} paga.`);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao pagar a entrada."); }
   }
 
@@ -644,7 +665,7 @@ function MarcoLinha({
           )}
           {!m.exige_entrega && m.status === "Pendente" && (
             m.chave === "inicio" ? (
-              <Button size="sm" onClick={aprovarEPagarEntrada} loading={atualizar.isPending || pagar.isPending}>
+              <Button size="sm" onClick={() => setConfirmandoPagamento("entrada")} loading={atualizar.isPending || pagar.isPending}>
                 Pagar entrada ({formatarMoeda(m.valor)})
               </Button>
             ) : (
@@ -660,7 +681,7 @@ function MarcoLinha({
           {m.status === "Aprovado" && (
             <>
               <span title={motivoPagamento ?? undefined}>
-                <Button size="sm" onClick={pagarMarco} disabled={!!motivoPagamento || pagar.isPending} loading={pagar.isPending}>
+                <Button size="sm" onClick={() => setConfirmandoPagamento("pagar")} disabled={!!motivoPagamento || pagar.isPending} loading={pagar.isPending}>
                   Pagar {m.percentual}%
                 </Button>
               </span>
@@ -702,6 +723,21 @@ function MarcoLinha({
           <Button size="sm" variant="destructive" onClick={reprovar} disabled={!motivo.trim() || atualizar.isPending}>OK</Button>
         </div>
       )}
+
+      <ConfirmDialog
+        aberto={!!confirmandoPagamento}
+        titulo={confirmandoPagamento === "entrada" ? "Confirmar pagamento da entrada?" : "Confirmar pagamento?"}
+        descricao={`${d.nome} — ${m.rotulo} de ${formatarMoeda(m.valor)}. Você poderá desfazer depois (no aviso ou aqui mesmo, em "Desfazer pagamento").`}
+        textoConfirmar="Confirmar pagamento"
+        varianteConfirmar="default"
+        onConfirmar={() => {
+          const tipo = confirmandoPagamento;
+          setConfirmandoPagamento(null);
+          if (tipo === "entrada") void aprovarEPagarEntrada();
+          else void pagarMarco();
+        }}
+        onCancelar={() => setConfirmandoPagamento(null)}
+      />
     </div>
   );
 }
