@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { Login } from "@/routes/Login";
+import { RedefinirSenha } from "@/routes/RedefinirSenha";
 import { EmConstrucao } from "@/routes/EmConstrucao";
 import { FichaHospedeScreen } from "@/routes/FichaHospedeScreen";
 import { CrmPipeline } from "@/routes/administracao/crm/CrmPipeline";
@@ -119,6 +120,13 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: Login,
+});
+
+// Destino do link de recuperação de senha enviado por e-mail (pública).
+const redefinirSenhaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "redefinir-senha",
+  component: RedefinirSenha,
 });
 
 // Layout do app com sidebar + topbar; o perfil ativo vem do segmento da URL.
@@ -668,6 +676,7 @@ const placeholderRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  redefinirSenhaRoute,
   appRoute.addChildren([
     appIndexRoute,
     checklistRoute,

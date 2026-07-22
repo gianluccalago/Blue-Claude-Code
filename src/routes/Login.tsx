@@ -1,13 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users, KeyRound, UserPlus, X, Check, MailCheck } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users, KeyRound, UserPlus, X, MailCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
-import { useSolicitarResetSenha, useSolicitarAcesso } from "@/hooks/useSolicitacoesAcesso";
+import { useSolicitarAcesso } from "@/hooks/useSolicitacoesAcesso";
+import { supabase } from "@/lib/supabase";
+import { Turnstile, captchaAtivo } from "@/components/Turnstile";
 import { Logo } from "@/components/Logo";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/data/profiles";
+
+// ---------------------------------------------------------------------------
+// Trava progressiva contra força bruta (lado do cliente; a proteção de
+// servidor é o rate-limit do Supabase + CAPTCHA quando ligado): após 5 falhas
+// no mesmo e-mail, bloqueia 30s e DOBRA a cada nova falha (teto 15 min).
+// ---------------------------------------------------------------------------
+const LIMITE_FALHAS = 5;
+const chaveFalhas = (email: string) => `bsl:login-falhas:${email.trim().toLowerCase()}`;
+
+function lerBloqueio(email: string): { falhas: number; ate: number } {
+  try {
+    const raw = localStorage.getItem(chaveFalhas(email));
+    if (!raw) return { falhas: 0, ate: 0 };
+    const v = JSON.parse(raw) as { falhas: number; ate: number };
+    return { falhas: v.falhas ?? 0, ate: v.ate ?? 0 };
+  } catch {
+    return { falhas: 0, ate: 0 };
+  }
+}
+/** Registra uma falha e devolve por quantos ms o e-mail fica bloqueado (0 = ainda livre). */
+function registrarFalha(email: string): number {
+  const atual = lerBloqueio(email);
+  const falhas = atual.falhas + 1;
+  const bloqueioMs = falhas >= LIMITE_FALHAS ? Math.min(15 * 60_000, 30_000 * 2 ** (falhas - LIMITE_FALHAS)) : 0;
+  const ate = bloqueioMs > 0 ? Date.now() + bloqueioMs : 0;
+  try { localStorage.setItem(chaveFalhas(email), JSON.stringify({ falhas, ate })); } catch { /* storage cheio/indisponível */ }
+  return bloqueioMs;
+}
+function limparFalhas(email: string) {
+  try { localStorage.removeItem(chaveFalhas(email)); } catch { /* noop */ }
+}
 
 // ===========================================================================
 // Tela de LOGIN (substitui a antiga seleção livre de perfil). Email + senha
@@ -38,6 +71,19 @@ export function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [modal, setModal] = useState<null | "reset" | "acesso">(null);
+  // Anti força-bruta: bloqueio progressivo + CAPTCHA (quando configurado).
+  const [bloqueadoAte, setBloqueadoAte] = useState(0);
+  const [agora, setAgora] = useState(() => Date.now());
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaGeracao, setCaptchaGeracao] = useState(0); // remonta o widget após falha
+
+  // Tique de 1s só enquanto houver bloqueio ativo (para o contador do botão).
+  useEffect(() => {
+    if (bloqueadoAte <= Date.now()) return;
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [bloqueadoAte]);
+  const segundosBloqueio = Math.max(0, Math.ceil((bloqueadoAte - agora) / 1000));
 
   // Já autenticado → vai direto para as telas do perfil.
   if (!carregando && usuario) {
@@ -48,12 +94,35 @@ export function Login() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+    // Bloqueio ativo para este e-mail? (persistido — sobrevive a refresh)
+    const bloq = lerBloqueio(email);
+    if (bloq.ate > Date.now()) {
+      setBloqueadoAte(bloq.ate);
+      setAgora(Date.now());
+      setErro(`Muitas tentativas. Aguarde ${Math.ceil((bloq.ate - Date.now()) / 1000)}s e tente de novo.`);
+      return;
+    }
+    if (captchaAtivo && !captchaToken) {
+      setErro("Confirme o desafio de segurança abaixo.");
+      return;
+    }
     setEnviando(true);
     try {
-      await entrar(email, senha);
+      await entrar(email, senha, captchaToken ?? undefined);
+      limparFalhas(email);
       // O redirecionamento acontece reativamente quando `usuario` resolve.
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Não foi possível entrar.");
+      const bloqueioMs = registrarFalha(email);
+      if (bloqueioMs > 0) {
+        setBloqueadoAte(Date.now() + bloqueioMs);
+        setAgora(Date.now());
+        setErro(`Muitas tentativas. Aguarde ${Math.ceil(bloqueioMs / 1000)}s antes de tentar novamente.`);
+      } else {
+        setErro(err instanceof Error ? err.message : "Não foi possível entrar.");
+      }
+      // Token do CAPTCHA é de uso único — gera um novo desafio.
+      setCaptchaToken(null);
+      setCaptchaGeracao((g) => g + 1);
     } finally {
       setEnviando(false);
     }
@@ -145,6 +214,8 @@ export function Login() {
               />
             </div>
 
+            {captchaAtivo && <Turnstile key={captchaGeracao} onToken={setCaptchaToken} />}
+
             {erro && (
               <div className="flex animate-fade-in items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -156,10 +227,10 @@ export function Login() {
               type="submit"
               size="lg"
               className="w-full"
-              disabled={enviando || email.trim() === "" || senha === ""}
+              disabled={enviando || email.trim() === "" || senha === "" || segundosBloqueio > 0}
             >
               {enviando ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
-              {enviando ? "Entrando…" : "Entrar"}
+              {segundosBloqueio > 0 ? `Aguarde ${segundosBloqueio}s` : enviando ? "Entrando…" : "Entrar"}
             </Button>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -216,16 +287,34 @@ function CascaModal({ titulo, icone, onFechar, children }: { titulo: string; ico
 }
 
 function ModalReset({ onFechar }: { onFechar: () => void }) {
-  const solicitar = useSolicitarResetSenha();
   const [email, setEmail] = useState("");
   const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaGeracao, setCaptchaGeracao] = useState(0);
 
   async function enviar() {
+    if (captchaAtivo && !captchaToken) {
+      toast.error("Confirme o desafio de segurança.");
+      return;
+    }
+    setEnviando(true);
     try {
-      await solicitar.mutateAsync(email.trim());
+      // Envio REAL do e-mail de recuperação (Supabase Auth). O link aponta
+      // para /redefinir-senha, onde o usuário cria a nova senha. A resposta é
+      // sempre a mesma, exista o e-mail ou não (anti-enumeração de contas).
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+        captchaToken: captchaToken ?? undefined,
+      });
       setEnviado(true);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar a solicitação.");
+    } catch {
+      // Mesmo em erro interno não revelamos nada sobre a existência da conta.
+      setEnviado(true);
+    } finally {
+      setEnviando(false);
+      setCaptchaToken(null);
+      setCaptchaGeracao((g) => g + 1);
     }
   }
 
@@ -233,24 +322,27 @@ function ModalReset({ onFechar }: { onFechar: () => void }) {
     <CascaModal titulo="Esqueci minha senha" icone={<KeyRound className="size-5 text-primary" />} onFechar={onFechar}>
       {enviado ? (
         <div className="space-y-4 text-center">
-          <div className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-success"><Check className="size-6" /></div>
+          <div className="mx-auto grid size-12 place-items-center rounded-full bg-success/10 text-success"><MailCheck className="size-6" /></div>
           <p className="text-sm text-secondary">
-            Solicitação enviada. A administração vai <span className="font-semibold">redefinir sua senha</span> e informar você.
+            Se este e-mail estiver cadastrado, você receberá em instantes um{" "}
+            <span className="font-semibold">link para criar uma nova senha</span>.
+            Confira também a caixa de spam.
           </p>
           <Button className="w-full" onClick={onFechar}>Entendi</Button>
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Informe o e-mail do seu acesso. A administração recebe o pedido e redefine sua senha (os avisos por e-mail ainda não estão ativos).
+            Informe o e-mail do seu acesso — enviaremos um link seguro para você criar uma nova senha.
           </p>
           <label className="block space-y-1">
             <span className="text-sm font-semibold text-secondary">E-mail</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@blueseniorliving.com.br" className={modalInput} />
           </label>
+          {captchaAtivo && <Turnstile key={captchaGeracao} onToken={setCaptchaToken} />}
           <div className="flex gap-3 pt-1">
-            <Button variant="outline" className="flex-1" onClick={onFechar} disabled={solicitar.isPending}>Cancelar</Button>
-            <Button className="flex-1" onClick={enviar} loading={solicitar.isPending} disabled={email.trim() === ""}>Enviar solicitação</Button>
+            <Button variant="outline" className="flex-1" onClick={onFechar} disabled={enviando}>Cancelar</Button>
+            <Button className="flex-1" onClick={enviar} loading={enviando} disabled={email.trim() === ""}>Enviar link</Button>
           </div>
         </div>
       )}

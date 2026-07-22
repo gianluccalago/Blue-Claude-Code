@@ -14,9 +14,12 @@ if (!url || !anonKey) {
 export const supabase = createClient<Database>(url, anonKey, {
   // Autenticação real (email/senha): mantém a sessão em localStorage e renova
   // o token automaticamente. As travas de acesso ficam no banco via RLS.
+  // detectSessionInUrl: o link de RECUPERAÇÃO DE SENHA enviado por e-mail
+  // chega com o token na URL (/redefinir-senha#access_token=…) — o cliente
+  // precisa detectá-lo para estabelecer a sessão de recuperação.
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
   },
 });

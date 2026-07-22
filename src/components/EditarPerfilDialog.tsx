@@ -15,7 +15,8 @@ import { useAtualizarMeuNome, useAtualizarMinhaSenha } from "@/hooks/useMeuPerfi
 const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 
-const SENHA_MIN = 6;
+// Mínimo alinhado ao go-live (configure também 8+ no painel do Supabase).
+const SENHA_MIN = 8;
 
 export function EditarPerfilDialog({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
   const { usuario, recarregarUsuario } = useAuth();

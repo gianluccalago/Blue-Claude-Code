@@ -28,7 +28,7 @@ interface AuthState {
   /** O usuário REAL é Master? (quem pode usar o Camaleão) */
   ehMaster: boolean;
   carregando: boolean;
-  entrar: (email: string, senha: string) => Promise<void>;
+  entrar: (email: string, senha: string, captchaToken?: string) => Promise<void>;
   sair: () => Promise<void>;
   /** Recarrega o usuário REAL a partir do banco (ex.: após editar o perfil). */
   recarregarUsuario: () => Promise<void>;
@@ -129,10 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function entrar(email: string, senha: string) {
+  async function entrar(email: string, senha: string, captchaToken?: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: senha,
+      // Com "Captcha protection" ligada no Supabase, o token é OBRIGATÓRIO —
+      // robôs que chamarem a API direto (sem resolver o desafio) são barrados.
+      options: captchaToken ? { captchaToken } : undefined,
     });
     if (error) {
       console.error("Falha no login:", error.message);
