@@ -19,6 +19,7 @@ import {
 } from "@/lib/exportPrescricao";
 import { alergiaConflitante } from "@/lib/alergia";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,9 @@ type Modo = { tipo: "lista" } | { tipo: "nova" } | { tipo: "editar"; grupo: Grup
 export function Prescricoes() {
   const residentes = useResidentes();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
-  const hospedeId = selecionadoId ?? residentes.data?.[0]?.id;
+  // HUB primeiro: sem seleção, mostra a grade da casa (nada de cair no 1º).
+  const hospedeId =
+    selecionadoId && residentes.data?.some((r) => r.id === selecionadoId) ? selecionadoId : undefined;
   const hospedeSelecionado = residentes.data?.find((r) => r.id === hospedeId);
   const [modo, setModo] = useState<Modo>({ tipo: "lista" });
 
@@ -154,16 +157,32 @@ export function Prescricoes() {
   if (!residentes.data || residentes.data.length === 0)
     return <EmptyState label="Nenhum residente cadastrado." />;
 
-  return (
-    <div className="space-y-6">
-      <HospedeSelector
+  if (!hospedeId) {
+    return (
+      <HubHospedes
         hospedes={residentes.data}
-        selecionadoId={hospedeId}
         onSelect={(id) => {
           setSelecionadoId(id);
           setModo({ tipo: "lista" });
         }}
+        descricao="Escolha um hóspede para ver e prescrever"
       />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <BotaoVerTodos onClick={() => { setSelecionadoId(undefined); setModo({ tipo: "lista" }); }} />
+        <HospedeSelector
+          hospedes={residentes.data}
+          selecionadoId={hospedeId}
+          onSelect={(id) => {
+            setSelecionadoId(id);
+            setModo({ tipo: "lista" });
+          }}
+        />
+      </div>
 
       {hospedeId && modo.tipo === "lista" && (
         <ListaPrescricoes
