@@ -10,6 +10,7 @@ import { useResidentes } from "@/hooks/usePlanos";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useEditarResidente, type ResidenteValor } from "@/hooks/useResidentesGestao";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { FichaHospedeCard } from "@/components/FichaHospedeCard";
 import { ResidenteFicha } from "@/components/master/ResidenteFicha";
 import { RecadoFamiliaEditor } from "@/components/coordenacao/RecadoFamiliaEditor";
@@ -62,9 +63,25 @@ export function FichaHospedeScreen() {
     );
   }
 
-  const hospedeId = selecionadoId && lista.some((h) => h.id === selecionadoId) ? selecionadoId : lista[0]?.id;
+  // HUB primeiro: sem seleção (nem ?hospede=ID válido), mostra a grade da
+  // casa em vez de cair no primeiro da lista.
+  const hospedeId = selecionadoId && lista.some((h) => h.id === selecionadoId) ? selecionadoId : undefined;
   const hospede = lista.find((h) => h.id === hospedeId);
   const editavel = podeEditarFicha(perfil);
+
+  if (!hospede) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary">
+            <Users className="size-5" />
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Hóspedes</h1>
+        </div>
+        <HubHospedes hospedes={lista} onSelect={setSelecionadoId} descricao="Escolha um hóspede para abrir a ficha" />
+      </div>
+    );
+  }
 
   async function salvarEdicao(valor: ResidenteValor) {
     if (!hospede) return;
@@ -94,7 +111,8 @@ export function FichaHospedeScreen() {
       </div>
 
       <Card>
-        <CardContent className="py-4">
+        <CardContent className="space-y-3 py-4">
+          <BotaoVerTodos onClick={() => { setSelecionadoId(undefined); setEditando(false); }} />
           <HospedeSelector
             hospedes={lista}
             selecionadoId={hospedeId}

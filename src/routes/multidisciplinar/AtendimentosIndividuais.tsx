@@ -21,6 +21,7 @@ import {
   tipoSugeridoPorFuncao,
 } from "@/lib/atendimento";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +42,8 @@ export function AtendimentosIndividuais() {
   const lista = residentes.data ?? [];
   if (lista.length === 0) return <EmptyState label="Nenhum hóspede cadastrado." />;
 
-  const hospedeId = selecionadoId ?? lista[0]?.id;
+  // HUB primeiro: sem seleção, mostra a grade da casa (nada de cair no 1º).
+  const hospedeId = selecionadoId && lista.some((r) => r.id === selecionadoId) ? selecionadoId : undefined;
 
   return (
     <div className="space-y-6">
@@ -54,7 +56,16 @@ export function AtendimentosIndividuais() {
         </div>
       </div>
 
-      <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
+      {!hospedeId && (
+        <HubHospedes hospedes={lista} onSelect={setSelecionadoId} descricao="Escolha um hóspede para registrar ou consultar atendimentos" />
+      )}
+
+      {hospedeId && (
+        <div className="space-y-3">
+          <BotaoVerTodos onClick={() => setSelecionadoId(undefined)} />
+          <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={setSelecionadoId} />
+        </div>
+      )}
 
       {hospedeId && (
         <Tabs defaultValue="registrar">

@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { LembreteProvisionamento } from "@/components/farmacia/LembreteProvisionamento";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR } from "@/lib/utils";
@@ -78,9 +79,10 @@ export function Dispensacao() {
   const [tabAtiva, setTabAtiva] = useState<"dispensar" | "mapa">("dispensar");
   const [dataSelecionada, setDataSelecionada] = useState(hojeISODate());
 
-  const hId = hospedeId ?? residentes[0]?.id;
-  const indice = residentes.findIndex((r) => r.id === hId);
-  const proximo = indice < residentes.length - 1 ? residentes[indice + 1] : null;
+  // HUB primeiro: sem seleção, a aba "Dispensar" mostra a grade da casa.
+  const hId = hospedeId && residentes.some((r) => r.id === hospedeId) ? hospedeId : undefined;
+  const indice = hId ? residentes.findIndex((r) => r.id === hId) : -1;
+  const proximo = indice >= 0 && indice < residentes.length - 1 ? residentes[indice + 1] : null;
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
@@ -113,11 +115,19 @@ export function Dispensacao() {
         </TabsList>
 
         <TabsContent value="dispensar" className="space-y-4 mt-4">
-          <HospedeSelector
-            hospedes={residentes}
-            selecionadoId={hId}
-            onSelect={setHospedeId}
-          />
+          {!hId && (
+            <HubHospedes hospedes={residentes} onSelect={setHospedeId} descricao="Escolha um hóspede para dispensar a medicação" />
+          )}
+          {hId && (
+            <div className="space-y-3">
+              <BotaoVerTodos onClick={() => setHospedeId(undefined)} />
+              <HospedeSelector
+                hospedes={residentes}
+                selecionadoId={hId}
+                onSelect={setHospedeId}
+              />
+            </div>
+          )}
           {hId && (
             <Dispensar
               key={`${hId}-${dataSelecionada}`}

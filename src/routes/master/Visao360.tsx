@@ -35,6 +35,7 @@ import {
   useAceitacaoResidenteHoje,
 } from "@/hooks/useMaster";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
 import { formatarQuarto } from "@/lib/quarto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,13 +81,20 @@ export function Visao360() {
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
 
   const lista = residentes.data ?? [];
-  // Seleciona o primeiro hóspede automaticamente quando a lista chega.
-  const idAtivo = selecionadoId ?? lista[0]?.id;
-  const hospede = lista.find((r) => r.id === idAtivo);
+  // HUB primeiro: sem seleção, mostra a grade da casa (nada de cair no 1º).
+  const hospede = lista.find((r) => r.id === selecionadoId);
 
   if (residentes.isLoading) return <LoadingState />;
   if (residentes.error) return <ErrorState error={residentes.error} />;
   if (lista.length === 0) return <EmptyState label="Nenhum hóspede cadastrado." />;
+
+  if (!hospede) {
+    return (
+      <div className="space-y-6">
+        <HubHospedes hospedes={lista} onSelect={setSelecionadoId} descricao="Escolha um hóspede para abrir a visão 360°" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -96,16 +104,17 @@ export function Visao360() {
             <User className="size-4 text-secondary" /> Selecione o hóspede
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <BotaoVerTodos onClick={() => setSelecionadoId(undefined)} />
           <HospedeSelector
             hospedes={lista}
-            selecionadoId={idAtivo}
+            selecionadoId={hospede.id}
             onSelect={setSelecionadoId}
           />
         </CardContent>
       </Card>
 
-      {hospede && <Prontuario key={hospede.id} residenteId={hospede.id} hospede={hospede} />}
+      <Prontuario key={hospede.id} residenteId={hospede.id} hospede={hospede} />
     </div>
   );
 }

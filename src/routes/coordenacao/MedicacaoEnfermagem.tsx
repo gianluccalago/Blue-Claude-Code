@@ -15,6 +15,7 @@ import {
   useRemoverProcedimentoEnfermagem,
 } from "@/hooks/useEnfermagem";
 import { HospedeSelector } from "@/components/HospedeSelector";
+import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,8 @@ export function MedicacaoEnfermagem() {
   const residentes = useResidentes();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   const lista = residentes.data ?? [];
-  const hospedeId = selecionadoId ?? lista[0]?.id;
+  // HUB primeiro: sem seleção, a aba "Por hóspede" mostra a grade da casa.
+  const hospedeId = selecionadoId && lista.some((r) => r.id === selecionadoId) ? selecionadoId : undefined;
   const indice = lista.findIndex((r) => r.id === hospedeId);
 
   if (residentes.isLoading) return <LoadingState />;
@@ -100,6 +102,7 @@ export function MedicacaoEnfermagem() {
           anterior={anterior}
           proximo={proximo}
           onSelect={setSelecionadoId}
+          onLimpar={() => setSelecionadoId(undefined)}
         />
       </TabsContent>
     </Tabs>
@@ -239,6 +242,7 @@ function VisaoPorHospede({
   anterior,
   proximo,
   onSelect,
+  onLimpar,
 }: {
   lista: Residente[];
   hospedeId: string | undefined;
@@ -246,10 +250,22 @@ function VisaoPorHospede({
   anterior: Residente | null;
   proximo: Residente | null;
   onSelect: (id: string) => void;
+  onLimpar: () => void;
 }) {
+  if (!hospedeId) {
+    return (
+      <div className="pt-4">
+        <HubHospedes hospedes={lista} onSelect={onSelect} descricao="Escolha um hóspede para ver a medicação e os procedimentos" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={onSelect} />
+      <div className="space-y-3">
+        <BotaoVerTodos onClick={() => onLimpar()} />
+        <HospedeSelector hospedes={lista} selecionadoId={hospedeId} onSelect={onSelect} />
+      </div>
 
       {/* Navegação prev/next */}
       {lista.length > 1 && (
