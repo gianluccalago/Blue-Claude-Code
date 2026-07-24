@@ -238,13 +238,16 @@ function ContratoProjetosPrestador() {
               const ms = (marcosPorDisc.get(d.id) ?? []).sort((a, b) => a.ordem - b.ordem);
               const pagos = ms.filter((m) => m.status === "Pago");
               const fim = fimDe(d);
-              const atrasada = d.status !== "Concluído" && d.progresso_pct < 100 && fim != null && fim < hoje;
+              // "Concluída" = progresso 100 (a barra é a verdade; status é o
+              // ciclo de pagamento, mantido em sincronia na escrita).
+              const concluida = d.progresso_pct >= 100;
+              const atrasada = !concluida && fim != null && fim < hoje;
               return (
                 <div key={d.id} className="py-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-semibold text-secondary">{d.nome}</span>
-                      {d.status === "Concluído" && <Badge variant="success">concluída</Badge>}
+                      {concluida && <Badge variant="success">concluída</Badge>}
                       {atrasada && <Badge variant="destructive">prazo vencido</Badge>}
                       {d.valor === 0 && <Badge variant="muted">sem pagamento</Badge>}
                     </div>

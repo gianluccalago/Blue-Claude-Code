@@ -87,9 +87,10 @@ export function ObraCentral() {
   const avancoProjetos = totalContratado > 0
     ? pagasComValor.reduce((s, d) => s + d.valor * d.progresso_pct, 0) / totalContratado
     : 0;
+  // "Concluída" = progresso 100 (fonte da verdade — sincronizada com o status).
   const atrasadas = listaDisc.filter((d) => {
     const fim = fimDe(d);
-    return d.status !== "Concluído" && d.progresso_pct < 100 && fim != null && fim < hoje;
+    return d.progresso_pct < 100 && fim != null && fim < hoje;
   });
 
   // ── Ações pendentes (o que precisa de VOCÊ agora) ──
@@ -112,11 +113,11 @@ export function ObraCentral() {
   const segunda = segundaDaSemana(hoje);
   const domingo = somarDiasISO(segunda, 6)!;
   const naSemana = (iso: string | null) => !!iso && iso >= segunda && iso <= domingo;
-  const comecamSemana = listaDisc.filter((d) => naSemana(d.data_base) && d.status !== "Concluído");
-  const terminamSemana = listaDisc.filter((d) => naSemana(fimDe(d)) && d.status !== "Concluído");
+  const comecamSemana = listaDisc.filter((d) => naSemana(d.data_base) && d.progresso_pct < 100);
+  const terminamSemana = listaDisc.filter((d) => naSemana(fimDe(d)) && d.progresso_pct < 100);
   const emAndamento = listaDisc.filter((d) => {
     const fim = fimDe(d);
-    return d.status !== "Concluído" && d.data_base && d.data_base <= hoje && (!fim || fim >= hoje) && d.progresso_pct < 100;
+    return d.data_base != null && d.data_base <= hoje && (!fim || fim >= hoje) && d.progresso_pct < 100;
   });
 
   // ── Desembolso mês a mês (previsto × pago) ──

@@ -343,7 +343,9 @@ export function ModalDisciplina({
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const temPago = marcos.some((m) => m.status === "Pago");
 
-  // Estado editável (status + conclusão) — livre e reversível.
+  // Estado editável (status + conclusão) — livre e reversível. SINCRONIA com
+  // o progresso: marcar "Concluído" leva a barra a 100% (e vice-versa, no
+  // slider) — nunca existe "concluída com 50%".
   async function mudarStatus(novo: string) {
     try {
       await atualizar.mutateAsync({
@@ -351,6 +353,7 @@ export function ModalDisciplina({
         status: novo,
         // Concluído sem data → carimba hoje; sair de Concluído limpa a conclusão.
         dataConclusao: novo === "Concluído" ? (d.data_conclusao ?? hojeISO()) : null,
+        ...(novo === "Concluído" ? { progressoPct: 100 } : {}),
       });
       toast.success(`Status: ${novo}.`);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao mudar o status."); }

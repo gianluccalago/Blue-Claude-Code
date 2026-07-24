@@ -87,15 +87,16 @@ describe("statusBarraFase", () => {
 });
 
 describe("statusBarraDisciplina", () => {
-  it("concluído/pago/data_conclusao = concluída", () => {
-    expect(statusBarraDisciplina({ status: "Pago", data_base: null, prazo_dias: null, data_conclusao: null }, HOJE)).toBe("concluida");
-    expect(statusBarraDisciplina({ status: "Em análise", data_base: "2026-01-01", prazo_dias: 30, data_conclusao: "2026-02-01" }, HOJE)).toBe("concluida");
+  it("progresso 100 = concluída (mesmo com prazo vencido)", () => {
+    expect(statusBarraDisciplina({ progresso_pct: 100, data_base: "2026-01-01", prazo_dias: 30 }, HOJE)).toBe("concluida");
+    expect(statusBarraDisciplina({ progresso_pct: 100, data_base: null, prazo_dias: null }, HOJE)).toBe("concluida");
   });
-  it("prazo vencido sem conclusão = atrasada", () => {
-    expect(statusBarraDisciplina({ status: "Pendente", data_base: "2026-01-01", prazo_dias: 30, data_conclusao: null }, HOJE)).toBe("atrasada");
+  it("progresso < 100 nunca é concluída — prazo vencido = atrasada", () => {
+    expect(statusBarraDisciplina({ progresso_pct: 50, data_base: "2026-01-01", prazo_dias: 30 }, HOJE)).toBe("atrasada");
+    expect(statusBarraDisciplina({ progresso_pct: 99, data_base: "2026-01-01", prazo_dias: 30 }, HOJE)).toBe("atrasada");
   });
   it("dentro do prazo = andamento; sem data-base = prevista", () => {
-    expect(statusBarraDisciplina({ status: "Pendente", data_base: "2026-07-01", prazo_dias: 90, data_conclusao: null }, HOJE)).toBe("andamento");
-    expect(statusBarraDisciplina({ status: "Pendente", data_base: null, prazo_dias: 60, data_conclusao: null }, HOJE)).toBe("prevista");
+    expect(statusBarraDisciplina({ progresso_pct: 10, data_base: "2026-07-01", prazo_dias: 90 }, HOJE)).toBe("andamento");
+    expect(statusBarraDisciplina({ progresso_pct: 0, data_base: null, prazo_dias: 60 }, HOJE)).toBe("prevista");
   });
 });

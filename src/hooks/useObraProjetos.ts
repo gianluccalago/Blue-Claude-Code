@@ -72,12 +72,14 @@ export function useAtualizarDisciplina() {
       art?: File | null;
       status?: string;
       dataConclusao?: string | null;
+      progressoPct?: number;
     }) => {
       const patch: Database["public"]["Tables"]["obra_disciplinas"]["Update"] = {};
       if (args.dataBase !== undefined) patch.data_base = args.dataBase || null;
       if (args.revisoesUsadas !== undefined) patch.revisoes_usadas = args.revisoesUsadas;
       if (args.status) patch.status = args.status;
       if (args.dataConclusao !== undefined) patch.data_conclusao = args.dataConclusao;
+      if (args.progressoPct !== undefined) patch.progresso_pct = Math.max(0, Math.min(100, args.progressoPct));
       if (args.art) {
         const path = await uploadArquivoObra(args.art, `art/${args.id}`);
         if (!path) throw new Error("Falha no upload da ART. Tente novamente.");
@@ -140,9 +142,27 @@ export function useAtualizarProgresso() {
   return useMutation({
     mutationFn: async (args: { disciplinaId: string; progressoPct: number; observacao?: string }) => {
       const pct = Math.max(0, Math.min(100, Math.round(args.progressoPct)));
+      // SINCRONIA status ↔ progresso (a barra é a fonte da verdade):
+      //  · 100% → status "Concluído" + data de conclusão (se ainda não tinha);
+      //  · <100% numa atividade "Concluída" → reabre (limpa a conclusão).
+      // Assim nunca existe "concluída com 50%" em tela nenhuma.
+      const { data: atual } = await supabase
+        .from("obra_disciplinas")
+        .select("status, data_conclusao")
+        .eq("id", args.disciplinaId)
+        .maybeSingle();
+      const patch: { progresso_pct: number; status?: string; data_conclusao?: string | null } = { progresso_pct: pct };
+      if (pct >= 100 && atual && atual.status !== "Concluído" && atual.status !== "Pago") {
+        patch.status = "Concluído";
+        patch.data_conclusao = atual.data_conclusao ?? hojeISO();
+      }
+      if (pct < 100 && atual?.status === "Concluído") {
+        patch.status = "Aprovado";
+        patch.data_conclusao = null;
+      }
       const { error } = await supabase
         .from("obra_disciplinas")
-        .update({ progresso_pct: pct })
+        .update(patch)
         .eq("id", args.disciplinaId);
       if (error) throw error;
       const { error: e2 } = await supabase.from("obra_disciplina_progresso").insert({

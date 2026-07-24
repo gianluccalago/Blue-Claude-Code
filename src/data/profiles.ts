@@ -146,7 +146,7 @@ export const PERFIS: PerfilDef[] = [
     // modelos, profissionais, solicitações da família, NPS nem financeiro.
     // Reaproveita as telas/rotas flat da Coordenação.
     id: "enfermeira",
-    nome: "Enfermeira",
+    nome: "Enfermeira (assistencial)",
     descricao: "Assistencial do dia (sem funções de gestão)",
     icon: Stethoscope,
     cor: "bg-primary text-primary-foreground",
@@ -189,7 +189,7 @@ export const PERFIS: PerfilDef[] = [
     // enfermagem (injetável, insulina SC, sonda) — a mesma tela já usada pela
     // Coordenação. Reaproveita as rotas existentes (roteamento por $perfil).
     id: "enfermagem",
-    nome: "Enfermagem",
+    nome: "Enfermagem (plantão)",
     descricao: "Procedimentos e administração de medicação",
     icon: Stethoscope,
     cor: "bg-primary text-primary-foreground",

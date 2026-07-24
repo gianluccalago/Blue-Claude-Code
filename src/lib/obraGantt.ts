@@ -96,17 +96,19 @@ export function statusBarraFase(
 }
 
 /**
- * Status da barra de uma DISCIPLINA de projeto:
- *  - concluída: Concluído/Pago (ou com data de conclusão);
- *  - atrasada: prazo (data_base + prazo_dias) vencido sem conclusão;
+ * Status da barra de uma DISCIPLINA de projeto. A FONTE DA VERDADE de
+ * "concluída" é o PROGRESSO (>= 100) — o status contratual (Pendente…Pago)
+ * é o ciclo de pagamento e não pode contradizer a barra:
+ *  - concluída: progresso 100%;
+ *  - atrasada: prazo (data_base + prazo_dias) vencido sem 100%;
  *  - andamento: com data-base dentro do prazo;
  *  - prevista: sem data-base.
  */
 export function statusBarraDisciplina(
-  d: { status: string; data_base: string | null; prazo_dias: number | null; data_conclusao: string | null },
+  d: { progresso_pct: number; data_base: string | null; prazo_dias: number | null },
   hoje: string,
 ): StatusGantt {
-  if (d.status === "Concluído" || d.status === "Pago" || d.data_conclusao) return "concluida";
+  if (d.progresso_pct >= 100) return "concluida";
   if (!d.data_base) return "prevista";
   const limite = d.prazo_dias != null ? somarDias(d.data_base, d.prazo_dias) : null;
   if (limite && limite < hoje) return "atrasada";
