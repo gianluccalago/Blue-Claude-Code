@@ -50,8 +50,8 @@ export function PortalPrestador() {
       <div className="flex items-center gap-3">
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary"><HardHat className="size-5" /></div>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Portal da obra</h1>
-          <p className="text-xs text-muted-foreground">Suas medições, documentos e entregas.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Portal da obra — TRÍADE</h1>
+          <p className="text-xs text-muted-foreground">Projetos e pagamentos · entregas R00/R01 · BIM · medições · documentos do mês.</p>
         </div>
       </div>
 
