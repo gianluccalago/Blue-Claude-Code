@@ -12,6 +12,9 @@ import {
   Plus,
   Pencil,
   Trash2,
+  FolderOpen,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useObraConfig } from "@/hooks/useObraMedicoes";
@@ -32,6 +35,9 @@ import {
 } from "@/hooks/useObraProjetos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { SliderPct } from "@/components/ui/slider";
+import { useObraArquivos, useSubirArquivosObra, useExcluirArquivoObra } from "@/hooks/useObraArquivos";
+import { AnexoSeguro } from "@/components/AnexoSeguro";
+import { BUCKET_OBRA } from "@/lib/storage";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -157,6 +163,20 @@ export function ObraProjetos() {
 
       {/* BIM */}
       <PainelBim rodadas={rodadas} compatFinal={compatFinal} podeEditar={podeEditar} />
+
+      {/* Repositório: contrato assinado + arquivos gerais do empreendimento */}
+      <Card>
+        <CardContent className="space-y-5 p-4 sm:p-5">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
+            <FolderOpen className="size-5 text-primary" /> Arquivos do empreendimento
+          </h2>
+          <BlocoArquivos categoria="contrato" titulo="Contrato TRÍADE (assinado, aditivos)" podeEditar={podeEditar} />
+          <BlocoArquivos categoria="geral" titulo="Arquivos gerais (memoriais, anexos do contrato…)" podeEditar={podeEditar} />
+          <p className="text-[11px] text-muted-foreground">
+            Os DWG/PDF de cada projeto ficam na própria atividade — abra a atividade acima e use a seção “Arquivos da atividade”.
+          </p>
+        </CardContent>
+      </Card>
 
       {detalhe && (
         <ModalDisciplina
@@ -528,6 +548,11 @@ export function ModalDisciplina({
             <MarcoLinha key={m.id} marco={m} disciplina={d} compatFinal={compatFinal} podeEditar={podeEditar} />
           ))}
         </div>
+
+        {/* Arquivos da atividade (DWG/PDF dos projetos) */}
+        <div className="mt-4">
+          <BlocoArquivos categoria="projeto" disciplinaId={d.id} titulo="Arquivos da atividade (DWG · PDF · memoriais)" podeEditar={podeEditar} />
+        </div>
       </div>
       <ConfirmDialog
         aberto={confirmandoExclusao}
@@ -539,6 +564,125 @@ export function ModalDisciplina({
       />
     </div>,
     document.body,
+  );
+}
+
+/**
+ * Bloco de arquivos do repositório (contrato / projeto por atividade / geral):
+ * upload múltiplo (PDF, DWG, imagens…), lista com abrir/baixar e excluir.
+ */
+function BlocoArquivos({
+  categoria,
+  disciplinaId = null,
+  titulo,
+  podeEditar,
+}: {
+  categoria: "contrato" | "projeto" | "geral";
+  disciplinaId?: string | null;
+  titulo: string;
+  podeEditar: boolean;
+}) {
+  const arquivos = useObraArquivos();
+  const subir = useSubirArquivosObra();
+  const excluir = useExcluirArquivoObra();
+  const [aExcluir, setAExcluir] = useState<{ id: string; nome: string } | null>(null);
+
+  const lista = (arquivos.data ?? []).filter(
+    (a) => a.categoria === categoria && (disciplinaId ? a.disciplina_id === disciplinaId : !a.disciplina_id),
+  );
+
+  async function onArquivos(e: ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = "";
+    if (files.length === 0) return;
+    try {
+      await subir.mutateAsync({ categoria, disciplinaId, arquivos: files });
+      toast.success(`${files.length} arquivo(s) anexado(s).`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha no upload.");
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-secondary">{titulo}</p>
+        {podeEditar && (
+          <label className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+            <Upload className="mr-1 inline size-3.5" />
+            {subir.isPending ? "Enviando…" : "Anexar arquivos"}
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.dwg,.dxf,.ifc,.doc,.docx,.xls,.xlsx,image/*"
+              className="hidden"
+              disabled={subir.isPending}
+              onChange={onArquivos}
+            />
+          </label>
+        )}
+      </div>
+      {lista.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-3 text-xs text-muted-foreground">
+          Nenhum arquivo anexado ainda.
+        </p>
+      ) : (
+        <div className="divide-y rounded-lg border border-border">
+          {lista.map((a) => (
+            <div key={a.id} className="flex items-center gap-2.5 px-3 py-2">
+              <FileText className="size-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-secondary" title={a.nome}>{a.nome}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {formatarDataBR(a.criado_em.slice(0, 10))}{a.registrado_por ? ` · ${a.registrado_por}` : ""}
+                </p>
+              </div>
+              <AnexoSeguro
+                bucket={BUCKET_OBRA}
+                stored={a.arquivo_url}
+                fallback={<span className="text-xs text-muted-foreground">…</span>}
+              >
+                {(url) => (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    <ExternalLink className="size-3.5" /> Abrir
+                  </a>
+                )}
+              </AnexoSeguro>
+              {podeEditar && (
+                <button
+                  onClick={() => setAExcluir({ id: a.id, nome: a.nome })}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  title="Excluir arquivo"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <ConfirmDialog
+        aberto={!!aExcluir}
+        titulo="Excluir arquivo?"
+        descricao={aExcluir?.nome}
+        textoConfirmar="Excluir"
+        onConfirmar={() => {
+          const alvo = aExcluir;
+          setAExcluir(null);
+          if (!alvo) return;
+          excluir.mutate(alvo.id, {
+            onSuccess: () => toast.success("Arquivo excluído."),
+            onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao excluir."),
+          });
+        }}
+        onCancelar={() => setAExcluir(null)}
+      />
+    </div>
   );
 }
 

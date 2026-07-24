@@ -50,9 +50,10 @@ export function ObraPainel() {
   const nomeDisc = new Map((disciplinas.data ?? []).map((d) => [d.id, d.nome]));
   const marcoDisc = new Map((marcos.data ?? []).map((m) => [m.id, m.disciplina_id]));
 
-  // Próximos pagamentos (30 dias).
+  // Próximos pagamentos (30 dias). BM vence 15 dias corridos após a
+  // aprovação (cláusula 8.1.2 do contrato).
   const pagamentos = [
-    ...(medicoes.data ?? []).filter((m) => m.status === "Aprovado").map((m) => ({ ref: `BM ${m.mes}`, valor: m.valor_liquido, venc: m.data_aprovacao ?? hoje })),
+    ...(medicoes.data ?? []).filter((m) => m.status === "Aprovado").map((m) => ({ ref: `BM ${m.mes}`, valor: m.valor_liquido, venc: somarDiasISO(m.data_aprovacao ?? hoje, 15) ?? hoje })),
     ...(marcos.data ?? []).filter((m) => m.status === "Aprovado").map((m) => ({ ref: `${nomeDisc.get(marcoDisc.get(m.id) ?? "") ?? "?"} · ${m.rotulo}`, valor: m.valor, venc: m.data_aprovacao ?? hoje })),
     ...(ordens.data ?? []).filter((o) => (o.status === "Emitida" || o.status === "Entregue parcial") && o.previsao_entrega).map((o) => ({ ref: `${o.item} · ${o.fornecedor}`, valor: o.valor_total, venc: o.previsao_entrega! })),
   ].filter((p) => p.venc <= em30).sort((a, b) => a.venc.localeCompare(b.venc));

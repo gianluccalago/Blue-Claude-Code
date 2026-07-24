@@ -345,6 +345,30 @@ portal do prestador (o que é DELES, e só isso):
   financeiro do Contratante segue fechado: materiais, cotações, OCs,
   retenções, baseline e indiretos continuam master/direção.
 
+### ✅ Contrato ASSINADO conferido + repositório de arquivos (migration `0115_contrato_assinado_arquivos.sql`)
+Contrato TRÍADE assinado em 27/07/26 conferido cláusula a cláusula — o módulo
+já batia em: R$914,66/m², áreas das 4 fases, projetos R$500 mil (50/25/25),
+multa de fase 0,05%/d teto 5%, bônus 1%/30d teto 2%, multa de projeto
+0,15%/d teto 10%, retenção 5% (50% TRP / 50% TRD), reposição 3%, consumíveis
+1,5%, IPCA assinatura→início de fase, INSS art. 31/ISS na fonte, planejamento
+de materiais 45/60 dias. O que o assinado acrescentou:
+- **Pagamento do BM em até 15 dias corridos após a aprovação (8.1.2)** — as
+  contas a pagar/painel agora projetam o vencimento como aprovação+15d.
+- **Parâmetros novos em obra_config**: taxa de administração de 5% sobre a
+  terraplenagem medida/paga (4.7.1 — única exceção de fornecedor direto;
+  lançar junto às medições correspondentes), indenização de desmobilização
+  R$2.000/evento (6.4), multa por ocorrência R$3.000 (14.3.1), data de
+  assinatura (base do IPCA).
+- **Obrigações da TRÍADE semeadas em insumos críticos** (para cobrar):
+  Cronograma Executivo MS Project do Módulo 5 até 11/08/26 (5.5; demais fases
+  60 dias antes), seguro-garantia/fiança de 5% da fase (8.2.2 — condição da
+  1ª medição) e apólices (risco engenharia, RC ≥ R$200 mil, vida em grupo).
+- **Repositório `obra_arquivos`** (master/direção; bucket obra, pasta
+  arquivos/ — fora do alcance do prestador): card "Arquivos do
+  empreendimento" na aba Projetos (contrato assinado + gerais) e seção
+  "Arquivos da atividade (DWG · PDF · memoriais)" no workspace de cada
+  atividade, com upload múltiplo, abrir via URL assinada e exclusão.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

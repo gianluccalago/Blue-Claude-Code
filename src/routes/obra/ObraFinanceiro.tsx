@@ -145,8 +145,10 @@ export function ObraFinanceiro() {
 
   // ── Contas a pagar (agenda por vencimento) ──
   const contas = [
+    // Cláusula 8.1.2: pagamento do BM em até 15 dias corridos após a aprovação.
     ...listaMed.filter((m) => m.status === "Aprovado").map((m) => ({
-      tipo: "Medição", ref: `BM ${m.mes}`, valor: m.valor_liquido, venc: m.data_aprovacao ?? hojeISO(),
+      tipo: "Medição", ref: `BM ${m.mes}`, valor: m.valor_liquido,
+      venc: somarDiasISO(m.data_aprovacao ?? hojeISO(), 15)!,
     })),
     ...listaMarcos.filter((m) => m.status === "Aprovado").map((m) => ({
       tipo: "Projeto", ref: `${nomeDisc.get(marcoDisc.get(m.id) ?? "") ?? "?"} · ${m.rotulo}`, valor: m.valor, venc: m.data_aprovacao ?? hojeISO(),

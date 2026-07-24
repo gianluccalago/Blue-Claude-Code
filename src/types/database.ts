@@ -2681,6 +2681,29 @@ export interface Database {
         Update: Partial<{ status: "pendente" | "aprovada" | "recusada"; motivo_recusa: string | null; revisado_por: string | null; revisado_em: string | null }>;
         Relationships: [];
       };
+      obra_arquivos: {
+        Row: {
+          id: string;
+          categoria: "contrato" | "projeto" | "geral";
+          disciplina_id: string | null;
+          nome: string;
+          arquivo_url: string;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          categoria: "contrato" | "projeto" | "geral";
+          disciplina_id?: string | null;
+          nome: string;
+          arquivo_url: string;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ nome: string; observacao: string | null; categoria: "contrato" | "projeto" | "geral"; disciplina_id: string | null }>;
+        Relationships: [];
+      };
       obra_custos_indiretos: {
         Row: {
           id: string;
@@ -3227,6 +3250,7 @@ export type ObraEtapa = Database["public"]["Tables"]["obra_etapas"]["Row"];
 export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist_execucao"]["Row"];
 export type ObraChecklistFoto = Database["public"]["Tables"]["obra_checklist_foto"]["Row"];
 export type ObraCustoIndireto = Database["public"]["Tables"]["obra_custos_indiretos"]["Row"];
+export type ObraArquivo = Database["public"]["Tables"]["obra_arquivos"]["Row"];
 export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
 export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
 export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];
