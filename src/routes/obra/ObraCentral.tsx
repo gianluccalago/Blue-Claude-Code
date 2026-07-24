@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   Gauge, Wallet, CalendarClock, AlertTriangle, CircleDollarSign, CalendarCheck2,
-  ArrowRight, Play, CheckCircle2, Hourglass,
+  ArrowRight, Play, CheckCircle2, Hourglass, Package, MessageSquareText, Camera, X,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useObraConfig } from "@/hooks/useObraMedicoes";
@@ -16,6 +16,10 @@ import {
 } from "@/hooks/useObraProjetos";
 import { ModalDisciplina } from "@/routes/obra/ObraProjetos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { usePlanejamento, useResponderPedidoInsumo } from "@/hooks/useObraMateriais";
+import { useSolicitacoesObra, useResponderSolicitacaoObra, useFotosAndamento } from "@/hooks/useObraColab";
+import { FotoSegura } from "@/components/AnexoSeguro";
+import { BUCKET_OBRA } from "@/lib/storage";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -249,6 +253,9 @@ export function ObraCentral() {
         </CardContent>
       </Card>
 
+      {/* Canais da TRÍADE: pedidos de insumos, solicitações e fotos */}
+      <CanaisTriade podeEditar={podeEditar} />
+
       {/* Esta semana */}
       <Card>
         <CardContent className="space-y-3 p-4 sm:p-5">
@@ -341,6 +348,240 @@ export function ObraCentral() {
 }
 
 // ---------------------------------------------------------------------------
+
+// ───────────────────────────────────────────────────────────────────────────
+// CANAIS DA TRÍADE — pedidos de insumos (responder com data), solicitações
+// gerais (responder) e fotos do canteiro. É a nossa metade da parceria.
+// ───────────────────────────────────────────────────────────────────────────
+
+function CanaisTriade({ podeEditar }: { podeEditar: boolean }) {
+  const planejamento = usePlanejamento();
+  const solicitacoes = useSolicitacoesObra();
+  const fotos = useFotosAndamento();
+  const responderPedido = useResponderPedidoInsumo();
+  const responderSolic = useResponderSolicitacaoObra();
+
+  const hoje = hojeISO();
+  const pedidosAbertos = (planejamento.data ?? [])
+    .filter((p) => p.status_atendimento === "solicitado")
+    .sort((a, b) => (a.data_necessidade ?? "9999").localeCompare(b.data_necessidade ?? "9999"));
+  const solicAbertas = (solicitacoes.data ?? []).filter((s) => s.status === "aberta" || s.status === "em_atendimento");
+  const fotosRecentes = (fotos.data ?? []).slice(0, 6);
+
+  const [respondendoPedido, setRespondendoPedido] = useState<(typeof pedidosAbertos)[number] | null>(null);
+  const [respondendoSolic, setRespondendoSolic] = useState<(typeof solicAbertas)[number] | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
+
+  const nadaPendente = pedidosAbertos.length === 0 && solicAbertas.length === 0;
+
+  return (
+    <>
+      <Card>
+        <CardContent className="space-y-4 p-4 sm:p-5">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
+            <Package className="size-5 text-primary" /> Canais da TRÍADE
+            {(pedidosAbertos.length + solicAbertas.length) > 0 && (
+              <Badge variant="warning">{pedidosAbertos.length + solicAbertas.length} aguardando resposta</Badge>
+            )}
+          </h2>
+
+          {nadaPendente && <p className="text-sm text-muted-foreground">Nenhum pedido ou solicitação aguardando resposta. ✔</p>}
+
+          {/* Pedidos de insumos aguardando nossa resposta */}
+          {pedidosAbertos.length > 0 && (
+            <div>
+              <p className="mb-1 text-sm font-semibold text-secondary">Pedidos de insumos (responder com data)</p>
+              <div className="divide-y">
+                {pedidosAbertos.map((p) => {
+                  const urgente = p.data_necessidade && p.data_necessidade <= somarDiasISO(hoje, 15)!;
+                  return (
+                    <div key={p.id} className="flex flex-wrap items-center gap-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-secondary">
+                          {p.item} <span className="text-xs font-normal text-muted-foreground">· {p.quantidade_prevista} {p.unidade}</span>
+                        </p>
+                        <p className={cn("text-xs", urgente ? "font-semibold text-warning" : "text-muted-foreground")}>
+                          necessário em {p.data_necessidade ? formatarDataBR(p.data_necessidade) : "—"}
+                          {p.observacao ? ` · ${p.observacao}` : ""}
+                        </p>
+                      </div>
+                      {podeEditar && (
+                        <Button size="sm" onClick={() => setRespondendoPedido(p)}>Responder</Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Solicitações gerais */}
+          {solicAbertas.length > 0 && (
+            <div>
+              <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-secondary"><MessageSquareText className="size-4 text-primary" /> Solicitações gerais</p>
+              <div className="divide-y">
+                {solicAbertas.map((s) => (
+                  <div key={s.id} className="flex flex-wrap items-center gap-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-secondary">{s.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.descricao ?? ""}{s.data_desejada ? ` · desejado p/ ${formatarDataBR(s.data_desejada)}` : ""}
+                      </p>
+                    </div>
+                    {podeEditar && <Button size="sm" variant="outline" onClick={() => setRespondendoSolic(s)}>Responder</Button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fotos recentes do canteiro */}
+          {fotosRecentes.length > 0 && (
+            <div>
+              <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-secondary"><Camera className="size-4 text-primary" /> Fotos recentes do canteiro</p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {fotosRecentes.map((f) => (
+                  <button key={f.id} onClick={() => setFotoAmpliada(f.foto_url)} className="overflow-hidden rounded-lg border transition-transform hover:scale-[1.03]" title={f.descricao ?? undefined}>
+                    <FotoSegura bucket={BUCKET_OBRA} stored={f.foto_url} alt={f.descricao ?? "Foto"} className="aspect-square w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal: responder pedido de insumo */}
+      {respondendoPedido && (
+        <ModalRespostaPedido
+          pedido={respondendoPedido}
+          salvando={responderPedido.isPending}
+          onSalvar={async (status, dataPrometida, resposta) => {
+            await responderPedido.mutateAsync({ id: respondendoPedido.id, statusAtendimento: status, dataPrometida, resposta });
+            toast.success("Resposta enviada — a TRÍADE já vê no portal.");
+            setRespondendoPedido(null);
+          }}
+          onFechar={() => setRespondendoPedido(null)}
+        />
+      )}
+
+      {/* Modal: responder solicitação */}
+      {respondendoSolic && (
+        <ModalRespostaSolic
+          solicitacao={respondendoSolic}
+          salvando={responderSolic.isPending}
+          onSalvar={async (status, resposta) => {
+            await responderSolic.mutateAsync({ id: respondendoSolic.id, status, resposta });
+            toast.success("Resposta registrada.");
+            setRespondendoSolic(null);
+          }}
+          onFechar={() => setRespondendoSolic(null)}
+        />
+      )}
+
+      {/* Foto ampliada */}
+      {fotoAmpliada && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button aria-hidden tabIndex={-1} onClick={() => setFotoAmpliada(null)} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/70 backdrop-blur-sm" />
+          <div className="relative max-h-[90vh] max-w-3xl animate-modal-in overflow-hidden rounded-lg shadow-lifted">
+            <FotoSegura bucket={BUCKET_OBRA} stored={fotoAmpliada} alt="Foto do canteiro" className="max-h-[85vh] w-auto object-contain" />
+            <button onClick={() => setFotoAmpliada(null)} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-secondary/70 text-white hover:bg-secondary"><X className="size-4" /></button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ModalRespostaPedido({ pedido, salvando, onSalvar, onFechar }: {
+  pedido: { item: string; quantidade_prevista: number; unidade: string; data_necessidade: string | null };
+  salvando: boolean;
+  onSalvar: (status: "programado" | "comprado" | "negado", dataPrometida: string | null, resposta: string | null) => Promise<void>;
+  onFechar: () => void;
+}) {
+  const [status, setStatus] = useState<"programado" | "comprado" | "negado">("programado");
+  const [data, setData] = useState("");
+  const [resposta, setResposta] = useState("");
+  const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  async function salvar() {
+    if (status !== "negado" && !data) { toast.error("Informe a data prometida."); return; }
+    try { await onSalvar(status, data || null, resposta || null); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao responder."); }
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+        <h2 className="text-lg font-bold text-secondary">Responder pedido</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {pedido.item} · {pedido.quantidade_prevista} {pedido.unidade}
+          {pedido.data_necessidade ? ` · necessário em ${formatarDataBR(pedido.data_necessidade)}` : ""}
+        </p>
+        <div className="mt-4 space-y-3">
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Situação</span>
+            <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className={inputBase}>
+              <option value="programado">Programado (compra planejada)</option>
+              <option value="comprado">Comprado (aguardando entrega)</option>
+              <option value="negado">Negado</option>
+            </select></label>
+          {status !== "negado" && (
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data prometida em obra *</span>
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className={inputBase} /></label>
+          )}
+          <label className="block space-y-1"><span className="text-sm font-medium text-secondary">Resposta / observação</span>
+            <input value={resposta} onChange={(e) => setResposta(e.target.value)} placeholder={status === "negado" ? "Motivo da negativa" : "Fornecedor, condição…"} className={inputBase} /></label>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={salvando}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>Enviar resposta</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalRespostaSolic({ solicitacao, salvando, onSalvar, onFechar }: {
+  solicitacao: { titulo: string; descricao: string | null };
+  salvando: boolean;
+  onSalvar: (status: "em_atendimento" | "concluida" | "negada", resposta: string | null) => Promise<void>;
+  onFechar: () => void;
+}) {
+  const [status, setStatus] = useState<"em_atendimento" | "concluida" | "negada">("concluida");
+  const [resposta, setResposta] = useState("");
+  const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  async function salvar() {
+    try { await onSalvar(status, resposta || null); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao responder."); }
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+        <h2 className="text-lg font-bold text-secondary">Responder solicitação</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{solicitacao.titulo}</p>
+        {solicitacao.descricao && <p className="text-xs text-muted-foreground">{solicitacao.descricao}</p>}
+        <div className="mt-4 space-y-3">
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Situação</span>
+            <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className={inputBase}>
+              <option value="em_atendimento">Em atendimento</option>
+              <option value="concluida">Concluída</option>
+              <option value="negada">Negada</option>
+            </select></label>
+          <label className="block space-y-1"><span className="text-sm font-medium text-secondary">Resposta</span>
+            <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={3} className={cn(inputBase, "h-auto py-2")} /></label>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={salvando}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>Enviar resposta</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Kpi({ icone, rotulo, valor, tom = "secondary" }: { icone: React.ReactNode; rotulo: string; valor: string; tom?: "secondary" | "warning" | "success" | "destructive" }) {
   const cor = tom === "warning" ? "text-warning" : tom === "success" ? "text-success" : tom === "destructive" ? "text-destructive" : "text-secondary";

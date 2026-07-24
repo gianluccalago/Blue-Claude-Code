@@ -115,6 +115,48 @@ export function useCriarPlanejamento() {
   });
 }
 
+/**
+ * Responde um PEDIDO DE INSUMO da construtora (ou atualiza o ciclo de um
+ * item nosso): status (programado/comprado/negado) + data prometida + resposta.
+ */
+export function useResponderPedidoInsumo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      id: string;
+      statusAtendimento: "programado" | "comprado" | "negado";
+      dataPrometida?: string | null;
+      resposta?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("obra_planejamento_materiais")
+        .update({
+          status_atendimento: args.statusAtendimento,
+          data_prometida: args.dataPrometida ?? null,
+          resposta: args.resposta?.trim() || null,
+        })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-planejamento"),
+  });
+}
+
+/** Marca um insumo como RECEBIDO em obra (prestador confere e registra). */
+export function useMarcarInsumoEntregue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; dataEntrega: string }) => {
+      const { error } = await supabase
+        .from("obra_planejamento_materiais")
+        .update({ status_atendimento: "entregue", data_entrega: args.dataEntrega })
+        .eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: () => inval(qc, "obra-planejamento"),
+  });
+}
+
 /** Exclui um item de planejamento (cotações caem junto; OCs existentes ficam). */
 export function useExcluirPlanejamento() {
   const qc = useQueryClient();

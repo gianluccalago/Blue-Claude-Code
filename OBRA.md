@@ -369,6 +369,33 @@ de materiais 45/60 dias. O que o assinado acrescentou:
   "Arquivos da atividade (DWG · PDF · memoriais)" no workspace de cada
   atividade, com upload múltiplo, abrir via URL assinada e exclusão.
 
+### ✅ Portal COLABORATIVO da construtora (migration `0117_portal_colaborativo.sql`)
+O portal deixou de ser vitrine e virou canal de trabalho, em 7 abas:
+**Início** (contrato de projetos + fases + pendências) · **Cronograma** (o
+MESMO Gantt do Contratante — RLS zera custos/prazos internos) · **Insumos** ·
+**Medições** · **Fotos** · **Entregas & Docs** · **Solicitações**.
+- **Insumos (o coração)**: a TRÍADE pede material com DATA NECESSÁRIA
+  (cláusula 6.1: 45/60 dias); nós respondemos na Central com STATUS
+  (programado/comprado/negado) + DATA PROMETIDA + observação; ela marca
+  "Recebido em obra" e lança BAIXA DE USO (obra_consumo → alimenta o nosso
+  controle de perdas/glosa). `obra_planejamento_materiais` ganhou
+  origem/status_atendimento/data_prometida/data_entrega/resposta; prestador
+  voltou a LER e passou a INSERIR/ATUALIZAR (preços seguem ocultos —
+  cotações/OCs/recebimentos continuam master/direção).
+- **Medições**: KPIs (medido bruto, recebido líquido, aprovado a receber,
+  retido 5%) + lista com valores + submeter BM, inclusive ANTECIPADO (etapas
+  100% podem ser medidas a qualquer momento; pagamento em 15 dias).
+- **Fotos de andamento**: upload múltiplo (pasta andamento/ liberada no
+  storage) com fase + descrição; galeria dos dois lados e destaque na nossa
+  Central (miniaturas + ampliação).
+- **Solicitações gerais** (`obra_solicitacoes`): medição antecipada, acordos,
+  pedidos avulsos — com resposta/status registrados pelo Contratante.
+- **Central (nosso lado)**: card "Canais da TRÍADE" com pedidos aguardando
+  resposta (modal status+data), solicitações abertas (responder) e fotos
+  recentes do canteiro.
+- **Adicional acordado**: "Supervisão da terraplanagem — taxa adm. 5%
+  (4.7.1)" semeada como atividade sem valor fixo, visível dos dois lados.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

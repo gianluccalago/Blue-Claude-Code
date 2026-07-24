@@ -2306,6 +2306,11 @@ export interface Database {
           antecedencia_dias: number | null;
           observacao: string | null;
           registrado_por: string | null;
+          origem: "contratante" | "prestador";
+          status_atendimento: "solicitado" | "programado" | "comprado" | "entregue" | "negado";
+          data_prometida: string | null;
+          data_entrega: string | null;
+          resposta: string | null;
           criado_em: string;
         };
         Insert: {
@@ -2319,6 +2324,11 @@ export interface Database {
           antecedencia_dias?: number | null;
           observacao?: string | null;
           registrado_por?: string | null;
+          origem?: "contratante" | "prestador";
+          status_atendimento?: "solicitado" | "programado" | "comprado" | "entregue" | "negado";
+          data_prometida?: string | null;
+          data_entrega?: string | null;
+          resposta?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["obra_planejamento_materiais"]["Insert"]>;
         Relationships: [];
@@ -2679,6 +2689,55 @@ export interface Database {
           observacao?: string | null;
         };
         Update: Partial<{ status: "pendente" | "aprovada" | "recusada"; motivo_recusa: string | null; revisado_por: string | null; revisado_em: string | null }>;
+        Relationships: [];
+      };
+      obra_fotos_andamento: {
+        Row: {
+          id: string;
+          fase_id: string | null;
+          descricao: string | null;
+          foto_url: string;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          fase_id?: string | null;
+          descricao?: string | null;
+          foto_url: string;
+          registrado_por?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      obra_solicitacoes: {
+        Row: {
+          id: string;
+          tipo: "insumo" | "medicao" | "geral";
+          titulo: string;
+          descricao: string | null;
+          data_desejada: string | null;
+          status: "aberta" | "em_atendimento" | "concluida" | "negada";
+          resposta: string | null;
+          respondido_por: string | null;
+          respondido_em: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          tipo?: "insumo" | "medicao" | "geral";
+          titulo: string;
+          descricao?: string | null;
+          data_desejada?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{
+          status: "aberta" | "em_atendimento" | "concluida" | "negada";
+          resposta: string | null;
+          respondido_por: string | null;
+          respondido_em: string | null;
+        }>;
         Relationships: [];
       };
       obra_arquivos: {
@@ -3251,6 +3310,8 @@ export type ObraChecklistExecucao = Database["public"]["Tables"]["obra_checklist
 export type ObraChecklistFoto = Database["public"]["Tables"]["obra_checklist_foto"]["Row"];
 export type ObraCustoIndireto = Database["public"]["Tables"]["obra_custos_indiretos"]["Row"];
 export type ObraArquivo = Database["public"]["Tables"]["obra_arquivos"]["Row"];
+export type ObraFotoAndamento = Database["public"]["Tables"]["obra_fotos_andamento"]["Row"];
+export type ObraSolicitacaoObra = Database["public"]["Tables"]["obra_solicitacoes"]["Row"];
 export type ObraDisciplina = Database["public"]["Tables"]["obra_disciplinas"]["Row"];
 export type ObraMedicao = Database["public"]["Tables"]["obra_medicoes"]["Row"];
 export type ObraAliquota = Database["public"]["Tables"]["obra_aliquotas"]["Row"];
