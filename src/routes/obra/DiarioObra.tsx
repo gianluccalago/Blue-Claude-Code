@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   BookText, Plus, X, Sun, Cloud, CloudRain, Users, CloudLightning, PauseOctagon,
@@ -206,15 +207,17 @@ function FotoDiarioThumb({ path }: { path: string }) {
       <button onClick={() => setAmpliada(true)} className="overflow-hidden rounded-lg border transition-transform hover:scale-[1.04]">
         <FotoSegura bucket={BUCKET_OBRA} stored={path} alt="Foto do diário" className="size-20 object-cover sm:size-24" />
       </button>
-      {ampliada && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <button aria-hidden tabIndex={-1} onClick={() => setAmpliada(false)} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/70 backdrop-blur-sm" />
-          <div className="relative max-h-[90vh] max-w-3xl animate-modal-in overflow-hidden rounded-lg shadow-lifted">
-            <FotoSegura bucket={BUCKET_OBRA} stored={path} alt="Foto do diário" className="max-h-[85vh] w-auto object-contain" />
-            <button onClick={() => setAmpliada(false)} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-secondary/70 text-white hover:bg-secondary"><X className="size-4" /></button>
-          </div>
-        </div>
-      )}
+      {ampliada &&
+        createPortal(
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <button aria-hidden tabIndex={-1} onClick={() => setAmpliada(false)} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/70 backdrop-blur-sm" />
+            <div className="relative max-h-[90vh] max-w-3xl animate-modal-in overflow-hidden rounded-lg shadow-lifted">
+              <FotoSegura bucket={BUCKET_OBRA} stored={path} alt="Foto do diário" className="max-h-[85vh] w-auto object-contain" />
+              <button onClick={() => setAmpliada(false)} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-secondary/70 text-white hover:bg-secondary"><X className="size-4" /></button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -249,7 +252,7 @@ function ModalRegistroDiario({ onFechar }: { onFechar: () => void }) {
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative my-auto w-full max-w-lg animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -307,7 +310,8 @@ function ModalRegistroDiario({ onFechar }: { onFechar: () => void }) {
           <Button size="lg" className="flex-1" onClick={salvar} loading={criar.isPending}>Registrar</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
