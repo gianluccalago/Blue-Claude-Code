@@ -2516,8 +2516,27 @@ export interface Database {
         Relationships: [];
       };
       obra_diario: {
-        Row: { id: string; data: string; ocorrencias: string; foto_url: string | null; registrado_por: string | null; criado_em: string };
-        Insert: { id?: string; data?: string; ocorrencias: string; foto_url?: string | null; registrado_por?: string | null };
+        Row: {
+          id: string; data: string; ocorrencias: string; foto_url: string | null;
+          registrado_por: string | null; criado_em: string;
+          clima_manha: "bom" | "nublado" | "chuva" | null;
+          clima_tarde: "bom" | "nublado" | "chuva" | null;
+          chuva_impeditiva: boolean;
+          paralisacao: boolean;
+          efetivo: number | null;
+          atividades: string | null;
+          perfil_registrador: string | null;
+        };
+        Insert: {
+          id?: string; data?: string; ocorrencias: string; foto_url?: string | null; registrado_por?: string | null;
+          clima_manha?: "bom" | "nublado" | "chuva" | null;
+          clima_tarde?: "bom" | "nublado" | "chuva" | null;
+          chuva_impeditiva?: boolean;
+          paralisacao?: boolean;
+          efetivo?: number | null;
+          atividades?: string | null;
+          perfil_registrador?: string | null;
+        };
         Update: never;
         Relationships: [];
       };
@@ -2738,6 +2757,12 @@ export interface Database {
           respondido_por: string | null;
           respondido_em: string | null;
         }>;
+        Relationships: [];
+      };
+      obra_diario_foto: {
+        Row: { id: string; registro_id: string; foto_url: string; criado_em: string };
+        Insert: { id?: string; registro_id: string; foto_url: string };
+        Update: never;
         Relationships: [];
       };
       obra_arquivos: {

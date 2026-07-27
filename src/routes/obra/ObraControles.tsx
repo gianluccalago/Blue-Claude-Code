@@ -1,16 +1,16 @@
 import { useState, type ChangeEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  Zap, FlaskConical, BookText, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload, Trash2,
+  Zap, FlaskConical, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra } from "@/hooks/useObra";
 import {
-  useInsumos, useEnsaios, useDiario, useNaoConformidades, useDocumentosObra, useAditivos,
-  useAtualizarInsumo, useCriarEnsaio, useRegistrarResultadoEnsaio, useCriarDiario,
+  useInsumos, useEnsaios, useNaoConformidades, useDocumentosObra, useAditivos,
+  useAtualizarInsumo, useCriarEnsaio, useRegistrarResultadoEnsaio,
   useCriarNC, useAtualizarNC, useCriarDocumentoObra, useCriarAditivo,
   useCriarInsumo, useExcluirInsumo, useExcluirEnsaio, useExcluirNC,
-  useExcluirDocumentoObraLinha, useExcluirAditivo, useExcluirDiario,
+  useExcluirDocumentoObraLinha, useExcluirAditivo,
 } from "@/hooks/useObraTransversais";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { nivelPrazo, type NivelPrazo } from "@/lib/obraFinanceiro";
@@ -40,7 +40,6 @@ export function ObraControles() {
       <NaoConformidades podeEditar={podeEditar} />
       <DocumentosObra podeEditar={podeEditar} />
       <Aditivos podeEditar={podeEditar} />
-      <Diario podeEditar={podeEditar} />
     </div>
   );
 }
@@ -411,47 +410,6 @@ function Aditivos({ podeEditar }: { podeEditar: boolean }) {
           { key: "prazo", label: "Mudança de prazo (dias, se houver)", tipo: "text" },
           { key: "assinatura", label: "Data de assinatura", tipo: "date" },
           { key: "faseId", label: "Fase", tipo: "fase", fases: fases.data ?? [] },
-        ]} pending={criar.isPending} />
-      )}
-    </Secao>
-  );
-}
-
-// ── Diário ────────────────────────────────────────────────────────────────
-function Diario({ podeEditar }: { podeEditar: boolean }) {
-  const diario = useDiario();
-  const criar = useCriarDiario();
-  const excluir = useExcluirDiario();
-  const [novo, setNovo] = useState(false);
-  const [foto, setFoto] = useState<File | null>(null);
-  return (
-    <Secao titulo="Diário de obra" icone={<BookText className="size-5 text-primary" />} acao={podeEditar && <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Novo registro</Button>}>
-      {(diario.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Sem registros.</p> : (
-        <div className="divide-y">
-          {(diario.data ?? []).slice(0, 20).map((d) => (
-            <div key={d.id} className="flex items-start gap-2 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-muted-foreground">{formatarDataBR(d.data)}{d.registrado_por ? ` · ${d.registrado_por}` : ""}</p>
-                <p className="text-sm text-secondary">{d.ocorrencias}</p>
-              </div>
-              {podeEditar && (
-                <BotaoExcluir
-                  pequeno
-                  titulo="Excluir registro do diário?"
-                  descricao={`${formatarDataBR(d.data)}: ${d.ocorrencias.slice(0, 80)}`}
-                  onConfirmar={() => excluir.mutate(d.id, { onSuccess: () => toast.success("Registro excluído."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") })}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {novo && (
-        <FormModal titulo="Registro do diário" onFechar={() => { setNovo(false); setFoto(null); }} extra={
-          <label className="block cursor-pointer text-sm font-semibold text-primary hover:underline"><Upload className="mr-1 inline size-4" />{foto ? "Foto selecionada" : "Foto (semanal)"}<input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} /></label>
-        } onSalvar={async (v) => { await criar.mutateAsync({ data: v.data || hojeISO(), ocorrencias: v.ocorrencias, foto }); }} campos={[
-          { key: "data", label: "Data", tipo: "date" },
-          { key: "ocorrencias", label: "Ocorrências", tipo: "text", req: true },
         ]} pending={criar.isPending} />
       )}
     </Secao>

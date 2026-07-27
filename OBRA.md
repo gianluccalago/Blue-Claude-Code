@@ -396,6 +396,26 @@ MESMO Gantt do Contratante — RLS zera custos/prazos internos) · **Insumos** �
 - **Adicional acordado**: "Supervisão da terraplanagem — taxa adm. 5%
   (4.7.1)" semeada como atividade sem valor fixo, visível dos dois lados.
 
+### ✅ Diário de Obra — RDO compartilhado (migration `0118_diario_de_obra.sql`)
+Pedido do engenheiro da TRÍADE — e peça CONTRATUAL: a prorrogação por chuva
+impeditiva (13.2) e a indenização por paralisação (6.4) só valem com registro
+no Diário Eletrônico de Obras (10.1.2). Aba **"Diário"** nas DUAS telas
+(interno, após Cronograma; e portal da construtora), mesmo componente
+(`DiarioObra.tsx`):
+- **RDO completo por dia**: clima manhã/tarde (bom/nublado/chuva), flag
+  CHUVA IMPEDITIVA (13.2), flag PARALISAÇÃO (6.4 — o form instrui a descrever
+  o motivo), efetivo em campo, atividades executadas, ocorrências e VÁRIAS
+  fotos (tabela filha `obra_diario_foto`, upload na pasta `diario/`).
+- **KPIs do mês** (filtro por mês): dias com registro, dias de chuva
+  impeditiva e dias de paralisação — os números que sustentam pleitos de
+  prazo/indenização.
+- **Autoria visível**: cada card mostra quem registrou + badge
+  TRÍADE/Contratante (`perfil_registrador`). Os dois lados leem e registram;
+  EXCLUIR é só master/direção (com confirmação; auditoria guarda o rastro).
+- A seção antiga "Diário" de Obra física → Controles foi removida (hooks
+  antigos de diário saíram de `useObraTransversais.ts`; o RDO vive em
+  `useObraDiario.ts`).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

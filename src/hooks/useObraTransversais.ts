@@ -6,7 +6,6 @@ import { hojeISO } from "@/lib/utils";
 import type {
   Database,
   ObraAditivo,
-  ObraDiario,
   ObraDocumentoObra,
   ObraEnsaio,
   ObraInsumoCritico,
@@ -15,7 +14,8 @@ import type {
 
 // ===========================================================================
 // Módulo Obra — Fase 7: controles transversais (insumos críticos, ensaios,
-// diário, NCs, documentos da obra, aditivos). master/direção (RLS).
+// NCs, documentos da obra, aditivos). master/direção (RLS).
+// O Diário de Obra tem hooks próprios em useObraDiario.ts (RDO compartilhado).
 // ===========================================================================
 
 function useListaObra<T>(key: string, table: string, order: string, asc = false) {
@@ -31,7 +31,6 @@ function useListaObra<T>(key: string, table: string, order: string, asc = false)
 
 export function useInsumos() { return useListaObra<ObraInsumoCritico>("obra-insumos", "obra_insumos_criticos", "criado_em", true); }
 export function useEnsaios() { return useListaObra<ObraEnsaio>("obra-ensaios", "obra_ensaios", "data_agendada"); }
-export function useDiario() { return useListaObra<ObraDiario>("obra-diario", "obra_diario", "data"); }
 export function useNaoConformidades() { return useListaObra<ObraNaoConformidade>("obra-nc", "obra_nao_conformidades", "criado_em"); }
 export function useDocumentosObra() { return useListaObra<ObraDocumentoObra>("obra-docs", "obra_documentos", "data_validade", true); }
 export function useAditivos() { return useListaObra<ObraAditivo>("obra-aditivos", "obra_aditivos", "criado_em"); }
@@ -42,7 +41,7 @@ function inval(qc: ReturnType<typeof useQueryClient>, key: string) {
 
 // ── Exclusões (controle interno: corrigir lançamentos errados) ──────────────
 // master/direção têm DELETE nas tabelas (RLS "for all"); a auditoria guarda o rastro.
-function useExcluir(tabela: "obra_insumos_criticos" | "obra_ensaios" | "obra_nao_conformidades" | "obra_documentos" | "obra_aditivos" | "obra_diario", chave: string) {
+function useExcluir(tabela: "obra_insumos_criticos" | "obra_ensaios" | "obra_nao_conformidades" | "obra_documentos" | "obra_aditivos", chave: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
@@ -57,7 +56,6 @@ export function useExcluirEnsaio() { return useExcluir("obra_ensaios", "obra-ens
 export function useExcluirNC() { return useExcluir("obra_nao_conformidades", "obra-nc"); }
 export function useExcluirDocumentoObraLinha() { return useExcluir("obra_documentos", "obra-docs"); }
 export function useExcluirAditivo() { return useExcluir("obra_aditivos", "obra-aditivos"); }
-export function useExcluirDiario() { return useExcluir("obra_diario", "obra-diario"); }
 
 // ── Insumos críticos ────────────────────────────────────────────────────────
 /** Cria um insumo crítico personalizado (a lista semeada não é fechada). */
@@ -112,23 +110,6 @@ export function useRegistrarResultadoEnsaio() {
       if (error) throw error;
     },
     onSuccess: () => inval(qc, "obra-ensaios"),
-  });
-}
-
-// ── Diário ────────────────────────────────────────────────────────────────
-export function useCriarDiario() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (args: { data: string; ocorrencias: string; foto?: File | null }) => {
-      let fotoUrl: string | null = null;
-      if (args.foto) {
-        fotoUrl = await uploadArquivoObra(args.foto, `diario/${args.data}`);
-        if (!fotoUrl) throw new Error("Falha no upload da foto.");
-      }
-      const { error } = await supabase.from("obra_diario").insert({ data: args.data, ocorrencias: args.ocorrencias.trim(), foto_url: fotoUrl, registrado_por: usuarioAtual.nome });
-      if (error) throw error;
-    },
-    onSuccess: () => inval(qc, "obra-diario"),
   });
 }
 

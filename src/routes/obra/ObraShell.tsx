@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState } from "@/components/states";
 import { ObraCentral } from "@/routes/obra/ObraCentral";
 import { ObraCronograma } from "@/routes/obra/ObraCronograma";
+import { DiarioObra } from "@/routes/obra/DiarioObra";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
 import { ObraCustos } from "@/routes/obra/ObraCustos";
@@ -53,6 +54,7 @@ export function ObraShell() {
         <TabsList>
           <TabsTrigger value="central">Central</TabsTrigger>
           <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
+          <TabsTrigger value="diario">Diário</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="indiretos">Indiretos</TabsTrigger>
@@ -63,6 +65,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="cronograma">
           <ObraCronograma />
+        </TabsContent>
+        <TabsContent value="diario">
+          <DiarioObra />
         </TabsContent>
         <TabsContent value="projetos">
           <ObraProjetos />

@@ -12,6 +12,7 @@ import { useSubmeterBM, useSubmeterEntrega, useNotificacoesObra, useMarcarNotifi
 import { usePlanejamento, useConsumo, useCriarPlanejamento, useMarcarInsumoEntregue, useRegistrarConsumo } from "@/hooks/useObraMateriais";
 import { useFotosAndamento, useEnviarFotosAndamento, useSolicitacoesObra, useCriarSolicitacaoObra } from "@/hooks/useObraColab";
 import { ObraCronograma } from "@/routes/obra/ObraCronograma";
+import { DiarioObra } from "@/routes/obra/DiarioObra";
 import { ultimaVerificacaoPorEtapa, etapaConcluida, avancoFisico, OBRA_FASE_STATUS_LABEL } from "@/lib/obra";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { FotoSegura } from "@/components/AnexoSeguro";
@@ -100,7 +101,7 @@ export function PortalPrestador() {
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary"><HardHat className="size-5" /></div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Portal da obra — TRÍADE</h1>
-          <p className="text-xs text-muted-foreground">Cronograma · insumos · medições · fotos · entregas · solicitações.</p>
+          <p className="text-xs text-muted-foreground">Cronograma · diário · insumos · medições · fotos · entregas · solicitações.</p>
         </div>
       </div>
 
@@ -118,6 +119,7 @@ export function PortalPrestador() {
         <TabsList>
           <TabsTrigger value="inicio">Início</TabsTrigger>
           <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
+          <TabsTrigger value="diario">Diário</TabsTrigger>
           <TabsTrigger value="insumos">Insumos</TabsTrigger>
           <TabsTrigger value="medicoes">Medições</TabsTrigger>
           <TabsTrigger value="fotos">Fotos</TabsTrigger>
@@ -171,6 +173,11 @@ export function PortalPrestador() {
         {/* ── CRONOGRAMA (o mesmo Gantt do Contratante; RLS esconde custos) ── */}
         <TabsContent value="cronograma">
           <ObraCronograma />
+        </TabsContent>
+
+        {/* ── DIÁRIO DE OBRA (RDO compartilhado — cláusulas 13.2 e 6.4) ── */}
+        <TabsContent value="diario">
+          <DiarioObra />
         </TabsContent>
 
         {/* ── INSUMOS ── */}
