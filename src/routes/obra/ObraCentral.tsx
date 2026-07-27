@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   Gauge, Wallet, CalendarClock, AlertTriangle, CircleDollarSign, CalendarCheck2,
   ArrowRight, Play, CheckCircle2, Hourglass, Package, MessageSquareText, Camera, X,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useObraConfig } from "@/hooks/useObraMedicoes";
@@ -15,6 +16,8 @@ import {
   useDesfazerPagamentoMarco,
 } from "@/hooks/useObraProjetos";
 import { ModalDisciplina } from "@/routes/obra/ObraProjetos";
+import { ModalPagarNF, idsCobertosPorNF } from "@/routes/obra/ObraNotasFiscais";
+import { useNotasFiscais } from "@/hooks/useObraNotas";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { usePlanejamento, useResponderPedidoInsumo } from "@/hooks/useObraMateriais";
 import { useSolicitacoesObra, useResponderSolicitacaoObra, useFotosAndamento } from "@/hooks/useObraColab";
@@ -27,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
 import { formatarMoeda, formatarMesReferencia } from "@/lib/mensalidade";
 import { cn, formatarDataBR, hojeISO } from "@/lib/utils";
-import type { ObraDisciplina, ObraDisciplinaMarco } from "@/types/database";
+import type { ObraDisciplina, ObraDisciplinaMarco, ObraNotaFiscal } from "@/types/database";
 
 // ===========================================================================
 // MÓDULO OBRA · CENTRAL — o centro de CONTROLE do dia a dia (master/direção).
@@ -59,7 +62,10 @@ export function ObraCentral() {
   const pagarMarco = usePagarMarco();
   const desfazerPagamento = useDesfazerPagamentoMarco();
 
+  const notas = useNotasFiscais();
+
   const [aberta, setAberta] = useState<ObraDisciplina | null>(null);
+  const [pagandoNF, setPagandoNF] = useState<ObraNotaFiscal | null>(null);
   // Pagamento SEMPRE pede confirmação; o toast de sucesso oferece "Desfazer".
   const [confirmando, setConfirmando] = useState<{ titulo: string; descricao: string; acao: () => void } | null>(null);
 
@@ -107,11 +113,15 @@ export function ObraCentral() {
     .filter((m) => m.status === "Em análise")
     .map((m) => ({ marco: m, disc: discPorId.get(m.disciplina_id)! }))
     .filter((x) => x.disc);
+  // NFs da TRÍADE aguardando pagamento (janelas 1 e 11). Marcos já cobertos
+  // por uma NF emitida saem da lista "aprovados" — a ação vira pagar a NF.
+  const nfsEmitidas = (notas.data ?? []).filter((n) => n.status === "emitida");
+  const cobertosPorNF = idsCobertosPorNF(nfsEmitidas);
   const aprovadosAPagar = listaMarcos
-    .filter((m) => m.status === "Aprovado" && m.chave !== "inicio")
+    .filter((m) => m.status === "Aprovado" && m.chave !== "inicio" && !cobertosPorNF.has(m.id))
     .map((m) => ({ marco: m, disc: discPorId.get(m.disciplina_id)! }))
     .filter((x) => x.disc);
-  const totalAcoes = entradasAPagar.length + entregasEmAnalise.length + aprovadosAPagar.length;
+  const totalAcoes = entradasAPagar.length + entregasEmAnalise.length + aprovadosAPagar.length + nfsEmitidas.length;
 
   // ── Esta semana ──
   const segunda = segundaDaSemana(hoje);
@@ -243,9 +253,23 @@ export function ObraCentral() {
                   key={x.marco.id}
                   onAbrir={() => abrir(x.disc)}
                   titulo={x.disc.nome}
-                  detalhe={`${x.marco.rotulo} aprovado — liberado para pagamento`}
+                  detalhe={`${x.marco.rotulo} aprovado — aguardando NF da TRÍADE (janelas: dias 1 e 11)`}
                   valor={x.marco.valor}
                   acao={podeEditar && <Button size="sm" onClick={() => pagar(x)} disabled={ocupado}><CircleDollarSign className="size-4" /> Pagar</Button>}
+                />
+              ))}
+              {nfsEmitidas.map((n) => (
+                <LinhaAcao
+                  key={n.id}
+                  onAbrir={() => setPagandoNF(n)}
+                  titulo={`NF ${n.numero} — TRÍADE`}
+                  detalhe={`emitida ${formatarDataBR(n.data_emissao)} · ${n.itens.map((i) => i.rotulo).join(" · ") || "sem itens vinculados"}`}
+                  valor={n.valor}
+                  acao={podeEditar && (
+                    <Button size="sm" onClick={() => setPagandoNF(n)}>
+                      <Receipt className="size-4" /> Registrar pagamento
+                    </Button>
+                  )}
                 />
               ))}
             </div>
@@ -343,6 +367,8 @@ export function ObraCentral() {
           onFechar={() => setAberta(null)}
         />
       )}
+
+      {pagandoNF && <ModalPagarNF nota={pagandoNF} onFechar={() => setPagandoNF(null)} />}
     </div>
   );
 }

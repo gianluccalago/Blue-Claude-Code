@@ -13,6 +13,7 @@ import { usePlanejamento, useConsumo, useCriarPlanejamento, useMarcarInsumoEntre
 import { useFotosAndamento, useEnviarFotosAndamento, useSolicitacoesObra, useCriarSolicitacaoObra } from "@/hooks/useObraColab";
 import { ObraCronograma } from "@/routes/obra/ObraCronograma";
 import { DiarioObra } from "@/routes/obra/DiarioObra";
+import { FaturamentoPrestador } from "@/routes/obra/ObraNotasFiscais";
 import { ultimaVerificacaoPorEtapa, etapaConcluida, avancoFisico, OBRA_FASE_STATUS_LABEL } from "@/lib/obra";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { FotoSegura } from "@/components/AnexoSeguro";
@@ -121,7 +122,7 @@ export function PortalPrestador() {
           <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
           <TabsTrigger value="diario">Diário</TabsTrigger>
           <TabsTrigger value="insumos">Insumos</TabsTrigger>
-          <TabsTrigger value="medicoes">Medições</TabsTrigger>
+          <TabsTrigger value="medicoes">Medições & NF</TabsTrigger>
           <TabsTrigger value="fotos">Fotos</TabsTrigger>
           <TabsTrigger value="entregas">Entregas & Docs</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
@@ -225,6 +226,9 @@ export function PortalPrestador() {
               )}
             </CardContent>
           </Card>
+
+          {/* Faturamento: janelas 1 e 11 · dados do tomador · aprovados → NF */}
+          <FaturamentoPrestador />
         </TabsContent>
 
         {/* ── FOTOS DO ANDAMENTO ── */}

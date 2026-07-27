@@ -416,6 +416,34 @@ no Diário Eletrônico de Obras (10.1.2). Aba **"Diário"** nas DUAS telas
   antigos de diário saíram de `useObraTransversais.ts`; o RDO vive em
   `useObraDiario.ts`).
 
+### ✅ Faturamento da construtora — NF ↔ pagamento (migration `0119_faturamento_nf.sql`)
+Fluxo acordado: DUAS janelas por mês (**dias 1 e 11**). Na janela, a TRÍADE
+confere o que está **aferido e confirmado** por nós (marcos e medições com
+status Aprovado), emite a NF contra a **Seniors Care Ltda. (CNPJ
+42.200.613/0001-85)** e anexa; nós pagamos e anexamos o comprovante.
+- **Tabela `obra_notas_fiscais`**: nº, valor, data de emissão, PDF (pasta
+  nf/ do bucket), itens cobertos (snapshot jsonb marco/medição), status
+  emitida→paga, comprovante, data e autor do pagamento. RLS: os dois lados
+  veem e emitem; pagar/editar é master/direção; o prestador só exclui
+  enquanto 'emitida'. Auditoria em tudo.
+- **Portal (aba "Medições & NF")**: card das janelas (com destaque quando
+  HOJE é dia 1/11) + card do TOMADOR (razão social, CNPJ com copiar,
+  endereço, e o lembrete da 7.1.5.2 — destacar retenções INSS/ISS/IRRF);
+  lista "Aprovado — pronto para faturar" com seleção de itens → modal
+  "Anexar NF" (nº, data, valor pré-somado, PDF obrigatório); "Notas
+  emitidas" com status e comprovante.
+- **Nosso lado**: seção "Notas fiscais da construtora" no Financeiro
+  (registrar pagamento com data + comprovante — anexável depois —, desfazer
+  pagamento) e as NFs emitidas entram nas **Ações pendentes da Central**.
+- **Pagamento da NF paga os itens** pelas MESMAS RPCs com gate de sempre
+  (marco: entrega+ART; medição: docs do mês — a NF é espelhada na medição
+  para o gate). Marco coberto por NF emitida sai da lista "aprovados a
+  pagar" da Central (a ação vira pagar a NF). Tudo reversível: desfazer
+  devolve os itens a Aprovado (nova RPC `obra_desfazer_pagamento_medicao`
+  remove também o retido do ledger daquele BM).
+- `lib/faturamento.ts`: janelas (próxima janela inclusive, virada de
+  ano) com testes; dados do tomador centralizados.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

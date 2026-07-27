@@ -42,6 +42,8 @@ export type ObraDocMensalTipo = "inss" | "fgts" | "iss" | "folha";
 export type ObraMarcoStatus = "Pendente" | "Em análise" | "Aprovado" | "Reprovado" | "Pago";
 /** Status de uma ordem de compra de material. */
 export type ObraOcStatus = "Emitida" | "Entregue parcial" | "Entregue" | "Cancelada";
+/** Item coberto por uma NF da construtora (snapshot no jsonb da nota). */
+export type ObraNotaFiscalItem = { tipo: "marco" | "medicao"; id: string; rotulo: string; valor: number };
 /** Tipos de assento do livro de controlados (Port. 344/98). */
 export type TipoAssentoControlado =
   | "entrada"
@@ -2765,6 +2767,47 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      obra_notas_fiscais: {
+        Row: {
+          id: string;
+          numero: string;
+          valor: number;
+          data_emissao: string;
+          arquivo_url: string | null;
+          observacao: string | null;
+          itens: ObraNotaFiscalItem[];
+          status: "emitida" | "paga";
+          comprovante_url: string | null;
+          data_pagamento: string | null;
+          pago_por: string | null;
+          registrado_por: string | null;
+          perfil_registrador: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          numero: string;
+          valor: number;
+          data_emissao?: string;
+          arquivo_url?: string | null;
+          observacao?: string | null;
+          itens?: ObraNotaFiscalItem[];
+          registrado_por?: string | null;
+          perfil_registrador?: string | null;
+        };
+        Update: Partial<{
+          numero: string;
+          valor: number;
+          data_emissao: string;
+          arquivo_url: string | null;
+          observacao: string | null;
+          status: "emitida" | "paga";
+          comprovante_url: string | null;
+          data_pagamento: string | null;
+          pago_por: string | null;
+        }>;
+        Relationships: [];
+      };
       obra_arquivos: {
         Row: {
           id: string;
@@ -3288,6 +3331,11 @@ export interface Database {
         Args: { p_marco_id: string };
         Returns: undefined;
       };
+      // Obra: desfaz o pagamento de um BM (volta a Aprovado; remove o retido do ledger).
+      obra_desfazer_pagamento_medicao: {
+        Args: { p_medicao_id: string };
+        Returns: undefined;
+      };
       // Obra Fase 6: prestador submete BM (valores calculados no servidor). Retorna o id.
       obra_submeter_bm: {
         Args: { p_fase_id: string; p_mes: string; p_etapa_ids: string[] };
@@ -3354,6 +3402,7 @@ export type ObraNotificacao = Database["public"]["Tables"]["obra_notificacoes"][
 export type ObraInsumoCritico = Database["public"]["Tables"]["obra_insumos_criticos"]["Row"];
 export type ObraEnsaio = Database["public"]["Tables"]["obra_ensaios"]["Row"];
 export type ObraDiario = Database["public"]["Tables"]["obra_diario"]["Row"];
+export type ObraNotaFiscal = Database["public"]["Tables"]["obra_notas_fiscais"]["Row"];
 export type ObraNaoConformidade = Database["public"]["Tables"]["obra_nao_conformidades"]["Row"];
 export type ObraDocumentoObra = Database["public"]["Tables"]["obra_documentos"]["Row"];
 export type ObraAditivo = Database["public"]["Tables"]["obra_aditivos"]["Row"];

@@ -8,6 +8,7 @@ import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useBaseline, useAtualizarBaseline } from "@/hooks/useObraFinanceiro";
+import { NotasConstrutora } from "@/routes/obra/ObraNotasFiscais";
 import {
   serieAcumuladaMensal,
   somaPorMes,
@@ -287,6 +288,9 @@ export function ObraFinanceiro() {
           )}
         </CardContent>
       </Card>
+
+      {/* Notas fiscais da construtora (janelas 1 e 11 → pagar + comprovante) */}
+      <NotasConstrutora podeEditar={podeEditar} />
 
       {/* Contas a pagar */}
       <Card>
