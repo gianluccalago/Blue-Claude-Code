@@ -487,6 +487,15 @@ anota a fase do Anexo VIII na observação de cada disciplina e registra os
 6 seguros garantia como insumos críticos a cobrar. Obs.: a vigência da
 Fase 6 no anexo (12/10/27) parece typo de 12/10/26 — marcado para conferir.
 
+### ✅ NF → Fluxo de Caixa automático (migration `0122_nf_retencoes_fc.sql`)
+`obra_notas_fiscais.retencoes` (total destacado na nota — a TRÍADE informa
+ao anexar; o modal mostra o líquido). NF PAGA entra sozinha no Caixa em
+DUAS pernas na data do pagamento: o LÍQUIDO pago à TRÍADE (origem `nf`) e
+as RETENÇÕES como "Guias de retenção" (origem `nf_retencao`, data
+ajustável para quando as guias saírem). Marcos/medições cobertos por NF
+não entram individualmente (sem dupla contagem) — só pagamentos diretos
+sem NF. Modal de pagamento exibe "líquido a pagar à TRÍADE · retenções".
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

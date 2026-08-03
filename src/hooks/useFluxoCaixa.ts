@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import type { Database, FcLancamento, ObraDisciplinaMarco, ObraMedicao } from "@/types/database";
+import type { Database, FcLancamento, ObraDisciplinaMarco, ObraMedicao, ObraNotaFiscal } from "@/types/database";
 
 // ===========================================================================
 // FLUXO DE CAIXA — lançamentos por DATA DE PAGAMENTO (visão do diretor).
@@ -121,9 +121,13 @@ type Indireto = Database["public"]["Tables"]["obra_custos_indiretos"]["Row"];
 
 /**
  * Lançamentos que FALTAM no caixa, a partir do que já foi pago no módulo Obra
- * (dedup por origem+origem_id). Datas SEMPRE de caixa: data de pagamento dos
- * marcos/medições (as NFs da TRÍADE); OCs pela emissão e indiretos pela
- * competência (dia 10) — ajustáveis depois, como tudo aqui.
+ * (dedup por origem+origem_id). Datas SEMPRE de caixa: data de pagamento das
+ * NFs da TRÍADE; OCs pela emissão e indiretos pela competência (dia 10) —
+ * ajustáveis depois, como tudo aqui.
+ * NF PAGA entra como DUAS pernas: o LÍQUIDO pago à TRÍADE (valor − retenções)
+ * e as RETENÇÕES (guias IRRF/CSRF/ISS). Marcos/medições cobertos por alguma
+ * NF NÃO entram individualmente (sem dupla contagem) — só os pagos direto,
+ * fora do fluxo de NF.
  */
 export function pendentesDeSincronizacao(args: {
   existentes: FcLancamento[];
@@ -132,12 +136,39 @@ export function pendentesDeSincronizacao(args: {
   medicoes: ObraMedicao[];
   ocs: OC[];
   indiretos: Indireto[];
+  notas: ObraNotaFiscal[];
 }): Database["public"]["Tables"]["fc_lancamentos"]["Insert"][] {
   const ja = new Set(args.existentes.filter((l) => l.origem_id).map((l) => `${l.origem}:${l.origem_id}`));
   const novos: Database["public"]["Tables"]["fc_lancamentos"]["Insert"][] = [];
 
+  // Itens (marcos/medições) cobertos por qualquer NF — o caixa deles é a NF.
+  const cobertosPorNF = new Set<string>();
+  for (const n of args.notas) for (const i of n.itens) cobertosPorNF.add(i.id);
+
+  for (const n of args.notas) {
+    if (n.status !== "paga" || !n.data_pagamento) continue;
+    const soMedicoes = n.itens.length > 0 && n.itens.every((i) => i.tipo === "medicao");
+    const centro = soMedicoes ? "construtora" : "complementares";
+    const liquido = Math.max(0, n.valor - (n.retencoes ?? 0));
+    const resumo = n.itens.map((i) => i.rotulo).join(" · ");
+    if (!ja.has(`nf:${n.id}`) && liquido > 0) {
+      novos.push({
+        data: n.data_pagamento, valor: liquido, centro_custo: centro,
+        fornecedor: "TRÍADE", descricao: `NF ${n.numero} (líquido)${resumo ? ` — ${resumo}` : ""}`,
+        origem: "nf", origem_id: n.id, registrado_por: "sincronização",
+      });
+    }
+    if (!ja.has(`nf_retencao:${n.id}`) && (n.retencoes ?? 0) > 0) {
+      novos.push({
+        data: n.data_pagamento, valor: n.retencoes, centro_custo: centro,
+        fornecedor: "Guias de retenção", descricao: `NF ${n.numero} — IRRF/CSRF/ISS retidos (ajuste a data se as guias saírem depois)`,
+        origem: "nf_retencao", origem_id: n.id, registrado_por: "sincronização",
+      });
+    }
+  }
+
   for (const m of args.marcos) {
-    if (m.status !== "Pago" || !m.data_pagamento || ja.has(`marco:${m.id}`)) continue;
+    if (m.status !== "Pago" || !m.data_pagamento || ja.has(`marco:${m.id}`) || cobertosPorNF.has(m.id)) continue;
     novos.push({
       data: m.data_pagamento, valor: m.valor, centro_custo: "complementares",
       fornecedor: "TRÍADE", descricao: `${args.nomeDisciplina.get(m.disciplina_id) ?? "Projeto"} — ${m.rotulo}`,
@@ -145,7 +176,7 @@ export function pendentesDeSincronizacao(args: {
     });
   }
   for (const m of args.medicoes) {
-    if (m.status !== "Pago" || !m.data_pagamento || ja.has(`medicao:${m.id}`)) continue;
+    if (m.status !== "Pago" || !m.data_pagamento || ja.has(`medicao:${m.id}`) || cobertosPorNF.has(m.id)) continue;
     novos.push({
       data: m.data_pagamento, valor: m.valor_liquido, centro_custo: "construtora",
       fornecedor: "TRÍADE", descricao: `Medição (BM) de ${m.mes}`,

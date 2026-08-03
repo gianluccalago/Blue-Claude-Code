@@ -2776,7 +2776,7 @@ export interface Database {
           fornecedor: string;
           descricao: string | null;
           pagador: "seniors" | "pht" | "ernesto";
-          origem: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto";
+          origem: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao";
           origem_id: string | null;
           observacao: string | null;
           registrado_por: string | null;
@@ -2790,7 +2790,7 @@ export interface Database {
           fornecedor: string;
           descricao?: string | null;
           pagador?: "seniors" | "pht" | "ernesto";
-          origem?: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto";
+          origem?: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao";
           origem_id?: string | null;
           observacao?: string | null;
           registrado_por?: string | null;
@@ -2817,6 +2817,7 @@ export interface Database {
           id: string;
           numero: string;
           valor: number;
+          retencoes: number;
           data_emissao: string;
           arquivo_url: string | null;
           observacao: string | null;
@@ -2833,6 +2834,7 @@ export interface Database {
           id?: string;
           numero: string;
           valor: number;
+          retencoes?: number;
           data_emissao?: string;
           arquivo_url?: string | null;
           observacao?: string | null;
@@ -2843,6 +2845,7 @@ export interface Database {
         Update: Partial<{
           numero: string;
           valor: number;
+          retencoes: number;
           data_emissao: string;
           arquivo_url: string | null;
           observacao: string | null;

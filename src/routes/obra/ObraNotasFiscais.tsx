@@ -268,7 +268,12 @@ function LinhaNota({ nota, acoes }: { nota: ObraNotaFiscal; acoes?: React.ReactN
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm font-bold tabular-nums text-secondary">{formatarMoeda(nota.valor)}</span>
+        <div className="text-right">
+          <p className="text-sm font-bold tabular-nums text-secondary">{formatarMoeda(nota.valor)}</p>
+          {nota.retencoes > 0 && (
+            <p className="text-[11px] tabular-nums text-muted-foreground">líquido {formatarMoeda(nota.valor - nota.retencoes)}</p>
+          )}
+        </div>
         {acoes}
       </div>
     </div>
@@ -285,15 +290,20 @@ function ModalEmitirNF({ itens, onFechar, onEmitida }: {
   const [numero, setNumero] = useState("");
   const [dataEmissao, setDataEmissao] = useState(hojeISO());
   const [valor, setValor] = useState(String(total.toFixed(2)));
+  const [retencoes, setRetencoes] = useState("");
   const [observacao, setObservacao] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
+
+  const valorNum = parseFloat(valor.replace(",", ".")) || 0;
+  const retNum = parseFloat(retencoes.replace(",", ".")) || 0;
 
   async function salvar() {
     try {
       await emitir.mutateAsync({
         numero,
         dataEmissao,
-        valor: parseFloat(valor.replace(",", ".")) || 0,
+        valor: valorNum,
+        retencoes: retNum,
         observacao,
         arquivo,
         itens,
@@ -332,8 +342,17 @@ function ModalEmitirNF({ itens, onFechar, onEmitida }: {
             <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data de emissão</span>
               <input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} className={inputBase} /></label>
           </div>
-          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor da NF (R$)</span>
-            <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={inputBase} /></label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor da NF (R$)</span>
+              <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={inputBase} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Retenções (R$)</span>
+              <input value={retencoes} onChange={(e) => setRetencoes(e.target.value)} inputMode="decimal" placeholder="IRRF/CSRF/ISS retidos" className={inputBase} /></label>
+          </div>
+          {retNum > 0 && valorNum > retNum && (
+            <p className="text-xs text-muted-foreground">
+              Líquido a receber: <strong className="tabular-nums text-secondary">{formatarMoeda(valorNum - retNum)}</strong> (retenções destacadas na nota, cláusula 7.1.5.2).
+            </p>
+          )}
           <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Observação</span>
             <input value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="opcional" className={inputBase} /></label>
 
@@ -480,6 +499,11 @@ export function ModalPagarNF({ nota, onFechar }: { nota: ObraNotaFiscal; onFecha
               </p>
             ))}
             <p className="mt-1 border-t pt-1 text-right font-bold tabular-nums text-secondary">{formatarMoeda(nota.valor)}</p>
+            {nota.retencoes > 0 && (
+              <p className="text-right text-xs tabular-nums text-muted-foreground">
+                líquido a pagar à TRÍADE: <strong className="text-secondary">{formatarMoeda(nota.valor - nota.retencoes)}</strong> · retenções (guias): {formatarMoeda(nota.retencoes)}
+              </p>
+            )}
           </div>
           <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data do pagamento</span>
             <input type="date" value={dataPagamento} onChange={(e) => setDataPagamento(e.target.value)} className={inputBase} /></label>

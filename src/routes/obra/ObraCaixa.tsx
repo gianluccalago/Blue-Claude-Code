@@ -14,6 +14,7 @@ import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useMedicoes } from "@/hooks/useObraMedicoes";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useCustosIndiretos } from "@/hooks/useObraCustos";
+import { useNotasFiscais } from "@/hooks/useObraNotas";
 import { CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, serieMensalFC, mesCurto } from "@/lib/fluxoCaixa";
 import { exportarCSV } from "@/lib/exportCsv";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -49,6 +50,7 @@ export function ObraCaixa() {
   const medicoes = useMedicoes();
   const ocs = useOrdensCompra();
   const indiretos = useCustosIndiretos();
+  const notas = useNotasFiscais();
   const sincronizar = useSincronizarFC();
   const excluir = useExcluirLancamentoFC();
 
@@ -67,7 +69,7 @@ export function ObraCaixa() {
 
   // ── Sincronização automática (1× por carga): pagamentos do Obra → caixa ──
   const sincronizou = useRef(false);
-  const tudoCarregado = !lanc.isLoading && !marcos.isLoading && !medicoes.isLoading && !ocs.isLoading && !indiretos.isLoading;
+  const tudoCarregado = !lanc.isLoading && !marcos.isLoading && !medicoes.isLoading && !ocs.isLoading && !indiretos.isLoading && !notas.isLoading;
   useEffect(() => {
     if (!tudoCarregado || sincronizou.current) return;
     sincronizou.current = true;
@@ -79,6 +81,7 @@ export function ObraCaixa() {
       medicoes: medicoes.data ?? [],
       ocs: ocs.data ?? [],
       indiretos: indiretos.data ?? [],
+      notas: notas.data ?? [],
     });
     if (novos.length > 0) {
       sincronizar.mutate(novos, {

@@ -44,18 +44,21 @@ export function useEmitirNotaFiscal() {
       numero: string;
       dataEmissao: string;
       valor: number;
+      retencoes: number;
       observacao: string;
       arquivo: File | null;
       itens: ObraNotaFiscalItem[];
     }) => {
       if (!v.numero.trim()) throw new Error("Informe o número da nota fiscal.");
       if (!(v.valor > 0)) throw new Error("Informe o valor da nota.");
+      if (v.retencoes < 0 || v.retencoes >= v.valor) throw new Error("Retenções inválidas (devem ser menores que o valor da nota).");
       if (!v.arquivo) throw new Error("Anexe o PDF da nota fiscal.");
       const path = await uploadArquivoObra(v.arquivo, `nf/${v.dataEmissao}`);
       if (!path) throw new Error("Falha no upload da NF. Tente novamente.");
       const { error } = await supabase.from("obra_notas_fiscais").insert({
         numero: v.numero.trim(),
         valor: v.valor,
+        retencoes: v.retencoes,
         data_emissao: v.dataEmissao,
         arquivo_url: path,
         observacao: v.observacao.trim() || null,
