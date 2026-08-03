@@ -474,6 +474,19 @@ pagamento), nunca competência. Aba **"Caixa"** no módulo Obra
   editar/excluir, export CSV. `lib/fluxoCaixa.ts` com testes (reproduz os
   números reais da planilha).
 
+### ✅ Anexo VIII + NF nº 13 (migration `0121_anexo_viii_fase1.sql`)
+O Anexo VIII parcelou as ENTRADAS (50%) dos projetos em 6 fases com seguro
+garantia. A NFS-e nº 13 (03/08/26, R$ 149.580,00 bruto / R$ 140.380,83
+líquido — IRRF 2.243,70 + CSRF 6.955,47, ISS não retido) cobre a Fase 1
+(10 entradas = 142.780) + a Sondagem integral (6.800). Mapeamento provado
+pelos valores (todas as fases fecham ao centavo; total das entradas =
+250.000 = 50% dos 500k). A migration aprova os 11 marcos (aparecem no
+portal em "Aprovado — pronto para faturar" para a TRÍADE anexar a NF),
+dispensa a ART no marco único da Sondagem (laudo recebido fora do app),
+anota a fase do Anexo VIII na observação de cada disciplina e registra os
+6 seguros garantia como insumos críticos a cobrar. Obs.: a vigência da
+Fase 6 no anexo (12/10/27) parece typo de 12/10/26 — marcado para conferir.
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas
