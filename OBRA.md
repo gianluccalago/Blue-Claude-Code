@@ -444,6 +444,36 @@ status Aprovado), emite a NF contra a **Seniors Care Ltda. (CNPJ
 - `lib/faturamento.ts`: janelas (próxima janela inclusive, virada de
   ano) com testes; dados do tomador centralizados.
 
+### ✅ Fluxo de Caixa do empreendimento (migration `0120_fluxo_caixa.sql`)
+Substitui a planilha CustoBlue. Visão do diretor: **SEMPRE caixa** (data de
+pagamento), nunca competência. Aba **"Caixa"** no módulo Obra
+(master/direção) + rota própria `fluxo-caixa` no menu da Administração
+(financeiro). A construtora NÃO vê nada disso (RLS master/direção/administração).
+- **`fc_lancamentos`**: data exata do pagamento, valor, centro de custo
+  (terreno · projetos/arquitetura · complementares · construtora ·
+  materiais · indiretos — aceita livres), fornecedor, item/descrição,
+  pagador (Seniors Care/PHT/Ernesto), origem+origem_id (link com o módulo
+  Obra), observação. Auditoria em tudo.
+- **Seed**: os 144 lançamentos da planilha (fev/2023 → jul/2026, R$ 9,4M).
+  O histórico só tinha o mês — os DIAS foram assumidos de forma plausível
+  por fornecedor (terreno/corretor dia 10, Bacoccini dia 5, IPTU dia 15,
+  Copel/Sanepar dia 20…) e são livremente editáveis.
+- **Correção IPCA**: tabela `fc_ipca` (mês → fração) semeada com os 41
+  índices da planilha; fórmula reproduzida e testada:
+  corrigido = (anterior + desembolso do mês) × (1 + IPCA do mês). Modal
+  "IPCA" cadastra o índice de cada mês novo.
+- **Sincronização automática** ao abrir a tela: marcos pagos (→
+  complementares/TRÍADE, na data de pagamento da NF), medições pagas (→
+  construtora/TRÍADE, líquido), OCs (→ materiais, pela emissão) e custos
+  indiretos (→ indiretos, dia 10 da competência) entram sozinhos, com
+  dedup por origem+origem_id. Tudo segue editável; excluir um sincronizado
+  avisa que ele volta se o pagamento continuar na origem.
+- **Tela**: KPIs (total, acumulado corrigido IPCA, saída do mês), filtros
+  (período, centro, fornecedor, pagador, busca), totais por centro
+  (clicáveis), série mês a mês com barras, tabela de lançamentos com
+  editar/excluir, export CSV. `lib/fluxoCaixa.ts` com testes (reproduz os
+  números reais da planilha).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas

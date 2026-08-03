@@ -75,6 +75,7 @@ import { AbrirChamado } from "@/routes/manutencao/AbrirChamado";
 import { EstoqueHospede } from "@/routes/farmacia/EstoqueHospede";
 import { PainelFarmacia } from "@/routes/farmacia/PainelFarmacia";
 import { ObraShell } from "@/routes/obra/ObraShell";
+import { ObraCaixa } from "@/routes/obra/ObraCaixa";
 import { LivroControlados } from "@/routes/farmacia/LivroControlados";
 import { DocumentosInstitucionais } from "@/routes/administracao/DocumentosInstitucionais";
 import { Dispensacao } from "@/routes/farmacia/Dispensacao";
@@ -340,6 +341,13 @@ const obraRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "obra",
   component: ObraShell,
+});
+// Fluxo de caixa do empreendimento — rota própria p/ administração (financeiro);
+// master/direção usam a aba "Caixa" dentro do módulo Obra.
+const fluxoCaixaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "fluxo-caixa",
+  component: ObraCaixa,
 });
 const pedidosMensaisRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -741,6 +749,7 @@ const routeTree = rootRoute.addChildren([
     livroControladosRoute,
     documentosInstitucionaisRoute,
     obraRoute,
+    fluxoCaixaRoute,
     pedidosMensaisRoute,
     custosMedicamentoRoute,
     estoqueHospedeRoute,

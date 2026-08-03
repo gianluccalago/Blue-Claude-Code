@@ -5,6 +5,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Map as MapIcon,
   Archive,
+  Landmark,
   Boxes,
   Filter,
   Sun,
@@ -106,6 +107,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/obra": HardHat,
   "/app/direcao/obra": HardHat,
   "/app/obra_prestador/obra": HardHat,
+  "/app/administracao/fluxo-caixa": Landmark,
   "/app/farmacia/livro-controlados": BookLock,
   "/app/coordenacao/livro-controlados": BookLock,
   "/app/enfermeira/livro-controlados": BookLock,

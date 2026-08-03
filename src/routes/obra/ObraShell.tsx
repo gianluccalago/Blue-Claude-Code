@@ -9,6 +9,7 @@ import { ObraCronograma } from "@/routes/obra/ObraCronograma";
 import { DiarioObra } from "@/routes/obra/DiarioObra";
 import { ObraProjetos } from "@/routes/obra/ObraProjetos";
 import { ObraFinanceiro } from "@/routes/obra/ObraFinanceiro";
+import { ObraCaixa } from "@/routes/obra/ObraCaixa";
 import { ObraCustos } from "@/routes/obra/ObraCustos";
 import { ObraFisica } from "@/routes/obra/ObraFisica";
 import { PortalPrestador } from "@/routes/obra/PortalPrestador";
@@ -57,6 +58,7 @@ export function ObraShell() {
           <TabsTrigger value="diario">Diário</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="caixa">Caixa</TabsTrigger>
           <TabsTrigger value="indiretos">Indiretos</TabsTrigger>
           <TabsTrigger value="fisica">Obra física</TabsTrigger>
         </TabsList>
@@ -74,6 +76,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="financeiro">
           <ObraFinanceiro />
+        </TabsContent>
+        <TabsContent value="caixa">
+          <ObraCaixa />
         </TabsContent>
         <TabsContent value="indiretos">
           <ObraCustos />

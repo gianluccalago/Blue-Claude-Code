@@ -334,6 +334,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Solicitações da família", to: "/app/administracao/solicitacoes-familia", grupo: "Operacional" },
       // ESTRATÉGICO
       { label: "Painel da Administração", to: "/app/administracao", grupo: "Estratégico" },
+      { label: "Fluxo de Caixa (Obra)", to: "/app/administracao/fluxo-caixa", grupo: "Estratégico" },
       { label: "Análise de saídas", to: "/app/administracao/analise-saidas", grupo: "Estratégico" },
       { label: "Resultados NPS", to: "/app/administracao/resultados-nps", grupo: "Estratégico" },
       { label: "RH — Painéis", to: "/app/administracao/rh-paineis", grupo: "Estratégico" },

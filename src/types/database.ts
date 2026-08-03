@@ -2767,6 +2767,51 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      fc_lancamentos: {
+        Row: {
+          id: string;
+          data: string;
+          valor: number;
+          centro_custo: string;
+          fornecedor: string;
+          descricao: string | null;
+          pagador: "seniors" | "pht" | "ernesto";
+          origem: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto";
+          origem_id: string | null;
+          observacao: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          data: string;
+          valor: number;
+          centro_custo: string;
+          fornecedor: string;
+          descricao?: string | null;
+          pagador?: "seniors" | "pht" | "ernesto";
+          origem?: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto";
+          origem_id?: string | null;
+          observacao?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{
+          data: string;
+          valor: number;
+          centro_custo: string;
+          fornecedor: string;
+          descricao: string | null;
+          pagador: "seniors" | "pht" | "ernesto";
+          observacao: string | null;
+        }>;
+        Relationships: [];
+      };
+      fc_ipca: {
+        Row: { mes: string; pct: number };
+        Insert: { mes: string; pct: number };
+        Update: Partial<{ pct: number }>;
+        Relationships: [];
+      };
       obra_notas_fiscais: {
         Row: {
           id: string;
@@ -3403,6 +3448,7 @@ export type ObraInsumoCritico = Database["public"]["Tables"]["obra_insumos_criti
 export type ObraEnsaio = Database["public"]["Tables"]["obra_ensaios"]["Row"];
 export type ObraDiario = Database["public"]["Tables"]["obra_diario"]["Row"];
 export type ObraNotaFiscal = Database["public"]["Tables"]["obra_notas_fiscais"]["Row"];
+export type FcLancamento = Database["public"]["Tables"]["fc_lancamentos"]["Row"];
 export type ObraNaoConformidade = Database["public"]["Tables"]["obra_nao_conformidades"]["Row"];
 export type ObraDocumentoObra = Database["public"]["Tables"]["obra_documentos"]["Row"];
 export type ObraAditivo = Database["public"]["Tables"]["obra_aditivos"]["Row"];
