@@ -2812,6 +2812,35 @@ export interface Database {
         Update: Partial<{ pct: number }>;
         Relationships: [];
       };
+      fc_extrato_mes: {
+        Row: { mes: string; saldo_inicial: number; atualizado_em: string };
+        Insert: { mes: string; saldo_inicial: number };
+        Update: Partial<{ saldo_inicial: number }>;
+        Relationships: [];
+      };
+      fc_extrato: {
+        Row: {
+          id: string;
+          mes: string;
+          ordem: number;
+          grupo: "entrada" | "saida";
+          rotulo: string;
+          valor: number;
+          registrado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          mes: string;
+          ordem?: number;
+          grupo: "entrada" | "saida";
+          rotulo: string;
+          valor: number;
+          registrado_por?: string | null;
+        };
+        Update: Partial<{ mes: string; ordem: number; grupo: "entrada" | "saida"; rotulo: string; valor: number }>;
+        Relationships: [];
+      };
       obra_notas_fiscais: {
         Row: {
           id: string;
@@ -3452,6 +3481,7 @@ export type ObraEnsaio = Database["public"]["Tables"]["obra_ensaios"]["Row"];
 export type ObraDiario = Database["public"]["Tables"]["obra_diario"]["Row"];
 export type ObraNotaFiscal = Database["public"]["Tables"]["obra_notas_fiscais"]["Row"];
 export type FcLancamento = Database["public"]["Tables"]["fc_lancamentos"]["Row"];
+export type FcExtratoLinha = Database["public"]["Tables"]["fc_extrato"]["Row"];
 export type ObraNaoConformidade = Database["public"]["Tables"]["obra_nao_conformidades"]["Row"];
 export type ObraDocumentoObra = Database["public"]["Tables"]["obra_documentos"]["Row"];
 export type ObraAditivo = Database["public"]["Tables"]["obra_aditivos"]["Row"];

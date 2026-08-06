@@ -3,8 +3,10 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Landmark, Plus, X, Download, Pencil, Trash2, TrendingUp, Wallet, CalendarClock,
-  RefreshCw, Percent, Link2,
+  RefreshCw, Percent, Link2, FileText,
 } from "lucide-react";
+import { useAuth } from "@/auth/AuthProvider";
+import { ModalExtratoSocios } from "@/routes/obra/ObraExtratoSocios";
 import {
   useLancamentosFC, useIpcaFC, useCriarLancamentoFC, useEditarLancamentoFC,
   useExcluirLancamentoFC, useDefinirIpca, useSincronizarFC, pendentesDeSincronizacao,
@@ -43,6 +45,10 @@ const CENTRO_COR: Record<string, string> = {
 };
 
 export function ObraCaixa() {
+  const { usuarioEfetivo } = useAuth();
+  // Extrato dos sócios + demonstrativo assinado: SÓ master/direção (o RLS
+  // reforça no banco; a administração usa o restante do caixa normalmente).
+  const ehSocio = usuarioEfetivo?.perfil === "master" || usuarioEfetivo?.perfil === "direcao";
   const lanc = useLancamentosFC();
   const ipca = useIpcaFC();
   const marcos = useMarcos();
@@ -58,6 +64,7 @@ export function ObraCaixa() {
   const [editando, setEditando] = useState<FcLancamento | null>(null);
   const [excluindo, setExcluindo] = useState<FcLancamento | null>(null);
   const [ipcaAberto, setIpcaAberto] = useState(false);
+  const [extratoAberto, setExtratoAberto] = useState(false);
 
   // Filtros
   const [de, setDe] = useState("");
@@ -152,7 +159,12 @@ export function ObraCaixa() {
             Sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {ehSocio && (
+            <Button size="sm" variant="outline" onClick={() => setExtratoAberto(true)}>
+              <FileText className="size-4" /> Demonstrativo (PDF)
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => setIpcaAberto(true)}><Percent className="size-4" /> IPCA</Button>
           <Button size="sm" variant="outline" onClick={exportar}><Download className="size-4" /> CSV</Button>
           <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Novo lançamento</Button>
@@ -286,6 +298,7 @@ export function ObraCaixa() {
         />
       )}
       {ipcaAberto && <ModalIpca serie={serieGlobal} ipca={ipca.data ?? new Map()} onFechar={() => setIpcaAberto(false)} />}
+      {extratoAberto && ehSocio && <ModalExtratoSocios onFechar={() => setExtratoAberto(false)} />}
 
       <ConfirmDialog
         aberto={!!excluindo}

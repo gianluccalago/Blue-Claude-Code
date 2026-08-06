@@ -496,6 +496,28 @@ ajustável para quando as guias saírem). Marcos/medições cobertos por NF
 não entram individualmente (sem dupla contagem) — só pagamentos diretos
 sem NF. Modal de pagamento exibe "líquido a pagar à TRÍADE · retenções".
 
+### ✅ Extrato dos sócios + Demonstrativo de Caixa PDF (migration `0123_extrato_socios.sql`)
+Digitalização da planilha mensal do sócio-diretor (contas Seniors Care —
+sempre regime de caixa). Botão **"Demonstrativo (PDF)"** na aba Caixa,
+**SÓ master/direção** (UI + RLS): PDF timbrado (mesma identidade da
+Receita/Relatório Sanitário) com assinatura eletrônica de **Ernesto Carlos
+Lagomarsino Inurrieta, Sócio-Diretor, CPF 771.273.310-49** + selo, hash e
+QR. Extração por MÊS (saldo inicial → entradas/movimentações societárias →
+saídas → saldo final) ou por ANO (resumo mês a mês + consolidado por
+rubrica, com "parcela X/Y terreno Z" agregadas em "Parcelas dos terrenos").
+- Modelo fiel à planilha: `fc_extrato_mes` guarda o saldo inicial DECLARADO
+  de cada mês (o sócio ajusta centavos entre meses); `fc_extrato` guarda os
+  lançamentos COM SINAL (dividendos pagos são negativos no bloco superior).
+  Saldo final = inicial + Σ tudo = caixa TOTAL (banco + aplicações — a
+  planilha às vezes mostra só o banco e o resto em "aplicação"; a soma
+  confere ao centavo, validado nos 43 meses).
+- Seed: fev/2023 → ago/2026, 678 lançamentos verbatim.
+- Editor no modal: saldo inicial editável, adicionar/editar/excluir
+  lançamentos por mês (para os meses futuros que o sócio mandar).
+- VALIDADO contra a planilha real: jul/26 gerado = R$ 387.948,00 inicial,
+  238.941,14 entradas líquidas, −557.188,14 saídas, 69.701,00 final —
+  idênticos aos da aba jul26 (teste automatizado com o fixture real).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas
