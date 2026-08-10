@@ -126,6 +126,38 @@ export function useRedefinirBaseline() {
   });
 }
 
+/**
+ * PLANEJAR a atividade — disponível para os DOIS lados (a construtora
+ * planeja o próprio cronograma). Via RPC: só datas, duração, predecessora,
+ * equipe e avanço; valores, marcos e linha de base ficam intocados.
+ */
+export function usePlanejarAtividade() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      id: string;
+      dataBase?: string | null;
+      prazoDias?: number | null;
+      predecessoraId?: string | null;
+      limparPredecessora?: boolean;
+      recursos?: string | null;
+      progresso?: number | null;
+    }) => {
+      const { error } = await supabase.rpc("obra_planejar_atividade", {
+        p_id: v.id,
+        p_data_base: v.dataBase ?? null,
+        p_prazo_dias: v.prazoDias ?? null,
+        p_predecessora: v.predecessoraId ?? null,
+        p_recursos: v.recursos ?? null,
+        p_progresso: v.progresso ?? null,
+        p_limpar_pred: v.limparPredecessora ?? false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
 /** Remove a ART anexada (controle interno — reversível). */
 export function useRemoverArtDisciplina() {
   const qc = useQueryClient();

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra, useEtapasObra, useChecklistObra, useAtualizarFaseCronograma } from "@/hooks/useObra";
-import { useDisciplinas, useRedefinirBaseline } from "@/hooks/useObraProjetos";
+import { useDisciplinas, useRedefinirBaseline, usePlanejarAtividade } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useInsumos, useEnsaios, useDocumentosObra } from "@/hooks/useObraTransversais";
 import { ultimaVerificacaoPorEtapa, avancoFisico } from "@/lib/obra";
@@ -23,7 +23,9 @@ import {
   type StatusGantt,
   type JanelaGantt,
 } from "@/lib/obraGantt";
+import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SliderPct } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +84,8 @@ export function ObraCronograma() {
   const [editando, setEditando] = useState<ObraFase | null>(null);
   const [zoom, setZoom] = useState(1); // índice em ZOOMS
   const [visao, setVisao] = useState<"gantt" | "tabela">("gantt");
+  // Planejar atividade: liberado para os DOIS lados (a construtora planeja).
+  const [planejando, setPlanejando] = useState<ObraDisciplina | null>(null);
   const [confirmandoBaseline, setConfirmandoBaseline] = useState(false);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -244,6 +248,7 @@ export function ObraCronograma() {
               efetivo={efetivo}
               nomeDisc={nomeDisc}
               statusDisc={statusDisc}
+              onPlanejar={setPlanejando}
             />
           ) : (
           <div ref={areaRef} className="relative" onMouseLeave={() => setTooltip(null)}>
@@ -387,12 +392,17 @@ export function ObraCronograma() {
                           meses={meses}
                           hoje={hoje}
                           rotulo={
-                            <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <button
+                              onClick={() => setPlanejando(d)}
+                              title="Planejar: datas, duração, predecessora, equipe e avanço"
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                            >
                               <span className={cn("size-1.5 shrink-0 rounded-full", COR_SOLIDA[status])} />
-                              <p className="truncate text-xs font-medium text-secondary">{d.nome}</p>
+                              <p className="truncate text-xs font-medium text-secondary group-hover:text-primary">{d.nome}</p>
                               {d.predecessora_id && <Link2 className="size-3 shrink-0 text-primary" />}
                               {status === "concluida" && <CheckCircle2 className="size-3 shrink-0 text-success" />}
-                            </div>
+                              <Pencil className="ml-auto size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                            </button>
                           }
                         >
                           {/* Linha de base (plano congelado) — barra fina cinza */}
@@ -495,6 +505,13 @@ export function ObraCronograma() {
       </Card>
 
       {editando && <ModalCronogramaFase fase={editando} onFechar={() => setEditando(null)} />}
+      {planejando && (
+        <ModalPlanejarAtividade
+          disciplina={planejando}
+          opcoes={(disciplinas.data ?? []).filter((o) => o.id !== planejando.id && o.data_base)}
+          onFechar={() => setPlanejando(null)}
+        />
+      )}
 
       <ConfirmDialog
         aberto={confirmandoBaseline}
@@ -515,14 +532,112 @@ export function ObraCronograma() {
 }
 
 // ---------------------------------------------------------------------------
+// PLANEJAR ATIVIDADE — aberto aos DOIS lados (a construtora planeja o próprio
+// cronograma). Só datas, duração, amarração, equipe e avanço; valores e
+// marcos de pagamento continuam exclusivos do Contratante (a RPC garante).
+// ---------------------------------------------------------------------------
+
+function ModalPlanejarAtividade({ disciplina: d, opcoes, onFechar }: {
+  disciplina: ObraDisciplina;
+  opcoes: ObraDisciplina[];
+  onFechar: () => void;
+}) {
+  const planejar = usePlanejarAtividade();
+  const [dataBase, setDataBase] = useState(d.data_base ?? "");
+  const [prazo, setPrazo] = useState(d.prazo_dias != null ? String(d.prazo_dias) : "");
+  const [pred, setPred] = useState(d.predecessora_id ?? "");
+  const [recursos, setRecursos] = useState(d.recursos ?? "");
+  const [progresso, setProgresso] = useState(d.progresso_pct);
+
+  async function salvar() {
+    try {
+      await planejar.mutateAsync({
+        id: d.id,
+        dataBase: dataBase || null,
+        prazoDias: prazo.trim() === "" ? null : parseInt(prazo, 10),
+        predecessoraId: pred || null,
+        limparPredecessora: pred === "",
+        recursos,
+        progresso,
+      });
+      toast.success("Planejamento salvo — o cronograma já reflete a mudança.");
+      onFechar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar o planejamento.");
+    }
+  }
+
+  const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={d.nome} className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+      <div className="relative my-auto w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-secondary">Planejar atividade</h2>
+            <p className="truncate text-sm text-muted-foreground">{d.nome}</p>
+          </div>
+          <button onClick={onFechar} className="shrink-0 text-muted-foreground hover:text-secondary" aria-label="Fechar"><X className="size-5" /></button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Início</span>
+              <input type="date" value={dataBase} onChange={(e) => setDataBase(e.target.value)} className={inputBase} /></label>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Duração (dias)</span>
+              <input value={prazo} onChange={(e) => setPrazo(e.target.value)} inputMode="numeric" className={inputBase} /></label>
+          </div>
+
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold text-secondary">Predecessora</span>
+            <select value={pred} onChange={(e) => setPred(e.target.value)} className={inputBase}>
+              <option value="">— Sem amarração —</option>
+              {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+            </select>
+            <span className="block text-[11px] text-muted-foreground">
+              Se a predecessora atrasar, o início desta é empurrado automaticamente.
+            </span>
+          </label>
+
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Equipe / recursos</span>
+            <input value={recursos} onChange={(e) => setRecursos(e.target.value)} placeholder="ex.: 2 projetistas" className={inputBase} /></label>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-secondary">Avanço</span>
+              <span className="text-sm font-extrabold tabular-nums text-primary">{progresso}%</span>
+            </div>
+            <SliderPct valor={progresso} onChange={setProgresso} />
+          </div>
+
+          {d.baseline_inicio && d.baseline_fim && (
+            <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">
+              Linha de base (referência de desvio): {formatarDataBR(d.baseline_inicio)} → {formatarDataBR(d.baseline_fim)}.
+              Ela não muda ao replanejar — é assim que o atraso fica visível.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={planejar.isPending}>Cancelar</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={planejar.isPending}>Salvar</Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // TABELA DE CONTROLE — desvios, custos e recursos (sugestão da TRÍADE)
 // ---------------------------------------------------------------------------
 
-function TabelaControle({ disciplinas, efetivo, nomeDisc, statusDisc }: {
+function TabelaControle({ disciplinas, efetivo, nomeDisc, statusDisc, onPlanejar }: {
   disciplinas: ObraDisciplina[];
   efetivo: ReturnType<typeof planejamentoEfetivo>;
   nomeDisc: Map<string, string>;
   statusDisc: (d: ObraDisciplina) => StatusGantt;
+  onPlanejar: (d: ObraDisciplina) => void;
 }) {
   const comValor = disciplinas.filter((d) => d.valor > 0);
   const totalValor = comValor.reduce((s, d) => s + d.valor, 0);
@@ -567,10 +682,11 @@ function TabelaControle({ disciplinas, efetivo, nomeDisc, statusDisc }: {
               return (
                 <tr key={d.id} className="align-top">
                   <td className="max-w-56 py-2 pr-2">
-                    <span className="flex items-center gap-1.5">
+                    <button onClick={() => onPlanejar(d)} title="Planejar atividade" className="flex items-center gap-1.5 text-left hover:text-primary">
                       <span className={cn("size-1.5 shrink-0 rounded-full", COR_SOLIDA[status])} />
-                      <span className="font-medium text-secondary">{d.nome}</span>
-                    </span>
+                      <span className="font-medium text-secondary hover:text-primary">{d.nome}</span>
+                      <Pencil className="size-3 shrink-0 text-muted-foreground" />
+                    </button>
                   </td>
                   <td className="max-w-40 py-2 pr-2 text-xs text-muted-foreground">
                     {d.predecessora_id ? (
@@ -745,9 +861,9 @@ function ModalCronogramaFase({ fase, onFechar }: { fase: ObraFase; onFechar: () 
   }
 
   const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
+  return createPortal(
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold text-secondary">Datas previstas — {fase.nome}</h2>
@@ -765,6 +881,7 @@ function ModalCronogramaFase({ fase, onFechar }: { fase: ObraFase; onFechar: () 
           <Button size="lg" className="flex-1" onClick={salvar} loading={atualizar.isPending}>Salvar</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

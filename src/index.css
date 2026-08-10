@@ -134,7 +134,7 @@
     }
   }
   .animate-fade-in-up {
-    animation: fade-in-up 0.25s ease-out both;
+    animation: fade-in-up 0.25s ease-out backwards;
   }
 
   @keyframes fade-in {
@@ -161,7 +161,7 @@
     }
   }
   .animate-route-in {
-    animation: route-in 0.18s ease-out both;
+    animation: route-in 0.18s ease-out backwards;
   }
 
   /* Entrada de modal/drawer: scale + fade. Sem transform no `to` — um diálogo
@@ -176,7 +176,7 @@
     }
   }
   .animate-modal-in {
-    animation: modal-in 0.18s ease-out both;
+    animation: modal-in 0.18s ease-out backwards;
   }
 
   /* Stagger de entrada — SÓ no 1º carregamento (a animação CSS dispara na
@@ -184,7 +184,7 @@
      lista: <div class="stagger-in">…itens…</div>. Cap em 8 para não atrasar
      listas longas. */
   .stagger-in > * {
-    animation: fade-in-up 0.22s ease-out both;
+    animation: fade-in-up 0.22s ease-out backwards;
   }
   .stagger-in > *:nth-child(1) { animation-delay: 0ms; }
   .stagger-in > *:nth-child(2) { animation-delay: 40ms; }

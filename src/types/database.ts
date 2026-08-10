@@ -3416,6 +3416,20 @@ export interface Database {
         Args: { p_marco_id: string };
         Returns: undefined;
       };
+      // Obra: planejamento da atividade pelos dois lados (construtora inclusive).
+      // Só datas, duração, predecessora, equipe e avanço — nunca valores/marcos.
+      obra_planejar_atividade: {
+        Args: {
+          p_id: string;
+          p_data_base?: string | null;
+          p_prazo_dias?: number | null;
+          p_predecessora?: string | null;
+          p_recursos?: string | null;
+          p_progresso?: number | null;
+          p_limpar_pred?: boolean;
+        };
+        Returns: undefined;
+      };
       // Obra: desfaz o pagamento de um BM (volta a Aprovado; remove o retido do ledger).
       obra_desfazer_pagamento_medicao: {
         Args: { p_medicao_id: string };
