@@ -220,12 +220,12 @@ export function ObraCronograma() {
             )}
             <div className="mr-1 flex overflow-hidden rounded-md border border-input">
               <button onClick={() => setVisao("gantt")} title="Gráfico de Gantt"
-                className={cn("px-2 py-1.5", visao === "gantt" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
-                <GanttChartSquare className="size-4" />
+                className={cn("flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold", visao === "gantt" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
+                <GanttChartSquare className="size-4" /> Gantt
               </button>
-              <button onClick={() => setVisao("tabela")} title="Tabela de controle"
-                className={cn("px-2 py-1.5", visao === "tabela" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
-                <Table2 className="size-4" />
+              <button onClick={() => setVisao("tabela")} title="Tabela de controle (desvios, recursos e custos)"
+                className={cn("flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold", visao === "tabela" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
+                <Table2 className="size-4" /> Tabela
               </button>
             </div>
             {visao === "gantt" && (
