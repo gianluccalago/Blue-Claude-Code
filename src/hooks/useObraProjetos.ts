@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { uploadArquivoObra } from "@/lib/storage";
 import { hojeISO } from "@/lib/utils";
+import { somarDiasISO } from "@/lib/obraCalc";
 import type {
   Database,
   ObraBimRodada,
@@ -73,6 +74,8 @@ export function useAtualizarDisciplina() {
       status?: string;
       dataConclusao?: string | null;
       progressoPct?: number;
+      predecessoraId?: string | null;
+      recursos?: string | null;
     }) => {
       const patch: Database["public"]["Tables"]["obra_disciplinas"]["Update"] = {};
       if (args.dataBase !== undefined) patch.data_base = args.dataBase || null;
@@ -80,6 +83,8 @@ export function useAtualizarDisciplina() {
       if (args.status) patch.status = args.status;
       if (args.dataConclusao !== undefined) patch.data_conclusao = args.dataConclusao;
       if (args.progressoPct !== undefined) patch.progresso_pct = Math.max(0, Math.min(100, args.progressoPct));
+      if (args.predecessoraId !== undefined) patch.predecessora_id = args.predecessoraId;
+      if (args.recursos !== undefined) patch.recursos = args.recursos?.trim() || null;
       if (args.art) {
         const path = await uploadArquivoObra(args.art, `art/${args.id}`);
         if (!path) throw new Error("Falha no upload da ART. Tente novamente.");
@@ -87,6 +92,35 @@ export function useAtualizarDisciplina() {
       }
       const { error } = await supabase.from("obra_disciplinas").update(patch).eq("id", args.id);
       if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/**
+ * REDEFINE A LINHA DE BASE de todas as atividades: congela o plano vigente
+ * (data-base → data-base + prazo) como nova referência de desvios.
+ */
+export function useRedefinirBaseline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from("obra_disciplinas")
+        .select("id, data_base, prazo_dias")
+        .not("data_base", "is", null);
+      if (error) throw error;
+      for (const d of data ?? []) {
+        const { error: e2 } = await supabase
+          .from("obra_disciplinas")
+          .update({
+            baseline_inicio: d.data_base,
+            baseline_fim: d.prazo_dias != null ? somarDiasISO(d.data_base!, d.prazo_dias) : null,
+          })
+          .eq("id", d.id);
+        if (e2) throw e2;
+      }
+      return (data ?? []).length;
     },
     onSuccess: () => invalidar(qc),
   });

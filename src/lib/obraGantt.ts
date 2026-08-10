@@ -114,3 +114,88 @@ export function statusBarraDisciplina(
   if (limite && limite < hoje) return "atrasada";
   return "andamento";
 }
+
+// ---------------------------------------------------------------------------
+// PREDECESSORAS + LINHA DE BASE (sugestões do engenheiro da TRÍADE)
+// ---------------------------------------------------------------------------
+
+export interface DiscPlanejavel {
+  id: string;
+  data_base: string | null;
+  prazo_dias: number | null;
+  data_conclusao: string | null;
+  progresso_pct: number;
+  predecessora_id: string | null;
+}
+
+export interface PlanoEfetivo {
+  /** Início efetivo: data-base, empurrada se a predecessora terminar depois. */
+  inicio: string | null;
+  /** Fim efetivo: início efetivo + prazo. */
+  fim: string | null;
+  /** Id da predecessora que empurrou o início (se houve empurrão). */
+  empurradaPor: string | null;
+}
+
+/**
+ * AGENDAMENTO AUTOMÁTICO: calcula início/fim efetivos de cada atividade.
+ * Se a predecessora termina (conclusão real ou fim efetivo planejado) na
+ * data-base da sucessora ou depois, o início é empurrado para o dia seguinte
+ * ao término da predecessora — em cadeia. Ciclos são ignorados com segurança.
+ */
+export function planejamentoEfetivo(discs: DiscPlanejavel[]): Map<string, PlanoEfetivo> {
+  const porId = new Map(discs.map((d) => [d.id, d]));
+  const memo = new Map<string, PlanoEfetivo>();
+
+  function resolver(id: string, trilha: Set<string>): PlanoEfetivo {
+    const pronto = memo.get(id);
+    if (pronto) return pronto;
+    const d = porId.get(id);
+    if (!d || !d.data_base) {
+      const vazio = { inicio: null, fim: null, empurradaPor: null };
+      if (d) memo.set(id, vazio);
+      return vazio;
+    }
+    let inicio = d.data_base;
+    let empurradaPor: string | null = null;
+    // Ciclo (A→B→A): o vínculo é ignorado para não travar o gráfico.
+    if (d.predecessora_id && !trilha.has(d.predecessora_id)) {
+      trilha.add(id);
+      const pred = porId.get(d.predecessora_id);
+      const planoPred = resolver(d.predecessora_id, trilha);
+      trilha.delete(id);
+      // Término da predecessora: conclusão REAL (se 100%) ou fim planejado.
+      const fimPred = pred && pred.progresso_pct >= 100 && pred.data_conclusao
+        ? pred.data_conclusao
+        : planoPred.fim;
+      if (fimPred && fimPred >= inicio) {
+        inicio = somarDias(fimPred, 1);
+        empurradaPor = d.predecessora_id;
+      }
+    }
+    const plano = {
+      inicio,
+      fim: d.prazo_dias != null ? somarDias(inicio, d.prazo_dias) : null,
+      empurradaPor,
+    };
+    memo.set(id, plano);
+    return plano;
+  }
+
+  for (const d of discs) resolver(d.id, new Set());
+  return memo;
+}
+
+/**
+ * Desvio (em dias) do fim efetivo contra a LINHA DE BASE: positivo = atraso.
+ * Atividade concluída compara a conclusão real com a linha de base.
+ */
+export function desvioDias(
+  d: { baseline_fim: string | null; data_conclusao: string | null; progresso_pct: number },
+  fimEfetivo: string | null,
+): number | null {
+  if (!d.baseline_fim) return null;
+  const fimReal = d.progresso_pct >= 100 && d.data_conclusao ? d.data_conclusao : fimEfetivo;
+  if (!fimReal) return null;
+  return dias(d.baseline_fim, fimReal);
+}

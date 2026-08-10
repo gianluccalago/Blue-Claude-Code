@@ -479,6 +479,9 @@ export function ModalDisciplina({
         {/* Progresso da atividade (controle semanal) — sempre editável */}
         {podeEditar && <BlocoProgresso disciplina={d} />}
 
+        {/* Amarração (predecessora), recursos e linha de base — cronograma */}
+        {podeEditar && <BlocoPlanejamento disciplina={d} />}
+
         {/* Prazo / data-base / multa */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -690,6 +693,57 @@ function BlocoArquivos({
 }
 
 /** Slider de progresso + apontamento semanal (grava histórico). */
+/**
+ * Amarração ao cronograma (sugestões da TRÍADE): predecessora (empurra o
+ * início automaticamente no Gantt), recursos/equipe e linha de base.
+ */
+function BlocoPlanejamento({ disciplina: d }: { disciplina: ObraDisciplina }) {
+  const disciplinas = useDisciplinas();
+  const atualizar = useAtualizarDisciplina();
+  const [recursos, setRecursos] = useState(d.recursos ?? "");
+
+  const opcoes = (disciplinas.data ?? [])
+    .filter((o) => o.id !== d.id && o.data_base)
+    .sort((a, b) => a.data_base!.localeCompare(b.data_base!));
+
+  async function mudarPredecessora(id: string) {
+    try {
+      await atualizar.mutateAsync({ id: d.id, predecessoraId: id || null });
+      toast.success(id ? "Atividade amarrada — o cronograma empurra o início se a predecessora atrasar." : "Amarração removida.");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+  }
+  async function salvarRecursos() {
+    try {
+      await atualizar.mutateAsync({ id: d.id, recursos });
+      toast.success("Recursos/equipe salvos.");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
+  }
+
+  return (
+    <div className="mt-3 grid gap-2 rounded-lg border border-border bg-muted/20 p-3 sm:grid-cols-2">
+      <label className="block space-y-1">
+        <span className="text-xs font-semibold text-muted-foreground">Predecessora (amarra o início)</span>
+        <select value={d.predecessora_id ?? ""} onChange={(e) => mudarPredecessora(e.target.value)} disabled={atualizar.isPending} className={cn(inputBase, "h-9")}>
+          <option value="">— Sem amarração —</option>
+          {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+        </select>
+      </label>
+      <label className="block space-y-1">
+        <span className="text-xs font-semibold text-muted-foreground">Recursos / equipe</span>
+        <div className="flex gap-2">
+          <input value={recursos} onChange={(e) => setRecursos(e.target.value)} placeholder="ex.: 2 projetistas" className={cn(inputBase, "h-9 flex-1")} />
+          <Button size="sm" variant="outline" onClick={salvarRecursos} loading={atualizar.isPending}>OK</Button>
+        </div>
+      </label>
+      {d.baseline_inicio && d.baseline_fim && (
+        <p className="text-[11px] text-muted-foreground sm:col-span-2">
+          Linha de base: {formatarDataBR(d.baseline_inicio)} → {formatarDataBR(d.baseline_fim)} — os desvios no Cronograma são medidos contra ela.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function BlocoProgresso({ disciplina: d }: { disciplina: ObraDisciplina }) {
   const atualizar = useAtualizarProgresso();
   const [pct, setPct] = useState(d.progresso_pct);

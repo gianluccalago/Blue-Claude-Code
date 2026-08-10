@@ -2949,6 +2949,10 @@ export interface Database {
           data_base: string | null;
           data_conclusao: string | null;
           progresso_pct: number;
+          predecessora_id: string | null;
+          baseline_inicio: string | null;
+          baseline_fim: string | null;
+          recursos: string | null;
           criado_em: string;
         };
         Insert: {
@@ -2973,6 +2977,10 @@ export interface Database {
           data_base: string | null;
           data_conclusao: string | null;
           progresso_pct: number;
+          predecessora_id: string | null;
+          baseline_inicio: string | null;
+          baseline_fim: string | null;
+          recursos: string | null;
         }>;
         Relationships: [];
       };

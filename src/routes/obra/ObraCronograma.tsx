@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarRange, Pencil, X, HardHat, DraftingCompass, AlarmClock, ZoomIn, ZoomOut,
-  Activity, AlertTriangle, Flag, CheckCircle2,
+  Activity, AlertTriangle, Flag, CheckCircle2, Link2, Table2, GanttChartSquare, Users, Anchor,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { useFasesObra, useEtapasObra, useChecklistObra, useAtualizarFaseCronograma } from "@/hooks/useObra";
-import { useDisciplinas } from "@/hooks/useObraProjetos";
+import { useDisciplinas, useRedefinirBaseline } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useInsumos, useEnsaios, useDocumentosObra } from "@/hooks/useObraTransversais";
 import { ultimaVerificacaoPorEtapa, avancoFisico } from "@/lib/obra";
@@ -18,15 +18,19 @@ import {
   somarDias,
   statusBarraFase,
   statusBarraDisciplina,
+  planejamentoEfetivo,
+  desvioDias,
   type StatusGantt,
   type JanelaGantt,
 } from "@/lib/obraGantt";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
+import { formatarMoeda } from "@/lib/mensalidade";
 import { cn, formatarDataBR, hojeISO } from "@/lib/utils";
-import type { ObraFase } from "@/types/database";
+import type { ObraFase, ObraDisciplina } from "@/types/database";
 
 // ===========================================================================
 // MÓDULO OBRA · CRONOGRAMA — Gantt executivo (master/direção).
@@ -74,8 +78,11 @@ export function ObraCronograma() {
   const docs = useDocumentosObra();
   const ordens = useOrdensCompra();
 
+  const redefinirBaseline = useRedefinirBaseline();
   const [editando, setEditando] = useState<ObraFase | null>(null);
   const [zoom, setZoom] = useState(1); // índice em ZOOMS
+  const [visao, setVisao] = useState<"gantt" | "tabela">("gantt");
+  const [confirmandoBaseline, setConfirmandoBaseline] = useState(false);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const hojeRef = useRef<HTMLSpanElement>(null);
@@ -94,9 +101,13 @@ export function ObraCronograma() {
   if (fases.isError) return <ErrorState error={fases.error} />;
 
   const listaFases = [...(fases.data ?? [])].sort((a, b) => a.numero - b.numero);
+  // Agendamento automático: predecessoras podem EMPURRAR o início das
+  // sucessoras — as barras e a tabela usam o plano EFETIVO.
+  const efetivo = planejamentoEfetivo(disciplinas.data ?? []);
+  const nomeDisc = new Map((disciplinas.data ?? []).map((d) => [d.id, d.nome]));
   const listaDisc = (disciplinas.data ?? [])
     .filter((d) => d.data_base)
-    .sort((a, b) => a.data_base!.localeCompare(b.data_base!));
+    .sort((a, b) => (efetivo.get(a.id)?.inicio ?? a.data_base!).localeCompare(efetivo.get(b.id)?.inicio ?? b.data_base!));
   const discSemData = (disciplinas.data ?? []).length - listaDisc.length;
 
   // ── Marcos de prazo (losangos) ──
@@ -119,7 +130,11 @@ export function ObraCronograma() {
   const janela = janelaGantt(
     [
       ...listaFases.flatMap((f) => [f.data_inicio, f.data_inicio_prevista, f.data_fim_prevista, f.data_trp, f.data_trd]),
-      ...listaDisc.flatMap((d) => [d.data_base, d.prazo_dias != null ? somarDias(d.data_base!, d.prazo_dias) : null, d.data_conclusao]),
+      ...listaDisc.flatMap((d) => [
+        efetivo.get(d.id)?.inicio ?? d.data_base,
+        efetivo.get(d.id)?.fim ?? (d.prazo_dias != null ? somarDias(d.data_base!, d.prazo_dias) : null),
+        d.baseline_inicio, d.baseline_fim, d.data_conclusao,
+      ]),
       ...marcosPrazo.map((m) => m.data),
     ],
     hoje,
@@ -136,7 +151,10 @@ export function ObraCronograma() {
     ? listaFases.reduce((s, f) => s + (avPorFase.get(f.id) ?? 0) * f.area_m2, 0) / totalArea
     : 0;
   const fasesAtrasadas = listaFases.filter((f) => statusBarraFase(f, hoje) === "atrasada").length;
-  const discAtrasadas = listaDisc.filter((d) => statusBarraDisciplina(d, hoje) === "atrasada").length;
+  // Status pelo plano EFETIVO (empurrado pelas predecessoras, quando houver).
+  const statusDisc = (d: ObraDisciplina): StatusGantt =>
+    statusBarraDisciplina({ ...d, data_base: efetivo.get(d.id)?.inicio ?? d.data_base }, hoje);
+  const discAtrasadas = listaDisc.filter((d) => statusDisc(d) === "atrasada").length;
   const marcosVencidos = marcosPrazo.filter((m) => m.data < hoje).length;
 
   const nenhumaDataFase = listaFases.every((f) => !f.data_inicio && !f.data_inicio_prevista && !f.data_fim_prevista);
@@ -188,16 +206,46 @@ export function ObraCronograma() {
               <span className="inline-block size-2.5 rotate-45 border border-card bg-secondary" /> Marco
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-1 w-5 rounded-full bg-secondary/25" /> Plano
+              <span className="inline-block h-1 w-5 rounded-full bg-secondary/25" /> Linha de base
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Link2 className="size-3" /> Amarrada à predecessora
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.max(0, z - 1))} disabled={zoom === 0} title="Diminuir zoom"><ZoomOut className="size-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1))} disabled={zoom === ZOOMS.length - 1} title="Aumentar zoom"><ZoomIn className="size-4" /></Button>
+            {podeEditar && visao === "tabela" && (
+              <Button size="sm" variant="outline" onClick={() => setConfirmandoBaseline(true)} title="Congela o plano vigente como nova referência de desvios">
+                <Anchor className="size-3.5" /> Redefinir linha de base
+              </Button>
+            )}
+            <div className="mr-1 flex overflow-hidden rounded-md border border-input">
+              <button onClick={() => setVisao("gantt")} title="Gráfico de Gantt"
+                className={cn("px-2 py-1.5", visao === "gantt" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
+                <GanttChartSquare className="size-4" />
+              </button>
+              <button onClick={() => setVisao("tabela")} title="Tabela de controle"
+                className={cn("px-2 py-1.5", visao === "tabela" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-secondary")}>
+                <Table2 className="size-4" />
+              </button>
+            </div>
+            {visao === "gantt" && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.max(0, z - 1))} disabled={zoom === 0} title="Diminuir zoom"><ZoomOut className="size-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1))} disabled={zoom === ZOOMS.length - 1} title="Aumentar zoom"><ZoomIn className="size-4" /></Button>
+              </>
+            )}
           </div>
         </div>
 
         <CardContent className="p-0">
+          {visao === "tabela" ? (
+            <TabelaControle
+              disciplinas={listaDisc}
+              efetivo={efetivo}
+              nomeDisc={nomeDisc}
+              statusDisc={statusDisc}
+            />
+          ) : (
           <div ref={areaRef} className="relative" onMouseLeave={() => setTooltip(null)}>
             <div className="overflow-x-auto">
               <div style={{ minWidth: `${larguraLinha + COL_ROTULO}px` }} className="pb-3">
@@ -324,12 +372,17 @@ export function ObraCronograma() {
                       subtitulo={`${listaDisc.length} com data-base${discSemData > 0 ? ` · ${discSemData} sem data-base (defina em Projetos)` : ""}`}
                     />
                     {listaDisc.map((d) => {
-                      const status = statusBarraDisciplina(d, hoje);
-                      const fim = d.prazo_dias != null ? somarDias(d.data_base!, d.prazo_dias) : null;
+                      const status = statusDisc(d);
+                      const plano = efetivo.get(d.id);
+                      const inicio = plano?.inicio ?? d.data_base!;
+                      const fim = plano?.fim ?? (d.prazo_dias != null ? somarDias(inicio, d.prazo_dias) : null);
+                      const desvio = desvioDias(d, fim);
+                      const empurrada = !!plano?.empurradaPor;
+                      const temBaseline = !!(d.baseline_inicio && d.baseline_fim);
                       return (
                         <Linha
                           key={d.id}
-                          altura="h-9"
+                          altura="h-10"
                           janela={janela}
                           meses={meses}
                           hoje={hoje}
@@ -337,21 +390,34 @@ export function ObraCronograma() {
                             <div className="flex min-w-0 flex-1 items-center gap-2">
                               <span className={cn("size-1.5 shrink-0 rounded-full", COR_SOLIDA[status])} />
                               <p className="truncate text-xs font-medium text-secondary">{d.nome}</p>
+                              {d.predecessora_id && <Link2 className="size-3 shrink-0 text-primary" />}
                               {status === "concluida" && <CheckCircle2 className="size-3 shrink-0 text-success" />}
                             </div>
                           }
                         >
+                          {/* Linha de base (plano congelado) — barra fina cinza */}
+                          {temBaseline && (
+                            <div
+                              className="absolute top-[4px] h-1 rounded-full bg-secondary/25"
+                              style={{ left: `${posPct(d.baseline_inicio!, janela)}%`, width: `${Math.max(0.5, larguraPct(d.baseline_inicio!, d.baseline_fim!, janela))}%` }}
+                            />
+                          )}
                           {fim ? (
                             <div
-                              className={cn("absolute top-[9px] h-[18px] cursor-default overflow-hidden rounded", COR_TRILHA[status], status === "prevista" && "border border-dashed border-muted-foreground/40")}
-                              style={{ left: `${posPct(d.data_base!, janela)}%`, width: `${Math.max(0.8, larguraPct(d.data_base!, fim, janela))}%` }}
+                              className={cn("absolute top-[11px] h-[18px] cursor-default overflow-hidden rounded", COR_TRILHA[status], status === "prevista" && "border border-dashed border-muted-foreground/40")}
+                              style={{ left: `${posPct(inicio, janela)}%`, width: `${Math.max(0.8, larguraPct(inicio, fim, janela))}%` }}
                               onMouseMove={(e) => mostrarTooltip(e, {
                                 titulo: d.nome,
                                 status,
                                 linhas: [
                                   `Progresso: ${d.progresso_pct}%`,
                                   `Status contratual: ${d.status}`,
-                                  `Data-base ${formatarDataBR(d.data_base!)} · prazo ${d.prazo_dias}d → ${formatarDataBR(fim)}`,
+                                  `Atual: ${formatarDataBR(inicio)} → ${formatarDataBR(fim)} (${d.prazo_dias}d)`,
+                                  empurrada ? `Início empurrado pela predecessora: ${nomeDisc.get(plano!.empurradaPor!) ?? "?"}` : "",
+                                  d.predecessora_id && !empurrada ? `Predecessora: ${nomeDisc.get(d.predecessora_id) ?? "?"}` : "",
+                                  temBaseline ? `Linha de base: ${formatarDataBR(d.baseline_inicio!)} → ${formatarDataBR(d.baseline_fim!)}` : "",
+                                  desvio != null && desvio !== 0 ? `Desvio da linha de base: ${desvio > 0 ? "+" : ""}${desvio} dia(s)` : desvio === 0 ? "Sem desvio da linha de base" : "",
+                                  d.recursos ? `Recursos: ${d.recursos}` : "",
                                   d.data_conclusao ? `Concluída em ${formatarDataBR(d.data_conclusao)}` : "",
                                 ].filter(Boolean),
                               })}
@@ -361,11 +427,11 @@ export function ObraCronograma() {
                               <div className={cn("h-full rounded-l", COR_SOLIDA[status])} style={{ width: `${Math.min(100, d.progresso_pct)}%` }} />
                             </div>
                           ) : (
-                            <Marco dataISO={d.data_base!} janela={janela} />
+                            <Marco dataISO={inicio} janela={janela} />
                           )}
                           {d.data_conclusao && (
                             <span
-                              className="absolute top-[8px] z-10 size-5 -translate-x-1/2 rounded-full border-2 border-card bg-success shadow-sm"
+                              className="absolute top-[10px] z-10 size-5 -translate-x-1/2 rounded-full border-2 border-card bg-success shadow-sm"
                               style={{ left: `${posPct(d.data_conclusao, janela)}%` }}
                             />
                           )}
@@ -424,10 +490,151 @@ export function ObraCronograma() {
               </div>
             )}
           </div>
+          )}
         </CardContent>
       </Card>
 
       {editando && <ModalCronogramaFase fase={editando} onFechar={() => setEditando(null)} />}
+
+      <ConfirmDialog
+        aberto={confirmandoBaseline}
+        titulo="Redefinir a linha de base?"
+        descricao="O plano vigente (datas atuais, já com os empurrões de predecessoras aplicados às datas-base) vira a nova referência — os desvios passam a ser medidos contra ele. A linha de base anterior é substituída."
+        textoConfirmar="Redefinir"
+        onConfirmar={() => {
+          setConfirmandoBaseline(false);
+          redefinirBaseline.mutate(undefined, {
+            onSuccess: (n) => toast.success(`Linha de base redefinida para ${n} atividade(s).`),
+            onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao redefinir."),
+          });
+        }}
+        onCancelar={() => setConfirmandoBaseline(false)}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TABELA DE CONTROLE — desvios, custos e recursos (sugestão da TRÍADE)
+// ---------------------------------------------------------------------------
+
+function TabelaControle({ disciplinas, efetivo, nomeDisc, statusDisc }: {
+  disciplinas: ObraDisciplina[];
+  efetivo: ReturnType<typeof planejamentoEfetivo>;
+  nomeDisc: Map<string, string>;
+  statusDisc: (d: ObraDisciplina) => StatusGantt;
+}) {
+  const comValor = disciplinas.filter((d) => d.valor > 0);
+  const totalValor = comValor.reduce((s, d) => s + d.valor, 0);
+
+  // Resumo de recursos/equipes (vinculado ao cronograma).
+  const porRecurso = new Map<string, { atividades: number; valor: number; inicio: string | null; fim: string | null }>();
+  for (const d of disciplinas) {
+    if (!d.recursos) continue;
+    const plano = efetivo.get(d.id);
+    const r = porRecurso.get(d.recursos) ?? { atividades: 0, valor: 0, inicio: null, fim: null };
+    r.atividades += 1;
+    r.valor += d.valor;
+    if (plano?.inicio && (!r.inicio || plano.inicio < r.inicio)) r.inicio = plano.inicio;
+    if (plano?.fim && (!r.fim || plano.fim > r.fim)) r.fim = plano.fim;
+    porRecurso.set(d.recursos, r);
+  }
+
+  return (
+    <div className="space-y-4 p-4 sm:p-5">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[880px] text-sm">
+          <thead>
+            <tr className="border-b text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <th className="pb-2 pr-2">Atividade</th>
+              <th className="pb-2 pr-2">Predecessora</th>
+              <th className="pb-2 pr-2">Linha de base</th>
+              <th className="pb-2 pr-2">Atual (efetivo)</th>
+              <th className="pb-2 pr-2 text-right">Desvio</th>
+              <th className="pb-2 pr-2 text-right">Dur.</th>
+              <th className="pb-2 pr-2 text-right">Progr.</th>
+              <th className="pb-2 pr-2">Recursos</th>
+              <th className="pb-2 text-right">Custo</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {disciplinas.map((d) => {
+              const plano = efetivo.get(d.id);
+              const inicio = plano?.inicio ?? d.data_base;
+              const fim = plano?.fim ?? null;
+              const desvio = desvioDias(d, fim);
+              const status = statusDisc(d);
+              return (
+                <tr key={d.id} className="align-top">
+                  <td className="max-w-56 py-2 pr-2">
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn("size-1.5 shrink-0 rounded-full", COR_SOLIDA[status])} />
+                      <span className="font-medium text-secondary">{d.nome}</span>
+                    </span>
+                  </td>
+                  <td className="max-w-40 py-2 pr-2 text-xs text-muted-foreground">
+                    {d.predecessora_id ? (
+                      <span className="inline-flex items-center gap-1"><Link2 className="size-3 text-primary" /> {nomeDisc.get(d.predecessora_id) ?? "?"}</span>
+                    ) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap py-2 pr-2 text-xs tabular-nums text-muted-foreground">
+                    {d.baseline_inicio && d.baseline_fim ? `${formatarDataBR(d.baseline_inicio)} → ${formatarDataBR(d.baseline_fim)}` : "—"}
+                  </td>
+                  <td className="whitespace-nowrap py-2 pr-2 text-xs tabular-nums text-secondary">
+                    {inicio && fim ? (
+                      <>
+                        {formatarDataBR(inicio)} → {formatarDataBR(fim)}
+                        {plano?.empurradaPor && <Link2 className="ml-1 inline size-3 text-primary" />}
+                      </>
+                    ) : "—"}
+                  </td>
+                  <td className="py-2 pr-2 text-right">
+                    {desvio == null ? <span className="text-xs text-muted-foreground">—</span> : (
+                      <Badge variant={desvio > 0 ? "destructive" : desvio < 0 ? "success" : "muted"} className="tabular-nums">
+                        {desvio > 0 ? `+${desvio}d` : desvio < 0 ? `${desvio}d` : "0d"}
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="py-2 pr-2 text-right text-xs tabular-nums text-muted-foreground">{d.prazo_dias != null ? `${d.prazo_dias}d` : "—"}</td>
+                  <td className="py-2 pr-2 text-right text-xs font-semibold tabular-nums text-secondary">{d.progresso_pct}%</td>
+                  <td className="max-w-36 py-2 pr-2 text-xs text-muted-foreground">{d.recursos ?? "—"}</td>
+                  <td className="whitespace-nowrap py-2 text-right text-xs font-semibold tabular-nums text-secondary">
+                    {d.valor > 0 ? formatarMoeda(d.valor) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t text-sm font-bold text-secondary">
+              <td className="pt-2" colSpan={8}>Total contratado ({comValor.length} atividades com desembolso)</td>
+              <td className="pt-2 text-right tabular-nums">{formatarMoeda(totalValor)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Recursos/equipes vinculados ao cronograma */}
+      <div>
+        <h3 className="mb-1.5 flex items-center gap-2 text-sm font-bold text-secondary"><Users className="size-4 text-primary" /> Recursos / equipes</h3>
+        {porRecurso.size === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhuma equipe atribuída ainda — defina "Recursos/equipe" no workspace de cada atividade (aba Projetos) e o resumo aparece aqui.
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[...porRecurso.entries()].sort((a, b) => b[1].valor - a[1].valor).map(([nome, r]) => (
+              <div key={nome} className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-sm font-bold text-secondary">{nome}</p>
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {r.atividades} atividade(s) · {r.inicio ? formatarDataBR(r.inicio) : "?"} → {r.fim ? formatarDataBR(r.fim) : "?"}
+                </p>
+                <p className="text-xs font-semibold tabular-nums text-secondary">{formatarMoeda(r.valor)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

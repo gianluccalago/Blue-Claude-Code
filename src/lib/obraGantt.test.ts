@@ -7,6 +7,8 @@ import {
   somarDias,
   statusBarraFase,
   statusBarraDisciplina,
+  planejamentoEfetivo,
+  desvioDias,
 } from "@/lib/obraGantt";
 
 const HOJE = "2026-07-15";
@@ -98,5 +100,58 @@ describe("statusBarraDisciplina", () => {
   it("dentro do prazo = andamento; sem data-base = prevista", () => {
     expect(statusBarraDisciplina({ progresso_pct: 10, data_base: "2026-07-01", prazo_dias: 90 }, HOJE)).toBe("andamento");
     expect(statusBarraDisciplina({ progresso_pct: 0, data_base: null, prazo_dias: 60 }, HOJE)).toBe("prevista");
+  });
+});
+
+describe("planejamentoEfetivo (predecessoras — agendamento automático)", () => {
+  const base = { data_conclusao: null, progresso_pct: 0 };
+  it("sem predecessora, usa a data-base", () => {
+    const m = planejamentoEfetivo([{ id: "a", data_base: "2026-08-01", prazo_dias: 10, predecessora_id: null, ...base }]);
+    expect(m.get("a")).toEqual({ inicio: "2026-08-01", fim: "2026-08-11", empurradaPor: null });
+  });
+  it("empurra o início quando a predecessora termina depois da data-base (em cadeia)", () => {
+    const m = planejamentoEfetivo([
+      { id: "a", data_base: "2026-08-01", prazo_dias: 30, predecessora_id: null, ...base },
+      { id: "b", data_base: "2026-08-10", prazo_dias: 10, predecessora_id: "a", ...base },
+      { id: "c", data_base: "2026-08-15", prazo_dias: 5, predecessora_id: "b", ...base },
+    ]);
+    expect(m.get("b")).toEqual({ inicio: "2026-09-01", fim: "2026-09-11", empurradaPor: "a" });
+    expect(m.get("c")).toEqual({ inicio: "2026-09-12", fim: "2026-09-17", empurradaPor: "b" });
+  });
+  it("NÃO empurra quando a predecessora termina antes", () => {
+    const m = planejamentoEfetivo([
+      { id: "a", data_base: "2026-08-01", prazo_dias: 5, predecessora_id: null, ...base },
+      { id: "b", data_base: "2026-09-01", prazo_dias: 10, predecessora_id: "a", ...base },
+    ]);
+    expect(m.get("b")!.empurradaPor).toBeNull();
+    expect(m.get("b")!.inicio).toBe("2026-09-01");
+  });
+  it("usa a conclusão REAL da predecessora concluída", () => {
+    const m = planejamentoEfetivo([
+      { id: "a", data_base: "2026-08-01", prazo_dias: 30, predecessora_id: null, data_conclusao: "2026-08-05", progresso_pct: 100 },
+      { id: "b", data_base: "2026-08-03", prazo_dias: 10, predecessora_id: "a", ...base },
+    ]);
+    expect(m.get("b")!.inicio).toBe("2026-08-06");
+  });
+  it("ignora ciclos sem travar", () => {
+    const m = planejamentoEfetivo([
+      { id: "a", data_base: "2026-08-01", prazo_dias: 10, predecessora_id: "b", ...base },
+      { id: "b", data_base: "2026-08-05", prazo_dias: 10, predecessora_id: "a", ...base },
+    ]);
+    expect(m.get("a")!.inicio).toBeTruthy();
+    expect(m.get("b")!.inicio).toBeTruthy();
+  });
+});
+
+describe("desvioDias (linha de base)", () => {
+  it("mede o desvio do fim efetivo contra a baseline", () => {
+    expect(desvioDias({ baseline_fim: "2026-08-10", data_conclusao: null, progresso_pct: 50 }, "2026-08-15")).toBe(5);
+    expect(desvioDias({ baseline_fim: "2026-08-10", data_conclusao: null, progresso_pct: 50 }, "2026-08-08")).toBe(-2);
+  });
+  it("atividade concluída compara a conclusão real", () => {
+    expect(desvioDias({ baseline_fim: "2026-08-10", data_conclusao: "2026-08-09", progresso_pct: 100 }, "2026-08-20")).toBe(-1);
+  });
+  it("sem baseline, sem desvio", () => {
+    expect(desvioDias({ baseline_fim: null, data_conclusao: null, progresso_pct: 0 }, "2026-08-15")).toBeNull();
   });
 });

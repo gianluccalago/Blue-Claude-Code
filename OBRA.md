@@ -518,6 +518,28 @@ rubrica, com "parcela X/Y terreno Z" agregadas em "Parcelas dos terrenos").
   238.941,14 entradas líquidas, −557.188,14 saídas, 69.701,00 final —
   idênticos aos da aba jul26 (teste automatizado com o fixture real).
 
+### ✅ Cronograma avançado — sugestões da TRÍADE (migration `0124_cronograma_avancado.sql`)
+Três pedidos do engenheiro, implementados no MESMO Gantt (interno + portal):
+- **Predecessoras + agendamento automático**: `predecessora_id` em
+  obra_disciplinas; amarração feita no workspace da atividade. O Gantt
+  calcula o plano EFETIVO (`planejamentoEfetivo`, com cadeia e proteção
+  contra ciclos): se a predecessora termina (conclusão real ou fim
+  planejado) na data-base da sucessora ou depois, o início é EMPURRADO
+  para o dia seguinte — em cascata. Ícone de elo na linha e no tooltip.
+- **Linha de base**: `baseline_inicio/fim` (semeada com o plano vigente);
+  barra fina cinza sob a barra atual — desalinhamento = desvio visível.
+  `desvioDias` mede fim efetivo (ou conclusão real) × baseline. Botão
+  "Redefinir linha de base" (master/direção, com confirmação) congela o
+  plano vigente como nova referência.
+- **Tabela de controle + recursos**: toggle Gantt ⇄ Tabela na toolbar.
+  Colunas: atividade, predecessora, linha de base, atual (efetivo),
+  DESVIO em dias (badge), duração, progresso, recursos e custo (valores
+  do contrato DELES — nada sigiloso nosso), com total. `recursos` (texto,
+  ex.: "2 projetistas") editável no workspace; resumo "Recursos/equipes"
+  agrega atividades, período e valor por equipe.
+Status de atraso passou a usar o plano efetivo (empurrado). 8 testes novos
+(cadeias, ciclos, conclusão real antecipando, desvios).
+
 ## Módulo completo (Fases 0–7 + hardening + acompanhamento + cronograma)
 **Migrations, na ordem:** 0099 → 0100 → 0101 → 0102 → 0103 → 0104 → 0105 → 0106
 → 0107 → 0108 → 0111 (0109/0110 são de acesso/login, fora do módulo). Todas
