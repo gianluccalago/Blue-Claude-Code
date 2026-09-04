@@ -108,6 +108,7 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/direcao/obra": HardHat,
   "/app/obra_prestador/obra": HardHat,
   "/app/administracao/fluxo-caixa": Landmark,
+  "/app/familia/plano-cuidados": ClipboardList,
   "/app/farmacia/livro-controlados": BookLock,
   "/app/coordenacao/livro-controlados": BookLock,
   "/app/enfermeira/livro-controlados": BookLock,

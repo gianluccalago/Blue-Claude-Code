@@ -109,6 +109,7 @@ import { Mensalidade as FamiliaMensalidade } from "@/routes/familia/Mensalidade"
 import { Solicitacoes as FamiliaSolicitacoes } from "@/routes/familia/Solicitacoes";
 import { CameraQuarto } from "@/routes/familia/CameraQuarto";
 import { SinaisVitais } from "@/routes/familia/SinaisVitais";
+import { PlanoCuidados as FamiliaPlanoCuidados } from "@/routes/familia/PlanoCuidados";
 import { SolicitacoesFamiliaInbox } from "@/components/solicitacoes/SolicitacoesFamiliaInbox";
 import { getPerfil } from "@/data/profiles";
 
@@ -518,6 +519,12 @@ const sinaisVitaisRoute = createRoute({
   path: "sinais-vitais",
   component: SinaisVitais,
 });
+// Portal da família — plano de cuidados (somente leitura; RLS 0126).
+const familiaPlanoCuidadosRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "plano-cuidados",
+  component: FamiliaPlanoCuidados,
+});
 // Caixa de "Solicitações da família" — Coordenação, Médico e Administração.
 const solicitacoesFamiliaInboxRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -750,6 +757,7 @@ const routeTree = rootRoute.addChildren([
     documentosInstitucionaisRoute,
     obraRoute,
     fluxoCaixaRoute,
+    familiaPlanoCuidadosRoute,
     pedidosMensaisRoute,
     custosMedicamentoRoute,
     estoqueHospedeRoute,

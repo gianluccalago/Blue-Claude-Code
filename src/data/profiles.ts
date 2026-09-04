@@ -409,6 +409,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/familia",
     menu: [
       { label: "Início", to: "/app/familia" },
+      { label: "Plano de cuidados", to: "/app/familia/plano-cuidados" },
       { label: "Fotos", to: "/app/familia/fotos" },
       { label: "Mensalidade e extras", to: "/app/familia/mensalidade-familia" },
       { label: "Solicitações", to: "/app/familia/solicitacoes" },

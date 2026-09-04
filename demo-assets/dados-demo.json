@@ -1,0 +1,296 @@
+{
+  "equipe": [
+    {
+      "n": 1,
+      "nome": "Ricardo Salles Monteiro",
+      "perfil": "master",
+      "email": "demo.diretor@demo.local",
+      "funcao": "Diretor"
+    },
+    {
+      "n": 2,
+      "nome": "Rosana Prado Lima",
+      "perfil": "enfermeira",
+      "email": "demo.rosana@demo.local",
+      "funcao": "Enfermeira Responsável Técnica",
+      "registro": "COREN-PR 312.884"
+    },
+    {
+      "n": 3,
+      "nome": "Marta Ribeiro Coelho",
+      "perfil": "coordenacao",
+      "email": "demo.marta@demo.local",
+      "funcao": "Coordenação assistencial"
+    },
+    {
+      "n": 4,
+      "nome": "Geraldo Antunes Vaz",
+      "perfil": "medico",
+      "email": "demo.medico@demo.local",
+      "funcao": "Médico geriatra",
+      "registro": "CRM-PR 28.417"
+    },
+    {
+      "n": 5,
+      "nome": "Camila Duarte Pinho",
+      "perfil": "enfermagem",
+      "email": "demo.camila@demo.local",
+      "funcao": "Técnica de Enfermagem",
+      "vinculo": "CLT"
+    },
+    {
+      "n": 6,
+      "nome": "Juliana Ferraz Amado",
+      "perfil": "enfermagem",
+      "email": "demo.juliana@demo.local",
+      "funcao": "Técnica de Enfermagem",
+      "vinculo": "CLT"
+    },
+    {
+      "n": 7,
+      "nome": "Patrícia Gomes Vilela",
+      "perfil": "enfermagem",
+      "email": "demo.patricia@demo.local",
+      "funcao": "Técnica de Enfermagem",
+      "vinculo": "CLT"
+    },
+    {
+      "n": 8,
+      "nome": "Simone Barros Tavares",
+      "perfil": "enfermagem",
+      "email": "demo.simone@demo.local",
+      "funcao": "Técnica de Enfermagem",
+      "vinculo": "CLT"
+    },
+    {
+      "n": 9,
+      "nome": "Tereza Lopes Andrade",
+      "perfil": "cuidador",
+      "email": "demo.tereza@demo.local",
+      "funcao": "Cuidadora diurna",
+      "vinculo": "CLT"
+    },
+    {
+      "n": 10,
+      "nome": "Helena Fontes Vieira",
+      "perfil": "nutricionista",
+      "email": "demo.helena@demo.local",
+      "funcao": "Nutricionista",
+      "registro": "CRN-8 9.412"
+    },
+    {
+      "n": 11,
+      "nome": "Sandra Vieira Nogueira",
+      "perfil": "multidisciplinar",
+      "email": "demo.sandra@demo.local",
+      "funcao": "Fisioterapeuta",
+      "registro": "CREFITO-8 148.220"
+    },
+    {
+      "n": 12,
+      "nome": "Débora Nunes Carvalho",
+      "perfil": "administracao",
+      "email": "demo.debora@demo.local",
+      "funcao": "Recepção e administrativo"
+    },
+    {
+      "n": 13,
+      "nome": "Paulo Cesar Werneck",
+      "perfil": "farmacia",
+      "email": "demo.farmacia@demo.local",
+      "funcao": "Farmácia"
+    },
+    {
+      "n": 14,
+      "nome": "Fernanda Andrade Ribeiro",
+      "perfil": "familia",
+      "email": "demo.fernanda@demo.local",
+      "funcao": "Filha de Maria Helena",
+      "vinculaResidente": 1
+    }
+  ],
+  "moradores": [
+    {
+      "n": 1,
+      "nome": "Maria Helena Andrade",
+      "nasc": "1947-03-18",
+      "grau": "II",
+      "contratual": "I",
+      "suite": "Suíte",
+      "quarto": "204",
+      "resp": "Fernanda Andrade Ribeiro",
+      "respTel": "(41) 99612-4477",
+      "freq": 3
+    },
+    {
+      "n": 2,
+      "nome": "Aparecida Nunes Vidal",
+      "nasc": "1944-07-02",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Suíte",
+      "quarto": "201",
+      "resp": "Cláudio Nunes Vidal",
+      "respTel": "(41) 99845-1120",
+      "freq": 1
+    },
+    {
+      "n": 3,
+      "nome": "Conceição Dias Ferraz",
+      "nasc": "1949-11-25",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Long Stay",
+      "quarto": "108",
+      "resp": "Beatriz Dias Ferraz",
+      "respTel": "(41) 99231-8890",
+      "freq": 1
+    },
+    {
+      "n": 4,
+      "nome": "Waldir Campos Rocha",
+      "nasc": "1943-01-09",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Apartamento",
+      "quarto": "302",
+      "resp": "Sérgio Campos Rocha",
+      "respTel": "(41) 99770-3312",
+      "freq": 1
+    },
+    {
+      "n": 5,
+      "nome": "Nelson Barreto Aguiar",
+      "nasc": "1946-05-14",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Apartamento",
+      "quarto": "305",
+      "resp": "Marina Barreto Aguiar",
+      "respTel": "(41) 99188-7745",
+      "freq": 1
+    },
+    {
+      "n": 6,
+      "nome": "Yolanda Prates Coelho",
+      "nasc": "1941-09-30",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Suíte",
+      "quarto": "206",
+      "resp": "Rogério Prates Coelho",
+      "respTel": "(41) 99554-2201",
+      "freq": 1
+    },
+    {
+      "n": 7,
+      "nome": "Ivone Salgado Reis",
+      "nasc": "1948-02-11",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Long Stay",
+      "quarto": "110",
+      "resp": "Tatiana Salgado Reis",
+      "respTel": "(41) 99903-6678",
+      "freq": 1
+    },
+    {
+      "n": 8,
+      "nome": "Arnaldo Bicudo Franco",
+      "nasc": "1945-12-03",
+      "grau": "I",
+      "contratual": "I",
+      "suite": "Apartamento",
+      "quarto": "308",
+      "resp": "Luiza Bicudo Franco",
+      "respTel": "(41) 99417-9024",
+      "freq": 1
+    },
+    {
+      "n": 9,
+      "nome": "Lúcia Moraes Tavares",
+      "nasc": "1940-06-21",
+      "grau": "II",
+      "contratual": "II",
+      "suite": "Suíte",
+      "quarto": "209",
+      "resp": "Paulo Moraes Tavares",
+      "respTel": "(41) 99326-5580",
+      "freq": 3
+    },
+    {
+      "n": 10,
+      "nome": "Otávio Prado Sanches",
+      "nasc": "1939-08-17",
+      "grau": "II",
+      "contratual": "II",
+      "suite": "Suíte Premium",
+      "quarto": "212",
+      "resp": "Renata Prado Sanches",
+      "respTel": "(41) 99640-1193",
+      "freq": 3,
+      "alergias": "Dipirona"
+    },
+    {
+      "n": 11,
+      "nome": "Célia Bastos Meireles",
+      "nasc": "1942-04-06",
+      "grau": "II",
+      "contratual": "II",
+      "suite": "Suíte",
+      "quarto": "215",
+      "resp": "André Bastos Meireles",
+      "respTel": "(41) 99872-4406",
+      "freq": 3
+    },
+    {
+      "n": 12,
+      "nome": "Therezinha Alves Moreira",
+      "nasc": "1936-10-28",
+      "grau": "III",
+      "contratual": "II",
+      "suite": "Suíte Premium",
+      "quarto": "218",
+      "resp": "Vera Alves Moreira",
+      "respTel": "(41) 99205-7731",
+      "freq": 5
+    }
+  ],
+  "jornada": {
+    "leadPrimeiroContato": 150,
+    "leadVisitaAgendada": 143,
+    "leadVisitaFeita": 138,
+    "leadProposta": 131,
+    "leadContrato": 122,
+    "admissao": 120,
+    "queda": 21,
+    "reavaliacao": 14
+  },
+  "uid": {
+    "bloco": {
+      "residente": "10",
+      "usuario": "20",
+      "crmContato": "30",
+      "crmOport": "31",
+      "crmEvento": "32",
+      "ivcf": "40",
+      "cognitivo": "41",
+      "plano": "42",
+      "prescricao": "43",
+      "evolucao": "44",
+      "intercorrencia": "45",
+      "sentinela": "46",
+      "recado": "47",
+      "compromisso": "48",
+      "turno": "50",
+      "documento": "51",
+      "npsPesq": "52",
+      "npsResp": "53",
+      "atividade": "54",
+      "participacao": "55",
+      "enxoval": "56",
+      "chamado": "57",
+      "cardapio": "58"
+    }
+  }
+}

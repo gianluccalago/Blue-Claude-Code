@@ -69,19 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const usuarioEfetivo = impersonado ?? usuario;
 
   // Mantém a identidade usada pelos hooks (usuarioAtual) sempre igual à efetiva.
-  useEffect(() => {
-    setUsuarioAtual(
-      usuarioEfetivo
-        ? {
-            id: usuarioEfetivo.id,
-            nome: usuarioEfetivo.nome,
-            perfil: usuarioEfetivo.perfil,
-            residenteVinculado: usuarioEfetivo.residente_vinculado,
-            registro: usuarioEfetivo.registro_profissional,
-          }
-        : null,
-    );
-  }, [usuarioEfetivo]);
+  // Feito no CORPO do componente, e não em efeito: `usuarioAtual`/`familiaAtual`
+  // são objetos mutáveis lidos DURANTE o render dos filhos (ex.: o portal da
+  // família lê familiaAtual.residenteId). Em efeito, a escrita acontece depois
+  // do render e não agenda um novo — os filhos ficariam com o valor anterior
+  // (portal abrindo em "Não informado"). A escrita é idempotente e não muda
+  // estado de React, então é segura aqui.
+  setUsuarioAtual(
+    usuarioEfetivo
+      ? {
+          id: usuarioEfetivo.id,
+          nome: usuarioEfetivo.nome,
+          perfil: usuarioEfetivo.perfil,
+          residenteVinculado: usuarioEfetivo.residente_vinculado,
+          registro: usuarioEfetivo.registro_profissional,
+        }
+      : null,
+  );
 
   // Identidade REAL (ignora Camaleão) — autoria legal (ex.: médico prescritor).
   useEffect(() => {
