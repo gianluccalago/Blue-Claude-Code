@@ -120,8 +120,13 @@ export function usePagarNotaFiscal() {
       }
       let comprovanteUrl: string | null = null;
       if (v.comprovante) {
-        comprovanteUrl = await uploadArquivoObra(v.comprovante, `nf/comprovantes/${v.dataPagamento}`);
-        if (!comprovanteUrl) throw new Error("Itens pagos, mas o upload do comprovante falhou — anexe de novo na nota.");
+        try {
+          comprovanteUrl = await uploadArquivoObra(v.comprovante, `nf/comprovantes/${v.dataPagamento}`);
+        } catch (e) {
+          // Os itens JÁ foram pagos neste ponto — o aviso precisa dizer isso.
+          const detalhe = e instanceof Error ? e.message : "";
+          throw new Error(`Itens pagos, mas o comprovante não subiu. ${detalhe} Anexe o comprovante na lista de notas.`);
+        }
       }
       const { error: e2 } = await supabase
         .from("obra_notas_fiscais")

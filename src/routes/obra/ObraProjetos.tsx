@@ -37,7 +37,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { SliderPct } from "@/components/ui/slider";
 import { useObraArquivos, useSubirArquivosObra, useExcluirArquivoObra } from "@/hooks/useObraArquivos";
 import { AnexoSeguro } from "@/components/AnexoSeguro";
-import { BUCKET_OBRA } from "@/lib/storage";
+import { BUCKET_OBRA, ACCEPT_ENTREGA_OBRA, LIMITE_UPLOAD_MB } from "@/lib/storage";
 import { calcularMultaDisciplina, somarDiasISO } from "@/lib/obraCalc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -620,11 +620,12 @@ function BlocoArquivos({
             <input
               type="file"
               multiple
-              accept=".pdf,.dwg,.dxf,.ifc,.doc,.docx,.xls,.xlsx,image/*"
+              accept={ACCEPT_ENTREGA_OBRA}
               className="hidden"
               disabled={subir.isPending}
               onChange={onArquivos}
             />
+            <span className="sr-only">Até {LIMITE_UPLOAD_MB} MB por arquivo</span>
           </label>
         )}
       </div>
@@ -862,7 +863,7 @@ function MarcoLinha({
           {m.exige_entrega && (m.status === "Pendente" || m.status === "Reprovado") && (
             <label className="cursor-pointer text-xs font-semibold text-primary hover:underline">
               <Upload className="mr-1 inline size-3.5" />{m.entrega_url ? "Nova entrega" : "Anexar entrega"}
-              <input type="file" accept="application/pdf,image/*,.dwg,.ifc" className="hidden" onChange={upload} />
+              <input type="file" accept={ACCEPT_ENTREGA_OBRA} className="hidden" onChange={upload} />
             </label>
           )}
           {!m.exige_entrega && m.status === "Pendente" && (
@@ -1024,7 +1025,7 @@ function ModalRodadaBim({ proximoNumero, onFechar }: { proximoNumero: number; on
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-secondary">Modelo IFC {ehFinal ? "(obrigatório na final)" : "(opcional)"}</label>
-            <input type="file" accept=".ifc" onChange={(e) => setIfc(e.target.files?.[0] ?? null)} className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground" />
+            <input type="file" accept=".ifc,.zip" onChange={(e) => setIfc(e.target.files?.[0] ?? null)} className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground" />
           </div>
           <input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação (opcional)" className={inputBase} />
         </div>

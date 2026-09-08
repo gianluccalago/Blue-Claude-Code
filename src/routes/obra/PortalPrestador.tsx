@@ -17,7 +17,7 @@ import { FaturamentoPrestador } from "@/routes/obra/ObraNotasFiscais";
 import { ultimaVerificacaoPorEtapa, etapaConcluida, avancoFisico, OBRA_FASE_STATUS_LABEL } from "@/lib/obra";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { FotoSegura } from "@/components/AnexoSeguro";
-import { BUCKET_OBRA } from "@/lib/storage";
+import { BUCKET_OBRA, ACCEPT_ENTREGA_OBRA, LIMITE_UPLOAD_MB } from "@/lib/storage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -867,6 +867,10 @@ function ProjetosPrestador() {
           <h2 className="flex items-center gap-2 text-lg font-bold text-secondary"><FileText className="size-5 text-primary" /> Entregas de projeto</h2>
           <Button size="sm" variant="outline" onClick={() => setBimAberto(true)}>Rodada BIM</Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Pode enviar a pasta compactada (.zip, .rar, .7z) com pranchas, DWG, memorial e ART juntos —
+          ou arquivo avulso em PDF, DWG, DXF, RVT ou IFC. Até {LIMITE_UPLOAD_MB} MB por envio.
+        </p>
         {aEntregar.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma entrega pendente.</p> : (
           <div className="divide-y">
             {aEntregar.map((m) => (
@@ -876,7 +880,7 @@ function ProjetosPrestador() {
                   <span className="ml-2 text-sm text-muted-foreground">{m.rotulo}</span>
                   {m.status === "Reprovado" && m.motivo && <p className="text-xs text-destructive">Reprovado: {m.motivo}</p>}
                 </div>
-                <label className="cursor-pointer text-xs font-semibold text-primary hover:underline"><Upload className="mr-1 inline size-3.5" />Enviar entrega<input type="file" accept="application/pdf,image/*,.dwg,.ifc" className="hidden" onChange={(e) => upload(m.id, e)} /></label>
+                <label className="cursor-pointer text-xs font-semibold text-primary hover:underline"><Upload className="mr-1 inline size-3.5" />Enviar entrega<input type="file" accept={ACCEPT_ENTREGA_OBRA} className="hidden" onChange={(e) => upload(m.id, e)} /></label>
               </div>
             ))}
           </div>
@@ -953,7 +957,7 @@ function ModalBim({ proximo, onFechar, registrar }: { proximo: number; onFechar:
           <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={ehFinal} onChange={(e) => setEhFinal(e.target.checked)} className="size-4 accent-primary" /> Final</label>
         </div>
         <label className="block space-y-1"><span className="text-sm text-secondary">Relatório de interferências (PDF)</span><input type="file" accept="application/pdf" onChange={(e) => setRelatorio(e.target.files?.[0] ?? null)} className="block w-full text-sm" /></label>
-        <label className="block space-y-1"><span className="text-sm text-secondary">IFC {ehFinal ? "(obrigatório)" : "(opcional)"}</span><input type="file" accept=".ifc" onChange={(e) => setIfc(e.target.files?.[0] ?? null)} className="block w-full text-sm" /></label>
+        <label className="block space-y-1"><span className="text-sm text-secondary">IFC {ehFinal ? "(obrigatório)" : "(opcional)"}</span><input type="file" accept=".ifc,.zip" onChange={(e) => setIfc(e.target.files?.[0] ?? null)} className="block w-full text-sm" /></label>
       </div>
       <div className="mt-5 flex gap-3">
         <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={registrar.isPending}>Cancelar</Button>

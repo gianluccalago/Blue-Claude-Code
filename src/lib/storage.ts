@@ -317,16 +317,99 @@ export async function uploadFotoObra(file: File, faseNumero: number, etapaId: st
   }
 }
 
-/** Upload de documento/NF da obra (PDF/imagem) no bucket privado `obra`. */
+// ───────────────────────────────────────────────────────────────────────────
+// Upload de arquivos da obra — entregas de projeto, documentos, NFs, fotos.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Teto declarado do app. Precisa ser <= ao limite do bucket e ao do projeto. */
+export const LIMITE_UPLOAD_MB = 200;
+
+/**
+ * Formatos que a construtora realmente entrega. Pacotes compactados entram
+ * porque uma entrega de projeto é uma PASTA (pranchas + DWG + memorial + ART),
+ * e é assim que ela chega na prática.
+ */
+export const ACCEPT_ENTREGA_OBRA =
+  ".zip,.rar,.7z,.pdf,.dwg,.dxf,.rvt,.rfa,.ifc,.kmz,.kml,.doc,.docx,.xls,.xlsx,image/*";
+
+const MB = 1024 * 1024;
+
+function formatarMB(bytes: number): string {
+  return `${(bytes / MB).toFixed(1).replace(".", ",")} MB`;
+}
+
+/**
+ * Nome seguro para chave de objeto, PRESERVANDO o nome original do arquivo —
+ * uma entrega precisa continuar se chamando "TERRAPLENAGEM - R0.zip" quando
+ * for baixada, e não "1757000000000.zip".
+ */
+export function nomeSeguroArquivo(nome: string): string {
+  const ponto = nome.lastIndexOf(".");
+  const base = (ponto > 0 ? nome.slice(0, ponto) : nome)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "arquivo";
+  const ext = (ponto > 0 ? nome.slice(ponto + 1) : "")
+    .replace(/[^a-zA-Z0-9]/g, "").toLowerCase().slice(0, 8) || "bin";
+  return `${base}.${ext}`;
+}
+
+/**
+ * Traduz a falha do Storage em algo ACIONÁVEL. Antes o app devolvia sempre
+ * "Falha no upload. Tente novamente." — quem estava do outro lado (a
+ * construtora) não tinha como saber se era tamanho, formato ou permissão.
+ */
+function descreverErroUpload(erro: unknown, file: File): string {
+  const e = erro as { statusCode?: string | number; message?: string; error?: string } | null;
+  const codigo = String(e?.statusCode ?? "");
+  const msg = `${e?.error ?? ""} ${e?.message ?? ""}`.toLowerCase();
+
+  if (codigo === "413" || msg.includes("exceeded") || msg.includes("too large")) {
+    return `Arquivo grande demais: ${formatarMB(file.size)}. O limite é ${LIMITE_UPLOAD_MB} MB. ` +
+      "Se for uma entrega grande, divida em partes (por exemplo, pranchas em um arquivo e DWG em outro).";
+  }
+  if (codigo === "415" || msg.includes("mime")) {
+    return `O tipo deste arquivo não é aceito (${file.type || "desconhecido"}). ` +
+      "Aceitamos ZIP, RAR, 7Z, PDF, DWG, DXF, RVT, IFC, KMZ, Word, Excel e imagens.";
+  }
+  if (codigo === "409" || msg.includes("already exists")) {
+    return "Já existe um arquivo com este nome. Renomeie e envie de novo.";
+  }
+  if (codigo === "403" || codigo === "401" || msg.includes("row-level security") || msg.includes("unauthorized")) {
+    return "Seu acesso não permite enviar arquivos nesta pasta. Avise o Contratante.";
+  }
+  if (msg.includes("failed to fetch") || msg.includes("network")) {
+    return "A conexão caiu durante o envio. Tente de novo, de preferência em rede estável.";
+  }
+  return `Não foi possível enviar "${file.name}" (${formatarMB(file.size)}).` +
+    (e?.message ? ` Detalhe: ${e.message}` : "");
+}
+
+/**
+ * Upload de arquivo da obra no bucket privado `obra`. Devolve o CAMINHO.
+ * LANÇA erro com mensagem explicativa quando falha — os chamadores já
+ * mostram a mensagem do erro em toast, então o motivo real chega a quem
+ * está enviando (era o ponto cego: a construtora só via "tente novamente").
+ */
 export async function uploadArquivoObra(file: File, prefixo: string): Promise<string | null> {
+  if (file.size > LIMITE_UPLOAD_MB * MB) {
+    throw new Error(
+      `Arquivo grande demais: ${formatarMB(file.size)}. O limite é ${LIMITE_UPLOAD_MB} MB. ` +
+      "Divida a entrega em partes e envie uma de cada vez.",
+    );
+  }
+  const path = `${prefixo}/${Date.now()}-${nomeSeguroArquivo(file.name)}`;
   try {
-    const ext = file.name.split(".").pop() || "pdf";
-    const path = `${prefixo}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET_OBRA).upload(path, file, { upsert: false });
-    if (error) return null;
+    const { error } = await supabase.storage.from(BUCKET_OBRA).upload(path, file, {
+      upsert: false,
+      contentType: file.type || "application/octet-stream",
+    });
+    if (error) throw new Error(descreverErroUpload(error, file));
     return path;
-  } catch {
-    return null;
+  } catch (e) {
+    // Erro já traduzido acima passa direto; falha de rede vira mensagem clara.
+    throw e instanceof Error && e.message ? e : new Error(descreverErroUpload(e, file));
   }
 }
 
