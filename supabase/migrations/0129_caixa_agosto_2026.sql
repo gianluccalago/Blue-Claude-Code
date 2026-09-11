@@ -1,4 +1,12 @@
 -- ===========================================================================
+-- ATENÇÃO: ESTA MIGRATION FOI REVERTIDA PELA 0130.
+-- Agosto/2026 já estava no app — as 16 linhas do extrato do sócio-diretor
+-- (fc_extrato, carregado pela 0123). Esta migration criava uma segunda cópia
+-- de parte desse dinheiro em fc_lancamentos. NÃO RODE. Mantida apenas como
+-- registro histórico, porque chegou a ser executada em produção.
+-- ===========================================================================
+
+-- ===========================================================================
 -- 0129 — FLUXO DE CAIXA: lançamentos de AGOSTO/2026.
 -- ---------------------------------------------------------------------------
 -- Por que faltava: o seed da 0120 carregou a planilha CustoBlue, que termina
