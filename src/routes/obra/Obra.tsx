@@ -1,5 +1,6 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
+import { lerPercentual, formatarPercentual } from "@/lib/fluxoCaixa";
 import {
   Camera,
   CheckCircle2,
@@ -148,7 +149,7 @@ export function ObraExecucao() {
               <p className="text-xs text-muted-foreground">
                 {fase.area_m2.toLocaleString("pt-BR")} m²
                 {fase.data_inicio ? ` · iniciada em ${formatarDataBR(fase.data_inicio)}` : ""}
-                {fase.ipca_pct != null ? ` · IPCA aplicado ${fase.ipca_pct}%` : ""}
+                {fase.ipca_pct != null ? ` · IPCA aplicado ${formatarPercentual(fase.ipca_pct / 100)}${fase.ipca_pct < 0 ? " (deflação)" : ""}` : ""}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -327,8 +328,15 @@ function ModalEditarFase({ fase, onFechar }: { fase: ObraFase; onFechar: () => v
   const [ipca, setIpca] = useState(fase.ipca_pct != null ? String(fase.ipca_pct) : "");
 
   async function salvar() {
-    const ipcaNum = ipca.trim() === "" ? null : parseFloat(ipca.replace(",", "."));
-    if (ipca.trim() !== "" && (!Number.isFinite(ipcaNum!) || ipcaNum! < 0)) { toast.error("IPCA inválido."); return; }
+    // IPCA acumulado da fase PODE ser negativo: basta um período com deflação
+    // (ago/2026 fechou em -0,32%). O limite generoso protege contra digitação
+    // errada sem impedir o cenário real.
+    let ipcaNum: number | null = null;
+    if (ipca.trim() !== "") {
+      const lido = lerPercentual(ipca, 100);
+      if (!lido.ok) { toast.error(lido.erro); return; }
+      ipcaNum = lido.pct;
+    }
     try {
       await editar.mutateAsync({
         faseId: fase.id,
@@ -406,9 +414,15 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
   const guarda = podeIniciarFase(fase, todas);
 
   async function confirmar() {
-    const ipcaNum = ipca.trim() === "" ? null : parseFloat(ipca.replace(",", "."));
-    if (fase.reajustavel && (ipcaNum == null || !Number.isFinite(ipcaNum) || ipcaNum < 0)) {
-      toast.error("Informe o IPCA acumulado (%) para o reajuste desta fase.");
+    let ipcaNum: number | null = null;
+    if (ipca.trim() !== "") {
+      const lido = lerPercentual(ipca, 100);
+      if (!lido.ok) { toast.error(lido.erro); return; }
+      ipcaNum = lido.pct;
+    }
+    // Reajustável exige o índice — que pode ser NEGATIVO (período deflacionário).
+    if (fase.reajustavel && ipcaNum == null) {
+      toast.error("Informe o IPCA acumulado (%) para o reajuste desta fase. Use sinal de menos se o período teve deflação.");
       return;
     }
     try {

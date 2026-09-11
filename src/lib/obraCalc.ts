@@ -9,9 +9,17 @@ export function arred(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/** Preço/m² aplicado: fixo na Fase 1; Fases 2–4 reajustadas por IPCA acumulado. */
+/**
+ * Preço/m² aplicado: fixo na Fase 1; Fases 2–4 reajustadas por IPCA acumulado.
+ * O índice PODE ser negativo (período com deflação) — o reajuste vira redutor,
+ * que é o comportamento correto. Só um fator <= 0 (IPCA <= -100%) é impossível;
+ * nesse caso mantemos o preço-base, porque zerar/inverter o contrato seria pior
+ * do que ignorar um dado claramente corrompido.
+ */
 export function precoM2Aplicado(precoBase: number, reajustavel: boolean, ipcaPct: number | null): number {
-  const fator = reajustavel && ipcaPct != null ? 1 + ipcaPct / 100 : 1;
+  if (!reajustavel || ipcaPct == null) return arred(precoBase);
+  const fator = 1 + ipcaPct / 100;
+  if (!Number.isFinite(fator) || fator <= 0) return arred(precoBase);
   return arred(precoBase * fator);
 }
 

@@ -17,7 +17,7 @@ import { useMedicoes } from "@/hooks/useObraMedicoes";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useNotasFiscais } from "@/hooks/useObraNotas";
-import { CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, serieMensalFC, mesCurto } from "@/lib/fluxoCaixa";
+import { CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, serieMensalFC, mesCurto, lerPercentual, formatarPercentual } from "@/lib/fluxoCaixa";
 import { exportarCSV } from "@/lib/exportCsv";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -422,12 +422,15 @@ function ModalIpca({ serie, ipca, onFechar }: {
   const [mes, setMes] = useState(hojeISO().slice(0, 7));
   const [pct, setPct] = useState("");
 
+  // Prévia do que será gravado — deflação precisa ser inequívoca ANTES de salvar.
+  const lido = lerPercentual(pct);
+
   async function salvar() {
-    const val = parseFloat(pct.replace(",", "."));
-    if (Number.isNaN(val)) { toast.error("Informe o IPCA do mês em % (ex.: 0,44)."); return; }
+    if (!lido.ok) { toast.error(lido.erro); return; }
     try {
-      await definir.mutateAsync({ mes, pct: val / 100 });
-      toast.success(`IPCA de ${mesCurto(mes)} salvo (${pct}%).`);
+      await definir.mutateAsync({ mes, pct: lido.fracao });
+      const tipo = lido.pct < 0 ? "deflação" : lido.pct > 0 ? "inflação" : "índice zero";
+      toast.success(`IPCA de ${mesCurto(mes)} salvo: ${formatarPercentual(lido.fracao)} (${tipo}).`);
       setPct("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar.");
@@ -449,15 +452,40 @@ function ModalIpca({ serie, ipca, onFechar }: {
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">Mês
             <input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className={cn(selBase, "block")} /></label>
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">IPCA (%)
-            <input value={pct} onChange={(e) => setPct(e.target.value)} inputMode="decimal" placeholder="0,44" className={cn(selBase, "block w-24")} /></label>
-          <Button size="sm" onClick={salvar} loading={definir.isPending}>Salvar</Button>
+            {/* inputMode "text": o teclado decimal do celular/tablet não traz o
+                sinal de menos, e sem ele não dá para lançar deflação. */}
+            <input
+              value={pct}
+              onChange={(e) => setPct(e.target.value)}
+              inputMode="text"
+              placeholder="0,44 ou -0,32"
+              className={cn(selBase, "block w-28", pct && !lido.ok && "border-destructive")}
+            /></label>
+          <Button size="sm" onClick={salvar} loading={definir.isPending} disabled={!!pct && !lido.ok}>Salvar</Button>
         </div>
+        <p className={cn("-mt-2 mb-3 text-xs", pct && !lido.ok ? "text-destructive" : "text-muted-foreground")}>
+          {pct === "" ? (
+            "Deflação existe: informe com sinal de menos (ex.: -0,32). O acumulado corrigido cai no mês."
+          ) : lido.ok ? (
+            lido.pct < 0
+              ? `Deflação de ${formatarPercentual(lido.fracao).replace("-", "")} — o acumulado corrigido DIMINUI em ${mesCurto(mes)}.`
+              : lido.pct > 0
+                ? `Inflação de ${formatarPercentual(lido.fracao).replace("+", "")} — o acumulado corrigido aumenta em ${mesCurto(mes)}.`
+                : "Índice zero — o acumulado corrigido fica igual ao do mês anterior."
+          ) : (
+            lido.erro
+          )}
+        </p>
         <div className="max-h-64 space-y-1 overflow-y-auto border-t pt-2 text-xs">
           {[...serie].reverse().map((s) => (
             <div key={s.mes} className="flex items-center justify-between gap-2 tabular-nums">
               <span className="font-semibold text-muted-foreground">{mesCurto(s.mes)}</span>
-              <span className={cn(ipca.has(s.mes) ? "text-secondary" : "text-warning")}>
-                {ipca.has(s.mes) ? `${(ipca.get(s.mes)! * 100).toFixed(2).replace(".", ",")}%` : "sem índice"}
+              <span className={cn(
+                !ipca.has(s.mes) ? "text-warning"
+                  : (ipca.get(s.mes) ?? 0) < 0 ? "font-semibold text-destructive"
+                  : "text-secondary",
+              )}>
+                {ipca.has(s.mes) ? formatarPercentual(ipca.get(s.mes)!) : "sem índice"}
               </span>
               <span className="text-muted-foreground">{formatarMoeda(s.total)}</span>
               <span className="font-semibold text-secondary">{formatarMoeda(s.corrigido)}</span>

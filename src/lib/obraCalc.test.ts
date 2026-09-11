@@ -217,3 +217,13 @@ describe("curvaABC", () => {
     expect(r[0].item).toBe("y");
   });
 });
+
+describe("precoM2Aplicado com IPCA negativo (deflação)", () => {
+  it("aplica o índice negativo como redutor do preço/m²", () => {
+    expect(precoM2Aplicado(914.66, true, -0.32)).toBeCloseTo(911.73, 2);
+  });
+  it("ignora fator impossível (IPCA <= -100%) e mantém o preço-base", () => {
+    expect(precoM2Aplicado(914.66, true, -100)).toBe(914.66);
+    expect(precoM2Aplicado(914.66, true, -150)).toBe(914.66);
+  });
+});
