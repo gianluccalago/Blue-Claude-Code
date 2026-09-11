@@ -54,6 +54,27 @@ export function resumoMesExtrato(
   };
 }
 
+/**
+ * Saldo inicial EFETIVO de cada mês: o declarado pelo sócio-diretor quando
+ * existe; senão, o saldo final do mês anterior (carregado). Assim um mês
+ * novo (setembro/2026 em diante) fecha sem ninguém precisar digitar o saldo.
+ */
+export function saldosEfetivos(
+  saldosDeclarados: Map<string, number>,
+  linhas: LinhaExtrato[],
+): Map<string, number> {
+  const meses = [...new Set([...linhas.map((l) => l.mes), ...saldosDeclarados.keys()])].sort();
+  const out = new Map<string, number>();
+  let carregado: number | null = null;
+  for (const mes of meses) {
+    const inicial: number = saldosDeclarados.get(mes) ?? carregado ?? 0;
+    out.set(mes, inicial);
+    const doMes = linhas.filter((l) => l.mes === mes).reduce((s, l) => s + l.valor, 0);
+    carregado = inicial + doMes;
+  }
+  return out;
+}
+
 export interface ConsolidadoAno {
   ano: string;
   meses: ResumoMesExtrato[];                          // ordem cronológica
@@ -71,7 +92,8 @@ export function rubricaBase(rotulo: string): string {
   const min = r.toLowerCase();
   if (/^parcela .*terreno/.test(min)) return "Parcelas dos terrenos";
   if (min.startsWith("arquiteto")) return "Arquiteto (Bacoccini)";
-  if (min.startsWith("humberto")) return "Humberto";
+  if (min.startsWith("humberto")) return "Humberto (corretor do terreno)";
+  if (/^tr[ií]ade/.test(min)) return "TRÍADE (construtora)";
   return r.charAt(0).toUpperCase() + r.slice(1);
 }
 

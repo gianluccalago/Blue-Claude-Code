@@ -2771,7 +2771,9 @@ export interface Database {
         Row: {
           id: string;
           data: string;
-          valor: number;
+          valor: number;              // COM SINAL (saída negativa) — convenção da planilha
+          grupo: "entrada" | "saida";
+          ordem: number;
           centro_custo: string;
           fornecedor: string;
           descricao: string | null;
@@ -2786,6 +2788,8 @@ export interface Database {
           id?: string;
           data: string;
           valor: number;
+          grupo?: "entrada" | "saida";
+          ordem?: number;
           centro_custo: string;
           fornecedor: string;
           descricao?: string | null;
@@ -2798,6 +2802,8 @@ export interface Database {
         Update: Partial<{
           data: string;
           valor: number;
+          grupo: "entrada" | "saida";
+          ordem: number;
           centro_custo: string;
           fornecedor: string;
           descricao: string | null;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { consolidarAno, resumoMesExtrato, rubricaBase, type LinhaExtrato } from "@/lib/extratoSocios";
+import { consolidarAno, resumoMesExtrato, rubricaBase, saldosEfetivos, type LinhaExtrato } from "@/lib/extratoSocios";
 
 // Fixture REAL: julho/2026 da planilha do sócio-diretor (verbatim).
 const JUL26: LinhaExtrato[] = [
@@ -54,5 +54,17 @@ describe("rubricaBase", () => {
     expect(rubricaBase("parcela 36/44 terreno 2")).toBe("Parcelas dos terrenos");
     expect(rubricaBase("Arquiteto 31/36 e5/16")).toBe("Arquiteto (Bacoccini)");
     expect(rubricaBase("aluguel")).toBe("Aluguel");
+  });
+});
+
+describe("saldosEfetivos — mês novo herda o saldo final do anterior", () => {
+  it("julho declarado, agosto carregado", () => {
+    const linhas: LinhaExtrato[] = [
+      ...JUL26,
+      { mes: "2026-08", ordem: 1, grupo: "saida", rotulo: "Triade", valor: -149580 },
+    ];
+    const m = saldosEfetivos(new Map([["2026-07", 387948]]), linhas);
+    expect(m.get("2026-07")).toBe(387948);
+    expect(m.get("2026-08")).toBeCloseTo(69701, 2);
   });
 });

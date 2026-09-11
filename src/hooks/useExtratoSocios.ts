@@ -1,31 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import type { FcExtratoLinha } from "@/types/database";
+import { KEY_FC, useLancamentosFC } from "@/hooks/useFluxoCaixa";
+import { centroDoRotulo, diaDoCentro, type GrupoFC } from "@/lib/fluxoCaixa";
+import type { LinhaExtrato } from "@/lib/extratoSocios";
+import type { FcLancamento } from "@/types/database";
 
 // ===========================================================================
-// EXTRATO DOS SÓCIOS (contas Seniors Care) — master/direção (RLS).
-// Fonte do Demonstrativo de Caixa em PDF. Saldo inicial declarado por mês +
-// lançamentos com sinal (como na planilha do sócio-diretor).
+// EXTRATO DOS SÓCIOS — a MESMA fonte do Fluxo de Caixa (fc_lancamentos).
+// Este hook só apresenta os lançamentos no formato da planilha mensal
+// (mês · grupo · rótulo · valor com sinal) e grava de volta na mesma tabela,
+// classificando o centro de custo pelo rótulo. Saldo inicial declarado por
+// mês continua em fc_extrato_mes (master/direção).
 // ===========================================================================
 
-const KEY = ["fc-extrato"];
 const KEY_SALDOS = ["fc-extrato-saldos"];
 
+/** Lançamento no formato do extrato (para o Demonstrativo e o editor mensal). */
+export function comoLinhaExtrato(l: FcLancamento): LinhaExtrato & { id: string } {
+  return {
+    id: l.id,
+    mes: l.data.slice(0, 7),
+    ordem: l.ordem,
+    grupo: l.grupo,
+    rotulo: l.descricao && l.origem !== "planilha" ? `${l.fornecedor} · ${l.descricao}` : l.fornecedor,
+    valor: l.valor,
+  };
+}
+
 export function useExtratoLinhas() {
-  return useQuery({
-    queryKey: KEY,
-    queryFn: async (): Promise<FcExtratoLinha[]> => {
-      const { data, error } = await supabase
-        .from("fc_extrato")
-        .select("*")
-        .order("mes")
-        .order("grupo")
-        .order("ordem");
-      if (error) return [];
-      return data ?? [];
-    },
-  });
+  const q = useLancamentosFC();
+  return { ...q, data: q.data ? q.data.map(comoLinhaExtrato) : undefined };
 }
 
 export function useExtratoSaldos() {
@@ -40,19 +45,30 @@ export function useExtratoSaldos() {
 }
 
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: KEY });
+  qc.invalidateQueries({ queryKey: KEY_FC });
   qc.invalidateQueries({ queryKey: KEY_SALDOS });
 }
 
+/** Adiciona uma linha "como na planilha": mês, bloco, rótulo e valor com sinal. */
 export function useCriarLinhaExtrato() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { mes: string; grupo: "entrada" | "saida"; rotulo: string; valor: number; ordem: number }) => {
+    mutationFn: async (v: { mes: string; grupo: GrupoFC; rotulo: string; valor: number; ordem: number }) => {
       if (!v.rotulo.trim()) throw new Error("Informe a descrição.");
       if (!v.valor) throw new Error("Informe o valor (negativo para saídas/dividendos).");
-      const { error } = await supabase.from("fc_extrato").insert({
-        mes: v.mes, grupo: v.grupo, rotulo: v.rotulo.trim(), valor: v.valor,
-        ordem: v.ordem, registrado_por: usuarioAtual.nome,
+      const centro = centroDoRotulo(v.rotulo, v.grupo);
+      const dia = String(diaDoCentro(centro)).padStart(2, "0");
+      const { error } = await supabase.from("fc_lancamentos").insert({
+        data: `${v.mes}-${dia}`,
+        valor: v.grupo === "saida" ? -Math.abs(v.valor) : v.valor,
+        grupo: v.grupo,
+        ordem: v.ordem,
+        centro_custo: centro,
+        fornecedor: v.rotulo.trim(),
+        descricao: null,
+        pagador: "seniors",
+        origem: "planilha",
+        registrado_por: usuarioAtual.nome,
       });
       if (error) throw error;
     },
@@ -63,10 +79,14 @@ export function useCriarLinhaExtrato() {
 export function useEditarLinhaExtrato() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { id: string; rotulo: string; valor: number }) => {
+    mutationFn: async (v: { id: string; rotulo: string; valor: number; grupo: GrupoFC }) => {
       const { error } = await supabase
-        .from("fc_extrato")
-        .update({ rotulo: v.rotulo.trim(), valor: v.valor })
+        .from("fc_lancamentos")
+        .update({
+          fornecedor: v.rotulo.trim(),
+          valor: v.grupo === "saida" ? -Math.abs(v.valor) : v.valor,
+          centro_custo: centroDoRotulo(v.rotulo, v.grupo),
+        })
         .eq("id", v.id);
       if (error) throw error;
     },
@@ -78,7 +98,7 @@ export function useExcluirLinhaExtrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("fc_extrato").delete().eq("id", id);
+      const { error } = await supabase.from("fc_lancamentos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => invalidar(qc),

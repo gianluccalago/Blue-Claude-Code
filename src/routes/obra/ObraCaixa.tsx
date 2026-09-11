@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Landmark, Plus, X, Download, Pencil, Trash2, TrendingUp, Wallet, CalendarClock,
-  RefreshCw, Percent, Link2, FileText,
+  RefreshCw, Percent, Link2, FileText, ArrowDownLeft, ArrowUpRight, PiggyBank,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { ModalExtratoSocios } from "@/routes/obra/ObraExtratoSocios";
@@ -12,12 +12,17 @@ import {
   useExcluirLancamentoFC, useDefinirIpca, useSincronizarFC, pendentesDeSincronizacao,
   type LancamentoInput,
 } from "@/hooks/useFluxoCaixa";
+import { useExtratoSaldos } from "@/hooks/useExtratoSocios";
 import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useMedicoes } from "@/hooks/useObraMedicoes";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useNotasFiscais } from "@/hooks/useObraNotas";
-import { CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, serieMensalFC, mesCurto, lerPercentual, formatarPercentual } from "@/lib/fluxoCaixa";
+import {
+  CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, rotuloGrupo, serieMensalFC, serieCaixaMensal,
+  apenasEmpreendimento, mesCurto, lerPercentual, formatarPercentual, lerReais,
+  type GrupoFC,
+} from "@/lib/fluxoCaixa";
 import { exportarCSV } from "@/lib/exportCsv";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,11 +34,14 @@ import { cn, formatarDataBR, hojeISO } from "@/lib/utils";
 import type { FcLancamento } from "@/types/database";
 
 // ===========================================================================
-// FLUXO DE CAIXA — controle interno (master · direção · administração).
-// SEMPRE por caixa (data de pagamento), nunca competência. Substitui a
-// planilha CustoBlue: lançamentos com data exata, centro de custo,
-// fornecedor, pagador e correção IPCA do acumulado. Os pagamentos feitos no
-// módulo Obra entram sozinhos (sincronização) e tudo é editável.
+// FLUXO DE CAIXA — a planilha do sócio-diretor dentro do app, FONTE ÚNICA.
+// SEMPRE por caixa (data de pagamento), nunca competência. Entradas e
+// movimentações societárias, saídas e saldo, mês a mês — mais o custo do
+// empreendimento corrigido pelo IPCA (herança da CustoBlue). Os pagamentos
+// feitos no módulo Obra entram sozinhos (sem duplicar o que a planilha já
+// trouxe) e tudo é editável.
+// Master/direção veem tudo; a administração vê só as saídas do
+// empreendimento (o RLS garante no banco).
 // ===========================================================================
 
 const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -42,15 +50,18 @@ const selBase = "h-9 rounded-md border border-input bg-card px-2 text-sm";
 const CENTRO_COR: Record<string, string> = {
   terreno: "bg-secondary", projetos: "bg-primary", complementares: "bg-primary-strong",
   construtora: "bg-warning", materiais: "bg-success", indiretos: "bg-muted-foreground",
+  impostos: "bg-destructive/70", administrativo: "bg-muted-foreground/70", seniors_club: "bg-warning/70",
+  receita_aluguel: "bg-success", receita_financeira: "bg-success/70", socios: "bg-primary/60",
 };
 
 export function ObraCaixa() {
   const { usuarioEfetivo } = useAuth();
-  // Extrato dos sócios + demonstrativo assinado: SÓ master/direção (o RLS
-  // reforça no banco; a administração usa o restante do caixa normalmente).
+  // Extrato completo (entradas, sócios, saldo) + demonstrativo assinado: SÓ
+  // master/direção. A administração enxerga as saídas do empreendimento.
   const ehSocio = usuarioEfetivo?.perfil === "master" || usuarioEfetivo?.perfil === "direcao";
   const lanc = useLancamentosFC();
   const ipca = useIpcaFC();
+  const saldos = useExtratoSaldos();
   const marcos = useMarcos();
   const disciplinas = useDisciplinas();
   const medicoes = useMedicoes();
@@ -69,6 +80,7 @@ export function ObraCaixa() {
   // Filtros
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
+  const [grupo, setGrupo] = useState<"" | GrupoFC>("");
   const [centro, setCentro] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [pagador, setPagador] = useState("");
@@ -99,7 +111,7 @@ export function ObraCaixa() {
   }, [tudoCarregado]);
 
   const todos = lanc.data ?? [];
-  const fornecedores = useMemo(() => [...new Set(todos.map((l) => l.fornecedor))].sort(), [todos]);
+  const fornecedores = useMemo(() => [...new Set(todos.map((l) => l.fornecedor))].sort((a, b) => a.localeCompare(b, "pt-BR")), [todos]);
   const centrosEmUso = useMemo(() => {
     const extras = [...new Set(todos.map((l) => l.centro_custo))].filter(
       (c) => !CENTROS_CUSTO.some((k) => k.value === c),
@@ -109,38 +121,57 @@ export function ObraCaixa() {
 
   const filtrados = todos.filter((l) =>
     (!de || l.data >= de) && (!ate || l.data <= ate) &&
+    (!grupo || l.grupo === grupo) &&
     (!centro || l.centro_custo === centro) &&
     (!fornecedor || l.fornecedor === fornecedor) &&
     (!pagador || l.pagador === pagador) &&
     (!busca || `${l.fornecedor} ${l.descricao ?? ""} ${l.observacao ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
   );
-  const temFiltro = !!(de || ate || centro || fornecedor || pagador || busca);
+  const temFiltro = !!(de || ate || grupo || centro || fornecedor || pagador || busca);
 
-  // Séries: a corrigida é SEMPRE global (a correção composta não faz sentido
-  // sobre um recorte); os cards de mês respeitam os filtros.
-  const serieGlobal = useMemo(() => serieMensalFC(todos, ipca.data ?? new Map()), [todos, ipca.data]);
-  const serieFiltrada = useMemo(() => serieMensalFC(filtrados, ipca.data ?? new Map()), [filtrados, ipca.data]);
-
-  const totalGeral = todos.reduce((s, l) => s + l.valor, 0);
+  // ── Séries ────────────────────────────────────────────────────────────────
+  // Caixa (lógica da planilha): SEMPRE global — saldo não faz sentido num recorte.
+  const caixa = useMemo(() => serieCaixaMensal(todos, saldos.data ?? new Map()), [todos, saldos.data]);
+  const ultimoMes = caixa.at(-1);
+  // Custo do empreendimento corrigido (CustoBlue): só saídas dos centros da obra.
+  const empreendimento = useMemo(() => apenasEmpreendimento(todos), [todos]);
+  const serieGlobal = useMemo(() => serieMensalFC(empreendimento, ipca.data ?? new Map()), [empreendimento, ipca.data]);
   const corrigidoFinal = serieGlobal.at(-1)?.corrigido ?? 0;
+  const custoNominal = serieGlobal.at(-1)?.acumulado ?? 0;
+
   const mesAtual = hojeISO().slice(0, 7);
-  const noMes = todos.filter((l) => l.data.startsWith(mesAtual)).reduce((s, l) => s + l.valor, 0);
+  const linhaMesAtual = caixa.find((c) => c.mes === mesAtual);
+  const entradasMes = linhaMesAtual?.entradas ?? 0;
+  const saidasMes = linhaMesAtual?.saidas ?? 0;
   const totalFiltrado = filtrados.reduce((s, l) => s + l.valor, 0);
 
-  // Totais por centro (respeitam filtros de período/fornecedor/pagador/busca).
+  // Totais por centro (respeitam filtros); barras em módulo.
   const porCentro = new Map<string, number>();
   for (const l of filtrados) porCentro.set(l.centro_custo, (porCentro.get(l.centro_custo) ?? 0) + l.valor);
-  const maxCentro = Math.max(1, ...porCentro.values());
+  const maxCentro = Math.max(1, ...[...porCentro.values()].map(Math.abs));
 
-  const maxMes = Math.max(1, ...serieFiltrada.map((s) => s.total));
+  // Mês a mês (respeita filtros para o detalhe; saldo só na visão global).
+  const mesAMes = useMemo(() => {
+    const m = new Map<string, { entradas: number; saidas: number }>();
+    for (const l of filtrados) {
+      const k = l.data.slice(0, 7);
+      const acc = m.get(k) ?? { entradas: 0, saidas: 0 };
+      if (l.grupo === "entrada") acc.entradas += l.valor; else acc.saidas += l.valor;
+      m.set(k, acc);
+    }
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([mes, v]) => ({
+      mes, ...v, saldoFinal: caixa.find((c) => c.mes === mes)?.saldoFinal ?? null,
+    }));
+  }, [filtrados, caixa]);
+  const maxMes = Math.max(1, ...mesAMes.map((s) => Math.max(Math.abs(s.entradas), Math.abs(s.saidas))));
 
   function exportar() {
     const ok = exportarCSV(
       "fluxo-de-caixa",
       [...filtrados].sort((a, b) => a.data.localeCompare(b.data)).map((l) => ({
-        data: l.data, valor: l.valor, centro: rotuloCentro(l.centro_custo),
-        fornecedor: l.fornecedor, descricao: l.descricao ?? "", pagador: rotuloPagador(l.pagador),
-        origem: l.origem, observacao: l.observacao ?? "",
+        data: l.data, tipo: l.grupo === "entrada" ? "Entrada/mov." : "Saída", valor: l.valor,
+        centro: rotuloCentro(l.centro_custo), fornecedor: l.fornecedor, descricao: l.descricao ?? "",
+        pagador: rotuloPagador(l.pagador), origem: l.origem, observacao: l.observacao ?? "",
       })),
     );
     if (!ok) toast.error("Nada para exportar.");
@@ -153,10 +184,12 @@ export function ObraCaixa() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-secondary">
-            <Landmark className="size-5 text-primary" /> Fluxo de caixa do empreendimento
+            <Landmark className="size-5 text-primary" /> Fluxo de caixa
           </h2>
           <p className="text-xs text-muted-foreground">
-            Sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável.
+            {ehSocio
+              ? "A planilha mensal dos sócios, dentro do app: entradas, saídas e saldo, sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável."
+              : "Saídas do empreendimento, sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -172,12 +205,21 @@ export function ObraCaixa() {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiFC icone={<Wallet className="size-4" />} rotulo="Total desembolsado" valor={formatarMoeda(totalGeral)} />
-        <KpiFC icone={<TrendingUp className="size-4" />} rotulo="Acumulado corrigido (IPCA)" valor={formatarMoeda(corrigidoFinal)} tom="primario" />
-        <KpiFC icone={<CalendarClock className="size-4" />} rotulo={`Saída em ${mesCurto(mesAtual)}`} valor={formatarMoeda(noMes)} />
-        <KpiFC icone={<RefreshCw className="size-4" />} rotulo="Lançamentos" valor={String(todos.length)} />
-      </div>
+      {ehSocio ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiFC icone={<PiggyBank className="size-4" />} rotulo={`Saldo de caixa${ultimoMes ? ` · fim de ${mesCurto(ultimoMes.mes)}` : ""}`} valor={formatarMoeda(ultimoMes?.saldoFinal ?? 0)} tom="primario" />
+          <KpiFC icone={<ArrowDownLeft className="size-4" />} rotulo={`Entradas e mov. em ${mesCurto(mesAtual)}`} valor={formatarMoeda(entradasMes)} />
+          <KpiFC icone={<ArrowUpRight className="size-4" />} rotulo={`Saídas em ${mesCurto(mesAtual)}`} valor={formatarMoeda(saidasMes)} />
+          <KpiFC icone={<TrendingUp className="size-4" />} rotulo="Custo do empreendimento corrigido (IPCA)" valor={formatarMoeda(corrigidoFinal)} sub={`nominal ${formatarMoeda(custoNominal)}`} />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiFC icone={<Wallet className="size-4" />} rotulo="Total desembolsado" valor={formatarMoeda(custoNominal)} />
+          <KpiFC icone={<TrendingUp className="size-4" />} rotulo="Acumulado corrigido (IPCA)" valor={formatarMoeda(corrigidoFinal)} tom="primario" />
+          <KpiFC icone={<CalendarClock className="size-4" />} rotulo={`Saída em ${mesCurto(mesAtual)}`} valor={formatarMoeda(saidasMes)} />
+          <KpiFC icone={<RefreshCw className="size-4" />} rotulo="Lançamentos" valor={String(todos.length)} />
+        </div>
+      )}
 
       {/* Filtros */}
       <Card>
@@ -186,13 +228,21 @@ export function ObraCaixa() {
             <input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={cn(selBase, "block")} /></label>
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">Até
             <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={cn(selBase, "block")} /></label>
+          {ehSocio && (
+            <label className="space-y-1 text-xs font-semibold text-muted-foreground">Tipo
+              <select value={grupo} onChange={(e) => setGrupo(e.target.value as "" | GrupoFC)} className={cn(selBase, "block")}>
+                <option value="">Tudo</option>
+                <option value="entrada">Entradas e mov.</option>
+                <option value="saida">Saídas</option>
+              </select></label>
+          )}
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">Centro de custo
             <select value={centro} onChange={(e) => setCentro(e.target.value)} className={cn(selBase, "block")}>
               <option value="">Todos</option>
               {centrosEmUso.map((c) => <option key={c} value={c}>{rotuloCentro(c)}</option>)}
             </select></label>
-          <label className="space-y-1 text-xs font-semibold text-muted-foreground">Fornecedor
-            <select value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} className={cn(selBase, "block")}>
+          <label className="space-y-1 text-xs font-semibold text-muted-foreground">Fornecedor / origem
+            <select value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} className={cn(selBase, "block max-w-48")}>
               <option value="">Todos</option>
               {fornecedores.map((f) => <option key={f} value={f}>{f}</option>)}
             </select></label>
@@ -206,7 +256,7 @@ export function ObraCaixa() {
           {temFiltro && (
             <div className="flex items-center gap-2">
               <Badge variant="default">{filtrados.length} · {formatarMoeda(totalFiltrado)}</Badge>
-              <button onClick={() => { setDe(""); setAte(""); setCentro(""); setFornecedor(""); setPagador(""); setBusca(""); }} className="text-xs font-semibold text-primary hover:underline">limpar</button>
+              <button onClick={() => { setDe(""); setAte(""); setGrupo(""); setCentro(""); setFornecedor(""); setPagador(""); setBusca(""); }} className="text-xs font-semibold text-primary hover:underline">limpar</button>
             </div>
           )}
         </CardContent>
@@ -217,14 +267,14 @@ export function ObraCaixa() {
         <Card>
           <CardContent className="space-y-2 p-4 sm:p-5">
             <h3 className="text-sm font-bold text-secondary">Por centro de custo{temFiltro ? " (filtro aplicado)" : ""}</h3>
-            {[...porCentro.entries()].sort((a, b) => b[1] - a[1]).map(([c, v]) => (
+            {[...porCentro.entries()].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).map(([c, v]) => (
               <button key={c} onClick={() => setCentro(centro === c ? "" : c)} className="block w-full text-left">
                 <div className="flex items-center justify-between text-sm">
                   <span className={cn("font-semibold", centro === c ? "text-primary" : "text-secondary")}>{rotuloCentro(c)}</span>
-                  <span className="tabular-nums font-bold text-secondary">{formatarMoeda(v)}</span>
+                  <span className={cn("tabular-nums font-bold", v < 0 ? "text-secondary" : "text-success")}>{formatarMoeda(v)}</span>
                 </div>
                 <div className="mt-0.5 h-2 overflow-hidden rounded-full bg-muted">
-                  <div className={cn("h-full rounded-full", CENTRO_COR[c] ?? "bg-primary")} style={{ width: `${(v / maxCentro) * 100}%` }} />
+                  <div className={cn("h-full rounded-full", CENTRO_COR[c] ?? "bg-primary")} style={{ width: `${(Math.abs(v) / maxCentro) * 100}%` }} />
                 </div>
               </button>
             ))}
@@ -235,20 +285,37 @@ export function ObraCaixa() {
         <Card>
           <CardContent className="space-y-1.5 p-4 sm:p-5">
             <h3 className="text-sm font-bold text-secondary">Mês a mês{temFiltro ? " (filtro aplicado)" : ""}</h3>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              <span className="w-12 shrink-0">Mês</span>
+              <span className="flex-1" />
+              {ehSocio && <span className="w-28 shrink-0 text-right">Entradas</span>}
+              <span className="w-28 shrink-0 text-right">Saídas</span>
+              {ehSocio && !temFiltro && <span className="w-28 shrink-0 text-right">Saldo</span>}
+            </div>
             <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
-              {[...serieFiltrada].reverse().map((s) => (
+              {mesAMes.map((s) => (
                 <div key={s.mes} className="flex items-center gap-2 text-xs">
                   <span className="w-12 shrink-0 font-semibold text-muted-foreground">{mesCurto(s.mes)}</span>
-                  <div className="h-3.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${(s.total / maxMes) * 100}%` }} />
+                  <div className="min-w-10 flex-1 space-y-0.5">
+                    {ehSocio && (
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-success" style={{ width: `${(Math.max(0, s.entradas) / maxMes) * 100}%` }} />
+                      </div>
+                    )}
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${(Math.abs(s.saidas) / maxMes) * 100}%` }} />
+                    </div>
                   </div>
-                  <span className="w-24 shrink-0 text-right font-bold tabular-nums text-secondary">{formatarMoeda(s.total)}</span>
+                  {ehSocio && <span className={cn("w-28 shrink-0 whitespace-nowrap text-right font-semibold tabular-nums", s.entradas < 0 ? "text-destructive" : "text-success")}>{formatarMoeda(s.entradas)}</span>}
+                  <span className="w-28 shrink-0 whitespace-nowrap text-right font-semibold tabular-nums text-secondary">{formatarMoeda(s.saidas)}</span>
+                  {ehSocio && !temFiltro && <span className={cn("w-28 shrink-0 whitespace-nowrap text-right font-bold tabular-nums", (s.saldoFinal ?? 0) < 0 ? "text-destructive" : "text-secondary")}>{s.saldoFinal == null ? "—" : formatarMoeda(s.saldoFinal)}</span>}
                 </div>
               ))}
+              {mesAMes.length === 0 && <p className="text-sm text-muted-foreground">Sem lançamentos no filtro.</p>}
             </div>
             {!temFiltro && serieGlobal.length > 0 && (
               <p className="border-t pt-1.5 text-xs text-muted-foreground">
-                Acumulado nominal <strong className="tabular-nums text-secondary">{formatarMoeda(serieGlobal.at(-1)!.acumulado)}</strong>{" "}
+                Custo do empreendimento: nominal <strong className="tabular-nums text-secondary">{formatarMoeda(custoNominal)}</strong>{" "}
                 · corrigido IPCA <strong className="tabular-nums text-secondary">{formatarMoeda(corrigidoFinal)}</strong>
               </p>
             )}
@@ -272,13 +339,14 @@ export function ObraCaixa() {
                       {l.descricao && <span className="font-normal text-muted-foreground"> · {l.descricao}</span>}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
+                      {l.grupo === "entrada" && <span className="mr-1 rounded bg-success/15 px-1 font-semibold text-success">entrada/mov.</span>}
                       {rotuloCentro(l.centro_custo)} · {rotuloPagador(l.pagador)}
                       {l.origem !== "manual" && l.origem !== "planilha" && (
                         <span className="ml-1 inline-flex items-center gap-0.5 text-primary"><Link2 className="size-3" /> módulo Obra</span>
                       )}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-bold tabular-nums text-secondary">{formatarMoeda(l.valor)}</span>
+                  <span className={cn("shrink-0 text-sm font-bold tabular-nums", l.grupo === "entrada" ? (l.valor < 0 ? "text-destructive" : "text-success") : "text-secondary")}>{formatarMoeda(l.valor)}</span>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <button onClick={() => setEditando(l)} className="text-muted-foreground hover:text-primary" title="Editar"><Pencil className="size-3.5" /></button>
                     <button onClick={() => setExcluindo(l)} className="text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 className="size-3.5" /></button>
@@ -294,6 +362,7 @@ export function ObraCaixa() {
         <ModalLancamento
           original={editando}
           fornecedores={fornecedores}
+          permiteEntrada={ehSocio}
           onFechar={() => { setNovo(false); setEditando(null); }}
         />
       )}
@@ -322,40 +391,51 @@ export function ObraCaixa() {
 
 // ───────────────────────────────────────────────────────────────────────────
 
-function KpiFC({ icone, rotulo, valor, tom }: { icone: React.ReactNode; rotulo: string; valor: string; tom?: "primario" }) {
+function KpiFC({ icone, rotulo, valor, sub, tom }: { icone: React.ReactNode; rotulo: string; valor: string; sub?: string; tom?: "primario" }) {
   return (
     <div className={cn("flex items-center gap-2.5 rounded-xl border px-3 py-2.5", tom === "primario" ? "border-primary/50 bg-primary/5" : "border-border bg-muted/20")}>
       <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg bg-card", "text-primary")}>{icone}</span>
       <div className="min-w-0">
         <p className="truncate text-base font-extrabold tabular-nums text-secondary" title={valor}>{valor}</p>
-        <p className="truncate text-[11px] text-muted-foreground" title={rotulo}>{rotulo}</p>
+        <p className="truncate text-[11px] text-muted-foreground" title={rotulo}>{rotulo}{sub ? <span className="tabular-nums"> · {sub}</span> : null}</p>
       </div>
     </div>
   );
 }
 
-function ModalLancamento({ original, fornecedores, onFechar }: {
+function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
   original: FcLancamento | null;
   fornecedores: string[];
+  permiteEntrada: boolean;
   onFechar: () => void;
 }) {
   const criar = useCriarLancamentoFC();
   const editar = useEditarLancamentoFC();
   const [v, setV] = useState<LancamentoInput>({
     data: original?.data ?? hojeISO(),
-    valor: original?.valor ?? 0,
+    grupo: original?.grupo ?? "saida",
+    // Saída se mostra em módulo (o sinal é do grupo); entrada mostra como está.
+    valor: original ? (original.grupo === "saida" ? Math.abs(original.valor) : original.valor) : 0,
     centroCusto: original?.centro_custo ?? "indiretos",
     fornecedor: original?.fornecedor ?? "",
     descricao: original?.descricao ?? "",
     pagador: original?.pagador ?? "seniors",
     observacao: original?.observacao ?? "",
   });
-  const [valorTxt, setValorTxt] = useState(original ? String(original.valor) : "");
+  const [valorTxt, setValorTxt] = useState(original ? String(original.grupo === "saida" ? Math.abs(original.valor) : original.valor).replace(".", ",") : "");
   const pending = criar.isPending || editar.isPending;
+  const valorLido = lerReais(valorTxt);
+  const centrosDoGrupo = CENTROS_CUSTO.filter((c) => c.grupo === v.grupo);
+
+  function mudarGrupo(g: GrupoFC) {
+    setV((p) => ({
+      ...p, grupo: g,
+      centroCusto: CENTROS_CUSTO.some((c) => c.value === p.centroCusto && c.grupo === g) ? p.centroCusto : (g === "entrada" ? "socios" : "indiretos"),
+    }));
+  }
 
   async function salvar() {
-    const valor = parseFloat(valorTxt.replace(/\./g, "").replace(",", ".")) || parseFloat(valorTxt) || 0;
-    const payload = { ...v, valor };
+    const payload = { ...v, valor: valorLido };
     try {
       if (original) await editar.mutateAsync({ id: original.id, ...payload });
       else await criar.mutateAsync(payload);
@@ -371,30 +451,45 @@ function ModalLancamento({ original, fornecedores, onFechar }: {
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative my-auto w-full max-w-lg animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-secondary">{original ? "Editar lançamento" : "Novo lançamento (saída de caixa)"}</h2>
+          <h2 className="text-lg font-bold text-secondary">{original ? "Editar lançamento" : "Novo lançamento"}</h2>
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
         </div>
 
         <div className="space-y-4">
+          {permiteEntrada && (
+            <div className="flex overflow-hidden rounded-md border border-input">
+              {(["saida", "entrada"] as const).map((g) => (
+                <button key={g} type="button" onClick={() => mudarGrupo(g)}
+                  className={cn("flex-1 px-3 py-2 text-sm font-semibold", v.grupo === g ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-secondary")}>
+                  {rotuloGrupo(g)}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
-            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data do pagamento *</span>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Data {v.grupo === "saida" ? "do pagamento" : "do recebimento"} *</span>
               <input type="date" value={v.data} onChange={(e) => setV((p) => ({ ...p, data: e.target.value }))} className={inputBase} /></label>
             <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Valor (R$) *</span>
-              <input value={valorTxt} onChange={(e) => setValorTxt(e.target.value)} inputMode="decimal" placeholder="0,00" className={inputBase} /></label>
+              <input value={valorTxt} onChange={(e) => setValorTxt(e.target.value)} inputMode={v.grupo === "entrada" ? "text" : "decimal"} placeholder="0,00" className={inputBase} /></label>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {v.grupo === "saida"
+              ? "Saída de caixa: digite o valor sem sinal — entra como negativo, igual à planilha."
+              : "Como na planilha: aporte, empréstimo e aluguel positivos; dividendo pago com sinal de menos (ex.: -234.375)."}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Centro de custo</span>
               <select value={v.centroCusto} onChange={(e) => setV((p) => ({ ...p, centroCusto: e.target.value }))} className={inputBase}>
-                {CENTROS_CUSTO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                {!CENTROS_CUSTO.some((c) => c.value === v.centroCusto) && <option value={v.centroCusto}>{v.centroCusto}</option>}
+                {centrosDoGrupo.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {!centrosDoGrupo.some((c) => c.value === v.centroCusto) && <option value={v.centroCusto}>{rotuloCentro(v.centroCusto)}</option>}
               </select></label>
-            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Pagador</span>
+            <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">{v.grupo === "saida" ? "Pagador" : "Conta"}</span>
               <select value={v.pagador} onChange={(e) => setV((p) => ({ ...p, pagador: e.target.value as LancamentoInput["pagador"] }))} className={inputBase}>
                 {PAGADORES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select></label>
           </div>
-          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Fornecedor / destino *</span>
-            <input value={v.fornecedor} onChange={(e) => setV((p) => ({ ...p, fornecedor: e.target.value }))} list="fc-fornecedores" placeholder="ex.: Vendedores, Bacoccini, TRÍADE…" className={inputBase} />
+          <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">{v.grupo === "saida" ? "Fornecedor / destino *" : "Origem *"}</span>
+            <input value={v.fornecedor} onChange={(e) => setV((p) => ({ ...p, fornecedor: e.target.value }))} list="fc-fornecedores" placeholder={v.grupo === "saida" ? "ex.: Vendedores, Bacoccini, TRÍADE…" : "ex.: aluguel, aporte PHT, emprestimo Ernesto…"} className={inputBase} />
             <datalist id="fc-fornecedores">{fornecedores.map((f) => <option key={f} value={f} />)}</datalist></label>
           <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Item / descrição</span>
             <input value={v.descricao} onChange={(e) => setV((p) => ({ ...p, descricao: e.target.value }))} placeholder="ex.: parcela 12/48 do terreno" className={inputBase} /></label>
@@ -404,7 +499,7 @@ function ModalLancamento({ original, fornecedores, onFechar }: {
 
         <div className="mt-6 flex gap-3">
           <Button variant="outline" size="lg" className="flex-1" onClick={onFechar} disabled={pending}>Cancelar</Button>
-          <Button size="lg" className="flex-1" onClick={salvar} loading={pending}>{original ? "Salvar" : "Registrar"}</Button>
+          <Button size="lg" className="flex-1" onClick={salvar} loading={pending} disabled={!valorLido}>{original ? "Salvar" : "Registrar"}</Button>
         </div>
       </div>
     </div>,
@@ -412,7 +507,7 @@ function ModalLancamento({ original, fornecedores, onFechar }: {
   );
 }
 
-/** IPCA mensal — mantém a correção do acumulado (fórmula da planilha). */
+/** IPCA mensal — corrige o CUSTO DO EMPREENDIMENTO (fórmula da CustoBlue). */
 function ModalIpca({ serie, ipca, onFechar }: {
   serie: { mes: string; total: number; corrigido: number }[];
   ipca: Map<string, number>;
@@ -446,7 +541,8 @@ function ModalIpca({ serie, ipca, onFechar }: {
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          Corrigido do mês = (anterior + desembolso do mês) × (1 + IPCA). Cadastre o índice de cada mês novo.
+          Corrige o custo do empreendimento (terreno, projetos, construtora, materiais, indiretos):
+          corrigido do mês = (anterior + desembolso do mês) × (1 + IPCA). Cadastre o índice de cada mês novo.
         </p>
         <div className="mb-4 flex items-end gap-2">
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">Mês
@@ -497,3 +593,4 @@ function ModalIpca({ serie, ipca, onFechar }: {
     document.body,
   );
 }
+

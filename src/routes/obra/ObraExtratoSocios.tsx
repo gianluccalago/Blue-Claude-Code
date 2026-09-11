@@ -6,20 +6,24 @@ import {
   useExtratoLinhas, useExtratoSaldos, useCriarLinhaExtrato, useEditarLinhaExtrato,
   useExcluirLinhaExtrato, useDefinirSaldoInicial,
 } from "@/hooks/useExtratoSocios";
-import { resumoMesExtrato, consolidarAno, rotuloMesExtenso, SOCIO_ASSINATURA } from "@/lib/extratoSocios";
+import { resumoMesExtrato, consolidarAno, rotuloMesExtenso, saldosEfetivos, SOCIO_ASSINATURA, type LinhaExtrato } from "@/lib/extratoSocios";
+import { lerReais, type GrupoFC } from "@/lib/fluxoCaixa";
 import { gerarDemonstrativoMensalPdf, gerarDemonstrativoAnualPdf } from "@/lib/exportDemonstrativoCaixa";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/states";
 import { formatarMoeda } from "@/lib/mensalidade";
 import { cn, hojeISO } from "@/lib/utils";
-import type { FcExtratoLinha } from "@/types/database";
 
 // ===========================================================================
 // EXTRATO DOS SÓCIOS + Demonstrativo de Caixa (PDF timbrado, assinatura do
-// sócio-diretor). Master/direção APENAS. Mensal: mantém os lançamentos do
-// extrato (fiel à planilha) e extrai o PDF; Anual: consolida e extrai.
+// sócio-diretor). Master/direção APENAS. Lê e grava na MESMA fonte do Fluxo
+// de Caixa (fc_lancamentos), apresentada no formato da planilha mensal:
+// saldo inicial → entradas/mov. societárias → saídas → saldo final.
+// Mensal: edita o mês e extrai o PDF; Anual: consolida e extrai.
 // ===========================================================================
+
+type Linha = LinhaExtrato & { id: string };
 
 const selBase = "h-9 rounded-md border border-input bg-card px-2 text-sm";
 
@@ -32,9 +36,7 @@ function baixar(blob: Blob, nome: string) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-function parseValor(txt: string): number {
-  return parseFloat(txt.replace(/\./g, "").replace(",", ".")) || parseFloat(txt) || 0;
-}
+const parseValor = lerReais;
 
 export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
   const linhas = useExtratoLinhas();
@@ -45,16 +47,15 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
   const [ano, setAno] = useState(() => hojeISO().slice(0, 4));
   const [gerando, setGerando] = useState(false);
 
-  const todas = useMemo(
-    () => (linhas.data ?? []).map((l) => ({ mes: l.mes, ordem: l.ordem, grupo: l.grupo, rotulo: l.rotulo, valor: l.valor })),
-    [linhas.data],
-  );
-  const mapaSaldos = saldos.data ?? new Map<string, number>();
+  const todas: Linha[] = useMemo(() => linhas.data ?? [], [linhas.data]);
+  const declarados = saldos.data ?? new Map<string, number>();
+  // Saldo inicial: o declarado pelo sócio-diretor; senão, o final do mês anterior.
+  const mapaSaldos = useMemo(() => saldosEfetivos(declarados, todas), [declarados, todas]);
   const resumo = useMemo(
     () => resumoMesExtrato(mes, mapaSaldos.get(mes) ?? 0, todas),
     [mes, mapaSaldos, todas],
   );
-  const temSaldoDeclarado = mapaSaldos.has(mes);
+  const temSaldoDeclarado = declarados.has(mes);
   const anosDisponiveis = useMemo(() => [...new Set(todas.map((l) => l.mes.slice(0, 4)))].sort(), [todas]);
 
   async function gerar() {
@@ -62,7 +63,6 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
     try {
       if (modo === "mes") {
         if (resumo.entradas.length + resumo.saidas.length === 0) throw new Error(`Sem lançamentos em ${rotuloMesExtenso(mes)}.`);
-        if (!temSaldoDeclarado) throw new Error("Defina o saldo inicial do mês antes de extrair.");
         const pdf = await gerarDemonstrativoMensalPdf(resumo, new Date());
         baixar(pdf.blob, pdf.nomeArquivo);
       } else {
@@ -87,7 +87,7 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
           <div>
             <h2 className="text-lg font-bold text-secondary">Demonstrativo de Caixa — sócios</h2>
             <p className="text-xs text-muted-foreground">
-              Contas Seniors Care · regime de caixa · assinatura de {SOCIO_ASSINATURA.nome.split(" ")[0]} ({SOCIO_ASSINATURA.cargo}).
+              Contas Seniors Care · regime de caixa · mesma fonte do Fluxo de Caixa · assinatura de {SOCIO_ASSINATURA.nome.split(" ")[0]} ({SOCIO_ASSINATURA.cargo}).
             </p>
           </div>
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
@@ -113,7 +113,7 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
         </div>
 
         {linhas.isLoading || saldos.isLoading ? <LoadingState /> : modo === "mes" ? (
-          <EditorMes mes={mes} linhas={(linhas.data ?? []).filter((l) => l.mes === mes)} resumo={resumo} temSaldoDeclarado={temSaldoDeclarado} />
+          <EditorMes mes={mes} linhas={todas.filter((l) => l.mes === mes)} resumo={resumo} temSaldoDeclarado={temSaldoDeclarado} />
         ) : (
           <ResumoAno ano={ano} mapaSaldos={mapaSaldos} todas={todas} />
         )}
@@ -126,7 +126,7 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
 // ── Editor do mês (saldo inicial + lançamentos, tudo editável) ─────────────
 function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   mes: string;
-  linhas: FcExtratoLinha[];
+  linhas: Linha[];
   resumo: ReturnType<typeof resumoMesExtrato>;
   temSaldoDeclarado: boolean;
 }) {
@@ -135,10 +135,10 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   const excluir = useExcluirLinhaExtrato();
 
   const [saldoTxt, setSaldoTxt] = useState<string | null>(null);
-  const [novoGrupo, setNovoGrupo] = useState<"entrada" | "saida">("saida");
+  const [novoGrupo, setNovoGrupo] = useState<GrupoFC>("saida");
   const [novoRotulo, setNovoRotulo] = useState("");
   const [novoValor, setNovoValor] = useState("");
-  const [excluindo, setExcluindo] = useState<FcExtratoLinha | null>(null);
+  const [excluindo, setExcluindo] = useState<Linha | null>(null);
 
   function salvarSaldo() {
     if (saldoTxt === null) return;
@@ -162,13 +162,16 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   return (
     <div className="space-y-4">
       {/* Saldo inicial declarado */}
-      <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3", temSaldoDeclarado ? "border-border" : "border-warning/60 bg-warning/5")}>
-        <span className="text-sm font-semibold text-secondary">Saldo inicial de caixa ({rotuloMesExtenso(mes)})</span>
+      <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3", temSaldoDeclarado ? "border-border" : "border-primary/40 bg-primary/5")}>
+        <span className="text-sm font-semibold text-secondary">
+          Saldo inicial de caixa ({rotuloMesExtenso(mes)})
+          {!temSaldoDeclarado && <span className="ml-2 text-xs font-normal text-muted-foreground">= saldo final do mês anterior (edite se o extrato bancário disser outro)</span>}
+        </span>
         <div className="flex items-center gap-2">
           {saldoTxt === null ? (
             <>
               <span className="text-sm font-bold tabular-nums text-secondary">
-                {temSaldoDeclarado ? formatarMoeda(resumo.saldoInicial) : "— defina"}
+                {formatarMoeda(resumo.saldoInicial)}
               </span>
               <button onClick={() => setSaldoTxt(String(resumo.saldoInicial || ""))} className="text-muted-foreground hover:text-primary" title="Editar saldo inicial"><Pencil className="size-3.5" /></button>
             </>
@@ -205,7 +208,7 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
 
       {/* Adicionar */}
       <div className="flex flex-wrap items-end gap-2 rounded-lg bg-muted/30 p-3">
-        <select value={novoGrupo} onChange={(e) => setNovoGrupo(e.target.value as "entrada" | "saida")} className={selBase}>
+        <select value={novoGrupo} onChange={(e) => setNovoGrupo(e.target.value as GrupoFC)} className={selBase}>
           <option value="entrada">Entrada/mov.</option>
           <option value="saida">Saída</option>
         </select>
@@ -236,7 +239,7 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   );
 }
 
-function LinhaEditavel({ linha, onExcluir }: { linha: FcExtratoLinha; onExcluir: () => void }) {
+function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => void }) {
   const editar = useEditarLinhaExtrato();
   const [editando, setEditando] = useState(false);
   const [rotulo, setRotulo] = useState(linha.rotulo);
@@ -248,7 +251,7 @@ function LinhaEditavel({ linha, onExcluir }: { linha: FcExtratoLinha; onExcluir:
         <input value={rotulo} onChange={(e) => setRotulo(e.target.value)} className={cn(selBase, "h-8 min-w-0 flex-1")} />
         <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={cn(selBase, "h-8 w-24 text-right")} />
         <button
-          onClick={() => editar.mutate({ id: linha.id, rotulo, valor: parseValor(valor) }, {
+          onClick={() => editar.mutate({ id: linha.id, rotulo, valor: parseValor(valor), grupo: linha.grupo }, {
             onSuccess: () => setEditando(false),
             onError: (e) => toast.error(e instanceof Error ? e.message : "Falha."),
           })}
@@ -275,7 +278,7 @@ function LinhaEditavel({ linha, onExcluir }: { linha: FcExtratoLinha; onExcluir:
 function ResumoAno({ ano, mapaSaldos, todas }: {
   ano: string;
   mapaSaldos: Map<string, number>;
-  todas: { mes: string; ordem: number; grupo: "entrada" | "saida"; rotulo: string; valor: number }[];
+  todas: LinhaExtrato[];
 }) {
   const c = consolidarAno(ano, mapaSaldos, todas);
   if (!c) return <p className="text-sm text-muted-foreground">Sem lançamentos no ano de {ano}.</p>;
