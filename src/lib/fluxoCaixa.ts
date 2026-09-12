@@ -104,11 +104,12 @@ export function centroDoRotulo(rotulo: string, grupo: GrupoFC): string {
   if (/^despesas obra pagas por/.test(r)) return "indiretos";
   if (/^emprestimo/.test(r) || /^empr.stimo/.test(r)) return "socios";
   if (/^marlon/.test(r) || /^cabelo/.test(r) || /^uber/.test(r) || /^copiadora/.test(r) || /^combustivel/.test(r) || /^gasolina/.test(r)) return "indiretos";
-  if (["pis", "cofins", "irpj", "csll"].includes(r) || /^ir retido/.test(r) || /^ir s\.nf/.test(r) || /^tributos federais/.test(r)) return "impostos";
+  if (["pis", "cofins", "irpj", "csll"].includes(r) || /^ir retido/.test(r) || /^ir s\.nf/.test(r) || /^tributos federais/.test(r) || /^imposto/.test(r)) return "impostos";
   if (
     /^contabilidade/.test(r) || /^tarifas banc/.test(r) || /^certificado /.test(r) || /^certificado eletr/.test(r) ||
     /^taxa.*junta comercial/.test(r) || /^taxas junta/.test(r) || /^escrilex/.test(r) || /^advogado/.test(r) ||
-    /giuliano/.test(r) || /^a..o trabalhista/.test(r) || /^acordo andrea/.test(r) || /^taxa de envio/.test(r)
+    /giuliano/.test(r) || /^a..o trabalhista/.test(r) || /^acordo andrea/.test(r) || /^taxa de envio/.test(r) ||
+    /inpi/.test(r)
   ) return "administrativo";
   return "indiretos";
 }

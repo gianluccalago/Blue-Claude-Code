@@ -79,13 +79,14 @@ returns text language sql immutable as $$
       or r like 'uber%' or r like 'copiadora%' or r like 'combustivel%'
       or r like 'gasolina%'                                                then 'indiretos'
     when r in ('pis','cofins','irpj','csll') or r like 'ir retido%'
-      or r like 'ir s.nf%' or r like 'tributos federais%'                   then 'impostos'
+      or r like 'ir s.nf%' or r like 'tributos federais%'
+      or r like 'imposto%'                                                 then 'impostos'
     when r like 'contabilidade%' or r like 'tarifas banc%'
       or r like 'certificado %' or r like 'certificado eletr%'
       or r like 'taxa%junta comercial%' or r like 'taxas junta%'
       or r like 'escrilex%' or r like 'advogado%' or r like '%giuliano%'
       or r like 'a__o trabalhista%' or r like 'acordo andrea%'
-      or r like 'taxa de envio%'                                           then 'administrativo'
+      or r like 'taxa de envio%' or r like '%inpi%'                        then 'administrativo'
     else 'indiretos'
   end
   from (select lower(btrim(p_rotulo)) as r) t
@@ -128,7 +129,7 @@ create policy fc_lanc_all on public.fc_lancamentos for all to authenticated
 
 -- ── d · Migração, com backup ───────────────────────────────────────────────
 do $$
-declare v_bkp int; v_antes int; v_depois int;
+declare v_bkp int; v_antes int; v_depois int; v_dup int;
 begin
   -- Backup completo do que existia (uma vez só).
   if to_regclass('public.fc_lancamentos_bkp_0131') is null then
@@ -152,6 +153,18 @@ begin
   -- Entrada da Terraplanagem: está dentro da linha "Triade" de ago/26.
   delete from public.fc_lancamentos
    where origem = 'marco' and data >= date '2026-08-01' and data < date '2026-09-01';
+
+  -- Lançamento digitado à mão que a planilha do sócio também traz (mesmo mês,
+  -- mesmo valor) é o mesmo dinheiro — a planilha prevalece. Caso real: o
+  -- corte de árvores de 3.500 em set/26, no caixa e na planilha.
+  delete from public.fc_lancamentos l
+   where l.origem = 'manual' and l.origem_id is null
+     and exists (select 1 from public.fc_extrato e
+                  where e.mes = to_char(l.data, 'YYYY-MM') and abs(e.valor) = abs(l.valor));
+  get diagnostics v_dup = row_count;
+  if v_dup > 0 then
+    raise notice 'Removido(s) % lançamento(s) manual(is) que a planilha já trazia (mesmo mês e valor).', v_dup;
+  end if;
 
   -- O que sobrou (manuais e sincronizados) vira valor COM SINAL.
   update public.fc_lancamentos set valor = -abs(valor), grupo = 'saida' where valor > 0;

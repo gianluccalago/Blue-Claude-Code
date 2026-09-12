@@ -1278,5 +1278,50 @@
 "r": "árvores",
 "g": "saida",
 "c": "terreno"
+},
+{
+"r": "Aluguel",
+"g": "entrada",
+"c": "receita_aluguel"
+},
+{
+"r": "Corte arvores",
+"g": "saida",
+"c": "terreno"
+},
+{
+"r": "Terreno 2 - parcela 38/44",
+"g": "saida",
+"c": "terreno"
+},
+{
+"r": "Terreno 3 - parcela 34/36",
+"g": "saida",
+"c": "terreno"
+},
+{
+"r": "Terreno 4 - parcela 5/50",
+"g": "saida",
+"c": "terreno"
+},
+{
+"r": "Arquiteto Bacoccini",
+"g": "saida",
+"c": "projetos"
+},
+{
+"r": "Marca INPI",
+"g": "saida",
+"c": "administrativo"
+},
+{
+"r": "Impostos",
+"g": "saida",
+"c": "impostos"
+},
+{
+"r": "Contabilidade",
+"g": "saida",
+"c": "administrativo"
 }
 ]
