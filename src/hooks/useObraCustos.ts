@@ -17,7 +17,7 @@ export function useCustosIndiretos() {
         .from("obra_custos_indiretos")
         .select("*")
         .order("competencia", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

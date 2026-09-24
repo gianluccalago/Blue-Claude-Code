@@ -88,7 +88,11 @@ export function ObraCaixa() {
 
   // ── Sincronização automática (1× por carga): pagamentos do Obra → caixa ──
   const sincronizou = useRef(false);
-  const tudoCarregado = !lanc.isLoading && !marcos.isLoading && !medicoes.isLoading && !ocs.isLoading && !indiretos.isLoading && !notas.isLoading;
+  // Só sincroniza quando TODAS as fontes carregaram COM SUCESSO. Se o caixa ou
+  // as NFs falharem por um instante, a regra da planilha e a cobertura por NF
+  // ficariam vazias e a rotina lançaria pagamentos em dobro.
+  const tudoCarregado = lanc.isSuccess && marcos.isSuccess && medicoes.isSuccess && ocs.isSuccess
+    && indiretos.isSuccess && notas.isSuccess && disciplinas.isSuccess;
   useEffect(() => {
     if (!tudoCarregado || sincronizou.current) return;
     sincronizou.current = true;
@@ -105,6 +109,7 @@ export function ObraCaixa() {
     if (novos.length > 0) {
       sincronizar.mutate(novos, {
         onSuccess: (n) => toast.success(`${n} pagamento(s) do módulo Obra entraram no caixa.`),
+        onError: (e) => toast.error(`Não foi possível sincronizar o módulo Obra com o caixa: ${e instanceof Error ? e.message : ""}`),
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -21,7 +21,7 @@ export function useDiarioObra() {
         .select("*")
         .order("data", { ascending: false })
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -36,7 +36,7 @@ export function useFotosDiario() {
         .from("obra_diario_foto")
         .select("id, registro_id, foto_url")
         .order("criado_em");
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

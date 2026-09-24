@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -294,8 +295,8 @@ function ModalEmitirNF({ itens, onFechar, onEmitida }: {
   const [observacao, setObservacao] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
 
-  const valorNum = parseFloat(valor.replace(",", ".")) || 0;
-  const retNum = parseFloat(retencoes.replace(",", ".")) || 0;
+  const valorNum = lerReais(valor);
+  const retNum = lerReais(retencoes);
 
   async function salvar() {
     try {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Gauge, Wallet, CalendarClock, AlertTriangle, CircleDollarSign, CalendarCheck2,
@@ -506,14 +507,15 @@ function CanaisTriade({ podeEditar }: { podeEditar: boolean }) {
       )}
 
       {/* Foto ampliada */}
-      {fotoAmpliada && (
+      {fotoAmpliada && createPortal(
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <button aria-hidden tabIndex={-1} onClick={() => setFotoAmpliada(null)} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/70 backdrop-blur-sm" />
           <div className="relative max-h-[90vh] max-w-3xl animate-modal-in overflow-hidden rounded-lg shadow-lifted">
             <FotoSegura bucket={BUCKET_OBRA} stored={fotoAmpliada} alt="Foto do canteiro" className="max-h-[85vh] w-auto object-contain" />
             <button onClick={() => setFotoAmpliada(null)} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-secondary/70 text-white hover:bg-secondary"><X className="size-4" /></button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -536,7 +538,7 @@ function ModalRespostaPedido({ pedido, salvando, onSalvar, onFechar }: {
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao responder."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -564,7 +566,8 @@ function ModalRespostaPedido({ pedido, salvando, onSalvar, onFechar }: {
           <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>Enviar resposta</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -583,7 +586,7 @@ function ModalRespostaSolic({ solicitacao, salvando, onSalvar, onFechar }: {
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao responder."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -605,7 +608,8 @@ function ModalRespostaSolic({ solicitacao, salvando, onSalvar, onFechar }: {
           <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>Enviar resposta</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

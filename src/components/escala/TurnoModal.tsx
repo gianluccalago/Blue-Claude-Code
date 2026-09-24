@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Trash2, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatarHoraBR, dataISO } from "@/lib/utils";
@@ -105,7 +106,7 @@ export function TurnoModal({
     });
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -308,6 +309,7 @@ export function TurnoModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

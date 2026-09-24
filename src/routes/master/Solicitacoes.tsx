@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, UserPlus, Check, X, Trash2, Mail, Phone, User, HeartHandshake, Briefcase } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useResidentes } from "@/hooks/usePlanos";
-import { useUsuarios, useCriarUsuario, useDefinirSenhaUsuario, type UsuarioValor } from "@/hooks/useUsuarios";
+import { useUsuarios, useCriarUsuario, type UsuarioValor } from "@/hooks/useUsuarios";
 import {
   useSolicitacoesReset,
   useSolicitacoesAcesso,
@@ -26,7 +27,6 @@ import type { Residente, SolicitacaoAcesso } from "@/types/database";
 // reusando o UsuarioForm pré-preenchido) ou recusa.
 // ===========================================================================
 
-const SENHA_PADRAO = "blue";
 
 export function Solicitacoes() {
   const resets = useSolicitacoesReset();
@@ -92,18 +92,28 @@ export function Solicitacoes() {
 // ---------------------------------------------------------------------------
 
 function ResetLinha({ id, email, quando, conhecido }: { id: string; email: string; quando: string; conhecido: boolean }) {
-  const definirSenha = useDefinirSenhaUsuario();
   const atender = useAtenderReset();
   const descartar = useDescartarReset();
-  const ocupado = definirSenha.isPending || atender.isPending || descartar.isPending;
+  const [enviando, setEnviando] = useState(false);
+  const ocupado = enviando || atender.isPending || descartar.isPending;
 
+  // Sem senha padrão: a pessoa recebe o link oficial de redefinição no e-mail
+  // dela e cria a própria senha. Uma senha fixa e pública, a partir de um
+  // pedido anônimo, era um vetor de tomada de conta (e a RPC nem aceitava
+  // "blue", que tem menos de 6 caracteres — o botão falhava sempre).
   async function resetar() {
+    setEnviando(true);
     try {
-      await definirSenha.mutateAsync({ email, senha: SENHA_PADRAO });
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      });
+      if (error) throw error;
       await atender.mutateAsync(id);
-      toast.success(`Senha de ${email} redefinida para "${SENHA_PADRAO}".`);
+      toast.success(`Link de redefinição enviado para ${email}.`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao redefinir a senha.");
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar o link.");
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -119,8 +129,8 @@ function ResetLinha({ id, email, quando, conhecido }: { id: string; email: strin
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => descartar.mutate(id)} disabled={ocupado}><Trash2 className="size-4" /> Descartar</Button>
-          <Button size="sm" onClick={resetar} loading={definirSenha.isPending || atender.isPending} disabled={ocupado || !conhecido} title={conhecido ? "" : "Nenhum usuário ativo com este e-mail"}>
-            <KeyRound className="size-4" /> Resetar p/ “{SENHA_PADRAO}”
+          <Button size="sm" onClick={resetar} loading={enviando || atender.isPending} disabled={ocupado || !conhecido} title={conhecido ? "" : "Nenhum usuário ativo com este e-mail"}>
+            <KeyRound className="size-4" /> Enviar link de redefinição
           </Button>
         </div>
       </CardContent>

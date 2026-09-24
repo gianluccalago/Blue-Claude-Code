@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Sun, Moon, CalendarRange, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { profissionaisDaCategoria } from "@/components/escala/TurnoModal";
@@ -116,7 +117,7 @@ export function TurnoRecorrenteModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -339,6 +340,7 @@ export function TurnoRecorrenteModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -8,6 +8,7 @@
  * — só Master/Direção. O histórico é preservado, como na saída de longa.
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Sun, CalendarClock, LogOut, Phone } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -105,7 +106,7 @@ function EncerrarEstadia({ residente, onFechar }: { residente: Residente; onFech
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -132,6 +133,7 @@ function EncerrarEstadia({ residente, onFechar }: { residente: Residente; onFech
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

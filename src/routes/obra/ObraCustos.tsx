@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Coins, Plus, Trash2, Repeat, Download, X, Pencil } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -184,7 +186,7 @@ function ModalCusto({ inicial, onFechar }: { inicial?: ObraCustoIndireto; onFech
   const salvando = criar.isPending || editar.isPending;
 
   async function salvar() {
-    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    const v = lerReais(valor);
     if (!descricao.trim() || !Number.isFinite(v) || v < 0) { toast.error("Informe descrição e valor."); return; }
     try {
       if (inicial) {
@@ -198,7 +200,7 @@ function ModalCusto({ inicial, onFechar }: { inicial?: ObraCustoIndireto; onFech
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -228,6 +230,7 @@ function ModalCusto({ inicial, onFechar }: { inicial?: ObraCustoIndireto; onFech
           <Button size="lg" className="flex-1" onClick={salvar} loading={salvando}>{inicial ? "Salvar" : "Lançar"}</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

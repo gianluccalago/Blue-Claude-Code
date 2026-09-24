@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Contact, Plus, Search, ShieldCheck, X, ArrowRight } from "lucide-react";
@@ -193,7 +194,7 @@ function ContatoModal({
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 grid animate-fade-in place-items-center bg-secondary/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <Card className="max-h-[90vh] w-full max-w-2xl animate-modal-in overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <CardContent className="space-y-4 py-5">
@@ -269,6 +270,7 @@ function ContatoModal({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }

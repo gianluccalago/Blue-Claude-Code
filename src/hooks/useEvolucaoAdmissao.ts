@@ -158,7 +158,7 @@ export function useSalvarEvolucaoAdmissao() {
       const r = args.residenteId;
       for (const key of [
         ["evolucao-admissao", r], ["patologias", r], ["patologias-prevalentes"], ["prescricoes-medico", r],
-        ["prescricoes", r], ["evolucoes", r], ["residentes"], ["pesos", r], ["recursos-saude"],
+        ["prescricoes", r], ["evolucoes", r], ["residentes"], ["registros-peso", r], ["ultimo-peso", r], ["recursos-saude"],
       ]) {
         qc.invalidateQueries({ queryKey: key });
       }

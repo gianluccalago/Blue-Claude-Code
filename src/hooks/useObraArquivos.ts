@@ -20,7 +20,7 @@ export function useObraArquivos() {
         .from("obra_arquivos")
         .select("*")
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

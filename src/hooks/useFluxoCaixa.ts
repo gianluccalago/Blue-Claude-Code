@@ -19,14 +19,24 @@ export function useLancamentosFC() {
   return useQuery({
     queryKey: KEY_FC,
     queryFn: async (): Promise<FcLancamento[]> => {
-      const { data, error } = await supabase
-        .from("fc_lancamentos")
-        .select("*")
-        .order("data", { ascending: false })
-        .order("grupo", { ascending: false })
-        .order("ordem", { ascending: true });
-      if (error) return [];
-      return data ?? [];
+      // O PostgREST corta em 1000 linhas por padrão — a planilha inteira já
+      // passa de 680 e cresce todo mês. Pagina até acabar; nunca trunca.
+      const PAGINA = 1000;
+      const todos: FcLancamento[] = [];
+      for (let de = 0; ; de += PAGINA) {
+        const { data, error } = await supabase
+          .from("fc_lancamentos")
+          .select("*")
+          .order("data", { ascending: false })
+          .order("grupo", { ascending: false })
+          .order("ordem", { ascending: true })
+          .order("id", { ascending: true })
+          .range(de, de + PAGINA - 1);
+        if (error) throw error;
+        todos.push(...(data ?? []));
+        if (!data || data.length < PAGINA) break;
+      }
+      return todos;
     },
   });
 }
@@ -36,7 +46,7 @@ export function useIpcaFC() {
     queryKey: KEY_IPCA,
     queryFn: async (): Promise<Map<string, number>> => {
       const { data, error } = await supabase.from("fc_ipca").select("*");
-      if (error) return new Map();
+      if (error) throw error;
       return new Map((data ?? []).map((r) => [r.mes, r.pct]));
     },
   });

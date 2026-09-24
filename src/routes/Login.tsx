@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Navigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { LogIn, Loader2, AlertCircle, ShieldCheck, HeartPulse, Sparkles, Users, KeyRound, UserPlus, X, MailCheck } from "lucide-react";
@@ -272,7 +273,7 @@ const modalInput =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function CascaModal({ titulo, icone, onFechar, children }: { titulo: string; icone: React.ReactNode; onFechar: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -282,7 +283,8 @@ function CascaModal({ titulo, icone, onFechar, children }: { titulo: string; ico
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   FolderCheck,
@@ -302,7 +303,7 @@ function ModalDocumento({
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={editando ? "Editar documento" : "Adicionar documento"} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -376,6 +377,7 @@ function ModalDocumento({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

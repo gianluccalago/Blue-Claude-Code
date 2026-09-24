@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Plus,
@@ -175,6 +176,7 @@ export function ObraMedicoes() {
 
       {/* Recebimento provisório/definitivo (TRP/TRD) + retenções */}
       <RecebimentoFase
+        key={fase.id}
         fase={fase}
         medicoesFase={medicoesFase}
         etapas={(etapas.data ?? []).filter((e) => e.fase_id === fase.id)}
@@ -527,7 +529,7 @@ function ModalNovaMedicao({
     } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível lançar a medição."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Nova medição" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -567,7 +569,8 @@ function ModalNovaMedicao({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -628,7 +631,7 @@ function ModalDetalheMedicao({
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao aprovar pagamento."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Detalhe da medição" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -697,7 +700,8 @@ function ModalDetalheMedicao({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

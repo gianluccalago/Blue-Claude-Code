@@ -1,4 +1,6 @@
 import { useState, type ChangeEvent, type ReactNode } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Zap, FlaskConical, ShieldAlert, FileWarning, FilePlus2, Plus, X, Upload, Trash2,
@@ -75,7 +77,7 @@ function BotaoExcluir({ titulo, descricao, onConfirmar, pequeno = false }: { tit
 }
 
 function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: ReactNode }) {
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -83,7 +85,8 @@ function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: (
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button></div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -396,7 +399,7 @@ function Aditivos({ podeEditar }: { podeEditar: boolean }) {
         <FormModal titulo="Novo aditivo" onFechar={() => { setNovo(false); setPdf(null); }} extra={
           <label className="block cursor-pointer text-sm font-semibold text-primary hover:underline"><Upload className="mr-1 inline size-4" />{pdf ? "PDF selecionado" : "Anexar PDF assinado"}<input type="file" accept="application/pdf" className="hidden" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} /></label>
         } onSalvar={async (v) => {
-          await criar.mutateAsync({ numero: v.numero, tipo: (v.tipo as "escopo" | "valor" | "prazo" | "misto") || "misto", descricao: v.descricao, valorDelta: v.valor ? parseFloat(v.valor.replace(",", ".")) : 0, prazoDeltaDias: v.prazo ? parseInt(v.prazo, 10) : 0, faseId: v.faseId || null, pdf, dataAssinatura: v.assinatura || null });
+          await criar.mutateAsync({ numero: v.numero, tipo: (v.tipo as "escopo" | "valor" | "prazo" | "misto") || "misto", descricao: v.descricao, valorDelta: v.valor ? lerReais(v.valor) : 0, prazoDeltaDias: v.prazo ? parseInt(v.prazo, 10) : 0, faseId: v.faseId || null, pdf, dataAssinatura: v.assinatura || null });
         }} campos={[
           { key: "numero", label: "Número do aditivo", tipo: "text" },
           { key: "descricao", label: "O que muda (escopo)", tipo: "text", req: true },
@@ -421,7 +424,11 @@ type Campo = { key: string; label: string; tipo: "text" | "date" | "fase" | "sel
 function FormModal({ titulo, campos, onSalvar, onFechar, pending, extra }: {
   titulo: string; campos: Campo[]; onSalvar: (v: Record<string, string>) => Promise<void>; onFechar: () => void; pending: boolean; extra?: ReactNode;
 }) {
-  const [v, setV] = useState<Record<string, string>>({});
+  // Selects nascem com a 1ª opção NO ESTADO (antes a tela mostrava "Alvará" e
+  // gravava "outro", porque o estado começava vazio).
+  const [v, setV] = useState<Record<string, string>>(() =>
+    Object.fromEntries(campos.filter((c) => c.tipo === "select" && c.opcoes?.[0]).map((c) => [c.key, c.opcoes![0].value])),
+  );
   async function salvar() {
     for (const c of campos) if (c.req && !(v[c.key] ?? "").trim()) { toast.error(`Preencha: ${c.label}`); return; }
     try { await onSalvar(v); toast.success("Salvo."); onFechar(); }

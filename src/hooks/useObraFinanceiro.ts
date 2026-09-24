@@ -13,7 +13,7 @@ export function useBaseline() {
     queryKey: ["obra-baseline"],
     queryFn: async (): Promise<ObraBaseline[]> => {
       const { data, error } = await supabase.from("obra_baseline").select("*").order("grupo");
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

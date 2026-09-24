@@ -7,6 +7,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
+import { ErroRota, RotaNaoEncontrada } from "@/components/ErroRota";
 import { Login } from "@/routes/Login";
 import { RedefinirSenha } from "@/routes/RedefinirSenha";
 import { EmConstrucao } from "@/routes/EmConstrucao";
@@ -795,4 +796,11 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree, defaultPreload: "intent" });
+export const router = createRouter({
+  routeTree,
+  defaultPreload: "intent",
+  // Erro de renderização numa tela NÃO derruba o app inteiro; rota inexistente
+  // tem página em português.
+  defaultErrorComponent: ErroRota,
+  defaultNotFoundComponent: RotaNaoEncontrada,
+});

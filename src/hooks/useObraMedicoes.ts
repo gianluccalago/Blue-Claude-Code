@@ -106,7 +106,7 @@ export function useRetencoesLedger() {
         .select("*")
         .order("evento_em", { ascending: true });
       // Prestador não tem policy de leitura aqui → trata erro como "sem acesso".
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

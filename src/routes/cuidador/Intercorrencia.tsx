@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Phone, Stethoscope, UserCog, Siren, Camera, X } from "lucide-react";
+import { Phone, Stethoscope, Siren, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
+import { useTelefonePlantao } from "@/hooks/useConfiguracao";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useRegistrarIntercorrencia } from "@/hooks/useIntercorrencia";
 import { HospedeIdentidade } from "@/components/cuidador/HospedeIdentidade";
@@ -45,15 +46,20 @@ const SUB_TIPOS: Record<string, string[]> = {
   "Vômito": ["1 vez", "2 vezes", "3 ou mais vezes", "Com sangue"],
 };
 
-const CONTATOS = [
+// Contatos de emergência: SAMU fixo + o telefone do plantão cadastrado em
+// Configuração. NUNCA números de exemplo — numa urgência a cuidadora liga.
+const CONTATOS_FIXOS = [
   { label: "SAMU", numero: "192", icon: Siren, cor: "text-destructive" },
-  { label: "Médico Geriatra", numero: "(11) 99999-0002", icon: Stethoscope, cor: "text-primary" },
-  { label: "Diretor", numero: "(11) 99999-0001", icon: UserCog, cor: "text-secondary" },
 ];
 
 export function Intercorrencia() {
   const { data: hospedes, isLoading, isError, error } = useHospedesDesignados(CUIDADOR_ATUAL.id);
   const registrar = useRegistrarIntercorrencia();
+  const { data: telefonePlantao } = useTelefonePlantao();
+  const CONTATOS = [
+    ...CONTATOS_FIXOS,
+    ...(telefonePlantao ? [{ label: "Plantão da casa", numero: telefonePlantao, icon: Stethoscope, cor: "text-primary" }] : []),
+  ];
 
   const [tipo, setTipo] = useState<string | null>(null);
   const [subTipo, setSubTipo] = useState<string | null>(null);

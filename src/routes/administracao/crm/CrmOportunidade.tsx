@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -237,7 +238,7 @@ export function CrmOportunidade() {
       />
 
       {/* Modal de perda (exige motivo) */}
-      {modalPerda && (
+      {modalPerda && createPortal(
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button aria-hidden tabIndex={-1} onClick={() => setModalPerda(false)} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -262,7 +263,8 @@ export function CrmOportunidade() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

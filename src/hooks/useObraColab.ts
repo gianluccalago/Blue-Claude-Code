@@ -23,7 +23,7 @@ export function useFotosAndamento() {
         .from("obra_fotos_andamento")
         .select("*")
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -73,7 +73,7 @@ export function useSolicitacoesObra() {
         .from("obra_solicitacoes")
         .select("*")
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

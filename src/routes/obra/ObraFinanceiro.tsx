@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Wallet, TrendingUp, CalendarClock, Download, Ruler, X, Pencil } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -425,7 +427,7 @@ function ModalBaselineGrupo({ linhas, onFechar }: { linhas: ObraBaseline[]; onFe
   );
   const [obs, setObs] = useState(linhas.length === 1 ? linhas[0].observacao ?? "" : "");
 
-  const parse = (s: string) => parseFloat(s.replace(/\./g, "").replace(",", "."));
+  const parse = (s: string) => lerReais(s);
 
   async function salvar() {
     const mudadas = linhas.filter((b) => parse(valores[b.id]) !== b.valor_orcado || (linhas.length === 1 && (obs || null) !== b.observacao));
@@ -450,7 +452,7 @@ function ModalBaselineGrupo({ linhas, onFechar }: { linhas: ObraBaseline[]; onFe
   const total = linhas.reduce((s, b) => { const v = parse(valores[b.id]); return s + (Number.isFinite(v) ? v : 0); }, 0);
   const titulo = GRUPO_LABEL[linhas[0].grupo] ?? linhas[0].rotulo;
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -483,6 +485,7 @@ function ModalBaselineGrupo({ linhas, onFechar }: { linhas: ObraBaseline[]; onFe
           <Button size="lg" className="flex-1" onClick={salvar} loading={atualizar.isPending}>Salvar</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

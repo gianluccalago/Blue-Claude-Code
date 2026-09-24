@@ -27,6 +27,10 @@ export function useResidentesInativos() {
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["residentes"] });
   qc.invalidateQueries({ queryKey: ["residentes-inativos"] });
+  // Day Care, cobertura e hóspedes do turno também mudam com entrada/saída.
+  qc.invalidateQueries({ queryKey: ["frequentadores-day-care"] });
+  qc.invalidateQueries({ queryKey: ["cobertura"] });
+  qc.invalidateQueries({ queryKey: ["hospedes-turno"] });
 }
 
 /** Registra a saída: status inativo + data/motivo. A suíte libera (sem hóspede ativo). */

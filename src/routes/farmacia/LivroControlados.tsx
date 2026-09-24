@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   BookLock,
@@ -206,7 +208,7 @@ function ModalAssento({ onFechar }: { onFechar: () => void }) {
   const [justificativa, setJustificativa] = useState("");
 
   const precisaJustificativa = tipo === "perda" || tipo === "vencimento";
-  const qtd = parseFloat(quantidade.replace(",", "."));
+  const qtd = lerReais(quantidade);
   const podeSalvar =
     medicamento.trim() !== "" && Number.isFinite(qtd) && qtd > 0 && (!precisaJustificativa || justificativa.trim() !== "");
 
@@ -227,7 +229,7 @@ function ModalAssento({ onFechar }: { onFechar: () => void }) {
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Novo assento" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -293,7 +295,8 @@ function ModalAssento({ onFechar }: { onFechar: () => void }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -320,7 +323,7 @@ function ModalEstorno({ assento, onFechar }: { assento: AssentoControlado; onFec
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Estornar assento" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -356,6 +359,7 @@ function ModalEstorno({ assento, onFechar }: { assento: AssentoControlado; onFec
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

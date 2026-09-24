@@ -252,7 +252,7 @@ export function useProgressoHistorico() {
         .from("obra_disciplina_progresso")
         .select("*")
         .order("registrado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -377,11 +377,15 @@ export function useDesfazerPagamentoMarco() {
       const { data: disc } = await supabase
         .from("obra_disciplinas").select("status").eq("id", marco.disciplina_id).maybeSingle();
       if (disc?.status === "Concluído") {
-        await supabase.from("obra_disciplinas")
+        const { error: eDisc } = await supabase.from("obra_disciplinas")
           .update({ status: "Aprovado", data_conclusao: null }).eq("id", marco.disciplina_id);
+        if (eDisc) throw eDisc;
       }
+      // O caixa não pode ficar com o lançamento de um pagamento desfeito.
+      const { error: eFc } = await supabase.from("fc_lancamentos").delete().eq("origem", "marco").eq("origem_id", marco.id);
+      if (eFc) throw eFc;
     },
-    onSuccess: () => invalidar(qc),
+    onSuccess: () => { invalidar(qc); qc.invalidateQueries({ queryKey: ["fc-lancamentos"] }); },
   });
 }
 

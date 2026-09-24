@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { lerPercentual, formatarPercentual } from "@/lib/fluxoCaixa";
 import {
@@ -273,7 +274,7 @@ function ModalHistorico({
   const excluir = useExcluirRegistroAcompanhamento();
   const [aExcluir, setAExcluir] = useState<ObraChecklistExecucao | null>(null);
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Histórico — ${etapa.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -314,7 +315,8 @@ function ModalHistorico({
         }}
         onCancelar={() => setAExcluir(null)}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -351,7 +353,7 @@ function ModalEditarFase({ fase, onFechar }: { fase: ObraFase; onFechar: () => v
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Editar ${fase.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -387,7 +389,8 @@ function ModalEditarFase({ fase, onFechar }: { fase: ObraFase; onFechar: () => v
           <Button size="lg" className="flex-1" onClick={salvar} loading={editar.isPending}>Salvar</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -439,7 +442,7 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
       <Button size="sm" onClick={() => setConfirmando(true)}>
         <Play className="size-4" /> Iniciar fase
       </Button>
-      {confirmando && (
+      {confirmando && createPortal(
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button aria-hidden tabIndex={-1} onClick={() => setConfirmando(false)} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -481,7 +484,8 @@ function BotaoIniciarFase({ fase, todas }: { fase: ObraFase; todas: ObraFase[] }
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -522,7 +526,7 @@ function ModalAcompanhamento({
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Atualizar ${etapa.nome}`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -565,7 +569,8 @@ function ModalAcompanhamento({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -611,7 +616,7 @@ function ModalPesos({ fase, etapas, onFechar }: { fase: ObraFase; etapas: ObraEt
     }
   }
 
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Etapas da fase" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -667,7 +672,8 @@ function ModalPesos({ fase, etapas, onFechar }: { fase: ObraFase; etapas: ObraEt
           </span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -681,7 +687,7 @@ function ModalGaleria({
   titulo: string;
   onFechar: () => void;
 }) {
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={titulo} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-3xl animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -706,6 +712,7 @@ function ModalGaleria({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

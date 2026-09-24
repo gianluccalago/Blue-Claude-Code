@@ -10,6 +10,7 @@ import { MODALIDADES } from "@/lib/modalidade";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
 import { montarQuarto, parseQuarto, type LetraQuarto } from "@/lib/quarto";
 import { ocupacoesValidas, OCUPACAO_LABEL } from "@/lib/mensalidade";
+import { lerReais } from "@/lib/fluxoCaixa";
 import {
   ResponsavelFinanceiroFields,
   type RespFinValor,
@@ -85,10 +86,13 @@ function paraInt(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 function paraDecimal(s: string): number | null {
-  const limpo = s.trim().replace(/\./g, "").replace(",", ".");
-  if (limpo === "") return null;
-  const n = Number(limpo);
+  if (s.trim() === "") return null;
+  const n = lerReais(s);
   return Number.isFinite(n) ? n : null;
+}
+/** Texto inicial do campo de mensalidade, no formato pt-BR (vírgula). */
+function mensalidadeTexto(v: number | null | undefined): string {
+  return v == null ? "" : String(v).replace(".", ",");
 }
 
 export function ResidenteFicha({
@@ -106,6 +110,7 @@ export function ResidenteFicha({
   onCancelar: () => void;
 }) {
   const [v, setV] = useState<ResidenteValor>(() => estadoInicial(inicial, prefill));
+  const [mensalidadeTxt, setMensalidadeTxt] = useState(() => mensalidadeTexto(estadoInicial(inicial, prefill).mensalidade_valor));
 
   function set<K extends keyof ResidenteValor>(campo: K, valor: ResidenteValor[K]) {
     setV((atual) => ({ ...atual, [campo]: valor }));
@@ -317,7 +322,8 @@ export function ResidenteFicha({
       <Secao icon={Wallet} titulo="Financeiro (resumo)">
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Mensalidade vigente (R$)">
-            <input value={v.mensalidade_valor ?? ""} onChange={(e) => set("mensalidade_valor", paraDecimal(e.target.value))} inputMode="decimal" className={inputBase} placeholder="0,00" />
+            {/* Texto separado do número: digitar "7500,50" não perde a vírgula. */}
+            <input value={mensalidadeTxt} onChange={(e) => { setMensalidadeTxt(e.target.value); set("mensalidade_valor", paraDecimal(e.target.value)); }} inputMode="decimal" className={inputBase} placeholder="0,00" />
           </Campo>
           <Campo rotulo="Status do mês">
             {/* LEITURA: o status (em dia/inadimplente) é gerido na tela de

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,7 @@ export function EditarPerfilDialog({ aberto, onFechar }: { aberto: boolean; onFe
     }
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -190,6 +191,7 @@ export function EditarPerfilDialog({ aberto, onFechar }: { aberto: boolean; onFe
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

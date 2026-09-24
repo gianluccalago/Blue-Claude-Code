@@ -200,15 +200,32 @@ export function serieMensalFC(
     const mes = l.data.slice(0, 7);
     porMes.set(mes, (porMes.get(mes) ?? 0) + Math.abs(l.valor));
   }
-  const meses = [...porMes.keys()].sort();
+  const comLanc = [...porMes.keys()].sort();
+  if (comLanc.length === 0) return [];
+  // Percorre TODOS os meses do intervalo, inclusive os sem desembolso: a
+  // correção é composta mês a mês, e um mês com IPCA cadastrado e sem saída
+  // ainda corrige o acumulado (senão o custo corrigido fica subestimado).
+  const primeiro = comLanc[0];
+  const ultimo = [comLanc[comLanc.length - 1], ...[...ipca.keys()].filter((m) => m > primeiro)].sort().pop()!;
   const out: LinhaMesFC[] = [];
   let acumulado = 0;
   let corrigido = 0;
-  for (const mes of meses) {
-    const total = porMes.get(mes)!;
+  for (const mes of intervaloMeses(primeiro, ultimo)) {
+    const total = porMes.get(mes) ?? 0;
     acumulado += total;
     corrigido = (corrigido + total) * (1 + (ipca.get(mes) ?? 0));
     out.push({ mes, total, acumulado, corrigido });
+  }
+  return out;
+}
+
+/** Sequência de meses 'YYYY-MM' de `de` até `ate`, inclusive. */
+export function intervaloMeses(de: string, ate: string): string[] {
+  const [a0, m0] = de.split("-").map(Number);
+  const [a1, m1] = ate.split("-").map(Number);
+  const out: string[] = [];
+  for (let a = a0, m = m0; a < a1 || (a === a1 && m <= m1); m === 12 ? (a++, (m = 1)) : m++) {
+    out.push(`${a}-${String(m).padStart(2, "0")}`);
   }
   return out;
 }
@@ -284,7 +301,9 @@ export function lerReais(texto: string): number {
   if (t === "") return 0;
   // "1.234,56" → 1234.56 · "1234.56" → 1234.56 · "1234,5" → 1234.5
   const temVirgula = t.includes(",");
-  const norm = temVirgula ? t.replace(/\./g, "").replace(",", ".") : t;
+  // "1.500" / "12.500" (grupos de 3 dígitos após o ponto) = milhar, não decimal.
+  const soMilhar = !temVirgula && /^-?\d{1,3}(\.\d{3})+$/.test(t);
+  const norm = temVirgula || soMilhar ? t.replace(/\./g, "").replace(",", ".") : t;
   const n = parseFloat(norm);
   return Number.isFinite(n) ? n : 0;
 }

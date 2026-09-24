@@ -23,7 +23,7 @@ function useListaObra<T>(key: string, table: string, order: string, asc = false)
     queryKey: [key],
     queryFn: async (): Promise<T[]> => {
       const { data, error } = await supabase.from(table).select("*").order(order, { ascending: asc });
-      if (error) return [];
+      if (error) throw error;
       return (data ?? []) as T[];
     },
   });

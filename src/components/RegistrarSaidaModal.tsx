@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import { useRegistrarSaida } from "@/hooks/useCicloVida";
@@ -33,7 +34,7 @@ export function RegistrarSaidaModal({ residente, onFechar }: { residente: Reside
     }
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -99,6 +100,7 @@ export function RegistrarSaidaModal({ residente, onFechar }: { residente: Reside
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -7,6 +7,18 @@ import { getPerfil } from "@/data/profiles";
 import { useAuth } from "@/auth/AuthProvider";
 import { LoadingState } from "@/components/states";
 
+// PERFIS EXTERNOS (família e construtora) só abrem as telas do PRÓPRIO menu.
+// Todas as rotas vivem sob /app/$perfil, então sem esta trava a família
+// chegava a /app/familia/escalas ou /app/familia/remuneracao-equipe pela URL.
+// A RLS protege os dados; isto protege a interface.
+const PERFIS_EXTERNOS = new Set(["familia", "obra_prestador"]);
+
+function rotaPermitida(perfil: NonNullable<ReturnType<typeof getPerfil>>, pathname: string): boolean {
+  const semBarra = pathname.replace(/\/+$/, "");
+  if (semBarra === perfil.rotaInicial.replace(/\/+$/, "")) return true;
+  return perfil.menu.some((m) => semBarra === m.to || semBarra.startsWith(m.to + "/"));
+}
+
 export function AppShell() {
   const { perfil: perfilId } = useParams({ strict: false }) as { perfil?: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -29,6 +41,9 @@ export function AppShell() {
   const perfil = getPerfil(perfilId);
   // Perfil inválido na URL → volta para o login.
   if (!perfil) return <Navigate to="/" />;
+  if (PERFIS_EXTERNOS.has(usuario.perfil) && !rotaPermitida(perfil, pathname)) {
+    return <Navigate to={perfil.rotaInicial} />;
+  }
 
   const itemAtivo = perfil.menu.find((m) => m.to === pathname);
   const titulo = itemAtivo?.label ?? perfil.nome;

@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -216,7 +217,7 @@ function ModalNovaDisciplina({ proximaOrdem, onFechar }: { proximaOrdem: number;
   const somaOk = marcos.length === 0 || Math.round(somaPct * 100) / 100 === 100;
 
   async function salvar() {
-    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    const v = lerReais(valor);
     if (!nome.trim() || !Number.isFinite(v) || v < 0) { toast.error("Informe nome e valor."); return; }
     try {
       await criar.mutateAsync({
@@ -392,7 +393,7 @@ export function ModalDisciplina({
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
   }
   async function salvarContrato() {
-    const v = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+    const v = lerReais(valor);
     try {
       await editarContrato.mutateAsync({
         id: d.id, nome, valor: v,

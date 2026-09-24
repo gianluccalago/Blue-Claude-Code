@@ -1,4 +1,6 @@
 import { useState, type ChangeEvent } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   Package,
@@ -417,7 +419,7 @@ function EntregarBtn({ id }: { id: string }) {
 
 // ── Modais ────────────────────────────────────────────────────────────────
 function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={titulo} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative max-h-[90vh] w-full max-w-md animate-modal-in overflow-y-auto rounded-lg border bg-card p-6 shadow-lifted">
@@ -427,7 +429,8 @@ function ModalBase({ titulo, onFechar, children }: { titulo: string; onFechar: (
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -441,7 +444,7 @@ function ModalNovoItem({ fases, onFechar }: { fases: { id: string; nome: string 
   const [necessidade, setNecessidade] = useState("");
 
   async function salvar() {
-    const q = parseFloat(qtd.replace(",", "."));
+    const q = lerReais(qtd);
     if (!item.trim() || !Number.isFinite(q) || q < 0) { toast.error("Informe item e quantidade."); return; }
     try {
       await criar.mutateAsync({ categoria, item: item.trim(), unidade: unidade.trim() || "un", quantidade_prevista: q, fase_id: faseId || null, data_necessidade: necessidade || null });
@@ -483,7 +486,7 @@ function ModalCotacoes({ item, cotacoes, temOC, onFechar }: { item: ObraPlanejam
   const escolhida = cotacoes.find((c) => c.escolhida);
 
   async function addCotacao() {
-    const p = parseFloat(preco.replace(",", "."));
+    const p = lerReais(preco);
     if (!fornecedor.trim() || !Number.isFinite(p)) { toast.error("Informe fornecedor e preço."); return; }
     try { await criar.mutateAsync({ planejamentoId: item.id, fornecedor, precoUnitario: p, prazoDias: prazo ? parseInt(prazo, 10) : null }); setFornecedor(""); setPreco(""); setPrazo(""); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
@@ -546,7 +549,7 @@ function ModalReceber({ oc, onFechar }: { oc: ObraOrdemCompra; onFechar: () => v
   const [qtd, setQtd] = useState(String(oc.quantidade));
   const [foto, setFoto] = useState<File | null>(null);
   const [obs, setObs] = useState("");
-  const q = parseFloat(qtd.replace(",", "."));
+  const q = lerReais(qtd);
   const divergente = Number.isFinite(q) && q !== oc.quantidade;
 
   async function salvar() {
@@ -583,7 +586,7 @@ function ModalConsumo({ fases, onFechar }: { fases: { id: string; nome: string }
   const [faseId, setFaseId] = useState("");
 
   async function salvar() {
-    const q = parseFloat(qtd.replace(",", "."));
+    const q = lerReais(qtd);
     if (!item.trim() || !Number.isFinite(q) || q < 0) { toast.error("Informe item e quantidade."); return; }
     try { await registrar.mutateAsync({ categoria, item: item.trim(), unidade: unidade.trim() || "un", quantidade_consumida: q, fase_id: faseId || null }); toast.success("Consumo registrado."); onFechar(); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }
@@ -613,7 +616,7 @@ function ModalReposicao({ fases, onFechar }: { fases: { id: string; nome: string
   const [faseId, setFaseId] = useState("");
 
   async function salvar() {
-    const q = parseFloat(qtd.replace(",", "."));
+    const q = lerReais(qtd);
     if (!item.trim() || !Number.isFinite(q) || q < 0) { toast.error("Informe item e quantidade."); return; }
     try { await criar.mutateAsync({ categoria, item: item.trim(), unidade: unidade.trim() || "un", quantidade: q, fase_id: faseId || null }); toast.success("Item de reposição criado."); onFechar(); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Falha."); }

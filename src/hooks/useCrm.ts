@@ -254,19 +254,27 @@ export function useMoverEtapa() {
   return useMutation({
     mutationFn: async (args: { id: string; etapa: string; etapaAnterior: string }) => {
       if (args.etapa === args.etapaAnterior) return;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("crm_oportunidade")
         .update({ etapa: args.etapa, status: "em_andamento" })
         .eq("id", args.id)
-        .in("status", ["nova", "em_andamento", "pausada"]); // não mexe em ganha/perdida
+        .in("status", ["nova", "em_andamento", "pausada"]) // não mexe em ganha/perdida
+        .select("id");
       if (error) throw error;
+      // Ganha/perdida: nada mudou — não registra evento falso na linha do tempo.
+      if (!data || data.length === 0) throw new Error("Oportunidade ganha ou perdida não muda de etapa.");
       await registrarEventoCrm(
         args.id,
         "mudanca_etapa",
         `Etapa alterada de "${args.etapaAnterior}" para "${args.etapa}".`,
       );
     },
-    onSuccess: () => invalidarPipeline(qc),
+    onSuccess: (_d, args) => {
+      invalidarPipeline(qc);
+      // A tela de detalhe lê estas chaves — antes ficava 30 s desatualizada.
+      qc.invalidateQueries({ queryKey: ["crm-oportunidade", args.id] });
+      qc.invalidateQueries({ queryKey: ["crm-eventos", args.id] });
+    },
   });
 }
 

@@ -121,7 +121,7 @@ export function CustosPessoal() {
       ) : (
         <div className="space-y-4">
           {linhas.map((l) => (
-            <ProfissionalCusto key={l.profissional.id} linha={l} mes={mes} />
+            <ProfissionalCusto key={`${l.profissional.id}-${mes}`} linha={l} mes={mes} />
           ))}
         </div>
       )}

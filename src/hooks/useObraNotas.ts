@@ -30,7 +30,7 @@ export function useNotasFiscais() {
         .from("obra_notas_fiscais")
         .select("*")
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -197,7 +197,18 @@ export function useDesfazerPagamentoNota() {
         .update({ status: "emitida", data_pagamento: null, pago_por: null, comprovante_url: null })
         .eq("id", nota.id);
       if (error) throw error;
+      // O caixa não pode ficar com as linhas de um pagamento desfeito (líquido,
+      // retenções e os itens que porventura tenham entrado individualmente).
+      const { error: eNf } = await supabase.from("fc_lancamentos").delete()
+        .in("origem", ["nf", "nf_retencao"]).eq("origem_id", nota.id);
+      if (eNf) throw eNf;
+      const ids = nota.itens.map((i) => i.id);
+      if (ids.length > 0) {
+        const { error: eItens } = await supabase.from("fc_lancamentos").delete()
+          .in("origem", ["marco", "medicao"]).in("origem_id", ids);
+        if (eItens) throw eItens;
+      }
     },
-    onSuccess: () => invalidar(qc),
+    onSuccess: () => { invalidar(qc); qc.invalidateQueries({ queryKey: ["fc-lancamentos"] }); },
   });
 }

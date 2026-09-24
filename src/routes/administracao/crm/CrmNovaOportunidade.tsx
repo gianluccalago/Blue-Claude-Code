@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { lerReais } from "@/lib/fluxoCaixa";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ArrowLeft, Star, UserPlus, Users } from "lucide-react";
@@ -73,7 +74,7 @@ export function CrmNovaOportunidade() {
         nome: nomeOp.trim() || null,
         origemId: origemId || null,
         qualificacao,
-        valorMensalidade: valor.trim() ? Number(valor.replace(",", ".")) : null,
+        valorMensalidade: valor.trim() ? lerReais(valor) : null,
         tipoSuiteInteresse: tipoSuite || null,
         etapa,
       });

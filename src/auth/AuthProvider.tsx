@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { setUsuarioAtual, setUsuarioAutenticado } from "@/auth/usuarioAtual";
@@ -41,10 +42,13 @@ const AuthContext = createContext<AuthState | null>(null);
 /** Busca a linha de `usuarios` ATIVA pelo email autenticado (case-insensitive). */
 async function resolverUsuario(email: string | undefined): Promise<Usuario | null> {
   if (!email) return null;
+  // ilike trata "%" e "_" como curinga — "_" é comum em e-mail e poderia casar
+  // a linha de OUTRA pessoa. Escapamos os dois.
+  const emailSeguro = email.replace(/[\\%_]/g, (c) => "\\" + c);
   const { data, error } = await supabase
     .from("usuarios")
     .select("*")
-    .ilike("email", email)
+    .ilike("email", emailSeguro)
     .eq("ativo", true)
     .limit(1)
     .maybeSingle();
@@ -64,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [impersonado, setImpersonado] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const queryClient = useQueryClient();
 
   const ehMaster = usuario?.perfil === "master";
   const usuarioEfetivo = impersonado ?? usuario;
@@ -150,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
       throw new Error("Usuário inativo ou não cadastrado. Acesso negado.");
     }
+    // Troca de usuário no mesmo aparelho: nada do anterior fica em cache.
+    queryClient.clear();
     setSession(data.session);
     setUsuario(u);
     setImpersonado(null);
@@ -161,6 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUsuario(null);
     setImpersonado(null);
+    // Tablet compartilhado: o próximo usuário NÃO pode ver dados em cache do anterior.
+    queryClient.clear();
   }
 
   // Recarrega a linha de `usuarios` do usuário autenticado (não mexe no

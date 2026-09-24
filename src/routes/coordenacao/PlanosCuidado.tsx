@@ -114,6 +114,7 @@ function PlanoDoHospede({
                 onClick={() => {
                   setMostrarModelos((v) => !v);
                   setMostrarForm(false);
+                  setLoteIds(new Set()); // seleção em lote não "vaza" para a próxima tarefa
                 }}
               >
                 <LayoutTemplate className="size-4" /> Aplicar modelo de rotina
@@ -122,6 +123,7 @@ function PlanoDoHospede({
                 onClick={() => {
                   setMostrarForm((v) => !v);
                   setMostrarModelos(false);
+                  setLoteIds(new Set());
                 }}
               >
                 <Plus className="size-4" /> Adicionar tarefa

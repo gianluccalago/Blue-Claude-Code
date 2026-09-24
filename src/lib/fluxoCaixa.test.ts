@@ -176,7 +176,7 @@ describe("valorComSinal / lerReais — convenção da planilha", () => {
   it("lê reais nos formatos que as pessoas digitam", () => {
     expect(lerReais("1.234,56")).toBe(1234.56);
     expect(lerReais("1234.56")).toBe(1234.56);
-    expect(lerReais("-234.375")).toBe(-234.375); // ponto sem vírgula = decimal (como no JS)
+    expect(lerReais("-234.375")).toBe(-234375); // grupo de 3 dígitos após o ponto = milhar
     expect(lerReais("-234.375,00")).toBe(-234375);
     expect(lerReais("R$ 3.500,00")).toBe(3500);
     expect(lerReais("")).toBe(0);
@@ -195,5 +195,33 @@ describe("apenasEmpreendimento + serieMensalFC — a correção IPCA ignora impo
     const [s] = serieMensalFC(apenasEmpreendimento(ls), new Map([["2026-08", -0.0032]]));
     expect(s.total).toBeCloseTo(329198.64, 2);
     expect(s.corrigido).toBeCloseTo(329198.64 * (1 - 0.0032), 2);
+  });
+});
+
+describe("lerReais — ponto de milhar sem vírgula", () => {
+  it('"1.500" e "12.500" são milhares; "1.5" continua decimal', () => {
+    expect(lerReais("1.500")).toBe(1500);
+    expect(lerReais("12.500")).toBe(12500);
+    expect(lerReais("2.592.587")).toBe(2592587);
+    expect(lerReais("1.5")).toBe(1.5);
+    expect(lerReais("2592587.87")).toBe(2592587.87); // String(número) vindo do banco
+  });
+});
+
+describe("serieMensalFC — meses sem desembolso também corrigem", () => {
+  it("mês com IPCA cadastrado e sem saída ainda multiplica o acumulado", () => {
+    const serie = serieMensalFC(
+      [{ data: "2026-01-10", valor: -1000 }, { data: "2026-03-10", valor: -1000 }],
+      new Map([["2026-01", 0.01], ["2026-02", 0.01], ["2026-03", 0.01]]),
+    );
+    expect(serie.map((s) => s.mes)).toEqual(["2026-01", "2026-02", "2026-03"]);
+    expect(serie[1].total).toBe(0);
+    expect(serie[1].corrigido).toBeCloseTo(1000 * 1.01 * 1.01, 6);
+    expect(serie[2].corrigido).toBeCloseTo((1000 * 1.01 * 1.01 + 1000) * 1.01, 6);
+  });
+  it("IPCA cadastrado depois do último desembolso segue corrigindo", () => {
+    const serie = serieMensalFC([{ data: "2026-01-10", valor: -1000 }], new Map([["2026-01", 0.01], ["2026-02", -0.0032]]));
+    expect(serie).toHaveLength(2);
+    expect(serie[1].corrigido).toBeCloseTo(1010 * (1 - 0.0032), 6);
   });
 });

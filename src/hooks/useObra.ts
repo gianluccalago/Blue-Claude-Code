@@ -138,7 +138,7 @@ export function useFotosAcompanhamento() {
         .from("obra_checklist_foto")
         .select("id, foto_url, criado_em, registro:obra_checklist_execucao!inner(etapa_id, registrado_em)")
         .order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       type Linha = { id: string; foto_url: string; criado_em: string; registro: { etapa_id: string; registrado_em: string } | { etapa_id: string; registrado_em: string }[] };
       return ((data ?? []) as unknown as Linha[]).map((r) => {
         const reg = Array.isArray(r.registro) ? r.registro[0] : r.registro;

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { FileText, X, Plus, Pencil, Trash2, Check } from "lucide-react";
 import {
   useExtratoLinhas, useExtratoSaldos, useCriarLinhaExtrato, useEditarLinhaExtrato,
-  useExcluirLinhaExtrato, useDefinirSaldoInicial,
+  useExcluirLinhaExtrato, useDefinirSaldoInicial, type LinhaExtratoId,
 } from "@/hooks/useExtratoSocios";
 import { resumoMesExtrato, consolidarAno, rotuloMesExtenso, saldosEfetivos, SOCIO_ASSINATURA, type LinhaExtrato } from "@/lib/extratoSocios";
 import { lerReais, type GrupoFC } from "@/lib/fluxoCaixa";
@@ -23,7 +23,7 @@ import { cn, hojeISO } from "@/lib/utils";
 // Mensal: edita o mês e extrai o PDF; Anual: consolida e extrai.
 // ===========================================================================
 
-type Linha = LinhaExtrato & { id: string };
+type Linha = LinhaExtratoId;
 
 const selBase = "h-9 rounded-md border border-input bg-card px-2 text-sm";
 
@@ -154,7 +154,11 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
     const valor = novoGrupo === "saida" ? -Math.abs(bruto) : bruto;
     const ordem = Math.max(0, ...linhas.filter((l) => l.grupo === novoGrupo).map((l) => l.ordem)) + 1;
     criar.mutate({ mes, grupo: novoGrupo, rotulo: novoRotulo, valor, ordem }, {
-      onSuccess: () => { setNovoRotulo(""); setNovoValor(""); },
+      onSuccess: (r) => {
+        setNovoRotulo(""); setNovoValor("");
+        if (r.removidos > 0) toast.success(`Lançado. ${r.removidos} pagamento(s) à TRÍADE já sincronizado(s) do módulo Obra saíram — a planilha prevalece.`);
+        else toast.success("Lançado.");
+      },
       onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao adicionar."),
     });
   }
@@ -251,7 +255,7 @@ function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => vo
         <input value={rotulo} onChange={(e) => setRotulo(e.target.value)} className={cn(selBase, "h-8 min-w-0 flex-1")} />
         <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className={cn(selBase, "h-8 w-24 text-right")} />
         <button
-          onClick={() => editar.mutate({ id: linha.id, rotulo, valor: parseValor(valor), grupo: linha.grupo }, {
+          onClick={() => editar.mutate({ id: linha.id, rotulo, valor: parseValor(valor), grupo: linha.grupo, origem: linha.origem, sincronizado: linha.sincronizado }, {
             onSuccess: () => setEditando(false),
             onError: (e) => toast.error(e instanceof Error ? e.message : "Falha."),
           })}
@@ -267,7 +271,9 @@ function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => vo
       <span className="min-w-0 truncate text-secondary">{linha.rotulo}</span>
       <span className="flex shrink-0 items-center gap-1.5">
         <span className={cn("tabular-nums font-semibold", linha.valor < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(linha.valor)}</span>
-        <button onClick={() => setEditando(true)} className="text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100" title="Editar"><Pencil className="size-3" /></button>
+        {!linha.sincronizado && (
+          <button onClick={() => setEditando(true)} className="text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100" title="Editar"><Pencil className="size-3" /></button>
+        )}
         <button onClick={onExcluir} className="text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100" title="Excluir"><Trash2 className="size-3" /></button>
       </span>
     </div>

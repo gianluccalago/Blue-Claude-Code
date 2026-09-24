@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   HardHat, Bell, FileText, Landmark, Ruler, Upload, Check, AlertTriangle, X, ClipboardCheck,
@@ -649,7 +650,7 @@ function AbaSolicitacoesPrestador() {
 // ───────────────────────────────────────────────────────────────────────────
 
 function ModalBasePortal({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
       <div className="relative my-auto w-full max-w-md animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
@@ -659,7 +660,8 @@ function ModalBasePortal({ titulo, onFechar, children }: { titulo: string; onFec
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

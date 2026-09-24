@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 // ===========================================================================
 
 const SENHA_MIN = 8;
+// Capturado na carga do módulo, antes de o cliente Supabase consumir o hash.
+const VEIO_DO_LINK = typeof window !== "undefined" && /type=recovery/.test(window.location.href);
 
 export function RedefinirSenha() {
   const navigate = useNavigate();
@@ -30,10 +32,12 @@ export function RedefinirSenha() {
     // é inválido/expirado (ou a página foi aberta direto).
     const { data: sub } = supabase.auth.onAuthStateChange((evento, sessao) => {
       if (!vivo) return;
-      if (evento === "PASSWORD_RECOVERY" || sessao) setEstado((p) => (p === "concluido" ? p : "pronto"));
+      // Só o link de recuperação libera o formulário. Uma sessão comum aberta
+      // num aparelho compartilhado NÃO pode trocar a senha sem a senha atual.
+      if (evento === "PASSWORD_RECOVERY" || (sessao && VEIO_DO_LINK)) setEstado((p) => (p === "concluido" ? p : "pronto"));
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (vivo && data.session) setEstado((p) => (p === "concluido" ? p : "pronto"));
+      if (vivo && data.session && VEIO_DO_LINK) setEstado((p) => (p === "concluido" ? p : "pronto"));
     });
     const t = setTimeout(() => {
       if (vivo) setEstado((p) => (p === "aguardando" ? "invalido" : p));
@@ -60,6 +64,8 @@ export function RedefinirSenha() {
     try {
       const { error } = await supabase.auth.updateUser({ password: senha });
       if (error) throw error;
+      // Derruba as outras sessões desta conta (a senha antiga pode ter vazado).
+      await supabase.auth.signOut({ scope: "others" }).catch(() => undefined);
       setEstado("concluido");
       toast.success("Senha redefinida com sucesso.");
       // Sessão já está ativa — entra direto no app.

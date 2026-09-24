@@ -51,7 +51,7 @@ export function TestesCognitivos() {
 
       {hospedeId ? (
         <>
-          <NovoTeste residenteId={hospedeId} />
+          <NovoTeste key={hospedeId} residenteId={hospedeId} />
           <HistoricoTestesCognitivos residenteId={hospedeId} />
         </>
       ) : (

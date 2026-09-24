@@ -49,7 +49,7 @@ export function useCotacoes() {
     queryKey: ["obra-cotacoes"],
     queryFn: async (): Promise<ObraCotacao[]> => {
       const { data, error } = await supabase.from("obra_cotacoes").select("*").order("preco_unitario");
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -60,7 +60,7 @@ export function useOrdensCompra() {
     queryKey: ["obra-ordens"],
     queryFn: async (): Promise<ObraOrdemCompra[]> => {
       const { data, error } = await supabase.from("obra_ordens_compra").select("*").order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -71,7 +71,7 @@ export function useRecebimentos() {
     queryKey: ["obra-recebimentos-mat"],
     queryFn: async (): Promise<ObraRecebimento[]> => {
       const { data, error } = await supabase.from("obra_recebimentos").select("*").order("recebido_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -82,7 +82,7 @@ export function useConsumo() {
     queryKey: ["obra-consumo"],
     queryFn: async (): Promise<ObraConsumo[]> => {
       const { data, error } = await supabase.from("obra_consumo").select("*").order("data_consumo", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -93,7 +93,7 @@ export function useReposicao() {
     queryKey: ["obra-reposicao"],
     queryFn: async (): Promise<ObraEstoqueReposicao[]> => {
       const { data, error } = await supabase.from("obra_estoque_reposicao").select("*").order("criado_em", { ascending: false });
-      if (error) return [];
+      if (error) throw error;
       return data ?? [];
     },
   });

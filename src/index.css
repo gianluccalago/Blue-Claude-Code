@@ -146,7 +146,7 @@
     }
   }
   .animate-fade-in {
-    animation: fade-in 0.2s ease-out both;
+    animation: fade-in 0.2s ease-out backwards;
   }
 
   /* Transição de rota: fade + translateY sutil. Sem transform no `to` —

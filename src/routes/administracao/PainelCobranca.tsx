@@ -157,7 +157,7 @@ function GrupoResponsavel({ grupo: g, mes }: { grupo: GrupoCobranca; mes: string
       </CardHeader>
       <CardContent className="divide-y p-0">
         {g.hospedes.map((h) => (
-          <LinhaHospede key={h.residente.id} item={h} mes={mes} />
+          <LinhaHospede key={`${h.residente.id}-${mes}`} item={h} mes={mes} />
         ))}
       </CardContent>
     </Card>
