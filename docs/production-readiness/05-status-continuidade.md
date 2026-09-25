@@ -18,8 +18,10 @@
 
 ## O que depende do responsável (instruções objetivas)
 
-1. **Rotacionar as senhas de produção.** 31 de 32 contas usam "blue". Opções: (a) para cada e-mail, Authentication → Users → "Send password recovery" e avisar a pessoa; ou (b) definir senhas temporárias pelo painel e exigir troca no primeiro acesso. Depois, conferir que a consulta abaixo devolve zero linhas:
-   `select count(*) from auth.users where encrypted_password = crypt('blue', encrypted_password);`
+1. **Senhas de produção — decisão do responsável em 25/09: as senhas continuam "blue"** (só 2 ou 3 acessos são reais e vão se manter). Risco aceito e registrado. Mitigação compatível com a decisão: **banir todas as contas que não são de pessoas reais** (seed do sistema e demo), no Auth e em `usuarios`:
+   `update auth.users set banned_until = 'infinity' where lower(email) not in (<e-mails reais>);`
+   `update public.usuarios set ativo = false where lower(email) not in (<e-mails reais>);`
+   Reversível (`banned_until = null`; `ativo = true`). Enquanto contas com senha conhecida continuarem ativas, o parecer segue NÃO APTO.
 2. **Contas de demonstração (`@demo.local`).** Decisão atual: manter. Enquanto ficarem, no mínimo trocar as senhas delas e não cadastrar hóspede real no mesmo projeto. Para remover depois: `demo-assets/seed/DEMO_LIMPEZA.sql` (e apagar os usuários no Auth).
 3. **Aplicar `0133_endurecimento_seguranca.sql` e depois `0134_autoria_servidor_integridade.sql`** no SQL Editor, nesta ordem. Conferências esperadas no final: "Funções ainda executáveis por anon fora da lista: 0", "Policies \"não é família\" restantes: 0", "Autoria pelo servidor ativa em 77 tabelas".
 4. **Painel Authentication:** ligar "Secure password change"; senha mínima 10 caracteres. (Cadastro público já desligado; confirmação de e-mail e troca segura de e-mail já ligadas.)
