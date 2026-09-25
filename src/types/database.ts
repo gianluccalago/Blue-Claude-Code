@@ -131,10 +131,57 @@ export type StatusPagamentoMensalidade =
   | "enviada"
   | "paga"
   | "vencida"
-  | "cancelada";
+  | "cancelada"
+  // Estorno (0138): o pagamento original fica preservado; motivo obrigatório.
+  | "estornada";
 
 /** Forma de pagamento registrada manualmente (sem integração). */
 export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro" | "transferencia";
+
+/** Uma linha (hóspede) do snapshot de fechamento mensal (RPC fechar_mes, 0138). */
+export interface LinhaSnapshotFechamento {
+  residente_id: string;
+  nome: string;
+  quarto: string | null;
+  tipo_suite: TipoSuite | null;
+  grau_dependencia: GrauDependencia | null;
+  modalidade: ModalidadeEstadia;
+  data_admissao: string | null;
+  data_saida: string | null;
+  resp_fin_nome: string | null;
+  resp_fin_cpf: string | null;
+  resp_fin_email: string | null;
+  resp_fin_telefone: string | null;
+  resp_fin_relacao: string | null;
+  /** Mensalidade cheia (antes da pró-rata). */
+  mensalidade_base: number;
+  mensalidade: number;
+  upselling: number;
+  decimo_terceiro: number;
+  cobranca_temporaria: number;
+  total: number;
+  /** Status efetivo NO MOMENTO do fechamento. */
+  status: StatusPagamentoMensalidade;
+  vencimento: string;
+  valor_pago: number | null;
+}
+
+/** Snapshot congelado de um mês (jsonb de fechamento_mensal.snapshot). */
+export interface SnapshotFechamento {
+  mes: string;
+  prorata: boolean;
+  fechado_em: string;
+  fechado_por: string;
+  linhas: LinhaSnapshotFechamento[];
+  totais: {
+    faturado: number;
+    mensalidades: number;
+    upselling: number;
+    decimo_terceiro: number;
+    cobranca_temporaria: number;
+    hospedes: number;
+  };
+}
 export type TipoRemuneracao = "mensal_fixo" | "por_plantao";
 export type StatusPagamentoPessoal = "pendente" | "pago";
 export type DestinoSolicitacao = "coordenacao" | "medico" | "administracao";
@@ -209,6 +256,31 @@ export interface ItemDispensacaoJson {
   medicamento: string;
   quantidade: number;
   unidade: string;
+}
+
+// Corpo (jsonb `p`) das RPCs criar_prescricao / editar_prescricao (0135):
+// uma linha por período; a RPC normaliza o nome e exige quantidade por período.
+export interface PrescricaoRpcJson {
+  residente_id: string;
+  medicamento: string;
+  dose: string | null;
+  via: ViaMedicacao;
+  posologia: string | null;
+  periodos: { periodo: PeriodoMedicacao; quantidade: string }[];
+  alerta_alergia: string | null;
+  controlado: boolean;
+  /** Só na criação: uuid do grupo gerado no cliente (opcional). */
+  grupo_prescricao?: string;
+}
+
+// Corpo (jsonb `p`) da RPC registrar_admissao (0135). `dados` é o DadosAdmissao
+// do formulário (a RPC lê comorbidades, alergias, peso, altura, dataAdmissao e
+// medicacoes de dentro dele). `existente_id` → edição só do documento.
+export interface AdmissaoRpcJson {
+  residente_id: string;
+  existente_id: string | null;
+  texto_evolucao: string | null;
+  dados: Record<string, unknown>;
 }
 
 export interface Database {
@@ -524,6 +596,10 @@ export interface Database {
           prescrito_por: string | null;
           // Sujeito a controle especial (Portaria 344/98) — marcado ao prescrever.
           controlado: boolean;
+          // Rastro da suspensão (0135): quando a linha deixou de estar ativa
+          // (edição ou suspensão pela RPC) e o motivo informado, se houver.
+          suspensa_em: string | null;
+          suspensa_motivo: string | null;
         };
         Insert: {
           id?: string;
@@ -540,6 +616,8 @@ export interface Database {
           alerta_alergia?: string | null;
           prescrito_por?: string | null;
           controlado?: boolean;
+          suspensa_em?: string | null;
+          suspensa_motivo?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["prescricao"]["Insert"]>;
         Relationships: [];
@@ -1001,6 +1079,8 @@ export interface Database {
           check_out_lng: number | null;
           check_in_manual: boolean;
           check_out_manual: boolean;
+          check_in_sem_gps: boolean;
+          ajuste_motivo: string | null;
           criado_em: string;
         };
         Insert: {
@@ -1020,9 +1100,27 @@ export interface Database {
           check_out_lng?: number | null;
           check_in_manual?: boolean;
           check_out_manual?: boolean;
+          check_in_sem_gps?: boolean;
+          ajuste_motivo?: string | null;
           criado_em?: string;
         };
         Update: Partial<Database["public"]["Tables"]["turnos"]["Insert"]>;
+        Relationships: [];
+      };
+      turno_ajuste: {
+        Row: {
+          id: string;
+          turno_id: string;
+          campo: string;
+          de: string | null;
+          para: string | null;
+          motivo: string | null;
+          ajustado_por: string | null;
+          ajustado_por_id: string | null;
+          ajustado_em: string;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       enxoval: {
@@ -1572,6 +1670,9 @@ export interface Database {
           data_pagamento: string | null;
           // RESERVADO: id da cobrança na plataforma externa (ex.: Asaas). NULL por ora.
           id_cobranca_externa: string | null;
+          // Estorno (0138): motivo obrigatório quando status = estornada.
+          estorno_motivo: string | null;
+          estornado_em: string | null;
         };
         Insert: {
           id?: string;
@@ -1587,8 +1688,26 @@ export interface Database {
           valor_pago?: number | null;
           data_pagamento?: string | null;
           id_cobranca_externa?: string | null;
+          estorno_motivo?: string | null;
+          estornado_em?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["pagamento_mensalidade"]["Insert"]>;
+        Relationships: [];
+      };
+      // Fechamento mensal (0138): snapshot do faturamento por hóspede. Escrita
+      // só pelas RPCs fechar_mes / reabrir_mes; leitura pela gestão.
+      fechamento_mensal: {
+        Row: {
+          mes: string;
+          fechado_em: string;
+          fechado_por: string;
+          snapshot: SnapshotFechamento;
+          reaberto_em: string | null;
+          reaberto_por: string | null;
+          reaberto_motivo: string | null;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       dieta: {
@@ -3265,6 +3384,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["relatorio_sanitario_extraido"]["Insert"]>;
         Relationships: [];
       };
+      // Resultado das RPCs por chave de idempotência (0135). Sem acesso direto
+      // pelo app (só as RPCs security definer leem/escrevem).
+      operacao_idempotente: {
+        Row: {
+          chave: string;
+          resultado: Record<string, unknown>;
+          criado_em: string;
+        };
+        Insert: {
+          chave: string;
+          resultado?: Record<string, unknown>;
+          criado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["operacao_idempotente"]["Insert"]>;
+        Relationships: [];
+      };
       evolucao_admissao: {
         Row: {
           id: string;
@@ -3367,15 +3502,45 @@ export interface Database {
         Returns: { data: string; hora: string; vagas: number }[];
       };
       // Dispensação atômica + idempotente (registro + baixa de estoque numa transação).
+      // Devolve ja_existia=true quando já havia dispensação do período/dia (nada gravado) — 0139.
       dispensar_medicamentos: {
         Args: {
           p_residente_id: string;
           p_periodo: string;
           p_data: string;
           p_itens: ItemDispensacaoJson[];
-          p_dispensado_por: string;
+          p_dispensado_por?: string | null;
+        };
+        Returns: { id: string; ja_existia: boolean }[];
+      };
+      // Provisionamento em lote (0139): item novo nasce com saldo = provisionado;
+      // item existente recebe o DELTA do provisionado no saldo (trigger).
+      provisionar_estoque_hospede: {
+        Args: {
+          p_residente_id: string;
+          p_mes_referencia: string;
+          p_itens: { medicamento: string; quantidade_provisionada: number; unidade: string }[];
+        };
+        Returns: undefined;
+      };
+      // Baixa de viagem atômica (0139): registro + `q = q - x` com trava de linha.
+      // Recusa saldo negativo salvo p_permitir_negativo. Retorna o id da baixa.
+      registrar_baixa_viagem: {
+        Args: {
+          p_residente_id: string;
+          p_mes_referencia: string;
+          p_dias: number;
+          p_data: string;
+          p_itens: ItemDispensacaoJson[];
+          p_observacao?: string | null;
+          p_permitir_negativo?: boolean;
         };
         Returns: string;
+      };
+      // Estorno da baixa de viagem (0139): devolve o saldo uma única vez.
+      estornar_baixa_viagem: {
+        Args: { p_id: string };
+        Returns: undefined;
       };
       // Estorno atômico de uma dispensação (devolve o saldo + remove o registro).
       estornar_dispensacao: {
@@ -3393,7 +3558,8 @@ export interface Database {
           p_unidade: string;
           p_justificativa: string | null;
           p_referencia: number | null;
-          p_registrado_por: string;
+          /** Ignorado com JWT (0139): o autor é o usuário autenticado. Só fallback sem sessão. */
+          p_registrado_por?: string | null;
         };
         Returns: number;
       };
@@ -3450,6 +3616,45 @@ export interface Database {
       obra_submeter_entrega: {
         Args: { p_marco_id: string; p_arquivo_url: string };
         Returns: undefined;
+      };
+      // Cobrança (0138): gestão congela o faturamento do mês (snapshot por hóspede).
+      fechar_mes: {
+        Args: { p_mes: string };
+        Returns: SnapshotFechamento;
+      };
+      // Cobrança (0138): Master reabre um mês fechado, com motivo (o snapshot fica).
+      reabrir_mes: {
+        Args: { p_mes: string; p_motivo: string };
+        Returns: undefined;
+      };
+      // Prescrição (0135): cria um grupo numa transação. Só médico/master.
+      // Idempotente pela chave. Retorna {grupo_prescricao, linhas}.
+      criar_prescricao: {
+        Args: { p: PrescricaoRpcJson; p_idempotencia: string };
+        Returns: { grupo_prescricao: string; linhas: number };
+      };
+      // Prescrição (0135): novas linhas entram antes de as antigas saírem
+      // (ativa=false) — se a nova falhar, a antiga segue ativa.
+      editar_prescricao: {
+        Args: { p_grupo: string; p: PrescricaoRpcJson; p_idempotencia: string };
+        Returns: { grupo_prescricao: string; linhas: number; suspensas: number };
+      };
+      // Prescrição (0135): suspende as linhas ativas do grupo (histórico preservado).
+      suspender_prescricao: {
+        Args: { p_grupo: string; p_motivo: string | null; p_idempotencia: string };
+        Returns: { grupo_prescricao: string; suspensas: number };
+      };
+      // Admissão (0135): patologias, alergias, peso, altura, prescrições,
+      // documento e evolução numa transação; repetida no mesmo dia vira edição.
+      registrar_admissao: {
+        Args: { p: AdmissaoRpcJson; p_idempotencia: string };
+        Returns: { id: string; criada: boolean; prescricoes_geradas: boolean };
+      };
+      // Plano de cuidado (0137): aplica um modelo de rotina a 1+ hóspedes sem
+      // duplicar tarefas já ativas. Só Master/Coordenação. Idempotente pela chave.
+      aplicar_modelo_rotina: {
+        Args: { p_modelo: string; p_residentes: string[]; p_idempotencia: string };
+        Returns: { inseridas: number; existentes: number }[];
       };
     };
     Enums: Record<string, never>;
@@ -3554,6 +3759,7 @@ export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratam
 export type ResolucaoMedica = Database["public"]["Tables"]["resolucao_medica"]["Row"];
 export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_tratamento"]["Row"];
 export type Turno = Database["public"]["Tables"]["turnos"]["Row"];
+export type TurnoAjuste = Database["public"]["Tables"]["turno_ajuste"]["Row"];
 export type Evolucao = Database["public"]["Tables"]["evolucao"]["Row"];
 export type AvaliacaoIVCF = Database["public"]["Tables"]["avaliacao_ivcf"]["Row"];
 export type EstoqueHospede = Database["public"]["Tables"]["estoque_hospede"]["Row"];
@@ -3572,6 +3778,7 @@ export type Dieta = Database["public"]["Tables"]["dieta"]["Row"];
 export type EvolucaoNutricional = Database["public"]["Tables"]["evolucao_nutricional"]["Row"];
 export type TabelaPreco = Database["public"]["Tables"]["tabela_preco"]["Row"];
 export type PagamentoMensalidade = Database["public"]["Tables"]["pagamento_mensalidade"]["Row"];
+export type FechamentoMensal = Database["public"]["Tables"]["fechamento_mensal"]["Row"];
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
 export type CustoMaterial = Database["public"]["Tables"]["custo_material"]["Row"];
 export type TabelaDiaria = Database["public"]["Tables"]["tabela_diaria"]["Row"];

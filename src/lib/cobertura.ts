@@ -20,14 +20,16 @@ export const TURNO_LABEL: Record<TagTurno, string> = {
 };
 
 /**
- * Turno corrente (default do seletor; navegável). Heurística por hora:
- * 06:00–17:59 = diurno; senão noturno. A madrugada (00:00–05:59) pertence ao
- * turno noturno da DATA ANTERIOR (o plantão começou na véspera).
+ * Turno corrente (default do seletor; navegável). Heurística por hora,
+ * alinhada à escala padrão da casa (diurno 07:00–19:00, noturno 19:00–07:00 —
+ * seed 0009 e atalhos do TurnoModal): 07:00–18:59 = diurno; senão noturno.
+ * A madrugada (00:00–06:59) pertence ao turno noturno da DATA ANTERIOR (o
+ * plantão começou na véspera).
  */
 export function turnoCorrente(now: Date = new Date()): { data: string; tag: TagTurno } {
   const h = now.getHours();
-  if (h >= 6 && h < 18) return { data: dataISO(now), tag: "diurno" };
-  if (h < 6) {
+  if (h >= 7 && h < 19) return { data: dataISO(now), tag: "diurno" };
+  if (h < 7) {
     const ontem = new Date(now);
     ontem.setDate(ontem.getDate() - 1);
     return { data: dataISO(ontem), tag: "noturno" };

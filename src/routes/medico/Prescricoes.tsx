@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Pencil, PauseCircle, Pill, X, Check, FileDown, Copy, CheckCheck, AlertTriangle } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import {
   usePrescricoesAtivas,
   useCriarPrescricao,
   useEditarPrescricao,
   useSuspenderPrescricao,
   useMedicamentosDaCasa,
+  novaChaveIdempotencia,
   type GrupoPrescricao,
 } from "@/hooks/useMedico";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ import {
   MSG_SEM_MEDICO,
 } from "@/lib/exportPrescricao";
 import { alergiaConflitante } from "@/lib/alergia";
+import { POSOLOGIA_OPCOES, validarPeriodosPosologia, validarQuantidade } from "@/lib/prescricao";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { HubHospedes, BotaoVerTodos } from "@/components/HubHospedes";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -63,16 +65,6 @@ const VIA_LABEL: Record<ViaMedicacao, string> = {
   insulina: "Insulina",
   sonda: "Sonda",
 };
-
-const POSOLOGIA_OPCOES: { value: string; label: string; periodos: PeriodoMedicacao[] }[] = [
-  { value: "1x/dia", label: "1x/dia", periodos: ["manha"] },
-  { value: "12/12h", label: "12/12h", periodos: ["manha", "noite"] },
-  { value: "8/8h", label: "8/8h", periodos: ["manha", "almoco", "noite"] },
-  { value: "6/6h", label: "6/6h", periodos: ["manha", "almoco", "tarde", "noite"] },
-  { value: "1x/dia em jejum", label: "1x/dia em jejum", periodos: ["jejum"] },
-  { value: "1x/dia à noite", label: "1x/dia à noite", periodos: ["noite"] },
-  { value: "Personalizado", label: "Personalizado", periodos: [] },
-];
 
 // ─── Tipos do formulário ──────────────────────────────────────────────────────
 
@@ -134,7 +126,7 @@ function formDeGrupo(g: GrupoPrescricao): FormValues {
 type Modo = { tipo: "lista" } | { tipo: "nova" } | { tipo: "editar"; grupo: GrupoPrescricao };
 
 export function Prescricoes() {
-  const residentes = useResidentes();
+  const residentes = useHospedesAtendidos();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   // HUB primeiro: sem seleção, mostra a grade da casa (nada de cair no 1º).
   const hospedeId =
@@ -510,19 +502,34 @@ function FormPrescricao({
     !!conflitoAlergia && alergiaConfirmadaPara === form.medicamento.trim().toLowerCase();
 
   // Todo período marcado precisa de quantidade: sem ela a cuidadora via
-  // "Manhã:" em branco e a receita imprimia "1 dose".
+  // "Manhã:" em branco e a receita imprimia "1 dose". A quantidade também
+  // precisa começar com número positivo ("1 comprimido", "1/2", "0,5 ml").
   const periodosSemQuantidade = periodosMarcados.filter((p) => p.quantidade.trim() === "");
+  const erroQuantidade =
+    periodosMarcados.map((p) => validarQuantidade(p.quantidade, p.label)).find((e) => e !== null) ?? null;
+  // CLI-05: o nº de períodos marcados tem de bater com a posologia escolhida
+  // ("8/8h" = 3, "6/6h" = 4, "12/12h" = 2, "1x/dia" = 1). "Personalizado" não
+  // valida. Nenhum horário é sugerido aqui — a decisão é médica.
+  const erroPosologia =
+    periodosMarcados.length > 0 ? validarPeriodosPosologia(form.posologia, periodosMarcados.length) : null;
   const podeSalvar =
     form.medicamento.trim() !== "" &&
     periodosMarcados.length > 0 &&
     periodosSemQuantidade.length === 0 &&
+    erroQuantidade === null &&
+    erroPosologia === null &&
     !salvando &&
     (!conflitoAlergia || alergiaConfirmada);
+
+  // Chave de idempotência desta gravação: a MESMA ao tentar de novo após um
+  // erro (o servidor não duplica), nova após salvar com sucesso.
+  const chaveIdempotencia = useRef(novaChaveIdempotencia());
 
   async function handleSalvar() {
     if (!podeSalvar) return;
     try {
       await salvarPrescricao();
+      chaveIdempotencia.current = novaChaveIdempotencia();
       toast.success(grupoPrescricao ? "Prescrição atualizada." : "Prescrição registrada.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar a prescrição.");
@@ -544,6 +551,7 @@ function FormPrescricao({
       // Trilha: registra o alérgeno cujo alerta foi exibido e confirmado.
       alertaAlergia: conflitoAlergia && alergiaConfirmada ? conflitoAlergia : null,
       controlado: form.controlado,
+      idempotencia: chaveIdempotencia.current,
     };
     if (grupoPrescricao) {
       await editar.mutateAsync({ ...base, grupoPrescricao });
@@ -733,6 +741,13 @@ function FormPrescricao({
             ))}
           </div>
         </div>
+
+        {/* Motivo pelo qual ainda não dá para salvar (posologia × períodos, quantidade) */}
+        {(erroPosologia || erroQuantidade) && (
+          <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+            {erroPosologia ?? erroQuantidade}
+          </p>
+        )}
 
         {/* Ações */}
         <div className="flex justify-end gap-3 pt-1">

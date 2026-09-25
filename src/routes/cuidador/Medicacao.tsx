@@ -30,6 +30,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, ouNaoInformado, formatarDataHoraBR, horarioParaMinutos, horarioNoTurno } from "@/lib/utils";
+import {
+  janelaDoPlantao,
+  registroPorPeriodo as registroPorPeriodoNaJanela,
+  registrosDoPlantaoAnterior,
+  type RegistroPorPeriodo,
+} from "@/lib/plantao";
 import type {
   Administracao,
   PeriodoMedicacao,
@@ -72,7 +78,10 @@ export function Medicacao() {
           alimento" aparece quando a dieta ativa indicar. */}
       {hospedeSel && <CabecalhoMedicacao hospede={hospedeSel} />}
 
-      {hospedeId && (
+      {/* Sem `hospedeSel` (hóspede saiu da lista de designados, seleção antiga
+          na memória) NÃO se renderiza o registro: nunca sem o cabeçalho de
+          identidade acima — mesmo guard do Checklist. */}
+      {hospedeId && hospedeSel && (
         <MedicacaoDoHospede
           key={hospedeId}
           residenteId={hospedeId}
@@ -114,17 +123,30 @@ function MedicacaoDoHospede({
   turno: Turno | null;
 }) {
   const prescricoes = usePrescricoes(residenteId);
-  const administracoes = useAdministracoesHoje(residenteId, turno?.inicio ?? null);
+  // Eixo de tempo = janela do PLANTÃO (lib/plantao): no noturno, do início do
+  // turno (19h da véspera) ao fim; sem turno, o dia civil de SP.
+  const janela = useMemo(() => janelaDoPlantao(turno, new Date()), [turno]);
+  // Com turno, busca também as 24h anteriores para a passagem de plantão
+  // (leitura); o que conta como "deste plantão" é decidido pela janela.
+  const desde = useMemo(
+    () =>
+      turno
+        ? new Date(janela.inicio.getTime() - 24 * 60 * 60 * 1000).toISOString()
+        : janela.inicio.toISOString(),
+    [turno, janela],
+  );
+  const administracoes = useAdministracoesHoje(residenteId, desde);
 
-  // Registro mais recente de hoje por período (a query já vem ordenada desc).
-  const registroPorPeriodo = useMemo(() => {
-    const mapa: Partial<Record<PeriodoMedicacao, Administracao>> = {};
-    for (const reg of administracoes.data ?? []) {
-      const p = reg.periodo as PeriodoMedicacao;
-      if (!mapa[p]) mapa[p] = reg;
-    }
-    return mapa;
-  }, [administracoes.data]);
+  // Registro mais recente de cada período DENTRO da janela do plantão.
+  const registroPorPeriodo = useMemo(
+    () => registroPorPeriodoNaJanela(administracoes.data ?? [], janela),
+    [administracoes.data, janela],
+  );
+  // Passagem de plantão: o que o plantão anterior registrou (somente leitura).
+  const anteriores = useMemo(
+    () => (turno ? registrosDoPlantaoAnterior(administracoes.data ?? [], janela) : {}),
+    [turno, administracoes.data, janela],
+  );
 
   // Apenas os períodos cujo horário cai dentro do turno ativo da cuidadora.
   const periodosDoTurno = useMemo(
@@ -140,39 +162,82 @@ function MedicacaoDoHospede({
   }
 
   return (
-    <Tabs defaultValue={periodosDoTurno[0].key} key={periodosDoTurno[0].key}>
-      <TabsList className="w-full justify-start">
-        {periodosDoTurno.map((p) => (
-          <TabsTrigger key={p.key} value={p.key} className="gap-1.5">
-            <span>
-              {p.label} <span className="font-normal opacity-70">· {p.horario}</span>
-            </span>
-            <StatusDot status={registroPorPeriodo[p.key]?.status} />
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      {periodosDoTurno.map((p) => {
-        // Medicamentos do período, ordenados por horário sugerido (sem horário vão ao fim).
-        const doPeriodo = (prescricoes.data ?? [])
-          .filter((m) => m.periodo === p.key)
-          .sort(
-            (a, b) =>
-              (horarioParaMinutos(a.horario) ?? Infinity) -
-              (horarioParaMinutos(b.horario) ?? Infinity),
+    <div className="space-y-4">
+      <PassagemPlantao anteriores={anteriores} />
+      <Tabs defaultValue={periodosDoTurno[0].key} key={periodosDoTurno[0].key}>
+        <TabsList className="w-full justify-start">
+          {periodosDoTurno.map((p) => (
+            <TabsTrigger key={p.key} value={p.key} className="gap-1.5">
+              <span>
+                {p.label} <span className="font-normal opacity-70">· {p.horario}</span>
+              </span>
+              <StatusDot status={registroPorPeriodo[p.key]?.status} />
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {periodosDoTurno.map((p) => {
+          // Medicamentos do período, ordenados por horário sugerido (sem horário vão ao fim).
+          const doPeriodo = (prescricoes.data ?? [])
+            .filter((m) => m.periodo === p.key)
+            .sort(
+              (a, b) =>
+                (horarioParaMinutos(a.horario) ?? Infinity) -
+                (horarioParaMinutos(b.horario) ?? Infinity),
+            );
+          return (
+            <TabsContent key={p.key} value={p.key}>
+              <PeriodoMedicacaoView
+                residenteId={residenteId}
+                periodo={p.key}
+                prescricoes={doPeriodo}
+                registro={registroPorPeriodo[p.key]}
+                liberado={liberado}
+              />
+            </TabsContent>
           );
-        return (
-          <TabsContent key={p.key} value={p.key}>
-            <PeriodoMedicacaoView
-              residenteId={residenteId}
-              periodo={p.key}
-              prescricoes={doPeriodo}
-              registro={registroPorPeriodo[p.key]}
-              liberado={liberado}
-            />
-          </TabsContent>
-        );
-      })}
-    </Tabs>
+        })}
+      </Tabs>
+    </div>
+  );
+}
+
+const STATUS_CURTO: Record<StatusAdministracao, string> = {
+  sim: "Administrada",
+  parcial: "Parcial",
+  nao: "NÃO administrada",
+};
+
+/**
+ * Passagem de plantão (somente leitura): últimos registros de cada período
+ * feitos ANTES do início deste plantão. Não se misturam com o plantão atual —
+ * as abas acima só mostram o que foi registrado nesta janela.
+ */
+function PassagemPlantao({ anteriores }: { anteriores: RegistroPorPeriodo }) {
+  const itens = PERIODOS.filter((p) => anteriores[p.key]);
+  if (itens.length === 0) return null;
+  return (
+    <details className="rounded-lg border bg-muted/30 px-4 py-3">
+      <summary className="cursor-pointer text-sm font-semibold text-secondary">
+        Plantão anterior · {itens.length} período{itens.length > 1 ? "s" : ""} registrado
+        {itens.length > 1 ? "s" : ""} (leitura)
+      </summary>
+      <ul className="mt-2 space-y-1.5">
+        {itens.map((p) => {
+          const reg = anteriores[p.key]!;
+          return (
+            <li key={p.key} className="flex flex-wrap items-center gap-2 text-sm">
+              <StatusDot status={reg.status} />
+              <span className="font-medium text-secondary">{p.label}</span>
+              <span className="text-muted-foreground">
+                {STATUS_CURTO[reg.status]}
+                {reg.motivo ? ` (${reg.motivo})` : ""} · {ouNaoInformado(reg.administrado_por)} ·{" "}
+                {formatarDataHoraBR(reg.administrado_em)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </details>
   );
 }
 
@@ -277,7 +342,7 @@ function PeriodoMedicacaoView({
       <div className="space-y-2">
         {jaRegistrado && (
           <p className="text-center text-xs font-medium text-muted-foreground">
-            Já registrado neste período hoje. Você pode corrigir registrando novamente.
+            Já registrado neste período, neste plantão. Você pode corrigir registrando novamente.
           </p>
         )}
         <div className="grid gap-3 sm:grid-cols-2">

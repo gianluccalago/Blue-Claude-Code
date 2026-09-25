@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ClipboardPlus, Save, FileDown, Plus, X, CheckCircle2, Pill, HeartPulse } from "lucide-react";
 import { useResidentes } from "@/hooks/usePlanos";
 import { useEvolucaoAdmissao, useSalvarEvolucaoAdmissao } from "@/hooks/useEvolucaoAdmissao";
+import { novaChaveIdempotencia } from "@/hooks/useMedico";
 import { useTestesCognitivos } from "@/hooks/useTestesCognitivos";
 import { useAvaliacoesIVCF } from "@/hooks/useMedico";
 import { useRegistrosPesoDoResidente } from "@/hooks/usePeso";
@@ -79,6 +80,9 @@ function Formulario({ hospede }: { hospede: Residente }) {
   const pesos = useRegistrosPesoDoResidente(hospede.id); // ordem ascendente → o último é o mais recente
   const [d, setD] = useState<DadosAdmissao>(() => dadosAdmissaoVazios(hospede.data_admissao ?? hojeISO()));
   const [exportando, setExportando] = useState(false);
+  // Chave de idempotência desta gravação: a MESMA ao tentar de novo após um
+  // erro (o servidor não duplica prescrições), nova após salvar com sucesso.
+  const chaveIdempotencia = useRef(novaChaveIdempotencia());
 
   // Carrega a admissão existente (edição) ou inicia vazia (com alergias do cadastro).
   useEffect(() => {
@@ -127,7 +131,8 @@ function Formulario({ hospede }: { hospede: Residente }) {
 
   async function handleSalvar() {
     try {
-      await salvar.mutateAsync({ residenteId: hospede.id, dados: d, existente });
+      await salvar.mutateAsync({ residenteId: hospede.id, dados: d, existente, idempotencia: chaveIdempotencia.current });
+      chaveIdempotencia.current = novaChaveIdempotencia();
       toast.success(existente ? "Evolução de admissão atualizada." : "Admissão registrada — comorbidades, prescrição, alergias e peso alimentados.");
     } catch (e) {
       toast.error(erroMsg(e));

@@ -21,28 +21,35 @@ export function usePlanoCuidado(residenteId: string | undefined) {
   });
 }
 
-export function useRegistrosHoje(residenteId: string | undefined) {
+/**
+ * Registros de tarefas de UMA data (`tarefa_registro.data`). Por padrão o dia
+ * civil de hoje; o Checklist passa a DATA DO PLANTÃO (lib/plantao): no noturno
+ * de 24/09 a tarefa das 06h de 25/09 é gravada e lida em 24/09 — sem isto, à
+ * meia-noite o checklist "virava o dia" e perdia o que já tinha sido feito.
+ */
+export function useRegistrosHoje(residenteId: string | undefined, data: string = hojeISO()) {
   return useQuery({
-    queryKey: ["registros", residenteId, hojeISO()],
+    queryKey: ["registros", residenteId, data],
     enabled: !!residenteId,
     queryFn: async (): Promise<TarefaRegistro[]> => {
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from("tarefa_registro")
         .select("*")
         .eq("residente_id", residenteId!)
-        .eq("data", hojeISO());
+        .eq("data", data);
       if (error) throw error;
-      return data ?? [];
+      return rows ?? [];
     },
   });
 }
 
 function invalidarRegistros(qc: ReturnType<typeof useQueryClient>, residenteId: string) {
-  qc.invalidateQueries({ queryKey: ["registros", residenteId, hojeISO()] });
+  // Prefixo: invalida todas as datas carregadas (plantão atual e anterior).
+  qc.invalidateQueries({ queryKey: ["registros", residenteId] });
 }
 
-/** Marca uma tarefa do plano como feita (grava em tarefa_registro). */
-export function useMarcarTarefa(residenteId: string) {
+/** Marca uma tarefa do plano como feita (grava em tarefa_registro na data do plantão). */
+export function useMarcarTarefa(residenteId: string, data: string = hojeISO()) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { tarefa: string; horario?: string | null }) => {
@@ -52,7 +59,7 @@ export function useMarcarTarefa(residenteId: string) {
         horario: args.horario ?? null,
         status: "feito",
         feito_por: CUIDADOR_ATUAL.nome,
-        data: hojeISO(),
+        data,
       });
       if (error) throw error;
     },
@@ -74,12 +81,12 @@ export function useRemoverRegistro(residenteId: string) {
 
 /**
  * Define o nível de aceitação de uma refeição em UMA operação:
- * - se já existe registro da refeição hoje, faz UPDATE do campo `tarefa`;
+ * - se já existe registro da refeição no plantão, faz UPDATE do campo `tarefa`;
  * - caso contrário, INSERT.
  * Evita o padrão frágil de remover-e-inserir (que pode deixar sem registro
  * ou duplicado se algo falhar no meio).
  */
-export function useDefinirRefeicao(residenteId: string) {
+export function useDefinirRefeicao(residenteId: string, data: string = hojeISO()) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { registroId?: string; tarefa: string }) => {
@@ -95,7 +102,7 @@ export function useDefinirRefeicao(residenteId: string) {
           tarefa: args.tarefa,
           status: "feito",
           feito_por: CUIDADOR_ATUAL.nome,
-          data: hojeISO(),
+          data,
         });
         if (error) throw error;
       }

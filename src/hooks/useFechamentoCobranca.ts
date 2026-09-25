@@ -115,6 +115,7 @@ export function useFechamentoCobranca(mes: string) {
         paga: { soma: 0, qtd: 0 },
         vencida: { soma: 0, qtd: 0 },
         cancelada: { soma: 0, qtd: 0 },
+        estornada: { soma: 0, qtd: 0 },
       },
     };
     for (const g of grupos) {

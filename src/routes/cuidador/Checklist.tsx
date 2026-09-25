@@ -25,7 +25,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, horarioParaMinutos, horarioNoTurno, ouNaoInformado, formatarHoraBR, inicioDoDiaISO } from "@/lib/utils";
+import { cn, horarioNoTurno, ouNaoInformado, formatarHoraBR, formatarDataHoraBR, inicioDoDiaISO } from "@/lib/utils";
+import { janelaDoPlantao, dentroDaJanela, diaAnterior, statusTarefaNoPlantao } from "@/lib/plantao";
 import type { PlanoCuidadoItem, Residente, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
@@ -40,23 +41,9 @@ const REFEICOES = [
 const NIVEIS = ["Nada", "Pouco", "Metade", "Quase tudo", "Tudo"] as const;
 const SOB_DEMANDA = ["Troca de fralda", "Troca de roupa", "Salão de beleza"] as const;
 
-type StatusKey = "feito" | "atraso" | "em_breve" | "normal";
-
-function calcularStatus(item: PlanoCuidadoItem, feito: boolean): {
-  key: StatusKey;
-  label: string;
-  dot: string;
-} {
-  if (feito) return { key: "feito", label: "Feito", dot: "bg-success" };
-  const alvo = horarioParaMinutos(item.horario);
-  if (alvo === null) return { key: "normal", label: "Normal", dot: "bg-muted-foreground/40" };
-  const agora = new Date();
-  const nowMin = agora.getHours() * 60 + agora.getMinutes();
-  if (nowMin > alvo + item.tolerancia_minutos)
-    return { key: "atraso", label: "Em atraso", dot: "bg-destructive" };
-  if (nowMin >= alvo - 30) return { key: "em_breve", label: "Em breve", dot: "bg-warning" };
-  return { key: "normal", label: "Normal", dot: "bg-muted-foreground/40" };
-}
+// O status "em atraso / em breve" é calculado no eixo do PLANTÃO
+// (lib/plantao.statusTarefaNoPlantao): no noturno, a tarefa das 06h só atrasa
+// depois das 06h do dia seguinte ao início — não desde as 19h.
 
 export function Checklist() {
   const { data: hospedes, isLoading, isError, error } = useHospedesDesignados(CUIDADOR_ATUAL.id);
@@ -111,13 +98,36 @@ function ChecklistDoHospede({
   turno: Turno | null;
 }) {
   const plano = usePlanoCuidado(residenteId);
-  const registros = useRegistrosHoje(residenteId);
-  const marcar = useMarcarTarefa(residenteId);
+  // Eixo de tempo = janela do PLANTÃO (lib/plantao). As tarefas são gravadas e
+  // lidas na DATA DO PLANTÃO (data civil do início do turno): no noturno de
+  // 24/09, a tarefa das 06h de 25/09 fica em 24/09 e não "vira o dia".
+  const agora = new Date();
+  const janela = useMemo(() => janelaDoPlantao(turno, new Date()), [turno]);
+  const registros = useRegistrosHoje(residenteId, janela.dataPlantao);
+  // Passagem de plantão: o plantão anterior pode ter outra data (noturno da
+  // véspera) ou a mesma (diurno de hoje antes do noturno); busca as duas e
+  // separa pelo instante `feito_em` em relação à janela.
+  const registrosVespera = useRegistrosHoje(residenteId, diaAnterior(janela.dataPlantao));
+  const marcar = useMarcarTarefa(residenteId, janela.dataPlantao);
   const remover = useRemoverRegistro(residenteId);
-  const definirRefeicao = useDefinirRefeicao(residenteId);
+  const definirRefeicao = useDefinirRefeicao(residenteId, janela.dataPlantao);
   const dieta = useDietaAtiva(residenteId);
 
-  const registrosHoje = registros.data ?? [];
+  // Só o que foi feito DENTRO da janela conta como "deste plantão".
+  const registrosHoje = useMemo(
+    () => (registros.data ?? []).filter((r) => dentroDaJanela(r.feito_em, janela)),
+    [registros.data, janela],
+  );
+  // Registros anteriores ao início do plantão (leitura, passagem de equipe).
+  const registrosAnteriores = useMemo(
+    () =>
+      turno
+        ? [...(registros.data ?? []), ...(registrosVespera.data ?? [])]
+            .filter((r) => new Date(r.feito_em).getTime() < janela.inicio.getTime())
+            .sort((a, b) => new Date(b.feito_em).getTime() - new Date(a.feito_em).getTime())
+        : [],
+    [turno, registros.data, registrosVespera.data, janela],
+  );
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
   const planoItensDoTurno = useMemo(
@@ -212,6 +222,28 @@ function ChecklistDoHospede({
         </div>
       </div>
 
+      {/* ---- Passagem de plantão (somente leitura) ---- */}
+      {registrosAnteriores.length > 0 && (
+        <details className="rounded-lg border bg-muted/30 px-4 py-3">
+          <summary className="cursor-pointer text-sm font-semibold text-secondary">
+            Plantão anterior · {registrosAnteriores.length} registro
+            {registrosAnteriores.length > 1 ? "s" : ""} (leitura)
+          </summary>
+          <ul className="mt-2 space-y-1.5">
+            {registrosAnteriores.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-secondary">
+                  {planoItens.find((p) => p.id === r.tarefa)?.tarefa ?? r.tarefa}
+                </span>
+                <span className="text-muted-foreground">
+                  {ouNaoInformado(r.feito_por)} · {formatarDataHoraBR(r.feito_em)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {/* ---- Tarefas do plano ---- */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -227,7 +259,7 @@ function ChecklistDoHospede({
             planoItensDoTurno.map((item) => {
               const registro = registroDaTarefa(item.id);
               const feito = !!registro;
-              const status = calcularStatus(item, feito);
+              const status = statusTarefaNoPlantao(item, feito, janela, agora);
               return (
                 <div
                   key={item.id}
@@ -346,7 +378,7 @@ function ChecklistDoHospede({
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>Sob demanda</CardTitle>
-          <Badge variant="default">{sobDemanda.length} hoje</Badge>
+          <Badge variant="default">{sobDemanda.length} neste plantão</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">

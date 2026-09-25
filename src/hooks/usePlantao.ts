@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { dataISO, hojeISO, somarDias } from "@/lib/utils";
+import { TOLERANCIA_PLANTAO_MS } from "@/lib/plantao";
 import type { Turno } from "@/types/database";
 
-// Tolerância de 10 min antes do início e depois do fim do turno.
-const TOLERANCIA_MS = 10 * 60 * 1000;
+// Tolerância de 10 min antes do início e depois do fim do turno — a mesma que
+// define a janela do plantão (lib/plantao), para check-in e leitura baterem.
+const TOLERANCIA_MS = TOLERANCIA_PLANTAO_MS;
 
 export type EstadoPlantao = "carregando" | "sem_turno" | "sem_checkin" | "ativo";
 

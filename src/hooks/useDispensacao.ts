@@ -63,7 +63,7 @@ export function useConfirmarDispensacao() {
       // Registro + baixa de estoque numa ÚNICA transação, idempotente por
       // (hóspede, período, dia) — dupla confirmação não duplica nem baixa 2x
       // (RPC dispensar_medicamentos, migration 0094).
-      const { data: id, error } = await supabase.rpc("dispensar_medicamentos", {
+      const { data, error } = await supabase.rpc("dispensar_medicamentos", {
         p_residente_id: args.residenteId,
         p_periodo: args.periodo,
         p_data: args.data,
@@ -71,7 +71,8 @@ export function useConfirmarDispensacao() {
         p_dispensado_por: args.dispensadoPor ?? usuarioAtual.nome,
       });
       if (error) throw error;
-      return id as string;
+      const linha = Array.isArray(data) ? data[0] : data;
+      return String(linha?.id ?? "");
     },
     onSuccess: (_id, vars) => {
       qc.invalidateQueries({ queryKey: ["dispensacoes", vars.residenteId, vars.data] });

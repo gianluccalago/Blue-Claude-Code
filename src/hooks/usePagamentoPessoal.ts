@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import { intervaloDoMes } from "@/lib/mensalidade";
-import { horasEfetivasTurno } from "@/lib/turnos";
+import { linhasCustoPessoal, type LinhaCustoPessoal } from "@/lib/custoPessoal";
 import { useTurnos } from "@/hooks/useTurnos";
 import type {
   PagamentoPessoal,
@@ -64,7 +64,9 @@ export function useAtualizarRemuneracao() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["equipe-remuneracao"] });
+      qc.invalidateQueries({ queryKey: ["usuarios-custo-pessoal"] });
       qc.invalidateQueries({ queryKey: ["pagamento-pessoal"] });
+      qc.invalidateQueries({ queryKey: ["evolucao-financeira"] });
     },
   });
 }
@@ -81,91 +83,46 @@ export function usePagamentosPessoalDoMes(mes: string) {
   });
 }
 
-export interface LinhaPagamentoPessoal {
-  profissional: Usuario;
-  tipoRemuneracao: TipoRemuneracao;
-  previstoDiurno: number;
-  realizadoDiurno: number;
-  previstoNoturno: number;
-  realizadoNoturno: number;
-  /** Carga horária EFETIVA dos plantões realizados (12h PJ contam 11h). */
-  horasEfetivas: number;
-  valorCalculado: number;
-  valorFinal: number;
-  status: StatusPagamentoPessoal;
-  observacao: string;
-  pagamento: PagamentoPessoal | undefined;
+/** Linha de custo de pessoal (tipo canônico em lib/custoPessoal — fonte única do card e do gráfico). */
+export type LinhaPagamentoPessoal = LinhaCustoPessoal;
+
+/**
+ * TODOS os usuários (ativos e inativos) — base do custo de pessoal. Inativos
+ * entram só pelo que foi SALVO no mês (inativar não apaga custo retroativo).
+ */
+export function useUsuariosCustoPessoal() {
+  return useQuery({
+    queryKey: ["usuarios-custo-pessoal"],
+    queryFn: async (): Promise<Usuario[]> => {
+      const { data, error } = await supabase.from("usuarios").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 }
 
 /**
- * Para cada profissional com remuneração definida, calcula o pagamento do
- * mês: mensal fixo usa valor_mensal; por plantão usa os turnos do mês
- * (PREVISTO = escalados, REALIZADO = com check-in e check-out) multiplicados
- * pelos valores diurno/noturno. valor_final/status/observação vêm do registro
- * salvo, com fallback para o calculado/pendente.
+ * Para cada profissional, o pagamento do mês: mensal fixo usa valor_mensal;
+ * por plantão usa os turnos do mês (PREVISTO = escalados, REALIZADO = com
+ * check-in e check-out) multiplicados pelos valores diurno/noturno.
+ * valor_final/status/observação vêm do registro salvo, com fallback para o
+ * calculado/pendente. A regra é a de lib/custoPessoal (a MESMA do gráfico de
+ * evolução em useIndicadoresGestao) — FIN-04.
  */
 export function useCustosPessoalDoMes(mes: string) {
-  const equipe = useEquipeRemuneracao();
+  const usuarios = useUsuariosCustoPessoal();
   const { inicio, fim } = intervaloDoMes(mes);
   const turnos = useTurnos(inicio, fim);
   const pagamentos = usePagamentosPessoalDoMes(mes);
 
-  const isLoading = equipe.isLoading || turnos.isLoading || pagamentos.isLoading;
-  const isError = equipe.isError || turnos.isError || pagamentos.isError;
-  const error = equipe.error ?? turnos.error ?? pagamentos.error;
+  const isLoading = usuarios.isLoading || turnos.isLoading || pagamentos.isLoading;
+  const isError = usuarios.isError || turnos.isError || pagamentos.isError;
+  const error = usuarios.error ?? turnos.error ?? pagamentos.error;
 
   const linhas: LinhaPagamentoPessoal[] = useMemo(() => {
-    if (!equipe.data) return [];
-    const pagamentoMap = new Map((pagamentos.data ?? []).map((p) => [p.profissional_id, p]));
-
-    return equipe.data
-      .filter((u): u is Usuario & { tipo_remuneracao: TipoRemuneracao } => !!u.tipo_remuneracao)
-      .map((u) => {
-        const pagamento = pagamentoMap.get(u.id);
-
-        let previstoDiurno = 0;
-        let realizadoDiurno = 0;
-        let previstoNoturno = 0;
-        let realizadoNoturno = 0;
-        let horasEfetivas = 0;
-        let valorCalculado = 0;
-
-        if (u.tipo_remuneracao === "mensal_fixo") {
-          valorCalculado = u.valor_mensal ?? 0;
-        } else {
-          for (const t of turnos.data ?? []) {
-            if (t.profissional_id !== u.id) continue;
-            const realizado = !!t.check_in && !!t.check_out;
-            if (t.tag === "diurno") {
-              previstoDiurno++;
-              if (realizado) realizadoDiurno++;
-            } else {
-              previstoNoturno++;
-              if (realizado) realizadoNoturno++;
-            }
-            // Carga horária efetiva: só os plantões realizados; 12h PJ contam 11h.
-            if (realizado) horasEfetivas += horasEfetivasTurno(t, u.tipo_remuneracao);
-          }
-          valorCalculado =
-            realizadoDiurno * (u.valor_plantao_diurno ?? 0) + realizadoNoturno * (u.valor_plantao_noturno ?? 0);
-        }
-
-        return {
-          profissional: u,
-          tipoRemuneracao: u.tipo_remuneracao,
-          previstoDiurno,
-          realizadoDiurno,
-          previstoNoturno,
-          realizadoNoturno,
-          horasEfetivas,
-          valorCalculado,
-          valorFinal: pagamento?.valor_final ?? valorCalculado,
-          status: pagamento?.status ?? "pendente",
-          observacao: pagamento?.observacao ?? "",
-          pagamento,
-        };
-      });
-  }, [equipe.data, turnos.data, pagamentos.data]);
+    if (!usuarios.data) return [];
+    return linhasCustoPessoal(usuarios.data, turnos.data ?? [], pagamentos.data ?? [], mes);
+  }, [usuarios.data, turnos.data, pagamentos.data, mes]);
 
   return { isLoading, isError, error, linhas };
 }
@@ -221,6 +178,10 @@ export function useSalvarPagamentoPessoal() {
         },
       ]);
     },
-    onSuccess: (_r, args) => qc.invalidateQueries({ queryKey: ["pagamento-pessoal", args.mes] }),
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["pagamento-pessoal", args.mes] });
+      // O gráfico de evolução lê a MESMA fonte (salvo com fallback) — atualiza junto.
+      qc.invalidateQueries({ queryKey: ["evolucao-financeira"] });
+    },
   });
 }

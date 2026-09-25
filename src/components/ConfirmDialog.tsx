@@ -1,10 +1,12 @@
-import { useEffect, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/Modal";
 
 /**
- * Diálogo de confirmação simples (sem dependências externas), pensado para
- * uso em tablet: botões grandes, linguagem direta, fecha no Esc ou no fundo.
+ * Diálogo de confirmação simples, pensado para uso em tablet: botões grandes,
+ * linguagem direta. Construído sobre o Modal único do app (Esc, clique no
+ * fundo, foco preso e devolvido, rolagem própria no celular). Abre numa camada
+ * acima dos demais diálogos, pois costuma ser chamado de dentro de um formulário.
  * `children` (opcional) entra entre a descrição e os botões — ex.: um campo.
  */
 export function ConfirmDialog({
@@ -28,53 +30,27 @@ export function ConfirmDialog({
   onCancelar: () => void;
   children?: ReactNode;
 }) {
-  useEffect(() => {
-    if (!aberto) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancelar();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [aberto, onCancelar]);
-
-  if (!aberto) return null;
-
-  // Portal no <body>: nenhum ancestral com transform/filter consegue "prender"
-  // o position:fixed — o diálogo centraliza SEMPRE na tela visível.
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={titulo}
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-    >
-      {/* fundo */}
-      <button
-        aria-hidden="true"
-        tabIndex={-1}
-        onClick={onCancelar}
-        className="absolute inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm"
-      />
-      {/* caixa */}
-      <div className="relative w-full max-w-sm animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
-        <h2 className="text-lg font-bold text-secondary">{titulo}</h2>
-        {descricao && <p className="mt-1.5 text-sm text-muted-foreground">{descricao}</p>}
-        {children && <div className="mt-4">{children}</div>}
-        <div className="mt-6 flex gap-3">
+  return (
+    <Modal
+      aberto={aberto}
+      onFechar={onCancelar}
+      titulo={titulo}
+      descricao={descricao}
+      tamanho="sm"
+      zIndex={70}
+      botaoFechar={false}
+      rodape={
+        <>
           <Button variant="outline" size="lg" className="flex-1" onClick={onCancelar} autoFocus>
             {textoCancelar}
           </Button>
-          <Button
-            variant={varianteConfirmar}
-            size="lg"
-            className="flex-1"
-            onClick={onConfirmar}
-          >
+          <Button variant={varianteConfirmar} size="lg" className="flex-1" onClick={onConfirmar}>
             {textoConfirmar}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+        </>
+      }
+    >
+      {children}
+    </Modal>
   );
 }

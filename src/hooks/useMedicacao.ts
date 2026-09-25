@@ -28,14 +28,17 @@ export function usePrescricoes(residenteId: string | undefined) {
 }
 
 /**
- * Administrações registradas hoje, da mais recente para a mais antiga.
- * Usada para mostrar o status persistente de cada período.
+ * Administrações registradas desde `desdeISO` (por padrão, desde a meia-noite
+ * de hoje em SP), da mais recente para a mais antiga. Usada para mostrar o
+ * status persistente de cada período.
+ *
+ * Plantão NOTURNO atravessa a meia-noite: às 00h30 a dose da "Noite" (20h)
+ * pertence ao turno que começou às 19h de ontem. A tela passa o início da
+ * janela do plantão (lib/plantao.janelaDoPlantao) — sem isto, depois da
+ * meia-noite ela aparecia como "não registrada" (risco de dose dobrada).
  */
 export function useAdministracoesHoje(residenteId: string | undefined, desdeISO?: string | null) {
-  // Plantão NOTURNO atravessa a meia-noite: às 00h30 a dose da "Noite" (20h)
-  // pertence ao turno que começou às 19h de ontem. Sem isto, depois da
-  // meia-noite ela aparecia como "não registrada" — risco de dose dobrada.
-  const desde = desdeISO && desdeISO < inicioDoDiaISO() ? desdeISO : inicioDoDiaISO();
+  const desde = desdeISO ?? inicioDoDiaISO();
   return useQuery({
     queryKey: ["administracao", residenteId, hojeISO(), desde],
     enabled: !!residenteId,

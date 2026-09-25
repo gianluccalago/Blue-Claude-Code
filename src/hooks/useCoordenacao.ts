@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { hojeISO, inicioDoDiaISO } from "@/lib/utils";
 import { calcularAlertasEliminacao, estadoAlertaEliminacao } from "@/hooks/useEliminacao";
+import { pendenciasMedicacaoAbertas } from "@/lib/plantao";
 import type {
   Administracao,
   Eliminacao,
@@ -93,19 +94,30 @@ export function useRegistrarTratamento() {
 // Fontes de pendência
 // ---------------------------------------------------------------------------
 
-/** Medicações de hoje com status parcial/nao (origem das pendências de medicação). */
+/**
+ * Pendências de medicação ABERTAS (status parcial/nao) — origem das pendências
+ * de medicação do painel.
+ *
+ * Janela: desde a MEIA-NOITE DE ONTEM (SP), não de hoje. Uma recusa às 20h
+ * não pode sumir à meia-noite: o plantão noturno começa na véspera e a
+ * coordenação só o revisa de manhã. "Ontem 00:00" cobre sempre o plantão
+ * anterior inteiro (diurno ou noturno) com uma chave de cache estável por
+ * dia — sem consultar a escala (que pode não existir para aquele dia).
+ * Fechamento: uma recusa seguida de "sim" do mesmo residente e período no
+ * mesmo plantão deixa de ser pendência (lib/plantao.pendenciasMedicacaoAbertas).
+ */
 export function useMedicacoesPendentesHoje() {
   return useQuery({
     queryKey: ["coord-medicacoes", hojeISO()],
     queryFn: async (): Promise<Administracao[]> => {
+      const desde = new Date(new Date(inicioDoDiaISO()).getTime() - 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("administracao")
         .select("*")
-        .in("status", ["parcial", "nao"])
-        .gte("administrado_em", inicioDoDiaISO())
+        .gte("administrado_em", desde)
         .order("administrado_em", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return pendenciasMedicacaoAbertas(data ?? []);
     },
   });
 }

@@ -7,9 +7,18 @@ import { useDemonstrativoMes } from "@/hooks/useDemonstrativo";
 import { useCustosPessoalDoMes } from "@/hooks/usePagamentoPessoal";
 import { useCustosMateriaisDoMes } from "@/hooks/useCustosMateriais";
 import { useConfiguracao, CHAVE_TOTAL_SUITES } from "@/hooks/useConfiguracao";
-import { deslocarMes, precoVigenteEm, hojeISO } from "@/lib/mensalidade";
+import { deslocarMes, precoVigenteEm, hojeISO, intervaloDoMes } from "@/lib/mensalidade";
 import { valorParcelaDecimo } from "@/lib/decimoTerceiro";
-import type { Residente } from "@/types/database";
+import { calcularOcupacaoLeitos, type OcupacaoLeitos } from "@/lib/ocupacao";
+import { custoPessoalDoMes } from "@/lib/custoPessoal";
+import type { PagamentoPessoal, Residente, Turno, Usuario } from "@/types/database";
+
+/**
+ * Total de LEITOS da casa (capacidade) — base da taxa de ocupação. Quando só
+ * `total_suites` está cadastrado, os leitos são derivados da ocupação
+ * cadastrada (ver lib/ocupacao).
+ */
+export const CHAVE_TOTAL_LEITOS = "total_leitos";
 
 // ===========================================================================
 // FONTE ÚNICA dos indicadores financeiro-operacionais da gestão. Tanto o Painel
@@ -27,10 +36,14 @@ import type { Residente } from "@/types/database";
 export interface ResumoMes {
   mes: string;
   // Ocupação (de LEITOS = longa + curta; day care é contado à parte)
+  /** Hóspedes que ocuparam leito no mês (= leitos ocupados; 1 leito por hóspede). */
   ativos: number;
+  /** Capacidade em LEITOS (total_leitos, ou derivada de total_suites). */
   capacidade: number | null;
-  taxaOcupacao: number | null; // %
+  taxaOcupacao: number | null; // % = leitos ocupados ÷ leitos totais
   dayCareAtivos: number;
+  /** Detalhe leitos × suítes × Day Care (FIN-03). */
+  ocupacao: OcupacaoLeitos;
   entradas: number;
   saidas: number;
   // Financeiro
@@ -66,8 +79,9 @@ export function useResumoMes(mes: string): ResumoMes {
   const dayCareQ = useFrequentadoresDayCare();
   const inativosQ = useResidentesInativos();
   const capacidadeQ = useConfiguracao(CHAVE_TOTAL_SUITES);
+  const leitosQ = useConfiguracao(CHAVE_TOTAL_LEITOS);
 
-  const isLoading = demo.isLoading || custos.isLoading || materiais.isLoading || ativosQ.isLoading || dayCareQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading;
+  const isLoading = demo.isLoading || custos.isLoading || materiais.isLoading || ativosQ.isLoading || dayCareQ.isLoading || inativosQ.isLoading || capacidadeQ.isLoading || leitosQ.isLoading;
   const isError = demo.isError || custos.isError || materiais.isError || ativosQ.isError || inativosQ.isError;
   const error = demo.error ?? custos.error ?? materiais.error ?? ativosQ.error ?? inativosQ.error;
 
@@ -89,14 +103,22 @@ export function useResumoMes(mes: string): ResumoMes {
   const custoMateriais = (materiais.data ?? []).reduce((s, m) => s + m.valor, 0);
   const resultado = faturamento - (custoPessoal + custoMateriais);
 
-  const ativos = demo.linhas.length;
+  // Ocupação de LEITOS: hóspedes do mês (roster de quem esteve na casa, sem
+  // Day Care) ÷ leitos totais. Suítes e Day Care ficam em `ocupacao`.
   const dayCareAtivos = (dayCareQ.data ?? []).length;
-  const capacidadeNum = capacidadeQ.data ? parseInt(capacidadeQ.data, 10) : NaN;
-  const capacidade = Number.isFinite(capacidadeNum) && capacidadeNum > 0 ? capacidadeNum : null;
-  const taxaOcupacao = capacidade ? Math.round((ativos / capacidade) * 100) : null;
+  const ocupacao = calcularOcupacaoLeitos(
+    demo.linhas.map((l) => l.residente),
+    dayCareAtivos,
+    capacidadeQ.data,
+    leitosQ.data,
+  );
+  const ativos = ocupacao.leitosOcupados;
+  const capacidade = ocupacao.capacidadeLeitos;
+  const taxaOcupacao = ocupacao.taxaOcupacao;
 
   // Entradas no mês: admitidos no mês (ativos OU já inativados depois).
-  const inativos = inativosQ.data ?? [];
+  // Day Care não ocupa leito: fica fora de entradas/saídas (como de `ativos`).
+  const inativos = (inativosQ.data ?? []).filter((r) => r.modalidade !== "day_care");
   const entradas =
     (ativosQ.data ?? []).filter((r) => noMes(r.data_admissao, mes)).length +
     inativos.filter((r) => noMes(r.data_admissao, mes)).length;
@@ -109,6 +131,7 @@ export function useResumoMes(mes: string): ResumoMes {
     capacidade,
     taxaOcupacao,
     dayCareAtivos,
+    ocupacao,
     entradas,
     saidas,
     mensalidades,
@@ -140,8 +163,24 @@ export interface PontoEvolucao {
 
 type ResidenteEvolucao = Pick<
   Residente,
-  "mensalidade_valor" | "tipo_suite" | "grau_dependencia" | "ocupacao" | "data_admissao" | "data_saida" | "modalidade"
+  | "mensalidade_valor"
+  | "tipo_suite"
+  | "grau_dependencia"
+  | "grau_contratual"
+  | "ocupacao"
+  | "data_admissao"
+  | "data_saida"
+  | "modalidade"
 >;
+
+/**
+ * Grau que define o PREÇO: o CONTRATUAL (o que foi negociado), não o clínico
+ * (grau_dependencia muda com a evolução do hóspede e não reajusta o contrato).
+ * Sem grau contratual cadastrado, cai no clínico para não zerar a receita.
+ */
+export function grauParaPreco(r: Pick<Residente, "grau_contratual" | "grau_dependencia">): string | null {
+  return r.grau_contratual ?? r.grau_dependencia;
+}
 
 /** Residente "presente" no mês: admitido até o fim e não saído antes do início. */
 function presenteNoMes(r: ResidenteEvolucao, mes: string): boolean {
@@ -154,9 +193,10 @@ function presenteNoMes(r: ResidenteEvolucao, mes: string): boolean {
  * Série de faturamento e resultado dos últimos `n` meses (real por mês de
  * referência). Mensalidade considera o ROSTER presente em cada mês (entradas/
  * saídas refletidas); upselling vem por mes_referencia; o custo de pessoal usa
- * os lançamentos registrados (pagamento_pessoal) e materiais vêm de
- * custo_material por mes_referencia (mesma fonte do useResumoMes). O 13º (nov/
- * dez) é somado proporcionalmente por residente, como no demonstrativo.
+ * a MESMA regra do card (lib/custoPessoal: salvo com fallback para o calculado
+ * — FIN-04) e materiais vêm de custo_material por mes_referencia (mesma fonte
+ * do useResumoMes). O 13º (nov/dez) é somado proporcionalmente por residente,
+ * como no demonstrativo.
  */
 export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   const meses = useMemo(() => {
@@ -168,15 +208,21 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
   return useQuery({
     queryKey: ["evolucao-financeira", mesBase, n],
     queryFn: async (): Promise<PontoEvolucao[]> => {
-      const [resR, tabR, upsR, pessoalR, cobR, matR] = await Promise.all([
+      const { inicio: inicioJanela } = intervaloDoMes(meses[0]);
+      const { fim: fimJanela } = intervaloDoMes(meses[meses.length - 1]);
+      const [resR, tabR, upsR, pessoalR, cobR, matR, usuR, turR] = await Promise.all([
         supabase
           .from("residentes")
-          .select("mensalidade_valor, tipo_suite, grau_dependencia, ocupacao, data_admissao, data_saida, modalidade"),
+          .select(
+            "mensalidade_valor, tipo_suite, grau_dependencia, grau_contratual, ocupacao, data_admissao, data_saida, modalidade",
+          ),
         supabase.from("tabela_preco").select("tipo_suite, grau, ocupacao, valor, vigente_a_partir_de"),
         supabase.from("upselling").select("valor, mes_referencia"),
-        supabase.from("pagamento_pessoal").select("valor_final, mes_referencia"),
+        supabase.from("pagamento_pessoal").select("*").gte("mes_referencia", meses[0]).lte("mes_referencia", meses[meses.length - 1]),
         supabase.from("cobranca_temporaria").select("valor, periodo_referencia"),
         supabase.from("custo_material").select("valor, mes_referencia"),
+        supabase.from("usuarios").select("*"),
+        supabase.from("turnos").select("*").gte("data", inicioJanela).lte("data", fimJanela),
       ]);
       if (resR.error) throw resR.error;
       if (tabR.error) throw tabR.error;
@@ -184,6 +230,11 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       if (pessoalR.error) throw pessoalR.error;
       if (cobR.error) throw cobR.error;
       if (matR.error) throw matR.error;
+      if (usuR.error) throw usuR.error;
+      if (turR.error) throw turR.error;
+      const usuarios = (usuR.data ?? []) as Usuario[];
+      const turnos = (turR.data ?? []) as Turno[];
+      const pagamentosPessoal = (pessoalR.data ?? []) as PagamentoPessoal[];
 
       const residentes = (resR.data ?? []) as ResidenteEvolucao[];
       const precos = (tabR.data ?? []) as {
@@ -195,11 +246,12 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       }[];
       // Só LONGA permanência tem mensalidade automática (igual ao demonstrativo).
       // Fallback = preço vigente na data de ENTRADA do hóspede (reajuste de preço
-      // não reajusta quem já entrou — afeta só novos contratos).
+      // não reajusta quem já entrou — afeta só novos contratos), pelo grau
+      // CONTRATUAL (FIN-04: o clínico não define preço).
       const mensalidadeDe = (r: ResidenteEvolucao): number =>
         r.modalidade === "longa_permanencia"
           ? r.mensalidade_valor ??
-            precoVigenteEm(precos, r.tipo_suite, r.grau_dependencia, r.ocupacao, r.data_admissao ?? hojeISO()) ??
+            precoVigenteEm(precos, r.tipo_suite, grauParaPreco(r), r.ocupacao, r.data_admissao ?? hojeISO()) ??
             0
           : 0;
 
@@ -207,11 +259,6 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
       for (const u of upsR.data ?? []) {
         const m = u.mes_referencia as string;
         upsPorMes.set(m, (upsPorMes.get(m) ?? 0) + (u.valor as number));
-      }
-      const pessoalPorMes = new Map<string, number>();
-      for (const p of pessoalR.data ?? []) {
-        const m = p.mes_referencia as string;
-        pessoalPorMes.set(m, (pessoalPorMes.get(m) ?? 0) + ((p.valor_final as number) ?? 0));
       }
       // Cobranças de temporários (curta/day care) por mês — entram no faturamento
       // (coerente com useResumoMes).
@@ -239,7 +286,10 @@ export function useEvolucaoFinanceira(mesBase: string, n = 12) {
         );
         const faturamento =
           mensalidades + (upsPorMes.get(mes) ?? 0) + (cobPorMes.get(mes) ?? 0) + decimoTerceiro;
-        const resultado = faturamento - (pessoalPorMes.get(mes) ?? 0) - (matPorMes.get(mes) ?? 0);
+        // Custo de pessoal: salvo com fallback para o calculado — a MESMA
+        // regra do card (useCustosPessoalDoMes → lib/custoPessoal).
+        const custoPessoal = custoPessoalDoMes(usuarios, turnos, pagamentosPessoal, mes);
+        const resultado = faturamento - custoPessoal - (matPorMes.get(mes) ?? 0);
         return { mes, faturamento, resultado };
       });
     },

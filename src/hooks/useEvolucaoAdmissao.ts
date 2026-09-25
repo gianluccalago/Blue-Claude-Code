@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { usuarioAtual } from "@/auth/usuarioAtual";
-import { normalizarPatologia } from "@/lib/planoSaude";
-import { hojeISO } from "@/lib/utils";
-import { montarTextoAdmissao, imcDeTexto, type DadosAdmissao } from "@/lib/evolucaoAdmissao";
+import { novaChaveIdempotencia } from "@/hooks/useMedico";
+import { validarPeriodosPosologia, validarQuantidade } from "@/lib/prescricao";
+import { montarTextoAdmissao, type DadosAdmissao, type MedAdmissao } from "@/lib/evolucaoAdmissao";
 import type { EvolucaoAdmissao } from "@/types/database";
 
 // ===========================================================================
@@ -30,129 +29,54 @@ export function useEvolucaoAdmissao(residenteId: string | undefined) {
   });
 }
 
+/**
+ * Valida as medicações contínuas ANTES de chamar a RPC (a RPC recusa de novo
+ * no servidor): quantidade numérica positiva e nº de períodos coerente com a
+ * posologia (CLI-05/CLI-13). Sem posologia informada mantém o padrão
+ * histórico "1x/dia" (comportamento anterior) — e então a contagem também
+ * precisa bater. Lança Error com a mensagem para o toast.
+ */
+function validarMedicacoesAdmissao(medicacoes: MedAdmissao[]) {
+  for (const m of medicacoes) {
+    const nome = m.medicamento.trim();
+    if (!nome) continue;
+    if (m.periodos.length === 0) throw new Error(`Selecione ao menos um período para ${nome}.`);
+    const erroQtd = validarQuantidade(m.quantidade);
+    if (erroQtd) throw new Error(`${nome}: ${erroQtd}`);
+    const erroPos = validarPeriodosPosologia(m.posologia.trim() || "1x/dia", m.periodos.length);
+    if (erroPos) throw new Error(`${nome}: ${erroPos}`);
+  }
+}
+
 export function useSalvarEvolucaoAdmissao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { residenteId: string; dados: DadosAdmissao; existente: EvolucaoAdmissao | null }) => {
+    mutationFn: async (args: {
+      residenteId: string;
+      dados: DadosAdmissao;
+      existente: EvolucaoAdmissao | null;
+      /** Chave de idempotência (reaproveitada ao tentar de novo); gerada se ausente. */
+      idempotencia?: string;
+    }) => {
       const { residenteId, dados, existente } = args;
+      validarMedicacoesAdmissao(dados.medicacoes);
 
-      // CRM do médico autor (snapshot para o PDF).
-      const { data: medico } = await supabase
-        .from("usuarios")
-        .select("nome, registro_profissional")
-        .eq("id", usuarioAtual.id)
-        .maybeSingle();
-      const medicoNome = medico?.nome ?? usuarioAtual.nome;
-      const medicoCrm = medico?.registro_profissional ?? null;
-
-      // ── Comorbidades → patologia_residente (dedup; roda sempre) ───────────
-      if (dados.comorbidades.length > 0) {
-        const { data: jaTem } = await supabase
-          .from("patologia_residente")
-          .select("descricao")
-          .eq("residente_id", residenteId)
-          .eq("ativa", true);
-        const existentes = new Set((jaTem ?? []).map((p) => normalizarPatologia(p.descricao)));
-        const novas = dados.comorbidades
-          .map((c) => c.trim())
-          .filter((c) => c && !existentes.has(normalizarPatologia(c)));
-        if (novas.length > 0) {
-          await supabase.from("patologia_residente").insert(
-            novas.map((descricao) => ({ residente_id: residenteId, descricao, registrado_por: medicoNome })),
-          );
-        }
-      }
-
-      // ── Alergias → residentes.alergias (idempotente) ──────────────────────
-      if (dados.alergias.trim()) {
-        await supabase.from("residentes").update({ alergias: dados.alergias.trim() }).eq("id", residenteId);
-      }
-
-      if (existente) {
-        // EDIÇÃO: atualiza só o documento (não regera peso/prescrição/evolução).
-        const { error } = await supabase
-          .from("evolucao_admissao")
-          .update({ dados: dados as unknown as Record<string, unknown>, atualizado_em: new Date().toISOString() })
-          .eq("id", existente.id);
-        if (error) throw error;
-        return;
-      }
-
-      // ── CRIAÇÃO: integrações que só rodam uma vez ─────────────────────────
-      // Peso/IMC → registro_peso. NÃO re-registra se o peso for IDÊNTICO ao
-      // último já registrado (evita duplicar quando o médico usa "Usar este peso").
-      const pesoKg = Number(String(dados.peso).replace(",", "."));
-      const alturaM = Number(String(dados.altura).replace(",", "."));
-      if (Number.isFinite(pesoKg) && pesoKg > 0) {
-        const { data: ultimo } = await supabase
-          .from("registro_peso")
-          .select("peso_kg")
-          .eq("residente_id", residenteId)
-          .order("data", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const duplicado = !!ultimo && Math.abs(Number(ultimo.peso_kg) - pesoKg) < 0.001;
-        if (!duplicado) {
-          await supabase.from("registro_peso").insert({
-            residente_id: residenteId,
-            peso_kg: pesoKg,
-            altura_m: Number.isFinite(alturaM) && alturaM > 0 ? alturaM : null,
-            imc: imcDeTexto(dados.peso, dados.altura),
-            data: dados.dataAdmissao || hojeISO(),
-            observacao: "Peso de admissão",
-            registrado_por: medicoNome,
-          });
-        }
-        // Altura no cadastro é idempotente — atualiza mesmo se o peso for duplicado.
-        if (Number.isFinite(alturaM) && alturaM > 0) {
-          await supabase.from("residentes").update({ altura_m: alturaM }).eq("id", residenteId);
-        }
-      }
-
-      // Medicações contínuas → prescrição REAL (segue o fluxo normal).
-      let prescricoesGeradas = false;
-      const linhas = dados.medicacoes
-        .filter((m) => m.medicamento.trim() && m.periodos.length > 0)
-        .flatMap((m) => {
-          const grupo = crypto.randomUUID();
-          return m.periodos.map((periodo) => ({
-            residente_id: residenteId,
-            medicamento: m.medicamento.trim().toUpperCase(),
-            dose: m.dose.trim() || null,
-            via: m.via,
-            posologia: m.posologia.trim() || "1x/dia",
-            periodo,
-            quantidade: m.quantidade.trim() || "1",
-            grupo_prescricao: grupo,
-            ativa: true,
-            alerta_alergia: null,
-            prescrito_por: usuarioAtual.id,
-          }));
-        });
-      if (linhas.length > 0) {
-        const { error } = await supabase.from("prescricao").insert(linhas);
-        if (error) throw error;
-        prescricoesGeradas = true;
-      }
-
-      // Insere o documento de admissão.
-      const { error: errAdm } = await supabase.from("evolucao_admissao").insert({
-        residente_id: residenteId,
-        dados: dados as unknown as Record<string, unknown>,
-        medico_id: usuarioAtual.id,
-        medico_nome: medicoNome,
-        medico_crm: medicoCrm,
-        data_admissao_avaliacao: dados.dataAdmissao || null,
-        prescricoes_geradas: prescricoesGeradas,
+      // Tudo numa ÚNICA transação no servidor (RPC registrar_admissao, 0135):
+      // comorbidades, alergias, peso/altura, prescrições, documento e a
+      // evolução resumida — ou grava tudo, ou nada. Médico/CRM vêm do usuário
+      // autenticado no servidor. Repetir (mesma chave, ou mesmo hóspede no
+      // mesmo dia) não duplica prescrições: vira edição do documento.
+      const { data, error } = await supabase.rpc("registrar_admissao", {
+        p: {
+          residente_id: residenteId,
+          existente_id: existente?.id ?? null,
+          texto_evolucao: existente ? null : `EVOLUÇÃO DE ADMISSÃO\n${montarTextoAdmissao(dados)}`,
+          dados: dados as unknown as Record<string, unknown>,
+        },
+        p_idempotencia: args.idempotencia ?? novaChaveIdempotencia(),
       });
-      if (errAdm) throw errAdm;
-
-      // Vincula ao histórico de evoluções (resumo legível).
-      await supabase.from("evolucao").insert({
-        residente_id: residenteId,
-        texto: `EVOLUÇÃO DE ADMISSÃO\n${montarTextoAdmissao(dados)}`,
-        registrado_por: medicoNome,
-      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: (_d, args) => {
       const r = args.residenteId;

@@ -4,6 +4,7 @@ import { ADMIN_ATUAL } from "@/data/profiles";
 import { registrarLogAlteracao } from "@/hooks/useLogAlteracao";
 import { hojeISO } from "@/lib/utils";
 import type {
+  FechamentoMensal,
   FormaPagamento,
   GrauDependencia,
   Ocupacao,
@@ -146,6 +147,18 @@ export function useAjustarMensalidade(residenteId: string) {
 // ─── Pagamentos ─────────────────────────────────────────────────────────────────
 
 /** Pagamentos registrados para um mês de referência ("YYYY-MM"). */
+/** Fechamento do mês (FIN-01): snapshot congelado, ou null se o mês está aberto. */
+export function useFechamentoMensal(mes: string) {
+  return useQuery({
+    queryKey: ["fechamento-mensal", mes],
+    queryFn: async (): Promise<FechamentoMensal | null> => {
+      const { data, error } = await supabase.from("fechamento_mensal").select("*").eq("mes", mes).maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+  });
+}
+
 export function usePagamentosDoMes(mes: string) {
   return useQuery({
     queryKey: ["pagamentos-mensalidade", mes],

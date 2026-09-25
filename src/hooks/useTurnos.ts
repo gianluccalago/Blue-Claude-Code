@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { dataISO, combinarDataHoraISO } from "@/lib/utils";
-import type { CategoriaTurno, TagTurno, Turno } from "@/types/database";
+import { mensagemErroTurno, sobrepoe } from "@/lib/turnos";
+import type { CategoriaTurno, TagTurno, Turno, TurnoAjuste } from "@/types/database";
 
 export interface TurnoValor {
   profissional_id: string | null;
@@ -69,6 +70,9 @@ function horaBR(isoTs: string): string {
  * Poka-yoke da escala: verifica COLISÃO DE HORÁRIO do profissional. Busca os
  * turnos dele em data±1 (cobre noturno cruzando meia-noite) e acusa qualquer
  * sobreposição de intervalo [inicio, fim). Lança erro claro se houver.
+ * Compara INSTANTES (Date.parse), nunca ISO como texto — o banco devolve
+ * "+00:00" e o cliente manda "Z" (ESC-01). A autoridade final é a constraint
+ * turnos_sem_sobreposicao (0140); aqui só se antecipa a mensagem.
  */
 async function verificarColisaoTurno(
   profissionalId: string,
@@ -85,9 +89,8 @@ async function verificarColisaoTurno(
     .lte("data", deslocarDia(data, 1));
   if (error) throw error;
 
-  const conflito = (existentes ?? []).find(
-    (t) => t.id !== ignorarTurnoId && t.inicio < fimISO && t.fim > inicioISO,
-  );
+  const novo = { inicio: inicioISO, fim: fimISO };
+  const conflito = (existentes ?? []).find((t) => t.id !== ignorarTurnoId && sobrepoe(t, novo));
   if (conflito) {
     throw new Error(
       `Conflito de horário: esta profissional já tem turno das ${horaBR(conflito.inicio)} às ${horaBR(conflito.fim)} em ${new Date(conflito.data + "T00:00:00").toLocaleDateString("pt-BR")}.`,
@@ -104,7 +107,7 @@ export function useCriarTurno() {
         await verificarColisaoTurno(v.profissional_id, v.data, v.inicio, v.fim);
       }
       const { error } = await supabase.from("turnos").insert(v);
-      if (error) throw error;
+      if (error) throw new Error(mensagemErroTurno(error));
     },
     onSuccess: () => invalidar(qc),
   });
@@ -124,7 +127,7 @@ export function useEditarTurno() {
         );
       }
       const { error } = await supabase.from("turnos").update(args.valor).eq("id", args.id);
-      if (error) throw error;
+      if (error) throw new Error(mensagemErroTurno(error));
     },
     onSuccess: () => invalidar(qc),
   });
@@ -204,19 +207,68 @@ export function useCriarTurnosRecorrentes() {
           tag: args.tag,
           observacao_interna: null,
         }))
-        .filter(
-          (novo) =>
-            !args.profissional_id ||
-            !existentes.some((t) => t.inicio < novo.fim && t.fim > novo.inicio),
-        );
+        .filter((novo) => !args.profissional_id || !existentes.some((t) => sobrepoe(t, novo)));
 
       const pulados = candidatas.length - novos.length;
       if (novos.length > 0) {
         const { error } = await supabase.from("turnos").insert(novos);
-        if (error) throw error;
+        if (error) throw new Error(mensagemErroTurno(error));
       }
       return { criados: novos.length, pulados };
     },
     onSuccess: () => invalidar(qc),
+  });
+}
+
+// ─── Ponto: ajuste manual pela gestão (com rastro) ───────────────────────────
+
+export interface AjustePontoArgs {
+  turnoId: string;
+  tipo: "entrada" | "saida";
+  quando: string; // ISO escolhido pela coordenação
+  motivo: string | null;
+}
+
+/**
+ * Ajuste manual de ponto pela Coordenação (plano B do GPS). Grava check_in ou
+ * check_out + marcador *_manual e manda o motivo na coluna transitória
+ * `ajuste_motivo`: o trigger trg_turnos_c_rastro_ajuste (0140) copia o valor
+ * anterior, o novo, o motivo e o autor (resolvido no servidor) para
+ * turno_ajuste e limpa a coluna. Só a gestão passa pela RLS/trigger.
+ */
+export function useAjustarPonto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: AjustePontoArgs) => {
+      const motivo = args.motivo?.trim() || null;
+      const patch =
+        args.tipo === "entrada"
+          ? { check_in: args.quando, check_in_manual: true, ajuste_motivo: motivo }
+          : { check_out: args.quando, check_out_manual: true, ajuste_motivo: motivo };
+      const { error } = await supabase.from("turnos").update(patch).eq("id", args.turnoId);
+      if (error) throw new Error(mensagemErroTurno(error));
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      qc.invalidateQueries({ queryKey: ["turno-ajustes"] });
+      qc.invalidateQueries({ queryKey: ["plantao"] });
+    },
+  });
+}
+
+/** Rastro de ajustes manuais de um turno (mais recente primeiro). */
+export function useTurnoAjustes(turnoId: string | undefined) {
+  return useQuery({
+    queryKey: ["turno-ajustes", turnoId],
+    enabled: !!turnoId,
+    queryFn: async (): Promise<TurnoAjuste[]> => {
+      const { data, error } = await supabase
+        .from("turno_ajuste")
+        .select("*")
+        .eq("turno_id", turnoId!)
+        .order("ajustado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 }

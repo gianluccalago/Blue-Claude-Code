@@ -59,13 +59,42 @@ export interface ItemCalculadoPorDias {
   detalhes: string;
 }
 
-/** Extrai número + unidade de um campo de quantidade textual ("1 comprimido"). */
+/**
+ * Extrai número + unidade de um campo de quantidade textual da prescrição.
+ * Aceita dose fracionada como o médico escreve: "0,5 comprimido", "1/2 comp",
+ * "½ comprimido", "meio comprimido", "1 e 1/2". Nunca arredonda: meia dose
+ * é 0,5 (as colunas do estoque são numeric(10,2) desde a 0133).
+ */
 export function parsearQuantidadeMed(q: string | null): { numero: number; unidade: string } {
   if (!q) return { numero: 1, unidade: "unidade" };
-  const m = q.trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)/);
-  if (!m) return { numero: 1, unidade: q.trim() };
+  const texto = q.trim();
+  // Fração unicode ou "meio/meia" no começo → 0,5.
+  const meio = texto.match(/^(?:½|meio|meia)\s*(.*)$/i);
+  if (meio) return { numero: 0.5, unidade: meio[1].trim() || "unidade" };
+  // "1/2 comp", "1 e 1/2 comp", "1 1/2 comp".
+  const fracao = texto.match(/^(?:(\d+)\s*(?:e\s*)?)?(\d+)\s*\/\s*(\d+)\s*(.*)$/i);
+  if (fracao) {
+    const inteiro = fracao[1] ? parseInt(fracao[1], 10) : 0;
+    const den = parseInt(fracao[3], 10);
+    const numero = den > 0 ? inteiro + parseInt(fracao[2], 10) / den : NaN;
+    return { numero: Number.isFinite(numero) ? numero : 1, unidade: fracao[4].trim() || "unidade" };
+  }
+  const m = texto.match(/^(\d+(?:[.,]\d+)?)\s*(.*)/);
+  if (!m) return { numero: 1, unidade: texto };
   const numero = parseFloat(m[1].replace(",", "."));
   return { numero: isNaN(numero) ? 1 : numero, unidade: m[2].trim() || "unidade" };
+}
+
+/** Quantidade para exibição em pt-BR: 0.5 → "0,5"; 30 → "30"; 15.25 → "15,25". */
+export function formatarQtd(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "0";
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+}
+
+/** Lê o número digitado num input de quantidade (aceita "0,5" e "0.5"); inválido → 0. */
+export function lerQtd(texto: string): number {
+  const n = parseFloat((texto ?? "").trim().replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
 }
 
 /**

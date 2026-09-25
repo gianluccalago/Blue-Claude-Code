@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { usuarioAtual, usuarioAutenticado } from "@/auth/usuarioAtual";
+import { usuarioAtual } from "@/auth/usuarioAtual";
+import { PERIODO_ROTULO, validarPeriodosPosologia, validarQuantidade } from "@/lib/prescricao";
 import type {
   AvaliacaoIVCF,
   EliminacaoTratamento,
@@ -10,6 +11,7 @@ import type {
   PendenciaTratamento,
   Prescricao,
   PeriodoMedicacao,
+  PrescricaoRpcJson,
   Residente,
   ViaMedicacao,
 } from "@/types/database";
@@ -26,23 +28,6 @@ export type GrupoPrescricao = {
   controlado: boolean;
   linhas: Prescricao[];
 };
-
-/**
- * Médico prescritor da prescrição criada AGORA: o usuário REALMENTE autenticado
- * (ignora o Camaleão — se o Master prescreve encarnando o médico, o prescritor
- * é o Master, que também é médico). Só perfis medico/master podem constar como
- * prescritor; qualquer outro caso retorna null e a receita fica bloqueada até
- * um médico ser atribuído.
- */
-function prescritorAtualId(): string | null {
-  if (usuarioAutenticado.perfil === "medico" || usuarioAutenticado.perfil === "master") {
-    return usuarioAutenticado.id;
-  }
-  console.warn(
-    `Prescrição criada por usuário sem perfil médico (${usuarioAutenticado.perfil}); prescrito_por ficará vazio.`,
-  );
-  return null;
-}
 
 export type MedicamentoConhecido = {
   medicamento: string;
@@ -149,6 +134,56 @@ export function usePrescricoesAtivas(residenteId: string | undefined) {
 
 type PeriodoQuantidade = { periodo: PeriodoMedicacao; quantidade: string };
 
+/**
+ * Chave de idempotência das RPCs de prescrição/admissão (migration 0135):
+ * gerada no cliente e reaproveitada ao "tentar de novo" a MESMA gravação —
+ * repetir a chave devolve o resultado já gravado sem duplicar nada.
+ */
+export function novaChaveIdempotencia(): string {
+  return crypto.randomUUID();
+}
+
+/** Corpo comum das RPCs criar/editar_prescricao (jsonb `p`). */
+function corpoPrescricao(args: {
+  residenteId: string;
+  medicamento: string;
+  dose: string | null;
+  via: ViaMedicacao;
+  posologia: string;
+  periodos: PeriodoQuantidade[];
+  alertaAlergia?: string | null;
+  controlado?: boolean;
+}): PrescricaoRpcJson {
+  return {
+    residente_id: args.residenteId,
+    // Normaliza espaços internos além do trim: "AAS  INFANTIL" e "AAS INFANTIL"
+    // devem casar como o MESMO nome em estoque/dispensação/viagem (a RPC
+    // repete a normalização e põe em caixa alta).
+    medicamento: args.medicamento.trim().replace(/\s+/g, " ").toUpperCase(),
+    dose: args.dose,
+    via: args.via,
+    posologia: args.posologia,
+    periodos: args.periodos.map((p) => ({ periodo: p.periodo, quantidade: p.quantidade })),
+    alerta_alergia: args.alertaAlergia ?? null,
+    controlado: args.controlado ?? false,
+  };
+}
+
+/**
+ * Valida no cliente o que a RPC também recusa (CLI-05/CLI-13): quantidade
+ * numérica positiva por período e nº de períodos coerente com a posologia.
+ * Lança Error com a mensagem para o toast.
+ */
+function validarLinhasPrescricao(posologia: string, periodos: PeriodoQuantidade[]) {
+  if (periodos.length === 0) throw new Error("Selecione ao menos um período.");
+  for (const p of periodos) {
+    const erro = validarQuantidade(p.quantidade, PERIODO_ROTULO[p.periodo]);
+    if (erro) throw new Error(erro);
+  }
+  const erroPosologia = validarPeriodosPosologia(posologia, periodos.length);
+  if (erroPosologia) throw new Error(erroPosologia);
+}
+
 type NovaPrescricaoArgs = {
   residenteId: string;
   medicamento: string;
@@ -160,33 +195,26 @@ type NovaPrescricaoArgs = {
   alertaAlergia?: string | null;
   /** Sujeito a controle especial (Portaria 344/98). */
   controlado?: boolean;
+  /** Chave de idempotência (reaproveitada ao tentar de novo); gerada se ausente. */
+  idempotencia?: string;
 };
 
+/**
+ * Cria um grupo de prescrição pela RPC `criar_prescricao` (uma transação).
+ * O prescritor (prescrito_por) é definido pelo SERVIDOR: o usuário realmente
+ * autenticado (ignora o Camaleão), que a própria RPC exige ser médico/master.
+ */
 export function useCriarPrescricao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: NovaPrescricaoArgs) => {
-      const grupoPrescricao = crypto.randomUUID();
-      // Normaliza espaços internos além do trim: "AAS  INFANTIL" e "AAS INFANTIL"
-      // devem casar como o MESMO nome em estoque/dispensação/viagem.
-      const medicamento = args.medicamento.trim().replace(/\s+/g, " ").toUpperCase();
-      const prescritoPor = prescritorAtualId();
-      const linhas = args.periodos.map((p) => ({
-        residente_id: args.residenteId,
-        medicamento,
-        dose: args.dose,
-        via: args.via,
-        posologia: args.posologia,
-        periodo: p.periodo,
-        quantidade: p.quantidade,
-        grupo_prescricao: grupoPrescricao,
-        ativa: true,
-        alerta_alergia: args.alertaAlergia ?? null,
-        prescrito_por: prescritoPor,
-        controlado: args.controlado ?? false,
-      }));
-      const { error } = await supabase.from("prescricao").insert(linhas);
+      validarLinhasPrescricao(args.posologia, args.periodos);
+      const { data, error } = await supabase.rpc("criar_prescricao", {
+        p: { ...corpoPrescricao(args), grupo_prescricao: crypto.randomUUID() },
+        p_idempotencia: args.idempotencia ?? novaChaveIdempotencia(),
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: ["prescricoes-medico", args.residenteId] });
@@ -208,50 +236,27 @@ type EditarPrescricaoArgs = {
   alertaAlergia?: string | null;
   /** Sujeito a controle especial (Portaria 344/98). */
   controlado?: boolean;
+  /** Chave de idempotência (reaproveitada ao tentar de novo); gerada se ausente. */
+  idempotencia?: string;
 };
 
-/** Edita um grupo: suspende as linhas antigas e cria novas com o mesmo grupo_prescricao. */
+/**
+ * Edita um grupo pela RPC `editar_prescricao`: as novas linhas entram ANTES
+ * de as antigas saírem (ativa=false), tudo numa transação — se a nova falhar,
+ * a prescrição anterior continua ativa e intacta (CLI-01).
+ */
 export function useEditarPrescricao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: EditarPrescricaoArgs) => {
-      // Quem edita (médico/master) passa a ser o prescritor das novas linhas;
-      // se o editor não for médico, preserva o prescritor original do grupo.
-      let prescritoPor = prescritorAtualId();
-      if (!prescritoPor) {
-        const { data: anterior } = await supabase
-          .from("prescricao")
-          .select("prescrito_por")
-          .eq("grupo_prescricao", args.grupoPrescricao)
-          .not("prescrito_por", "is", null)
-          .limit(1)
-          .maybeSingle();
-        prescritoPor = anterior?.prescrito_por ?? null;
-      }
-
-      const { error: suspErr } = await supabase
-        .from("prescricao")
-        .update({ ativa: false })
-        .eq("grupo_prescricao", args.grupoPrescricao);
-      if (suspErr) throw suspErr;
-
-      const medicamento = args.medicamento.trim().replace(/\s+/g, " ").toUpperCase();
-      const linhas = args.periodos.map((p) => ({
-        residente_id: args.residenteId,
-        medicamento,
-        dose: args.dose,
-        via: args.via,
-        posologia: args.posologia,
-        periodo: p.periodo,
-        quantidade: p.quantidade,
-        grupo_prescricao: args.grupoPrescricao,
-        ativa: true,
-        alerta_alergia: args.alertaAlergia ?? null,
-        prescrito_por: prescritoPor,
-        controlado: args.controlado ?? false,
-      }));
-      const { error } = await supabase.from("prescricao").insert(linhas);
+      validarLinhasPrescricao(args.posologia, args.periodos);
+      const { data, error } = await supabase.rpc("editar_prescricao", {
+        p_grupo: args.grupoPrescricao,
+        p: corpoPrescricao(args),
+        p_idempotencia: args.idempotencia ?? novaChaveIdempotencia(),
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: ["prescricoes-medico", args.residenteId] });
@@ -261,16 +266,23 @@ export function useEditarPrescricao() {
   });
 }
 
-/** Suspende todas as linhas do grupo (ativa=false). */
+/** Suspende todas as linhas do grupo (ativa=false; histórico preservado) pela RPC. */
 export function useSuspenderPrescricao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { residenteId: string; grupoPrescricao: string }) => {
-      const { error } = await supabase
-        .from("prescricao")
-        .update({ ativa: false })
-        .eq("grupo_prescricao", args.grupoPrescricao);
+    mutationFn: async (args: {
+      residenteId: string;
+      grupoPrescricao: string;
+      motivo?: string | null;
+      idempotencia?: string;
+    }) => {
+      const { data, error } = await supabase.rpc("suspender_prescricao", {
+        p_grupo: args.grupoPrescricao,
+        p_motivo: args.motivo ?? null,
+        p_idempotencia: args.idempotencia ?? novaChaveIdempotencia(),
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: ["prescricoes-medico", args.residenteId] });

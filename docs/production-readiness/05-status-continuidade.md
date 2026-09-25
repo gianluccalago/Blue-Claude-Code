@@ -45,3 +45,12 @@
 - Geolocalização do navegador não prova presença; o ponto é gerencial, não legal.
 - Testes de ponta a ponta com persistência real ainda não existem; o crawler prova renderização, não regra de negócio.
 - A verificação de RLS roda em stub do Supabase; o comportamento do Auth real (banimento, expiração) precisa da homologação.
+
+## Rodada 3 (25/09, tarde) — frentes paralelas interrompidas por limite de sessão
+
+Nove frentes de implementação rodaram em paralelo; oito foram interrompidas pela API antes do relatório final. O que ficou em disco foi integrado com o mínimo de ajuste para não quebrar nada: tipos e lint limpos, 208 testes aprovados, 141 migrations aplicadas do zero sem erro, 5 arquivos de smoke por área sem FAIL, build gerado. **Nenhuma destas frentes teve revisão de relatório final; considere-as "implementadas, verificadas por teste automatizado, sem revisão humana".**
+
+- Concluída com relatório: plano de cuidados e Day Care (0137, `smoke_plano.sql`).
+- Em disco, com migration e smoke próprios, sem relatório: prescrição e admissão atômicas (0135, RPCs + idempotência, `smoke_prescricao.sql`, lib `prescricao.ts` com validação posologia × períodos); farmácia (0139, `smoke_farmacia.sql`, alergia por tokens em `alergia.ts` se presente); escalas e ponto (0140, exclusão de sobreposição, guarda de ponto, rastro de ajuste, `smoke_escala.sql`); obra e caixa (0141); cobrança (0138: pró-rata configurável, fechamento mensal com snapshot, status "estornada"); plantão noturno (`lib/plantao.ts` + testes; hooks de medicação/checklist/pendências); indicadores (`lib/ocupacao.ts`, `lib/custoPessoal.ts`, hooks de gestão); UX (`components/Modal.tsx`, `SeletorMes.tsx`, `ui/input.tsx`, `ui/select.tsx` criados; ainda NÃO aplicados nas telas).
+- Não feito nesta rodada: carregamento sob demanda das rotas, compressão de imagens, CSV pt-BR, ensaio operacional completo (o emulador com escrita e RLS está pronto em `demo-assets/api-playwright.mjs`).
+- Próximo passo exato: revisar cada frente lendo a migration e o smoke correspondente, aplicar `Modal`/`SeletorMes` nas telas, e rodar o ensaio operacional com o emulador.

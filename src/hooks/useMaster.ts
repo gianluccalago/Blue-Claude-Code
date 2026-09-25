@@ -75,10 +75,16 @@ function minutosDoDia(ts: string): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-/** Calcula a aderência a partir do plano ativo e dos registros de hoje (pura). */
+/**
+ * Calcula a aderência a partir do plano ativo e dos registros de hoje (pura).
+ * `residentesAtivos` (ids) restringe o plano a quem ESTÁ na casa: itens de
+ * hóspedes inativados continuam `ativa = true` no banco e, sem o filtro,
+ * viravam "pendentes" eternos derrubando a aderência (FIN-03).
+ */
 export function calcularAderencia(
   itens: PlanoCuidadoItem[],
   registros: TarefaRegistro[],
+  residentesAtivos?: ReadonlySet<string>,
 ): AderenciaHoje {
   // Registros "feito" agrupados por residente|tarefa, guardando o mais cedo.
   const maisCedo = new Map<string, number>();
@@ -95,6 +101,7 @@ export function calcularAderencia(
   let pendentes = 0;
   let totalComPrazo = 0;
   for (const it of itens) {
+    if (residentesAtivos && !residentesAtivos.has(it.residente_id)) continue; // hóspede fora da casa
     const alvo = horarioParaMinutos(it.horario);
     if (alvo === null) continue; // sem horário não entra na aderência
     totalComPrazo += 1;
@@ -108,11 +115,18 @@ export function calcularAderencia(
   return { totalComPrazo, noPrazo, atrasados, pendentes, pct };
 }
 
-/** Busca o plano ativo (todos) e os registros de hoje para calcular aderência. */
+/**
+ * Busca o plano ativo e os registros de hoje para calcular aderência. Só o
+ * plano de hóspedes ATIVOS (status): o plano de quem saiu fica `ativa = true`
+ * no banco e não pode entrar no denominador.
+ */
 export function useAderenciaHoje() {
   return useQuery({
     queryKey: ["master-aderencia", hojeISO()],
     queryFn: async (): Promise<{ itens: PlanoCuidadoItem[]; registros: TarefaRegistro[] }> => {
+      const ativosResp = await supabase.from("residentes").select("id").eq("status_hospede", "ativo");
+      if (ativosResp.error) throw ativosResp.error;
+      const ativos = new Set((ativosResp.data ?? []).map((r) => r.id as string));
       const planoResp = await supabase
         .from("plano_cuidado_item")
         .select("*")
@@ -123,7 +137,10 @@ export function useAderenciaHoje() {
         .select("*")
         .eq("data", hojeISO());
       if (regResp.error) throw regResp.error;
-      return { itens: planoResp.data ?? [], registros: regResp.data ?? [] };
+      return {
+        itens: (planoResp.data ?? []).filter((it) => ativos.has(it.residente_id)),
+        registros: regResp.data ?? [],
+      };
     },
   });
 }
