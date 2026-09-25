@@ -2893,6 +2893,7 @@ export interface Database {
           valor: number;              // COM SINAL (saída negativa) — convenção da planilha
           grupo: "entrada" | "saida";
           ordem: number;
+          escopo: "blue" | "seniors_care";
           centro_custo: string;
           fornecedor: string;
           descricao: string | null;
@@ -2909,6 +2910,7 @@ export interface Database {
           valor: number;
           grupo?: "entrada" | "saida";
           ordem?: number;
+          escopo?: "blue" | "seniors_care";
           centro_custo: string;
           fornecedor: string;
           descricao?: string | null;
@@ -2923,6 +2925,7 @@ export interface Database {
           valor: number;
           grupo: "entrada" | "saida";
           ordem: number;
+          escopo: "blue" | "seniors_care";
           centro_custo: string;
           fornecedor: string;
           descricao: string | null;

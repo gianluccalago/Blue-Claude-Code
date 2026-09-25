@@ -231,8 +231,32 @@ export function intervaloMeses(de: string, ate: string): string[] {
 }
 
 /** Só as saídas do empreendimento — a base histórica da correção IPCA. */
-export function apenasEmpreendimento<T extends { grupo: GrupoFC; centro_custo: string }>(ls: T[]): T[] {
-  return ls.filter((l) => l.grupo === "saida" && ehEmpreendimento(l.centro_custo));
+export function apenasEmpreendimento<T extends { grupo: GrupoFC; centro_custo: string; escopo?: EscopoFC }>(ls: T[]): T[] {
+  return ls.filter((l) => l.grupo === "saida" && ehEmpreendimento(l.centro_custo) && l.escopo !== "seniors_care");
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// ESCOPO: Blue × Seniors Care. A Seniors Care (empresa) administra o aluguel
+// do imóvel antigo e paga impostos, contabilidade, tarifas e as obras do
+// Seniors Club por conta disso. Sai do mesmo caixa (entra no Fluxo de Caixa e
+// no Demonstrativo) mas NÃO é custo do Blue: fica fora do custo do
+// empreendimento, da correção IPCA e das análises do Blue.
+// Espelho de public.fc_escopo_sugerido (migration 0142).
+// ───────────────────────────────────────────────────────────────────────────
+export type EscopoFC = "blue" | "seniors_care";
+export const ESCOPOS: { value: EscopoFC; label: string }[] = [
+  { value: "blue", label: "Blue (empreendimento)" },
+  { value: "seniors_care", label: "Seniors Care (imóvel antigo)" },
+];
+export function rotuloEscopo(e: EscopoFC | string): string {
+  return ESCOPOS.find((x) => x.value === e)?.label ?? e;
+}
+const CENTROS_SENIORS_CARE = new Set(["impostos", "administrativo", "seniors_club", "receita_aluguel", "receita_financeira"]);
+export function escopoSugerido(centro: string, rotulo: string): EscopoFC {
+  if (CENTROS_SENIORS_CARE.has(centro)) return "seniors_care";
+  const r = (rotulo ?? "").trim().toLowerCase();
+  if (/^marlon/.test(r) || r.includes("habite-se") || r.includes("cvco") || /^laudo lincoln/.test(r) || /^despesas obra pagas por/.test(r)) return "seniors_care";
+  return "blue";
 }
 
 // ───────────────────────────────────────────────────────────────────────────

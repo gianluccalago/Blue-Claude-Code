@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { KEY_FC, useLancamentosFC } from "@/hooks/useFluxoCaixa";
-import { centroDoRotulo, diaDoCentro, type GrupoFC } from "@/lib/fluxoCaixa";
+import { centroDoRotulo, diaDoCentro, escopoSugerido, type GrupoFC } from "@/lib/fluxoCaixa";
 import type { LinhaExtrato } from "@/lib/extratoSocios";
 import type { FcLancamento } from "@/types/database";
 
@@ -19,6 +19,7 @@ const KEY_SALDOS = ["fc-extrato-saldos"];
 export type LinhaExtratoId = LinhaExtrato & {
   id: string;
   origem: FcLancamento["origem"];
+  escopo: FcLancamento["escopo"];
   /** Veio do módulo Obra (NF, marco, medição…): edita-se lá, não no extrato. */
   sincronizado: boolean;
 };
@@ -34,6 +35,7 @@ export function comoLinhaExtrato(l: FcLancamento): LinhaExtratoId {
     valor: l.valor,
     origem: l.origem,
     sincronizado: !!l.origem_id,
+    escopo: l.escopo,
   };
 }
 
@@ -93,6 +95,7 @@ export function useCriarLinhaExtrato() {
         grupo: v.grupo,
         ordem: v.ordem,
         centro_custo: centro,
+        escopo: escopoSugerido(centro, v.rotulo),
         fornecedor: v.rotulo.trim(),
         descricao: null,
         pagador: "seniors",

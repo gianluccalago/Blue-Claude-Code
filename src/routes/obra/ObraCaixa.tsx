@@ -20,8 +20,8 @@ import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useNotasFiscais } from "@/hooks/useObraNotas";
 import {
   CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, rotuloGrupo, serieMensalFC, serieCaixaMensal,
-  apenasEmpreendimento, mesCurto, lerPercentual, formatarPercentual, lerReais,
-  type GrupoFC,
+  apenasEmpreendimento, mesCurto, lerPercentual, formatarPercentual, lerReais, ESCOPOS, rotuloEscopo, escopoSugerido,
+  type GrupoFC, type EscopoFC,
 } from "@/lib/fluxoCaixa";
 import { exportarCSV } from "@/lib/exportCsv";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -81,6 +81,7 @@ export function ObraCaixa() {
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
   const [grupo, setGrupo] = useState<"" | GrupoFC>("");
+  const [escopo, setEscopo] = useState<"" | EscopoFC>("");
   const [centro, setCentro] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [pagador, setPagador] = useState("");
@@ -127,12 +128,13 @@ export function ObraCaixa() {
   const filtrados = todos.filter((l) =>
     (!de || l.data >= de) && (!ate || l.data <= ate) &&
     (!grupo || l.grupo === grupo) &&
+    (!escopo || l.escopo === escopo) &&
     (!centro || l.centro_custo === centro) &&
     (!fornecedor || l.fornecedor === fornecedor) &&
     (!pagador || l.pagador === pagador) &&
     (!busca || `${l.fornecedor} ${l.descricao ?? ""} ${l.observacao ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
   );
-  const temFiltro = !!(de || ate || grupo || centro || fornecedor || pagador || busca);
+  const temFiltro = !!(de || ate || grupo || escopo || centro || fornecedor || pagador || busca);
 
   // ── Séries ────────────────────────────────────────────────────────────────
   // Caixa (lógica da planilha): SEMPRE global — saldo não faz sentido num recorte.
@@ -174,7 +176,7 @@ export function ObraCaixa() {
     const ok = exportarCSV(
       "fluxo-de-caixa",
       [...filtrados].sort((a, b) => a.data.localeCompare(b.data)).map((l) => ({
-        data: l.data, tipo: l.grupo === "entrada" ? "Entrada/mov." : "Saída", valor: l.valor,
+        data: l.data, tipo: l.grupo === "entrada" ? "Entrada/mov." : "Saída", escopo: rotuloEscopo(l.escopo), valor: l.valor,
         centro: rotuloCentro(l.centro_custo), fornecedor: l.fornecedor, descricao: l.descricao ?? "",
         pagador: rotuloPagador(l.pagador), origem: l.origem, observacao: l.observacao ?? "",
       })),
@@ -193,7 +195,7 @@ export function ObraCaixa() {
           </h2>
           <p className="text-xs text-muted-foreground">
             {ehSocio
-              ? "A planilha mensal dos sócios, dentro do app: entradas, saídas e saldo, sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável."
+              ? "A planilha mensal dos sócios, dentro do app: entradas, saídas e saldo, sempre por CAIXA (data do pagamento). Despesas da Seniors Care (imóvel antigo) ficam marcadas e fora do custo do Blue. Pagamentos do módulo Obra entram sozinhos; tudo é editável."
               : "Saídas do empreendimento, sempre por CAIXA (data do pagamento). Pagamentos do módulo Obra entram sozinhos; tudo é editável."}
           </p>
         </div>
@@ -241,6 +243,13 @@ export function ObraCaixa() {
                 <option value="saida">Saídas</option>
               </select></label>
           )}
+          {ehSocio && (
+            <label className="space-y-1 text-xs font-semibold text-muted-foreground">Escopo
+              <select value={escopo} onChange={(e) => setEscopo(e.target.value as "" | EscopoFC)} className={cn(selBase, "block")}>
+                <option value="">Blue + Seniors Care</option>
+                {ESCOPOS.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+              </select></label>
+          )}
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">Centro de custo
             <select value={centro} onChange={(e) => setCentro(e.target.value)} className={cn(selBase, "block")}>
               <option value="">Todos</option>
@@ -261,7 +270,7 @@ export function ObraCaixa() {
           {temFiltro && (
             <div className="flex items-center gap-2">
               <Badge variant="default">{filtrados.length} · {formatarMoeda(totalFiltrado)}</Badge>
-              <button onClick={() => { setDe(""); setAte(""); setGrupo(""); setCentro(""); setFornecedor(""); setPagador(""); setBusca(""); }} className="text-xs font-semibold text-primary hover:underline">limpar</button>
+              <button onClick={() => { setDe(""); setAte(""); setGrupo(""); setEscopo(""); setCentro(""); setFornecedor(""); setPagador(""); setBusca(""); }} className="text-xs font-semibold text-primary hover:underline">limpar</button>
             </div>
           )}
         </CardContent>
@@ -345,6 +354,7 @@ export function ObraCaixa() {
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {l.grupo === "entrada" && <span className="mr-1 rounded bg-success/15 px-1 font-semibold text-success">entrada/mov.</span>}
+                      {l.escopo === "seniors_care" && <span className="mr-1 rounded bg-warning/15 px-1 font-semibold text-warning" title="Despesa da Seniors Care pelo imóvel antigo — fica no caixa, fora das análises do Blue">Seniors Care</span>}
                       {rotuloCentro(l.centro_custo)} · {rotuloPagador(l.pagador)}
                       {l.origem !== "manual" && l.origem !== "planilha" && (
                         <span className="ml-1 inline-flex items-center gap-0.5 text-primary"><Link2 className="size-3" /> módulo Obra</span>
@@ -426,6 +436,7 @@ function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
     descricao: original?.descricao ?? "",
     pagador: original?.pagador ?? "seniors",
     observacao: original?.observacao ?? "",
+    escopo: original?.escopo ?? "blue",
   });
   const [valorTxt, setValorTxt] = useState(original ? String(original.grupo === "saida" ? Math.abs(original.valor) : original.valor).replace(".", ",") : "");
   const pending = criar.isPending || editar.isPending;
@@ -500,6 +511,16 @@ function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
             <input value={v.descricao} onChange={(e) => setV((p) => ({ ...p, descricao: e.target.value }))} placeholder="ex.: parcela 12/48 do terreno" className={inputBase} /></label>
           <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Observação</span>
             <input value={v.observacao} onChange={(e) => setV((p) => ({ ...p, observacao: e.target.value }))} className={inputBase} /></label>
+          {permiteEntrada && (
+            <label className={cn("flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm", v.escopo === "seniors_care" ? "border-warning/60 bg-warning/5" : "border-border")}>
+              <input type="checkbox" checked={v.escopo === "seniors_care"} onChange={(e) => setV((p) => ({ ...p, escopo: e.target.checked ? "seniors_care" : "blue" }))} className="mt-0.5 size-4 accent-primary" />
+              <span>
+                <span className="font-semibold text-secondary">É da Seniors Care (imóvel antigo)</span>
+                <span className="block text-xs text-muted-foreground">Impostos, contabilidade, tarifas e obras do Seniors Club. Fica no fluxo de caixa e no Demonstrativo, mas sai do custo do Blue e da correção IPCA.
+                  {escopoSugerido(v.centroCusto, v.fornecedor) === "seniors_care" && v.escopo !== "seniors_care" ? " Pelo centro de custo e pelo nome, parece ser da Seniors Care." : ""}</span>
+              </span>
+            </label>
+          )}
         </div>
 
         <div className="mt-6 flex gap-3">

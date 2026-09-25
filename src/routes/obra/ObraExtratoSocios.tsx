@@ -268,7 +268,7 @@ function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => vo
   }
   return (
     <div className="group flex items-center justify-between gap-2 text-sm">
-      <span className="min-w-0 truncate text-secondary">{linha.rotulo}</span>
+      <span className="min-w-0 truncate text-secondary">{linha.rotulo}{linha.escopo === "seniors_care" && <span className="ml-1 rounded bg-warning/15 px-1 text-[10px] font-semibold text-warning" title="Seniors Care — fora das análises do Blue">SC</span>}</span>
       <span className="flex shrink-0 items-center gap-1.5">
         <span className={cn("tabular-nums font-semibold", linha.valor < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(linha.valor)}</span>
         {!linha.sincronizado && (

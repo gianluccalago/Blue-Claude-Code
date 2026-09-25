@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import { valorComSinal, type GrupoFC } from "@/lib/fluxoCaixa";
+import { valorComSinal, type EscopoFC, type GrupoFC } from "@/lib/fluxoCaixa";
 import type { Database, FcLancamento, ObraDisciplinaMarco, ObraMedicao, ObraNotaFiscal } from "@/types/database";
 
 // ===========================================================================
@@ -61,6 +61,8 @@ export interface LancamentoInput {
   descricao: string;
   pagador: "seniors" | "pht" | "ernesto";
   observacao: string;
+  /** Seniors Care = despesa da empresa pelo imóvel antigo (fora das análises do Blue). */
+  escopo: EscopoFC;
 }
 
 export function useCriarLancamentoFC() {
@@ -75,6 +77,7 @@ export function useCriarLancamentoFC() {
         valor: valorComSinal(v.grupo, v.valor),
         grupo: v.grupo,
         centro_custo: v.centroCusto.trim() || (v.grupo === "entrada" ? "socios" : "indiretos"),
+        escopo: v.escopo,
         fornecedor: v.fornecedor.trim(),
         descricao: v.descricao.trim() || null,
         pagador: v.pagador,
@@ -97,6 +100,7 @@ export function useEditarLancamentoFC() {
         valor: valorComSinal(v.grupo, v.valor),
         grupo: v.grupo,
         centro_custo: v.centroCusto.trim(),
+        escopo: v.escopo,
         fornecedor: v.fornecedor.trim(),
         descricao: v.descricao.trim() || null,
         pagador: v.pagador,

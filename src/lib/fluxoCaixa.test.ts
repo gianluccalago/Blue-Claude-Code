@@ -114,7 +114,7 @@ describe("serieMensalFC com deflação (caso real de agosto/2026)", () => {
 // ───────────────────────────────────────────────────────────────────────────
 // FONTE ÚNICA: a planilha do sócio-diretor dentro do app.
 // ───────────────────────────────────────────────────────────────────────────
-import { centroDoRotulo, serieCaixaMensal, valorComSinal, lerReais, apenasEmpreendimento, CENTROS_CUSTO } from "@/lib/fluxoCaixa";
+import { centroDoRotulo, serieCaixaMensal, valorComSinal, lerReais, apenasEmpreendimento, escopoSugerido, CENTROS_CUSTO } from "@/lib/fluxoCaixa";
 import rotulos from "@/lib/__fixtures__/rotulos-extrato.json";
 
 describe("centroDoRotulo — espelho da função SQL fc_centro_do_rotulo (0131)", () => {
@@ -223,5 +223,35 @@ describe("serieMensalFC — meses sem desembolso também corrigem", () => {
     const serie = serieMensalFC([{ data: "2026-01-10", valor: -1000 }], new Map([["2026-01", 0.01], ["2026-02", -0.0032]]));
     expect(serie).toHaveLength(2);
     expect(serie[1].corrigido).toBeCloseTo(1010 * (1 - 0.0032), 6);
+  });
+});
+
+
+describe("escopo Blue × Seniors Care", () => {
+  it("impostos, administrativo, Seniors Club e receitas da empresa são Seniors Care", () => {
+    expect(escopoSugerido("impostos", "PIS")).toBe("seniors_care");
+    expect(escopoSugerido("administrativo", "contabilidade")).toBe("seniors_care");
+    expect(escopoSugerido("seniors_club", "Obras no Seniors - Lincoln")).toBe("seniors_care");
+    expect(escopoSugerido("receita_aluguel", "aluguel")).toBe("seniors_care");
+  });
+  it("rótulos do imóvel antigo em centros do Blue também são Seniors Care", () => {
+    expect(escopoSugerido("indiretos", "Marlon")).toBe("seniors_care");
+    expect(escopoSugerido("projetos", "Arquiteta habite-se")).toBe("seniors_care");
+    expect(escopoSugerido("projetos", "taxa CVCO")).toBe("seniors_care");
+    expect(escopoSugerido("indiretos", "despesas obra pagas por PHT")).toBe("seniors_care");
+  });
+  it("terreno, TRÍADE, Bacoccini e sócios continuam Blue", () => {
+    expect(escopoSugerido("terreno", "parcela 38/44 terreno 2")).toBe("blue");
+    expect(escopoSugerido("complementares", "Triade")).toBe("blue");
+    expect(escopoSugerido("projetos", "Arquiteto Bacoccini")).toBe("blue");
+    expect(escopoSugerido("socios", "aporte PHT")).toBe("blue");
+  });
+  it("o custo do empreendimento ignora o que é Seniors Care mesmo em centro do Blue", () => {
+    const ls = [
+      { data: "2026-09-10", valor: -1000, grupo: "saida" as const, centro_custo: "terreno", escopo: "blue" as const },
+      { data: "2026-09-10", valor: -2000, grupo: "saida" as const, centro_custo: "indiretos", escopo: "seniors_care" as const },
+    ];
+    const [s] = serieMensalFC(apenasEmpreendimento(ls), new Map());
+    expect(s.total).toBe(1000);
   });
 });
