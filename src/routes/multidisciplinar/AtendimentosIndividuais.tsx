@@ -10,7 +10,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Activity, ClipboardList, Check, History } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import {
   useRegistrarAtendimento,
   useAtendimentosDoResidente,
@@ -34,7 +34,7 @@ const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AtendimentosIndividuais() {
-  const residentes = useResidentes();
+  const residentes = useHospedesAtendidos();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
 
   if (residentes.isLoading) return <LoadingState />;

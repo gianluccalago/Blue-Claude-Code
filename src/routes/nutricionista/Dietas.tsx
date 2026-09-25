@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, ChevronDown, ChevronUp, Copy, History, Pencil, Salad } from "lucide-react";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import { useDefinirDieta, useDietaAtiva, useHistoricoDietas } from "@/hooks/useNutricao";
 import { CONSISTENCIAS, RESTRICOES_DIETA } from "@/lib/nutricao";
 import { HospedeSelector } from "@/components/HospedeSelector";
@@ -26,7 +26,7 @@ function extrairErro(e: unknown): string {
 }
 
 export function Dietas() {
-  const residentes = useResidentes();
+  const residentes = useHospedesAtendidos();
   const [selecionadoId, setSelecionadoId] = useState<string | undefined>();
   const hospedeId = selecionadoId ?? residentes.data?.[0]?.id;
 

@@ -15,7 +15,7 @@ import {
   Clock3,
 } from "lucide-react";
 import { SLA_HORAS, idadeTexto, estourouSLA } from "@/lib/sla";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import {
   useTratamentos,
   useMedicacoesPendentesHoje,
@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { HeroStat, StatCard, Sparkbars } from "@/components/dashboard/primitives";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
+import { rotuloPlantao } from "@/lib/plantao";
 import type { Residente, ResolucaoMedica } from "@/types/database";
 
 const PERIODO_LABEL: Record<string, string> = {
@@ -57,7 +58,7 @@ interface InfoResidente {
 }
 
 export function PainelCoordenacao() {
-  const residentes = useResidentes();
+  const residentes = useHospedesAtendidos();
   const tratamentos = useTratamentos();
   const medicacoes = useMedicacoesPendentesHoje();
   const intercorrencias = useIntercorrenciasRecentes();
@@ -256,7 +257,9 @@ export function PainelCoordenacao() {
                         : "NÃO administrada — nenhum oral foi dado"
                       : `Parcial — faltou: ${ouNaoInformado(reg.itens_faltantes)}`
                   }
-                  rodape={`Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}
+                  // A pendência pode vir do plantão anterior (a recusa das 20h não
+                  // some à meia-noite): o rodapé diz a que plantão ela pertence.
+                  rodape={`${rotuloPlantao(reg.administrado_em)} · Registrado por ${ouNaoInformado(reg.administrado_por)} · ${formatarDataHoraBR(reg.administrado_em)}`}
                   severidade={reg.status === "nao" ? "critico" : "atencao"}
                   abertaEm={reg.administrado_em}
                   selecionado={selecionadas.has(`medicacao:${reg.id}`)}

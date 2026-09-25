@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Check, Stethoscope, CircleDashed, Ambulance, Pencil, ShieldAlert } from "lucide-react";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import { useTodasIntercorrencias, useTratamentos, useResolucoesMedicas } from "@/hooks/useCoordenacao";
 import { RegistrarEventoSentinelaModal } from "@/components/vigilancia/RegistrarEventoSentinelaModal";
 import { RegistrarAgravoModal } from "@/components/vigilancia/RegistrarAgravoModal";
@@ -53,7 +53,7 @@ function dentroDoPeriodo(ts: string, periodo: Periodo): boolean {
 }
 
 export function IntercorrenciasCoord() {
-  const residentes = useResidentes();
+  const residentes = useHospedesAtendidos();
   const intercorrencias = useTodasIntercorrencias();
   const tratamentos = useTratamentos();
   const resolucoes = useResolucoesMedicas();
@@ -79,7 +79,7 @@ export function IntercorrenciasCoord() {
   const filtradas = useMemo(() => {
     return (intercorrencias.data ?? []).filter((i) => {
       // Só hóspedes ATIVOS (inativados somem do operacional): `info` já é a
-      // lista de ativos (useResidentes).
+      // lista de ativos (useHospedesAtendidos, com Day Care).
       if (!info.has(i.residente_id)) return false;
       if (hospedeFiltro !== "todos" && i.residente_id !== hospedeFiltro) return false;
       if (tipoFiltro !== "todos" && i.tipo !== tipoFiltro) return false;

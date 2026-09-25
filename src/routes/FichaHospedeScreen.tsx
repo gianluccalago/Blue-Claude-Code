@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { RegistrarSaidaModal } from "@/components/RegistrarSaidaModal";
 import { useAuth } from "@/auth/AuthProvider";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
 import { useEditarResidente, type ResidenteValor } from "@/hooks/useResidentesGestao";
 import { HospedeSelector } from "@/components/HospedeSelector";
@@ -34,7 +34,7 @@ export function FichaHospedeScreen() {
   // Ambos os hooks são chamados sempre (regras de hooks); a designação só é
   // CONSULTADA para os perfis de ponta — Nutricionista/demais veem todos.
   const designados = useHospedesDesignados(usuarioAtual.id, restrito);
-  const todos = useResidentes();
+  const todos = useHospedesAtendidos();
   const fonte = restrito ? designados : todos;
 
   const search = useSearch({ strict: false }) as { hospede?: string };

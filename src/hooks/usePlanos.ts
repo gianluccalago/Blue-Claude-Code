@@ -2,12 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { PlanoCuidadoItem, Residente } from "@/types/database";
 import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
+import type { ResultadoAplicacaoModelo } from "@/lib/planoCuidado";
 
 /**
- * Residentes ATIVOS que OCUPAM LEITO (longa + curta permanência). Hook central
- * das telas operacionais e de ocupação. Inativos somem (status); e o DAY CARE é
- * EXCLUÍDO aqui (não ocupa leito; vive em useFrequentadoresDayCare) — assim ele
- * não polui checklist do cuidador, médico, farmácia, mapa de suítes, etc.
+ * Residentes ATIVOS que OCUPAM LEITO (longa + curta permanência). Hook de
+ * OCUPAÇÃO: mapa de suítes, mensalidades, financeiro, hotelaria. Inativos somem
+ * (status); e o DAY CARE é EXCLUÍDO aqui (não ocupa leito; vive em
+ * useFrequentadoresDayCare). Para fluxos ASSISTENCIAIS (prescrição, plano de
+ * cuidado, dieta, atividades, atendimentos, ficha, painel da coordenação) use
+ * useHospedesAtendidos(), que inclui o Day Care (CLI-07).
  */
 export function useResidentes() {
   return useQuery({
@@ -22,6 +25,32 @@ export function useResidentes() {
       const residentes = data ?? [];
       residentes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       return residentes;
+    },
+  });
+}
+
+/**
+ * Hóspedes ATENDIDOS pela casa: todos os ATIVOS, INCLUINDO o Day Care (que
+ * recebe prescrição, plano de cuidado, dieta, atividades e atendimentos como
+ * qualquer outro). Inativos ficam fora. É a lista das telas assistenciais —
+ * CLI-07: o Day Care não aparecia nelas porque usavam useResidentes() (leitos).
+ *
+ * A chave começa com "residentes" de propósito: as invalidações existentes
+ * (`invalidateQueries({ queryKey: ["residentes"] })` em admissão, saída, peso,
+ * mensalidade…) casam por prefixo e atualizam esta lista também.
+ */
+export function useHospedesAtendidos() {
+  return useQuery({
+    queryKey: ["residentes", "atendidos"],
+    queryFn: async (): Promise<Residente[]> => {
+      const { data, error } = await supabase
+        .from("residentes")
+        .select("*")
+        .eq("status_hospede", "ativo");
+      if (error) throw error;
+      const lista = data ?? [];
+      lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      return lista;
     },
   });
 }
@@ -124,7 +153,13 @@ export function useAdicionarPlanoItem(residenteId: string) {
   });
 }
 
-/** Edita apenas horário e tolerância de um item do plano. */
+/**
+ * Edita apenas horário e tolerância de um item do plano — in-place, de
+ * propósito: tarefa_registro guarda o ID do item em `tarefa` e o horário DA
+ * ÉPOCA em `horario`, então os registros passados não mudam. Texto, responsável
+ * e hóspede do item são imutáveis no banco (trigger 0137): para trocá-los,
+ * remova o item e crie outro.
+ */
 export function useEditarPlanoItem(residenteId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -155,31 +190,25 @@ export function useRemoverPlanoItem(residenteId: string) {
 }
 
 /**
- * Aplica um modelo de rotina ao plano do hóspede: COPIA todos os itens do
- * modelo como novos registros (ativa=true). Apenas ADICIONA — nunca apaga as
- * tarefas existentes.
+ * Aplica um modelo de rotina ao plano do hóspede pela RPC aplicar_modelo_rotina
+ * (0137): numa transação, entram SÓ as tarefas do modelo que ainda não existem
+ * ativas no plano (tarefa + horário + responsável). Reaplicar não duplica
+ * (CLI-06). Nunca apaga as tarefas existentes. A chave de idempotência é gerada
+ * por chamada: uma retentativa (rede/duplo clique) devolve o mesmo resultado.
+ * Devolve quantas tarefas entraram e quantas já existiam.
  */
 export function useAplicarModelo(residenteId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (modeloId: string) => {
-      const { data: itens, error: errItens } = await supabase
-        .from("modelo_rotina_item")
-        .select("*")
-        .eq("modelo_id", modeloId);
-      if (errItens) throw errItens;
-      if (!itens || itens.length === 0) return;
-
-      const novos = itens.map((it) => ({
-        residente_id: residenteId,
-        tarefa: it.tarefa,
-        horario: it.horario,
-        responsavel: it.responsavel,
-        tolerancia_minutos: it.tolerancia_minutos,
-        ativa: true,
-      }));
-      const { error } = await supabase.from("plano_cuidado_item").insert(novos);
+    mutationFn: async (modeloId: string): Promise<ResultadoAplicacaoModelo> => {
+      const { data, error } = await supabase.rpc("aplicar_modelo_rotina", {
+        p_modelo: modeloId,
+        p_residentes: [residenteId],
+        p_idempotencia: crypto.randomUUID(),
+      });
       if (error) throw error;
+      const linha = data?.[0];
+      return { inseridas: linha?.inseridas ?? 0, existentes: linha?.existentes ?? 0 };
     },
     onSuccess: () => invalidar(qc, residenteId),
   });

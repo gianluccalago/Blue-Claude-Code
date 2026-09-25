@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { Plus, LayoutTemplate, ChevronRight, Salad, Lock } from "lucide-react";
-import { useResidentes, usePlanoItens } from "@/hooks/usePlanos";
+import { useHospedesAtendidos, usePlanoItens } from "@/hooks/usePlanos";
 import {
   useAdicionarPlanoItem,
   useAdicionarPlanoItemEmLote,
@@ -10,6 +11,7 @@ import {
   useAplicarModelo,
 } from "@/hooks/usePlanos";
 import type { Residente } from "@/types/database";
+import { resumoAplicacaoModelo } from "@/lib/planoCuidado";
 import { useModelos } from "@/hooks/useModelos";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { DietaInfo } from "@/components/nutricao/DietaInfo";
@@ -32,7 +34,9 @@ interface Confirmacao {
 }
 
 export function PlanosCuidado() {
-  const residentes = useResidentes();
+  // Todos os hóspedes atendidos, INCLUINDO Day Care (CLI-07): o plano de
+  // cuidado não depende de leito.
+  const residentes = useHospedesAtendidos();
   const { perfil } = useParams({ strict: false }) as { perfil?: string };
   // Criar/editar/remover o plano é da Coordenação (e Master). A Enfermeira só
   // VISUALIZA. A RLS reforça (escrita em plano_cuidado_item só master/coordenacao).
@@ -154,11 +158,15 @@ function PlanoDoHospede({
                         setConfirmacao({
                           titulo: `Aplicar "${m.nome}"?`,
                           descricao:
-                            "Adiciona as tarefas do modelo ao plano deste hóspede sem apagar as existentes. Continuar?",
+                            "Adiciona ao plano deste hóspede as tarefas do modelo que ainda não estão nele; nada é apagado nem duplicado. Continuar?",
                           textoConfirmar: "Sim, aplicar",
                           variante: "default",
                           acao: () => {
-                            aplicar.mutate(m.id);
+                            aplicar.mutate(m.id, {
+                              onSuccess: (r) => toast.success(resumoAplicacaoModelo(r)),
+                              onError: (e) =>
+                                toast.error(e instanceof Error ? e.message : "Não foi possível aplicar o modelo."),
+                            });
                             setMostrarModelos(false);
                           },
                         })

@@ -28,7 +28,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useResidentes } from "@/hooks/usePlanos";
+import { useHospedesAtendidos } from "@/hooks/usePlanos";
 import { AnexoSeguro } from "@/components/AnexoSeguro";
 import { BUCKET_FOTOS_ATIVIDADE } from "@/lib/storage";
 import {
@@ -85,7 +85,7 @@ function formatarDiasSemana(dias: string[] | null): string {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function Atividades() {
-  const { data: residentes = [], isLoading: loadRes, error: errRes } = useResidentes();
+  const { data: residentes = [], isLoading: loadRes, error: errRes } = useHospedesAtendidos();
   const { data: atividades = [], isLoading: loadAtv, error: errAtv } = useAtividades();
 
   const [tabAtiva, setTabAtiva] = useState<"agenda" | "historico">("agenda");
