@@ -22,7 +22,12 @@ for f in $(ls supabase/migrations/*.sql | sort); do
 done
 echo "migrations com erro: $erros"
 [ "$erros" = "0" ] || exit 1
-psql -d "$DB" -q -f supabase/tests/rls_smoke.sql 2>&1 | grep -E '^(PASS|FAIL)' > /tmp/rls_smoke.out || true
+: > /tmp/rls_smoke.out
+for t in supabase/tests/rls_smoke.sql supabase/tests/smoke_*.sql; do
+  [ -f "$t" ] || continue
+  echo "== $(basename "$t")" >> /tmp/rls_smoke.out
+  psql -d "$DB" -q -f "$t" 2>&1 | grep -E '^(PASS|FAIL)' >> /tmp/rls_smoke.out || true
+done
 cat /tmp/rls_smoke.out
-if grep -q "FAIL" /tmp/rls_smoke.out; then echo "RLS smoke: FALHOU"; exit 1; fi
-echo "RLS smoke: OK"
+if grep -q "^FAIL" /tmp/rls_smoke.out; then echo "Smoke: FALHOU"; exit 1; fi
+echo "Smoke: OK"
