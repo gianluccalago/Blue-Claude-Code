@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useResidentes } from "@/hooks/usePlanos";
+import { useResidentesInativos } from "@/hooks/useCicloVida";
 import { usePagamentosDoMes, useTabelaPreco } from "@/hooks/useMensalidades";
 import { useUpsellingTodosDoMes } from "@/hooks/useUpselling";
 import { useCobrancasTemporariasDoMes } from "@/hooks/useCobrancaTemporaria";
@@ -26,8 +27,37 @@ export interface LinhaDemonstrativo {
  * upselling de cada hóspede — base do Demonstrativo mensal e do Painel da
  * Administração.
  */
+/**
+ * Hóspedes que ESTIVERAM na casa no mês: ativos admitidos até o fim do mês
+ * mais os inativos cuja saída foi dentro ou depois do mês. Antes, a lista era
+ * "ativos de hoje": quem saiu em 15/09 sumia da cobrança de setembro e de
+ * todos os meses anteriores, e quem entrou em 20/09 aparecia em julho.
+ * A mensalidade continua CHEIA no mês de entrada e de saída (pró-rata é
+ * decisão de negócio pendente).
+ */
+export function useResidentesDoMes(mes: string) {
+  const ativos = useResidentes();
+  const inativos = useResidentesInativos();
+  const inicio = `${mes}-01`;
+  const fim = `${mes}-31`;
+  const data = useMemo(() => {
+    if (!ativos.data || !inativos.data) return undefined;
+    const noMes = (r: Residente) =>
+      (r.data_admissao ?? "0000-00-00") <= fim && (r.status_hospede !== "inativo" || (r.data_saida ?? "9999-12-31") >= inicio);
+    const lista = [...ativos.data, ...inativos.data.filter((r) => r.modalidade !== "day_care")].filter(noMes);
+    lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    return lista;
+  }, [ativos.data, inativos.data, inicio, fim]);
+  return {
+    data,
+    isLoading: ativos.isLoading || inativos.isLoading,
+    isError: ativos.isError || inativos.isError,
+    error: ativos.error ?? inativos.error,
+  };
+}
+
 export function useDemonstrativoMes(mes: string) {
-  const residentes = useResidentes();
+  const residentes = useResidentesDoMes(mes);
   const tabelaPreco = useTabelaPreco();
   const pagamentos = usePagamentosDoMes(mes);
   const upselling = useUpsellingTodosDoMes(mes);

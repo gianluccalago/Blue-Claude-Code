@@ -31,16 +31,20 @@ export function usePrescricoes(residenteId: string | undefined) {
  * Administrações registradas hoje, da mais recente para a mais antiga.
  * Usada para mostrar o status persistente de cada período.
  */
-export function useAdministracoesHoje(residenteId: string | undefined) {
+export function useAdministracoesHoje(residenteId: string | undefined, desdeISO?: string | null) {
+  // Plantão NOTURNO atravessa a meia-noite: às 00h30 a dose da "Noite" (20h)
+  // pertence ao turno que começou às 19h de ontem. Sem isto, depois da
+  // meia-noite ela aparecia como "não registrada" — risco de dose dobrada.
+  const desde = desdeISO && desdeISO < inicioDoDiaISO() ? desdeISO : inicioDoDiaISO();
   return useQuery({
-    queryKey: ["administracao", residenteId, hojeISO()],
+    queryKey: ["administracao", residenteId, hojeISO(), desde],
     enabled: !!residenteId,
     queryFn: async (): Promise<Administracao[]> => {
       const { data, error } = await supabase
         .from("administracao")
         .select("*")
         .eq("residente_id", residenteId!)
-        .gte("administrado_em", inicioDoDiaISO())
+        .gte("administrado_em", desde)
         .order("administrado_em", { ascending: false });
       if (error) throw error;
       return data ?? [];

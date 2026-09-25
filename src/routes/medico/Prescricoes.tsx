@@ -509,14 +509,27 @@ function FormPrescricao({
   const alergiaConfirmada =
     !!conflitoAlergia && alergiaConfirmadaPara === form.medicamento.trim().toLowerCase();
 
+  // Todo período marcado precisa de quantidade: sem ela a cuidadora via
+  // "Manhã:" em branco e a receita imprimia "1 dose".
+  const periodosSemQuantidade = periodosMarcados.filter((p) => p.quantidade.trim() === "");
   const podeSalvar =
     form.medicamento.trim() !== "" &&
     periodosMarcados.length > 0 &&
+    periodosSemQuantidade.length === 0 &&
     !salvando &&
     (!conflitoAlergia || alergiaConfirmada);
 
   async function handleSalvar() {
     if (!podeSalvar) return;
+    try {
+      await salvarPrescricao();
+      toast.success(grupoPrescricao ? "Prescrição atualizada." : "Prescrição registrada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar a prescrição.");
+    }
+  }
+
+  async function salvarPrescricao() {
     const periodos = periodosMarcados.map((p) => ({
       periodo: p.key,
       quantidade: p.quantidade.trim(),

@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "tsc -b --noEmit && eslint src",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check": "tsc -b --noEmit && eslint src && vitest run && vite build",
+    "db:check": "bash scripts/db-check.sh"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",

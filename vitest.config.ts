@@ -3,6 +3,9 @@ import path from "node:path";
 
 // Testes das funções PURAS (cálculos do módulo Obra e afins). Ambiente node,
 // sem DOM — apenas lógica. Reusa o alias "@" do vite.config.
+// Os testes de data NÃO podem depender do fuso da máquina (CI roda em UTC).
+process.env.TZ = "America/Sao_Paulo";
+
 export default defineConfig({
   resolve: {
     alias: {

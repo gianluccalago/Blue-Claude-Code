@@ -114,7 +114,7 @@ function MedicacaoDoHospede({
   turno: Turno | null;
 }) {
   const prescricoes = usePrescricoes(residenteId);
-  const administracoes = useAdministracoesHoje(residenteId);
+  const administracoes = useAdministracoesHoje(residenteId, turno?.inicio ?? null);
 
   // Registro mais recente de hoje por período (a query já vem ordenada desc).
   const registroPorPeriodo = useMemo(() => {
