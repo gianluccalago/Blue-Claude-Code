@@ -10,7 +10,9 @@ import type { Residente, TagTurno } from "@/types/database";
 //
 // "Conversa com a escala" na LEITURA: uma designação só conta se o cuidador
 // AINDA estiver escalado no turno (turnos data+tag). Quem saiu da escala deixa
-// de cobrir → hóspede DESCOBERTO. Presença vem do check-in/out do turno.
+// de cobrir → hóspede SEM DESIGNAÇÃO. O check-in NÃO condiciona o vínculo:
+// cuidadora escalada cobre mesmo sem bater o ponto (atraso/esquecimento é
+// comum) — a presença vira só uma tag "check-in pendente".
 // ===========================================================================
 
 export interface PessoaTurno {
@@ -25,16 +27,23 @@ export interface HospedeCobertura {
   cuidadores: PessoaTurno[];
   /** Ninguém designado/escalado cobrindo. */
   descoberto: boolean;
-  /** Coberto no papel, mas nenhum cuidador presente (escalado sem check-in). */
-  risco: boolean;
+  /**
+   * Presença da cobertura: "presente" se alguma designada fez check-in;
+   * "sem_check_in" se está escalada e vinculada mas ainda não bateu o ponto
+   * (atraso/esquecimento — NÃO é furo); "saiu" se todas já fizeram check-out.
+   */
+  presenca: PresencaTurno;
 }
 
 export interface CoberturaTurno {
   enfermeiras: PessoaTurno[];
   cuidadoresEscalados: PessoaTurno[];
   hospedes: HospedeCobertura[];
+  /** Furo de verdade: nenhuma cuidadora escalada no turno. */
+  turnoSemCuidadora: boolean;
   descobertos: number;
-  riscos: number;
+  /** Vinculadas a cuidadora escalada que ainda não registrou o check-in. */
+  checkInsPendentes: number;
   /** Designações cruas do turno (para a rotação comparar o que está gravado com o plano do dia). */
   designacoes: { residente_id: string; cuidador_id: string; origem: "manual" | "rotacao" }[];
 }
@@ -98,25 +107,29 @@ export function useCoberturaTurno(data: string, tag: TagTurno) {
             .map((d) => escaladoPorId.get(d.cuidador_id))
             .filter((c): c is PessoaTurno => !!c);
           const descoberto = cuidadores.length === 0;
-          const risco = !descoberto && !cuidadores.some((c) => estaPresente(c.presenca));
-          return { residente, cuidadores, descoberto, risco };
+          return { residente, cuidadores, descoberto, presenca: presencaDaCobertura(cuidadores) };
         })
-        // Descobertos primeiro; depois em risco; depois por nome.
-        .sort((a, b) => {
-          const peso = (h: HospedeCobertura) => (h.descoberto ? 0 : h.risco ? 1 : 2);
-          return peso(a) - peso(b) || a.residente.nome.localeCompare(b.residente.nome, "pt-BR");
-        });
+        // Sem designação primeiro; depois por nome (check-in pendente não reordena).
+        .sort((a, b) => Number(b.descoberto) - Number(a.descoberto) || a.residente.nome.localeCompare(b.residente.nome, "pt-BR"));
 
       return {
         enfermeiras,
         cuidadoresEscalados: [...cuidadoresEscalados].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
         hospedes,
+        turnoSemCuidadora: cuidadoresEscalados.length === 0,
         descobertos: hospedes.filter((h) => h.descoberto).length,
-        riscos: hospedes.filter((h) => h.risco).length,
+        checkInsPendentes: hospedes.filter((h) => !h.descoberto && h.presenca === "sem_check_in").length,
         designacoes: designacoes.map((d) => ({ residente_id: d.residente_id, cuidador_id: d.cuidador_id, origem: (d.origem ?? "manual") as "manual" | "rotacao" })),
       };
     },
   });
+}
+
+/** Presença do hóspede = a melhor presença entre as cuidadoras vinculadas. */
+export function presencaDaCobertura(cuidadores: { presenca: PresencaTurno }[]): PresencaTurno {
+  if (cuidadores.some((c) => estaPresente(c.presenca))) return "presente";
+  if (cuidadores.some((c) => c.presenca === "sem_check_in")) return "sem_check_in";
+  return "saiu";
 }
 
 function dedup(lista: PessoaTurno[]): PessoaTurno[] {

@@ -16,6 +16,8 @@ import {
   CalendarCog,
   Users,
   Scale,
+  Clock,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -64,6 +66,7 @@ function deslocarDia(iso: string, dias: number): string {
 // COBERTURA ASSISTENCIAL — o mapa vivo de quem cuida de cada hóspede no turno.
 // Coordenação (dona) e Master editam; demais perfis veem em leitura. Conversa
 // com a escala: só designa quem está escalado; designação cai se sai da escala.
+// O check-in não condiciona o vínculo: escalada sem ponto = "check-in pendente".
 // ===========================================================================
 
 const PERFIS_EDITAM: ReadonlyArray<string | undefined> = ["coordenacao", "master", "enfermagem"];
@@ -190,9 +193,8 @@ function agruparPorLocal(hospedes: HospedeCobertura[]): {
   }
 
   const ordenarHosp = (a: HospedeCobertura, b: HospedeCobertura) => {
-    const peso = (h: HospedeCobertura) => (h.descoberto ? 0 : h.risco ? 1 : 2);
     return (
-      peso(a) - peso(b) ||
+      Number(b.descoberto) - Number(a.descoberto) ||
       (a.residente.quarto ?? "").localeCompare(b.residente.quarto ?? "", "pt-BR") ||
       a.residente.nome.localeCompare(b.residente.nome, "pt-BR")
     );
@@ -224,8 +226,11 @@ function ConteudoCobertura({
   podeEditar: boolean;
   onAbrirEscala: () => void;
 }) {
-  const { enfermeiras, cuidadoresEscalados, hospedes, descobertos, riscos } = cobertura;
+  const { enfermeiras, cuidadoresEscalados, hospedes, descobertos, checkInsPendentes, turnoSemCuidadora } = cobertura;
   const { modulos, semLocal } = useMemo(() => agruparPorLocal(hospedes), [hospedes]);
+  // Furo de verdade só quando NÃO há cuidadora escalada; com cuidadora no turno,
+  // "sem designação" é pendência de vínculo (a rotação resolve ao abrir a tela).
+  const furo = turnoSemCuidadora && hospedes.length > 0;
 
   return (
     <div className="space-y-4">
@@ -261,29 +266,30 @@ function ConteudoCobertura({
         <div
           className={cn(
             "flex items-center gap-3 rounded-xl border p-4",
-            descobertos > 0 ? "border-destructive/40 bg-destructive/5" : "border-success/40 bg-success/5",
+            furo ? "border-destructive/40 bg-destructive/5" : descobertos > 0 ? "border-warning/50 bg-warning/5" : "border-success/40 bg-success/5",
           )}
         >
-          <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg", descobertos > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success")}>
+          <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg", furo ? "bg-destructive/15 text-destructive" : descobertos > 0 ? "bg-warning/20 text-warning" : "bg-success/15 text-success")}>
             <UserX className="size-5" />
           </span>
           <div>
             <p className="text-2xl font-extrabold tabular-nums text-secondary">{descobertos}</p>
-            <p className="text-sm text-muted-foreground">Hóspede(s) descoberto(s) — sem cuidadora designada</p>
+            <p className="text-sm text-muted-foreground">
+              {furo
+                ? "Hóspede(s) descoberto(s) — nenhuma cuidadora escalada neste turno"
+                : descobertos > 0
+                  ? "Hóspede(s) sem designação — há cuidadora escalada; vincule (a rotação faz isso sozinha)"
+                  : "Todos os hóspedes têm cuidadora designada"}
+            </p>
           </div>
         </div>
-        <div
-          className={cn(
-            "flex items-center gap-3 rounded-xl border p-4",
-            riscos > 0 ? "border-warning/50 bg-warning/5" : "border-border bg-muted/20",
-          )}
-        >
-          <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg", riscos > 0 ? "bg-warning/20 text-warning" : "bg-muted text-muted-foreground")}>
-            <AlertTriangle className="size-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+            <Clock className="size-5" />
           </span>
           <div>
-            <p className="text-2xl font-extrabold tabular-nums text-secondary">{riscos}</p>
-            <p className="text-sm text-muted-foreground">Risco de cobertura — designada, mas sem check-in</p>
+            <p className="text-2xl font-extrabold tabular-nums text-secondary">{checkInsPendentes}</p>
+            <p className="text-sm text-muted-foreground">Check-in pendente — cuidadora designada ainda não registrou o ponto</p>
           </div>
         </div>
       </div>
@@ -318,6 +324,11 @@ function ConteudoCobertura({
 
       {/* Rotação semanal: cada cuidadora com um grupo diferente de hóspedes a cada semana */}
       <RotacaoSemanalCard data={data} tag={tag} hospedes={hospedes} escaladas={cuidadoresEscalados} designacoes={cobertura.designacoes} podeEditar={podeEditar} />
+      {furo && (
+        <p className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-2.5 text-sm font-semibold text-destructive">
+          <AlertTriangle className="size-4 shrink-0" /> Turno sem cuidadora escalada — este é o furo a resolver na Escala; os selos abaixo refletem isso.
+        </p>
+      )}
 
       {/* Indicador-resumo da proporção mínima de cuidadores (RDC 502 Art. 16).
           Detalhe completo fica na aba Vigilância Sanitária. */}
@@ -373,6 +384,7 @@ function GrupoModuloView({
   podeEditar: boolean;
 }) {
   const descobertosNoModulo = grupo.hospedes.filter((h) => h.descoberto).length;
+  const furo = escalados.length === 0;
   return (
     <div className="space-y-3">
       {/* Cabeçalho do MÓDULO (designar todo o módulo) */}
@@ -382,7 +394,7 @@ function GrupoModuloView({
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-secondary">Módulo {grupo.modulo}</h3>
           <Badge variant="muted">{grupo.hospedes.length} hóspede(s)</Badge>
           {descobertosNoModulo > 0 && (
-            <Badge variant="destructive" className="gap-1">
+            <Badge variant={furo ? "destructive" : "warning"} className="gap-1" title={furo ? "Descobertos: sem cuidadora no turno" : "Sem designação"}>
               <UserX className="size-3" /> {descobertosNoModulo}
             </Badge>
           )}
@@ -489,8 +501,13 @@ function CardHospede({
 }) {
   const designar = useDesignarCuidador();
   const remover = useRemoverDesignacao();
-  const { residente: r, cuidadores, descoberto, risco } = item;
+  const { residente: r, cuidadores, descoberto, presenca } = item;
   const selo = MODALIDADE_SELO[r.modalidade];
+  // Sem NINGUÉM escalada no turno é furo (vermelho); com cuidadora escalada e
+  // hóspede ainda não vinculado é pendência de designação (amarelo).
+  const furo = descoberto && escalados.length === 0;
+  const checkInPendente = !descoberto && presenca === "sem_check_in";
+  const jaSaiu = !descoberto && presenca === "saiu";
 
   // Cuidadoras escaladas que ainda NÃO estão designadas a este hóspede.
   const designadasIds = new Set(cuidadores.map((c) => c.id));
@@ -518,8 +535,9 @@ function CardHospede({
     <div
       className={cn(
         "rounded-lg border bg-card p-4",
-        descoberto && "border-destructive/50 bg-destructive/5",
-        !descoberto && risco && "border-warning/50 bg-warning/5",
+        furo && "border-destructive/50 bg-destructive/5",
+        descoberto && !furo && "border-warning/50 bg-warning/5",
+        jaSaiu && "border-warning/50 bg-warning/5",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -528,18 +546,26 @@ function CardHospede({
             <span className="font-bold text-secondary">{r.nome}</span>
             <span className="text-xs text-muted-foreground">Quarto {ouNaoInformado(formatarQuarto(r.quarto))}</span>
             {selo && <Badge variant="secondary">{selo}</Badge>}
-            {descoberto && (
-              <Badge variant="destructive" className="gap-1"><UserX className="size-3" /> Descoberto</Badge>
+            {furo && (
+              <Badge variant="destructive" className="gap-1"><UserX className="size-3" /> Descoberto — turno sem cuidadora</Badge>
             )}
-            {!descoberto && risco && (
-              <Badge variant="warning" className="gap-1"><AlertTriangle className="size-3" /> Risco de cobertura</Badge>
+            {descoberto && !furo && (
+              <Badge variant="warning" className="gap-1"><UserX className="size-3" /> Sem designação</Badge>
+            )}
+            {checkInPendente && (
+              <Badge variant="muted" className="gap-1"><Clock className="size-3" /> Check-in pendente</Badge>
+            )}
+            {jaSaiu && (
+              <Badge variant="warning" className="gap-1"><LogOut className="size-3" /> Cuidadora já fez check-out</Badge>
             )}
           </div>
 
           {/* Cuidadoras designadas (válidas = ainda escaladas) */}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {cuidadores.length === 0 ? (
-              <span className="text-sm font-medium text-destructive">Nenhuma cuidadora designada</span>
+              <span className={cn("text-sm font-medium", furo ? "text-destructive" : "text-warning-foreground")}>
+                {furo ? "Nenhuma cuidadora escalada neste turno" : "Ainda sem cuidadora designada"}
+              </span>
             ) : (
               cuidadores.map((c) => (
                 <span

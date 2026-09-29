@@ -56,7 +56,7 @@ export function presencaDoTurno(t: { check_in: string | null; check_out: string 
 export const PRESENCA_LABEL: Record<PresencaTurno, string> = {
   presente: "Check-in feito",
   saiu: "Check-out",
-  sem_check_in: "Sem check-in",
+  sem_check_in: "Check-in pendente",
 };
 
 export const PRESENCA_VARIANTE: Record<PresencaTurno, "success" | "muted" | "warning"> = {
