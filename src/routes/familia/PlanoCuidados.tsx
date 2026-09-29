@@ -111,6 +111,9 @@ export function PlanoCuidados() {
                         {i.horario && (
                           <span className="text-xs font-semibold tabular-nums text-muted-foreground">{i.horario}</span>
                         )}
+                        {i.intervalo_dias && i.intervalo_dias > 1 && (
+                          <span className="text-xs font-semibold text-muted-foreground">a cada {i.intervalo_dias} dias</span>
+                        )}
                         {i.turno_livre && (
                           <span className="text-xs font-semibold text-muted-foreground">
                             {i.turno_livre === "noturno" ? "durante a noite" : i.turno_livre === "diurno" ? "durante o dia" : "em todo turno"}

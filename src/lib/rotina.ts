@@ -9,18 +9,17 @@
 //    plantão anterior deixou de fazer.
 // ===========================================================================
 
-import { dataISO } from "@/lib/utils";
+import { dataISO, horarioParaMinutos } from "@/lib/utils";
 import {
   diaAnterior,
   instanteNoPlantao,
   instanteSP,
   janelaDoPlantao,
   dentroDaJanela,
-  tarefaNoTurno,
   turnoTerminando,
   type JanelaPlantao,
 } from "@/lib/plantao";
-import type { PlanoCuidadoItem, TagTurno, TarefaRegistro } from "@/types/database";
+import type { PlanoCuidadoItem, TagTurno, TarefaRegistro, TurnoLivre } from "@/types/database";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -127,6 +126,22 @@ export function plantaoAtualEAnterior(agora: Date = new Date()): { atual: Planta
 
 // ─── O que ficou sem fazer ───────────────────────────────────────────────────
 
+/**
+ * A tarefa pertence ao plantão da TAG (Diurno 07–19 / Noturno 19–07)? Igual a
+ * tarefaNoTurno, mas pela definição padrão da escala e sem depender do fuso
+ * do aparelho — é o que o painel usa, já que ele não parte de um turno gravado.
+ */
+export function tarefaNaTag(
+  item: Pick<PlanoCuidadoItem, "horario"> & { turno_livre?: TurnoLivre | null },
+  tag: TagTurno,
+): boolean {
+  if (item.turno_livre) return item.turno_livre === "ambos" || item.turno_livre === tag;
+  const min = horarioParaMinutos(item.horario);
+  if (min === null) return true;
+  const diurno = min >= 7 * 60 && min < 19 * 60;
+  return tag === "diurno" ? diurno : !diurno;
+}
+
 export type SituacaoRotina = "atrasada" | "vencendo" | "nao_feita";
 
 export interface PendenciaRotina {
@@ -168,7 +183,7 @@ export function pendenciasNoPlantao(args: {
   const ultimas = ultimaExecucaoPorItem(historico, plantao.dataPlantao);
   const saida: PendenciaRotina[] = [];
   for (const item of itens) {
-    if (!tarefaNoTurno(item, plantao.turno)) continue;
+    if (!tarefaNaTag(item, plantao.tag)) continue;
     const ultima = ultimas.get(item.id) ?? null;
     if (!devidaNaData(item, ultima, plantao.dataPlantao)) continue;
     if (item.inicio_em && plantao.dataPlantao < item.inicio_em) continue;

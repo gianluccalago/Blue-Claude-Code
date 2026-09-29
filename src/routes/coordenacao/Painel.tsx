@@ -35,6 +35,7 @@ import { HeroStat, StatCard, Sparkbars } from "@/components/dashboard/primitives
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 import { rotuloPlantao } from "@/lib/plantao";
+import { RotinaPlantaoCard } from "@/components/coordenacao/RotinaPlantaoCard";
 import type { Residente, ResolucaoMedica } from "@/types/database";
 
 const PERIODO_LABEL: Record<string, string> = {
@@ -215,6 +216,9 @@ export function PainelCoordenacao() {
           />
         </div>
       </div>
+
+      {/* 2. ROTINA DE CUIDADOS — o que ficou sem registro no plantão */}
+      <RotinaPlantaoCard />
 
       {/* 3. PENDÊNCIAS E ATRASOS */}
       <Card>

@@ -8,6 +8,7 @@ import {
   proximoVencimento,
   rotuloIntervalo,
   somarDias,
+  tarefaNaTag,
   ultimaExecucaoPorItem,
 } from "@/lib/rotina";
 import type { PlanoCuidadoItem } from "@/types/database";
@@ -49,6 +50,18 @@ describe("periodicidade", () => {
       "2026-09-29",
     );
     expect(m.get("a")).toBe("2026-09-18");
+  });
+});
+
+describe("tarefaNaTag", () => {
+  it("horário fixo pela definição da escala; sem hora marcada pela tag; sem nada, sempre", () => {
+    expect(tarefaNaTag({ horario: "09:00" }, "diurno")).toBe(true);
+    expect(tarefaNaTag({ horario: "09:00" }, "noturno")).toBe(false);
+    expect(tarefaNaTag({ horario: "19:00" }, "noturno")).toBe(true);
+    expect(tarefaNaTag({ horario: "06:59" }, "noturno")).toBe(true);
+    expect(tarefaNaTag({ horario: null, turno_livre: "ambos" }, "noturno")).toBe(true);
+    expect(tarefaNaTag({ horario: null, turno_livre: "diurno" }, "noturno")).toBe(false);
+    expect(tarefaNaTag({ horario: null }, "diurno")).toBe(true);
   });
 });
 
