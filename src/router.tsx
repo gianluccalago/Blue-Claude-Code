@@ -24,6 +24,10 @@ import { AgendaVisitas } from "@/routes/administracao/crm/AgendaVisitas";
 import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
 import { DayCare } from "@/routes/DayCare";
 import { Autonomia } from "@/routes/Autonomia";
+import { Ronda } from "@/routes/Ronda";
+import { TagRonda } from "@/routes/TagRonda";
+import { RondasPainel } from "@/routes/coordenacao/RondasPainel";
+import { RondasNfcAdmin } from "@/routes/coordenacao/RondasNfcAdmin";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -683,6 +687,12 @@ const dayCareRoute = createRoute({
   path: "day-care",
   component: DayCare,
 });
+// Rondas NFC (0148): tela da cuidadora, painel e tags/tablets.
+const rondaRoute = createRoute({ getParentRoute: () => appRoute, path: "ronda", component: Ronda });
+const rondasPainelRoute = createRoute({ getParentRoute: () => appRoute, path: "rondas", component: RondasPainel });
+const rondasNfcRoute = createRoute({ getParentRoute: () => appRoute, path: "nfc", component: RondasNfcAdmin });
+// Destino do link gravado nas etiquetas (público; não registra nada).
+const tagRondaRoute = createRoute({ getParentRoute: () => rootRoute, path: "r", component: TagRonda });
 // Autonomia (0147): médico, coordenação, multidisciplinar (fisio), nutricionista e Master.
 const autonomiaRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -700,6 +710,7 @@ const placeholderRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   redefinirSenhaRoute,
+  tagRondaRoute,
   appRoute.addChildren([
     appIndexRoute,
     checklistRoute,
@@ -742,6 +753,9 @@ const routeTree = rootRoute.addChildren([
     funilVendasRoute,
     dayCareRoute,
     autonomiaRoute,
+    rondaRoute,
+    rondasPainelRoute,
+    rondasNfcRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

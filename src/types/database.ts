@@ -27,6 +27,10 @@ export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfer
 export type VinculoProfissional = "CLT" | "PJ";
 export type CategoriaTurno = "cuidadoras" | "enfermeiras";
 export type TagTurno = "diurno" | "noturno";
+/** Rondas NFC (0148). */
+export type StatusLeituraRonda =
+  | "valida" | "rejeitada_payload" | "rejeitada_uid_divergente" | "rejeitada_tag_desconhecida" | "rejeitada_tag_inativa"
+  | "rejeitada_contador_repetido" | "rejeitada_contador_menor" | "rejeitada_dispositivo" | "rejeitada_usuario";
 /** Módulo Autonomia (0147). */
 export type DominioAutonomia = "medico" | "coordenacao" | "fisio" | "nutricao";
 export type MotivoAvaliacaoAutonomia = "entrada" | "periodica" | "mudanca_grau" | "intercorrencia" | "outro";
@@ -329,6 +333,7 @@ export interface Database {
           mensalidade_ajuste_obs: string | null;
           historia_vida: string | null;
           data_admissao: string | null;
+          leito_id?: string | null;
           foto_url: string | null;
           celular_proprio: string | null;
           // Responsável FINANCEIRO (quem paga — em geral o filho, não o idoso).
@@ -571,6 +576,74 @@ export interface Database {
           ativa?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["plano_cuidado_item"]["Insert"]>;
+        Relationships: [];
+      };
+      quarto: {
+        Row: { id: string; codigo: string; modulo: number | null; andar: number | null; ativo: boolean; criado_em: string };
+        Insert: { id?: string; codigo: string; modulo?: number | null; andar?: number | null; ativo?: boolean };
+        Update: Partial<Database["public"]["Tables"]["quarto"]["Insert"]>;
+        Relationships: [];
+      };
+      leito: {
+        Row: { id: string; quarto_id: string; letra: string; codigo: string };
+        Insert: { id?: string; quarto_id: string; letra: string; codigo: string };
+        Update: Partial<Database["public"]["Tables"]["leito"]["Insert"]>;
+        Relationships: [];
+      };
+      nfc_tags: {
+        Row: {
+          id: string; uid: string; quarto_id: string; last_counter: number | null; ativa: boolean;
+          observacao: string | null; cadastrada_por: string | null; criada_em: string; atualizada_em: string;
+        };
+        Insert: { id?: string; uid: string; quarto_id: string; last_counter?: number | null; ativa?: boolean; observacao?: string | null };
+        Update: Partial<Database["public"]["Tables"]["nfc_tags"]["Insert"]>;
+        Relationships: [];
+      };
+      devices: {
+        Row: {
+          id: string; nome: string; ativo: boolean; token_hash: string; cadastrado_por: string | null; criado_em: string;
+          revogado_em: string | null; revogado_por: string | null; ultimo_uso_em: string | null;
+        };
+        Insert: { id?: string; nome: string; token_hash: string };
+        Update: Partial<Database["public"]["Tables"]["devices"]["Insert"]>;
+        Relationships: [];
+      };
+      ronda_parametros: {
+        Row: { id: boolean; plausibilidade_segundos: number; atualizado_por: string | null; atualizado_em: string };
+        Insert: { id?: boolean; plausibilidade_segundos?: number; atualizado_por?: string | null };
+        Update: Partial<Database["public"]["Tables"]["ronda_parametros"]["Insert"]>;
+        Relationships: [];
+      };
+      ronda_config: {
+        Row: {
+          residente_id: string; ativa: boolean; intervalo_min: number; tolerancia_min: number;
+          turnos: "noturno" | "ambos"; atualizado_por: string | null; atualizado_em: string;
+        };
+        Insert: {
+          residente_id: string; ativa?: boolean; intervalo_min?: number; tolerancia_min?: number;
+          turnos?: "noturno" | "ambos"; atualizado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["ronda_config"]["Insert"]>;
+        Relationships: [];
+      };
+      ronda_leitura: {
+        Row: {
+          id: string; tag_id: string | null; tag_uid: string | null; quarto_id: string | null; contador: number | null;
+          device_id: string | null; cuidador_id: string | null; cuidador_nome: string | null; servidor_em: string;
+          capturado_em_dispositivo: string | null; sincronizado_tarde: boolean; status_validacao: StatusLeituraRonda;
+          flags: string[]; implementacao: string | null; revisada_em: string | null; revisada_por: string | null; revisao_nota: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      ronda: {
+        Row: {
+          id: string; leitura_id: string; residente_id: string; quarto_id: string; cuidador_id: string | null;
+          servidor_em: string; checklist: Record<string, string | string[]> | null; checklist_em: string | null; flags: string[];
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       autonomia_modulo: {
@@ -3591,6 +3664,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      // Rondas NFC (0148)
+      cadastrar_tag_nfc: { Args: { p_uid: string; p_quarto: string; p_contador: number | null; p_observacao?: string | null }; Returns: string };
+      definir_tag_ativa: { Args: { p_id: string; p_ativa: boolean }; Returns: undefined };
+      cadastrar_dispositivo: { Args: { p_nome: string }; Returns: string };
+      revogar_dispositivo: { Args: { p_id: string }; Returns: undefined };
+      dispositivo_status: { Args: { p_token: string }; Returns: { cadastrado: boolean; ativo: boolean; nome: string | null } };
+      revisar_leitura_ronda: { Args: { p_id: string; p_nota: string | null }; Returns: undefined };
+      registrar_checklist_ronda: { Args: { p_leitura: string; p_checklist: Record<string, Record<string, string | string[]>> }; Returns: number };
       congelar_rotacao_semana: {
         Args: { p_semana: string; p_turno: string; p_plano: unknown; p_substituir?: boolean };
         Returns: { plano: { cuidador_id: string; modulo: number | null; andar: number | null; residente_ids: string[] }[]; novo: boolean };
@@ -3894,6 +3975,11 @@ export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
 export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
 export type AutonomiaAvaliacao = Database["public"]["Tables"]["autonomia_avaliacao"]["Row"];
+export type NfcTag = Database["public"]["Tables"]["nfc_tags"]["Row"];
+export type Dispositivo = Database["public"]["Tables"]["devices"]["Row"];
+export type RondaConfig = Database["public"]["Tables"]["ronda_config"]["Row"];
+export type RondaLeitura = Database["public"]["Tables"]["ronda_leitura"]["Row"];
+export type Ronda = Database["public"]["Tables"]["ronda"]["Row"];
 export type AutonomiaObjetivo = Database["public"]["Tables"]["autonomia_objetivo"]["Row"];
 export type AutonomiaRevisao = Database["public"]["Tables"]["autonomia_revisao"]["Row"];
 export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratamento"]["Row"];

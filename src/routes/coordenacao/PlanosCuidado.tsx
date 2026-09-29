@@ -16,6 +16,7 @@ import { useModelos } from "@/hooks/useModelos";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { DietaInfo } from "@/components/nutricao/DietaInfo";
 import { useAutonomiaHospede } from "@/hooks/useAutonomia";
+import { RondaConfigCard } from "@/components/coordenacao/RondaConfigCard";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemTarefaForm } from "@/components/coordenacao/ItemTarefaForm";
@@ -118,6 +119,7 @@ function PlanoDoHospede({
   return (
     <div className="space-y-6">
       <DietaDoHospede residenteId={residenteId} />
+      {residente && <RondaConfigCard residente={residente} podeEditar={podeEditar} />}
       {autonomia.data && (
         <ObjetivosNoPlano
           objetivos={objetivosAtivos}
