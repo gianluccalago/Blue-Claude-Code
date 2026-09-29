@@ -27,6 +27,18 @@ export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfer
 export type VinculoProfissional = "CLT" | "PJ";
 export type CategoriaTurno = "cuidadoras" | "enfermeiras";
 export type TagTurno = "diurno" | "noturno";
+/** Módulo Autonomia (0147). */
+export type DominioAutonomia = "medico" | "coordenacao" | "fisio" | "nutricao";
+export type MotivoAvaliacaoAutonomia = "entrada" | "periodica" | "mudanca_grau" | "intercorrencia" | "outro";
+export type NivelConsegue = "sozinho" | "supervisao" | "ajuda_parcial" | "dependente";
+export type NivelQuer = "sim" | "nao" | "as_vezes";
+export interface RespostaItemAutonomia {
+  quer?: NivelQuer | null;
+  consegue?: NivelConsegue | null;
+  preferencia?: string | null;
+  equipe_assume?: boolean | null;
+  obs?: string | null;
+}
 /** Tarefa sem horário fixo: a qualquer momento do plantão indicado (0145). */
 export type TurnoLivre = "diurno" | "noturno" | "ambos";
 
@@ -540,6 +552,7 @@ export interface Database {
           turno_livre: TurnoLivre | null;
           intervalo_dias: number | null;
           inicio_em: string;
+          objetivo_id: string | null;
           responsavel: string | null;
           tolerancia_minutos: number;
           ativa: boolean;
@@ -552,11 +565,105 @@ export interface Database {
           turno_livre?: TurnoLivre | null;
           intervalo_dias?: number | null;
           inicio_em?: string;
+          objetivo_id?: string | null;
           responsavel?: string | null;
           tolerancia_minutos?: number;
           ativa?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["plano_cuidado_item"]["Insert"]>;
+        Relationships: [];
+      };
+      autonomia_modulo: {
+        Row: { id: boolean; ativado_em: string };
+        Insert: { id?: boolean; ativado_em?: string };
+        Update: Partial<Database["public"]["Tables"]["autonomia_modulo"]["Insert"]>;
+        Relationships: [];
+      };
+      autonomia_avaliacao: {
+        Row: {
+          id: string;
+          residente_id: string;
+          dominio: DominioAutonomia;
+          motivo: MotivoAvaliacaoAutonomia;
+          itens: Record<string, RespostaItemAutonomia>;
+          sintese: string | null;
+          assinada: boolean;
+          assinada_em: string | null;
+          assinada_por: string | null;
+          registrado_por: string | null;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          dominio: DominioAutonomia;
+          motivo?: MotivoAvaliacaoAutonomia;
+          itens?: Record<string, RespostaItemAutonomia>;
+          sintese?: string | null;
+          assinada?: boolean;
+          assinada_por?: string | null;
+          registrado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["autonomia_avaliacao"]["Insert"]>;
+        Relationships: [];
+      };
+      autonomia_objetivo: {
+        Row: {
+          id: string;
+          residente_id: string;
+          dominio: DominioAutonomia;
+          avaliacao_id: string | null;
+          descricao: string;
+          meta: string;
+          responsavel: string | null;
+          prazo_revisao: string;
+          status: "ativo" | "atingido" | "encerrado";
+          acordado_residente_em: string | null;
+          acordado_familia_em: string | null;
+          criado_por: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          residente_id: string;
+          dominio: DominioAutonomia;
+          avaliacao_id?: string | null;
+          descricao: string;
+          meta: string;
+          responsavel?: string | null;
+          prazo_revisao?: string;
+          status?: "ativo" | "atingido" | "encerrado";
+          acordado_residente_em?: string | null;
+          acordado_familia_em?: string | null;
+          criado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["autonomia_objetivo"]["Insert"]>;
+        Relationships: [];
+      };
+      autonomia_revisao: {
+        Row: {
+          id: string;
+          objetivo_id: string;
+          observado: string;
+          fala_residente: string;
+          resultado: "mantido" | "ajustado" | "atingido" | "encerrado";
+          participantes: ("residente" | "familia" | "equipe")[];
+          proxima_revisao: string | null;
+          revisado_por: string | null;
+          revisado_em: string;
+        };
+        Insert: {
+          id?: string;
+          objetivo_id: string;
+          observado: string;
+          fala_residente: string;
+          resultado: "mantido" | "ajustado" | "atingido" | "encerrado";
+          participantes?: ("residente" | "familia" | "equipe")[];
+          proxima_revisao?: string | null;
+          revisado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["autonomia_revisao"]["Insert"]>;
         Relationships: [];
       };
       tarefa_registro: {
@@ -3786,6 +3893,9 @@ export type CompromissoExterno = Database["public"]["Tables"]["compromisso_exter
 export type Eliminacao = Database["public"]["Tables"]["eliminacao"]["Row"];
 export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
+export type AutonomiaAvaliacao = Database["public"]["Tables"]["autonomia_avaliacao"]["Row"];
+export type AutonomiaObjetivo = Database["public"]["Tables"]["autonomia_objetivo"]["Row"];
+export type AutonomiaRevisao = Database["public"]["Tables"]["autonomia_revisao"]["Row"];
 export type PendenciaTratamento = Database["public"]["Tables"]["pendencia_tratamento"]["Row"];
 export type ResolucaoMedica = Database["public"]["Tables"]["resolucao_medica"]["Row"];
 export type EliminacaoTratamento = Database["public"]["Tables"]["eliminacao_tratamento"]["Row"];
