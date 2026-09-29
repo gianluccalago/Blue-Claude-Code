@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { dayCareNoTurno, presencaDoTurno, estaPresente, type PresencaTurno } from "@/lib/cobertura";
-import { diasDaSemana } from "@/lib/rotacaoCuidado";
+import { diasDaSemana, segundaDaSemana, type PlanoSemanaGravado } from "@/lib/rotacaoCuidado";
 import type { Residente, TagTurno } from "@/types/database";
 
 // ===========================================================================
@@ -35,6 +35,8 @@ export interface CoberturaTurno {
   hospedes: HospedeCobertura[];
   descobertos: number;
   riscos: number;
+  /** Designações cruas do turno (para a rotação comparar o que está gravado com o plano do dia). */
+  designacoes: { residente_id: string; cuidador_id: string; origem: "manual" | "rotacao" }[];
 }
 
 const KEY = (data: string, tag: TagTurno) => ["cobertura", data, tag] as const;
@@ -111,6 +113,7 @@ export function useCoberturaTurno(data: string, tag: TagTurno) {
         hospedes,
         descobertos: hospedes.filter((h) => h.descoberto).length,
         riscos: hospedes.filter((h) => h.risco).length,
+        designacoes: designacoes.map((d) => ({ residente_id: d.residente_id, cuidador_id: d.cuidador_id, origem: (d.origem ?? "manual") as "manual" | "rotacao" })),
       };
     },
   });
@@ -254,5 +257,34 @@ export function useAplicarRotacao() {
       return { inseridas, manuais, turnos };
     },
     onSuccess: () => invalidar(qc),
+  });
+}
+
+/** Plano da semana gravado (rotacao_semana) — null quando ainda não foi congelado. */
+export function useRotacaoSemanaGravada(data: string, tag: TagTurno) {
+  const semana = segundaDaSemana(data);
+  return useQuery({
+    queryKey: ["rotacao-semana", semana, tag],
+    queryFn: async (): Promise<PlanoSemanaGravado[] | null> => {
+      const { data: row, error } = await supabase.from("rotacao_semana").select("plano").eq("semana", semana).eq("turno", tag).maybeSingle();
+      if (error) throw error;
+      return (row?.plano as PlanoSemanaGravado[] | undefined) ?? null;
+    },
+  });
+}
+
+/** Congela (ou, com substituir=true, recalcula) o plano da semana. */
+export function useCongelarRotacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { data: string; turno: TagTurno; plano: PlanoSemanaGravado[]; substituir?: boolean }) => {
+      const { data, error } = await supabase.rpc("congelar_rotacao_semana", {
+        p_semana: segundaDaSemana(args.data), p_turno: args.turno, p_plano: args.plano, p_substituir: !!args.substituir,
+      });
+      if (error) throw error;
+      const r = (Array.isArray(data) ? data[0] : data) as { plano: PlanoSemanaGravado[]; novo: boolean };
+      return r;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["rotacao-semana"] }),
   });
 }

@@ -177,3 +177,90 @@ export function redistribuirAusentes(plano: GrupoRotacao[], presentesIds: Set<st
 export function itensDoPlano(plano: GrupoRotacao[]): { residente_id: string; cuidador_id: string }[] {
   return plano.flatMap((g) => g.hospedes.map((h) => ({ residente_id: h.id, cuidador_id: g.cuidadora.id })));
 }
+
+// ─── Plano congelado da semana + substitutas ─────────────────────────────────
+// O plano da semana fica gravado (rotacao_semana). No dia:
+//   · titular presente mantém o grupo;
+//   · quem está escalada e NÃO está no plano é SUBSTITUTA: herda o grupo de
+//     uma titular ausente (na ordem do plano);
+//   · grupo de ausente sem substituta vai para as presentes do mesmo andar.
+
+export interface PlanoSemanaGravado {
+  cuidador_id: string;
+  modulo: number | null;
+  andar: number | null;
+  residente_ids: string[];
+}
+
+/** Serializa o plano para gravar (ids só). */
+export function serializarPlano(plano: GrupoRotacao[]): PlanoSemanaGravado[] {
+  return plano.map((g) => ({ cuidador_id: g.cuidadora.id, modulo: g.modulo, andar: g.andar, residente_ids: g.hospedes.map((h) => h.id) }));
+}
+
+/**
+ * Reconstrói o plano gravado com os hóspedes e cuidadoras ATUAIS: hóspede
+ * novo (não está em nenhum grupo) entra no menor grupo; hóspede que saiu some.
+ */
+export function hidratarPlano(
+  gravado: PlanoSemanaGravado[],
+  hospedes: HospedeRotacao[],
+  nomes: Map<string, string>,
+): GrupoRotacao[] {
+  const porId = new Map(hospedes.map((h) => [h.id, h]));
+  const grupos: GrupoRotacao[] = gravado.map((g) => ({
+    cuidadora: { id: g.cuidador_id, nome: nomes.get(g.cuidador_id) ?? "Cuidadora" },
+    modulo: g.modulo, andar: g.andar,
+    hospedes: g.residente_ids.map((id) => porId.get(id)).filter((h): h is HospedeRotacao => !!h),
+  }));
+  if (grupos.length === 0) return [];
+  const cobertos = new Set(gravado.flatMap((g) => g.residente_ids));
+  for (const h of hospedes) {
+    if (cobertos.has(h.id)) continue;
+    const { modulo, andar } = chaveAndar(h);
+    const mesmoAndar = grupos.filter((g) => g.modulo === modulo && g.andar === andar);
+    const alvo = (mesmoAndar.length ? mesmoAndar : grupos).reduce((m, g) => (g.hospedes.length < m.hospedes.length ? g : m));
+    alvo.hospedes.push(h);
+  }
+  return grupos;
+}
+
+export interface GrupoDoDia extends GrupoRotacao {
+  /** Titular do plano ou substituta de quem faltou. */
+  papel: "titular" | "substituta";
+  /** Nome da titular substituída (quando substituta). */
+  substituiu?: string;
+}
+
+/**
+ * Plano do DIA a partir do plano da semana e de quem está escalada hoje.
+ */
+export function planoDoDia(
+  planoSemana: GrupoRotacao[],
+  escaladasHoje: CuidadoraRotacao[],
+): GrupoDoDia[] {
+  if (planoSemana.length === 0) return []; // sem plano da semana não há o que distribuir
+  const presentes = new Set(escaladasHoje.map((c) => c.id));
+  const noPlano = new Set(planoSemana.map((g) => g.cuidadora.id));
+  const dia: GrupoDoDia[] = planoSemana
+    .filter((g) => presentes.has(g.cuidadora.id))
+    .map((g) => ({ ...g, hospedes: [...g.hospedes], papel: "titular" }));
+  const ausentes = planoSemana.filter((g) => !presentes.has(g.cuidadora.id));
+  const substitutas = escaladasHoje.filter((c) => !noPlano.has(c.id)).sort((a, b) => a.id.localeCompare(b.id));
+  // Substituta herda o grupo de uma ausente, na ordem do plano.
+  const semDono: GrupoRotacao[] = [];
+  ausentes.forEach((g, i) => {
+    const s = substitutas[i];
+    if (s) dia.push({ cuidadora: s, modulo: g.modulo, andar: g.andar, hospedes: [...g.hospedes], papel: "substituta", substituiu: g.cuidadora.nome });
+    else semDono.push(g);
+  });
+  // Substituta a mais (sem ausente para cobrir): entra sem grupo — a Coordenação decide.
+  for (const s of substitutas.slice(ausentes.length)) dia.push({ cuidadora: s, modulo: null, andar: null, hospedes: [], papel: "substituta" });
+  // Ausente sem substituta: hóspedes para as presentes do mesmo andar (senão o menor grupo).
+  if (dia.length === 0) return [];
+  for (const g of semDono) for (const h of g.hospedes) {
+    const mesmoAndar = dia.filter((p) => p.modulo === g.modulo && p.andar === g.andar);
+    const alvo = (mesmoAndar.length ? mesmoAndar : dia).reduce((m, p) => (p.hospedes.length < m.hospedes.length ? p : m));
+    alvo.hospedes.push(h);
+  }
+  return dia;
+}

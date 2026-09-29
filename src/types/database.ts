@@ -2149,6 +2149,12 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["visita_agendamento"]["Insert"]>;
         Relationships: [];
       };
+      rotacao_semana: {
+        Row: { semana: string; turno: string; plano: { cuidador_id: string; modulo: number | null; andar: number | null; residente_ids: string[] }[]; gerado_por: string | null; gerado_em: string };
+        Insert: { semana: string; turno: string; plano: unknown; gerado_por?: string | null };
+        Update: Partial<{ plano: unknown }>;
+        Relationships: [];
+      };
       designacao_cuidado: {
         Row: {
           id: string;
@@ -3466,6 +3472,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      congelar_rotacao_semana: {
+        Args: { p_semana: string; p_turno: string; p_plano: unknown; p_substituir?: boolean };
+        Returns: { plano: { cuidador_id: string; modulo: number | null; andar: number | null; residente_ids: string[] }[]; novo: boolean };
+      };
       aplicar_rotacao_cuidado: {
         Args: { p_data: string; p_turno: string; p_itens: { residente_id: string; cuidador_id: string }[] };
         Returns: { removidas: number; inseridas: number; manuais_mantidas: number };

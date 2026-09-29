@@ -75,3 +75,48 @@ describe("rotação semanal de cuidadoras", () => {
     expect(repartirProporcional(7, [1, 1], false)).toEqual([4, 3]);
   });
 });
+
+import { planoDoDia, hidratarPlano, serializarPlano } from "@/lib/rotacaoCuidado";
+
+describe("substituições e faltas com o plano congelado", () => {
+  const semana = planejarRotacao(hospedes, [C("c1"), C("c2"), C("c3"), C("c4")], 3);
+  it("Fulana faltou, Ciclana cobre: Ciclana herda exatamente o grupo da Fulana; as outras não mudam", () => {
+    const fulana = semana[1];
+    const presentes = [...semana.filter((g) => g !== fulana).map((g) => g.cuidadora), C("ciclana")];
+    const dia = planoDoDia(semana, presentes);
+    const ciclana = dia.find((g) => g.cuidadora.id === "ciclana")!;
+    expect(ciclana.papel).toBe("substituta");
+    expect(ciclana.substituiu).toBe(fulana.cuidadora.nome);
+    expect(ciclana.hospedes.map((h) => h.id)).toEqual(fulana.hospedes.map((h) => h.id));
+    for (const g of semana) if (g !== fulana) {
+      expect(dia.find((d) => d.cuidadora.id === g.cuidadora.id)!.hospedes.map((h) => h.id)).toEqual(g.hospedes.map((h) => h.id));
+    }
+  });
+  it("falta sem substituta: o grupo vai para a colega do mesmo andar", () => {
+    const ausente = semana[0];
+    const dia = planoDoDia(semana, semana.slice(1).map((g) => g.cuidadora));
+    expect(dia).toHaveLength(3);
+    const colega = dia.find((d) => d.andar === ausente.andar)!;
+    expect(ausente.hospedes.every((h) => colega.hospedes.includes(h))).toBe(true);
+  });
+  it("substituta a mais entra sem grupo (a Coordenação decide)", () => {
+    const dia = planoDoDia(semana, [...semana.map((g) => g.cuidadora), C("extra")]);
+    expect(dia.find((d) => d.cuidadora.id === "extra")!.hospedes).toHaveLength(0);
+  });
+  it("plano gravado é reidratado com hóspede novo e sem quem saiu", () => {
+    const gravado = serializarPlano(semana);
+    const novo = { id: "novo", nome: "Novo", quarto: "5106B" };
+    const atuais = [...hospedes.filter((h) => h.id !== "a0"), novo];
+    const nomes = new Map(semana.map((g) => [g.cuidadora.id, g.cuidadora.nome]));
+    const h = hidratarPlano(gravado, atuais, nomes);
+    expect(h.flatMap((g) => g.hospedes).map((x) => x.id)).not.toContain("a0");
+    const grupoDoNovo = h.find((g) => g.hospedes.includes(novo))!;
+    expect(grupoDoNovo.andar).toBe(1);
+  });
+});
+
+describe("planoDoDia sem plano da semana", () => {
+  it("não inventa grupos vazios quando o plano ainda não existe", () => {
+    expect(planoDoDia([], [C("c1"), C("c2")])).toEqual([]);
+  });
+});

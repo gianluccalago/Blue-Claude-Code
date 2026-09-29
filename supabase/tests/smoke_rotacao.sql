@@ -33,3 +33,14 @@ reset role;
 select pg_temp.como('familia@blueseniorliving.com.br');
 select pg_temp.verifica('família não aplica rotação', pg_temp.falha($q$select public.aplicar_rotacao_cuidado('2031-06-02','diurno','[]'::jsonb)$q$));
 reset role;
+
+-- ── 0144: plano congelado ──────────────────────────────────────────────────
+select pg_temp.como('coordenacao@blueseniorliving.com.br');
+select pg_temp.verifica('congela o plano na 1ª vez', (select (r->>'novo')::boolean from public.congelar_rotacao_semana('2031-06-02','diurno','[{"cuidador_id":"x"}]'::jsonb) r));
+select pg_temp.verifica('2ª vez devolve o plano gravado sem substituir', (select (r->>'novo')::boolean = false and r->'plano'->0->>'cuidador_id' = 'x' from public.congelar_rotacao_semana('2031-06-02','diurno','[{"cuidador_id":"y"}]'::jsonb) r));
+select pg_temp.verifica('recalcular substitui', (select r->'plano'->0->>'cuidador_id' = 'y' from public.congelar_rotacao_semana('2031-06-02','diurno','[{"cuidador_id":"y"}]'::jsonb, true) r));
+reset role;
+select pg_temp.como('beatriz@blueseniorliving.com.br');
+select pg_temp.verifica('cuidadora lê o plano da semana', (select count(*) from public.rotacao_semana where semana='2031-06-02') = 1);
+select pg_temp.verifica('cuidadora não grava o plano', pg_temp.falha($q$select public.congelar_rotacao_semana('2031-06-02','noturno','[]'::jsonb)$q$));
+reset role;
