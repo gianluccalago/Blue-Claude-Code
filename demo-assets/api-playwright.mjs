@@ -6,7 +6,8 @@
 //   const page = await ctx.newPage(); await instalarApi(page, { email, nome });
 // Defina API_LOCAL_DB antes de importar (banco descartável).
 // ===========================================================================
-import { rest, restEscrita, sessaoFalsa } from "./api-local.mjs";
+import { createHash } from "node:crypto";
+import { rest, restEscrita, sessaoFalsa, sql } from "./api-local.mjs";
 export { sessaoFalsa };
 
 export async function instalarApi(page, usuario, opcoes = {}) {
@@ -42,6 +43,27 @@ export async function instalarApi(page, usuario, opcoes = {}) {
     if (route.request().url().includes("/logout")) return route.fulfill({ status: 204, body: "" });
     if (route.request().url().includes("/user")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(s.user) });
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(s) });
+  });
+  // Edge Function verify-round (rondas NFC): mesma validação do servidor
+  // (supabase/functions/verify-round/validacaoTag.ts) + a RPC como service_role.
+  await page.route("**/functions/v1/verify-round", async (route) => {
+    const req = route.request();
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: "ok" });
+    if (opcoes.offline?.()) return route.abort("internetdisconnected");
+    const { validateTagRead } = await import("../supabase/functions/verify-round/validacaoTag.ts");
+    const corpo = req.postDataJSON() ?? {};
+    const leitura = await validateTagRead({ url: corpo.url, serialNumber: corpo.serial_number });
+    const token = req.headers()["x-device-token"] ?? "";
+    const p = {
+      email, device_token_hash: token ? createHash("sha256").update(token).digest("hex") : "",
+      tag_uid: leitura.tagUid, contador: leitura.counter, valida: leitura.valid, motivo: leitura.motivo,
+      flags: leitura.flags, implementacao: leitura.implementacao, offline: !!corpo.offline,
+      capturado_em: corpo.capturado_em ?? null, checklist: corpo.checklist ?? null,
+    };
+    const lit = JSON.stringify(p).replace(/'/g, "''");
+    const saida = sql(`select public.registrar_leitura_nfc('${lit}'::jsonb)::text`);
+    const linha = saida.split("\n").filter((l) => l.trim().startsWith("{")).pop() ?? "{}";
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: linha });
   });
   await page.route("**/storage/v1/**", (route) => route.fulfill({ status: 404, contentType: "application/json", body: "{}" }));
   await page.addInitScript((s) => {

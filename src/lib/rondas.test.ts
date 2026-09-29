@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blocosDoTurno, checklistCompleto, checklistInicial, contaNoHorario, pedeRevisao, situacaoRonda } from "@/lib/rondas";
+import { blocosDoTurno, checklistCompleto, checklistInicial, contaNoHorario, pedeRevisao, resumoChecklist, situacaoRonda } from "@/lib/rondas";
 
 const sp = (data: string, hhmm: string) => new Date(`${data}T${hhmm}:00-03:00`);
 const cfg = { intervalo_min: 120, tolerancia_min: 30 };
@@ -44,10 +44,20 @@ describe("blocosDoTurno", () => {
   });
 });
 
+describe("resumoChecklist", () => {
+  it("segue a ordem dos campos e ignora as observações", () => {
+    expect(resumoChecklist({ intercorrencia: "nao", fralda: "trocada", posicao: "dorsal", estado: "dormindo", pele: "sem_alteracao", observacoes: ["Tosse"] }))
+      .toBe("Barriga para cima · Trocada · Dormindo · Sem alteração · Não");
+  });
+});
+
 describe("leituras", () => {
   it("sincronizada tarde não conta no horário; recusada ou sinalizada pede revisão até ser revisada", () => {
     expect(contaNoHorario({ status_validacao: "valida", sincronizado_tarde: false })).toBe(true);
     expect(contaNoHorario({ status_validacao: "valida", sincronizado_tarde: true })).toBe(false);
+    // Suspeita de forjada não conta até o supervisor revisar.
+    expect(contaNoHorario({ status_validacao: "valida", sincronizado_tarde: false, flags: ["possivel_forjada"], revisada_em: null })).toBe(false);
+    expect(contaNoHorario({ status_validacao: "valida", sincronizado_tarde: false, flags: ["possivel_forjada"], revisada_em: "2026-09-30T10:00:00Z" })).toBe(true);
     expect(pedeRevisao({ status_validacao: "rejeitada_contador_repetido", flags: [], revisada_em: null })).toBe(true);
     expect(pedeRevisao({ status_validacao: "valida", flags: [], revisada_em: null })).toBe(false);
     expect(pedeRevisao({ status_validacao: "valida", flags: ["plausibilidade"], revisada_em: null })).toBe(true);

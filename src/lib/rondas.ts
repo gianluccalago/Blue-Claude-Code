@@ -198,9 +198,23 @@ export function blocosDoTurno(
   return { blocos, cumpridos, encerrados, pct: encerrados === 0 ? null : Math.round((cumpridos / encerrados) * 100) };
 }
 
-/** Leitura que conta no horário: válida e não sincronizada tarde. */
-export function contaNoHorario(l: Pick<RondaLeitura, "status_validacao" | "sincronizado_tarde">): boolean {
-  return l.status_validacao === "valida" && !l.sincronizado_tarde;
+/**
+ * Leitura que conta no horário: válida, não sincronizada tarde e sem suspeita
+ * de check-in forjado ainda não revisada pelo supervisor.
+ */
+export function contaNoHorario(
+  l: Pick<RondaLeitura, "status_validacao" | "sincronizado_tarde"> & Partial<Pick<RondaLeitura, "flags" | "revisada_em">>,
+): boolean {
+  if (l.status_validacao !== "valida" || l.sincronizado_tarde) return false;
+  return !(l.flags ?? []).includes("possivel_forjada") || !!l.revisada_em;
+}
+
+/** Resumo do checklist declarado, na ordem dos campos. */
+export function resumoChecklist(c: Record<string, string | string[]> | null): string {
+  if (!c) return "";
+  return CAMPOS_CHECKLIST.filter((campo) => !campo.multiplo && typeof c[campo.chave] === "string")
+    .map((campo) => rotuloOpcao(campo.chave, c[campo.chave] as string))
+    .join(" · ");
 }
 
 /** Leitura que pede olhar do supervisor: recusada, ou válida com sinalização, e ainda não revisada. */

@@ -8,7 +8,7 @@ import {
   blocosDoTurno,
   contaNoHorario,
   pedeRevisao,
-  rotuloOpcao,
+  resumoChecklist,
   situacaoRonda,
   type BlocoRonda,
 } from "@/lib/rondas";
@@ -150,9 +150,7 @@ export function RondasPainel() {
                       <Blocos blocos={h.b.blocos} />
                       {h.ultimoChecklist && (
                         <p className="text-xs text-muted-foreground">
-                          Último checklist (declarado): {Object.entries(h.ultimoChecklist)
-                            .filter(([k, v]) => k !== "observacoes" && typeof v === "string")
-                            .map(([k, v]) => rotuloOpcao(k as never, v as string)).join(" · ")}
+                          Último checklist (declarado): {resumoChecklist(h.ultimoChecklist)}
                         </p>
                       )}
                     </div>

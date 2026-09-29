@@ -37,7 +37,8 @@ export function useStatusDispositivo() {
       if (!token) return { cadastrado: false, ativo: false, nome: null as string | null };
       const { data, error } = await supabase.rpc("dispositivo_status", { p_token: token });
       if (error) throw error;
-      return data as { cadastrado: boolean; ativo: boolean; nome: string | null };
+      // Função escalar: o PostgREST devolve o objeto; o emulador local, uma lista.
+      return (Array.isArray(data) ? data[0] : data) as { cadastrado: boolean; ativo: boolean; nome: string | null };
     },
   });
 }
