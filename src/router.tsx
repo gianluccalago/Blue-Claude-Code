@@ -23,6 +23,7 @@ import { CrmRelatorios } from "@/routes/administracao/crm/CrmRelatorios";
 import { AgendaVisitas } from "@/routes/administracao/crm/AgendaVisitas";
 import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
 import { DayCare } from "@/routes/DayCare";
+import { Autonomia } from "@/routes/Autonomia";
 import { Checklist } from "@/routes/cuidador/Checklist";
 import { Medicacao } from "@/routes/cuidador/Medicacao";
 import { Compromissos } from "@/routes/cuidador/Compromissos";
@@ -682,6 +683,12 @@ const dayCareRoute = createRoute({
   path: "day-care",
   component: DayCare,
 });
+// Autonomia (0147): médico, coordenação, multidisciplinar (fisio), nutricionista e Master.
+const autonomiaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "autonomia",
+  component: Autonomia,
+});
 
 // Qualquer outra sub-rota dos perfis em construção cai aqui.
 const placeholderRoute = createRoute({
@@ -734,6 +741,7 @@ const routeTree = rootRoute.addChildren([
     crmAgendaRoute,
     funilVendasRoute,
     dayCareRoute,
+    autonomiaRoute,
     prescricoesRoute,
     escaladosRoute,
     evolucaoRoute,

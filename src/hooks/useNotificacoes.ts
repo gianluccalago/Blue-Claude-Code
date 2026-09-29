@@ -212,6 +212,7 @@ async function calcular(
       set("/app/medico/escalados", escalados, "destructive");
       set("/app/medico/ficha", ivcf, "destructive");
       set("/app/medico/solicitacoes-familia", solic, "primary");
+      set("/app/medico/autonomia", await autonomiaPendentes("medico"), "warning");
       break;
     }
 
@@ -235,6 +236,7 @@ async function calcular(
       set("/app/coordenacao/medicacao-enfermagem", medEnf, "destructive");
       set("/app/coordenacao/solicitacoes-familia", solic, "primary");
       set("/app/coordenacao/escalas", vagos, "warning");
+      set("/app/coordenacao/autonomia", await autonomiaPendentes("coordenacao"), "warning");
       break;
     }
 
@@ -262,6 +264,7 @@ async function calcular(
     case "multidisciplinar": {
       const pend = await atividadesNaoRegistradas();
       set("/app/multidisciplinar/atividades", pend, "primary");
+      set("/app/multidisciplinar/autonomia", await autonomiaPendentes("fisio"), "warning");
       break;
     }
 
@@ -269,6 +272,7 @@ async function calcular(
     case "nutricionista": {
       const semDieta = await residentesSemDieta();
       set("/app/nutricionista/dietas", semDieta, "primary");
+      set("/app/nutricionista/autonomia", await autonomiaPendentes("nutricao"), "warning");
       break;
     }
 
@@ -361,6 +365,29 @@ async function idsDesignados(cuidadorId: string): Promise<string[]> {
     return [...new Set((data ?? []).map((r) => r.residente_id))];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Avaliações de autonomia (0147) em aberto no domínio: hóspede ativo sem
+ * avaliação assinada, ou com a última assinada há mais de 6 meses. (Os
+ * gatilhos de grau/intercorrência aparecem na própria tela do módulo.)
+ */
+async function autonomiaPendentes(dominio: "medico" | "coordenacao" | "fisio" | "nutricao"): Promise<number> {
+  try {
+    const [{ data: res }, { data: av }] = await Promise.all([
+      supabase.from("residentes").select("id").eq("status_hospede", "ativo"),
+      supabase.from("autonomia_avaliacao").select("residente_id, assinada_em").eq("dominio", dominio).eq("assinada", true),
+    ]);
+    const limite = dataISO(somarDias(new Date(), -182));
+    const ultima = new Map<string, string>();
+    for (const a of av ?? []) {
+      const d = String(a.assinada_em ?? "").slice(0, 10);
+      if (d > (ultima.get(a.residente_id) ?? "")) ultima.set(a.residente_id, d);
+    }
+    return (res ?? []).filter((r) => (ultima.get(r.id) ?? "") <= limite).length;
+  } catch {
+    return 0;
   }
 }
 

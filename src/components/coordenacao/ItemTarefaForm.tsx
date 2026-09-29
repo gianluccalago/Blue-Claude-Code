@@ -12,6 +12,8 @@ export interface ItemTarefaValor {
   turno_livre: TurnoLivre | null;
   /** Periodicidade (0146): null = todo dia; N = a cada N dias. */
   intervalo_dias: number | null;
+  /** Objetivo de autonomia (0147) que a tarefa apoia — só no plano do hóspede. */
+  objetivo_id?: string | null;
   responsavel: Responsavel;
   tolerancia_minutos: number;
 }
@@ -99,14 +101,39 @@ export function intervaloValido(v: number | null): boolean {
  * "Quando": em horário fixo (com tolerância) ou a qualquer momento do turno —
  * ex.: banho, feito em qualquer hora do plantão de 12h.
  */
+/** Seletor "Apoia o objetivo" (autonomia). Sem objetivos, não aparece. */
+export function SeletorObjetivo({
+  objetivos,
+  valor,
+  onChange,
+  className,
+}: {
+  objetivos: ReadonlyArray<{ id: string; descricao: string }>;
+  valor: string | null;
+  onChange: (v: string | null) => void;
+  className?: string;
+}) {
+  return (
+    <select value={valor ?? ""} onChange={(e) => onChange(e.target.value || null)} className={className ?? inputBase}>
+      <option value="">Nenhum objetivo</option>
+      {objetivos.map((o) => (
+        <option key={o.id} value={o.id}>{o.descricao}</option>
+      ))}
+    </select>
+  );
+}
+
 export function ItemTarefaForm({
   onSalvar,
   onCancelar,
   salvando,
+  objetivos,
 }: {
   onSalvar: (valor: ItemTarefaValor) => void;
   onCancelar: () => void;
   salvando: boolean;
+  /** Objetivos de autonomia ativos do hóspede (plano de cuidados). */
+  objetivos?: ReadonlyArray<{ id: string; descricao: string }>;
 }) {
   const [tarefaSel, setTarefaSel] = useState("");
   const [tarefaOutra, setTarefaOutra] = useState("");
@@ -115,6 +142,7 @@ export function ItemTarefaForm({
   const [responsavel, setResponsavel] = useState<Responsavel | "">("");
   const [tolerancia, setTolerancia] = useState(30);
   const [intervalo, setIntervalo] = useState<number | null>(null);
+  const [objetivoId, setObjetivoId] = useState<string | null>(null);
 
   const ehOutra = tarefaSel === TAREFA_OUTRA;
   const aoLongoDoTurno = quando !== "horario";
@@ -128,6 +156,7 @@ export function ItemTarefaForm({
       horario: aoLongoDoTurno ? null : horario,
       turno_livre: aoLongoDoTurno ? quando : null,
       intervalo_dias: intervalo,
+      ...(objetivos ? { objetivo_id: objetivoId } : {}),
       responsavel: responsavel as Responsavel,
       tolerancia_minutos: aoLongoDoTurno ? 0 : Number.isFinite(tolerancia) ? tolerancia : 30,
     });
@@ -183,6 +212,13 @@ export function ItemTarefaForm({
             </p>
           )}
         </div>
+
+        {objetivos && objetivos.length > 0 && (
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-semibold text-secondary">Apoia o objetivo de autonomia</label>
+            <SeletorObjetivo objetivos={objetivos} valor={objetivoId} onChange={setObjetivoId} />
+          </div>
+        )}
 
         {!aoLongoDoTurno && (
           <div>

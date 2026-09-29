@@ -1,4 +1,4 @@
-import { Clock4, Pencil, Trash2, Sun, Moon, SunMoon, Repeat } from "lucide-react";
+import { Clock4, Pencil, Trash2, Sun, Moon, SunMoon, Repeat, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ouNaoInformado } from "@/lib/utils";
 import { rotuloTurnoLivre } from "@/data/tarefas";
@@ -22,6 +22,7 @@ export function ItemTarefaCard({
   horario,
   turnoLivre,
   intervaloDias,
+  objetivo,
   responsavel,
   toleranciaMinutos,
   onEditar,
@@ -32,6 +33,8 @@ export function ItemTarefaCard({
   horario: string | null;
   turnoLivre?: TurnoLivre | null;
   intervaloDias?: number | null;
+  /** Descrição do objetivo de autonomia que a tarefa apoia. */
+  objetivo?: string | null;
   responsavel: string | null;
   toleranciaMinutos: number;
   /** Sem onEditar/onRemover → cartão somente leitura (esconde as ações). */
@@ -60,6 +63,9 @@ export function ItemTarefaCard({
           <Badge variant={responsavel === "enfermagem" ? "secondary" : "muted"}>
             {ouNaoInformado(responsavel)}
           </Badge>
+          {objetivo ? (
+            <Badge variant="success" className="gap-1"><Target className="size-3" /> {objetivo}</Badge>
+          ) : null}
           {intervaloDias ? (
             <Badge variant="default" className="gap-1"><Repeat className="size-3" /> {rotuloIntervalo(intervaloDias)}</Badge>
           ) : null}

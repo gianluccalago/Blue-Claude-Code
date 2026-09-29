@@ -36,6 +36,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, formatarDataHoraBR, ouNaoInformado } from "@/lib/utils";
 import { rotuloPlantao } from "@/lib/plantao";
 import { RotinaPlantaoCard } from "@/components/coordenacao/RotinaPlantaoCard";
+import { IndicadorAutonomiaCard } from "@/components/autonomia/IndicadorAutonomiaCard";
 import type { Residente, ResolucaoMedica } from "@/types/database";
 
 const PERIODO_LABEL: Record<string, string> = {
@@ -219,6 +220,9 @@ export function PainelCoordenacao() {
 
       {/* 2. ROTINA DE CUIDADOS — o que ficou sem registro no plantão */}
       <RotinaPlantaoCard />
+
+      {/* 2b. AUTONOMIA — indicador decomposto */}
+      <IndicadorAutonomiaCard />
 
       {/* 3. PENDÊNCIAS E ATRASOS */}
       <Card>

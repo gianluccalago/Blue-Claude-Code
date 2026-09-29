@@ -118,12 +118,14 @@ export function useAdicionarPlanoItemEmLote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { residenteIds: string[]; valor: ItemTarefaValor }) => {
-      const rows = args.residenteIds.map((residenteId) => ({
+      // O objetivo de autonomia é do hóspede ATUAL (1º da lista); os demais do lote ficam sem.
+      const rows = args.residenteIds.map((residenteId, i) => ({
         residente_id: residenteId,
         tarefa: args.valor.tarefa,
         horario: args.valor.horario,
         turno_livre: args.valor.turno_livre,
         intervalo_dias: args.valor.intervalo_dias,
+        objetivo_id: i === 0 ? args.valor.objetivo_id ?? null : null,
         responsavel: args.valor.responsavel,
         tolerancia_minutos: args.valor.tolerancia_minutos,
         ativa: true,
@@ -148,6 +150,7 @@ export function useAdicionarPlanoItem(residenteId: string) {
         horario: valor.horario,
         turno_livre: valor.turno_livre,
         intervalo_dias: valor.intervalo_dias,
+        objetivo_id: valor.objetivo_id ?? null,
         responsavel: valor.responsavel,
         tolerancia_minutos: valor.tolerancia_minutos,
         ativa: true,
@@ -171,7 +174,13 @@ export function useEditarPlanoItem(residenteId: string) {
     mutationFn: async (args: { id: string } & EdicaoItemTarefa) => {
       const { error } = await supabase
         .from("plano_cuidado_item")
-        .update({ horario: args.horario, turno_livre: args.turno_livre, intervalo_dias: args.intervalo_dias, tolerancia_minutos: args.tolerancia_minutos })
+        .update({
+          horario: args.horario,
+          turno_livre: args.turno_livre,
+          intervalo_dias: args.intervalo_dias,
+          tolerancia_minutos: args.tolerancia_minutos,
+          ...(args.objetivo_id !== undefined ? { objetivo_id: args.objetivo_id } : {}),
+        })
         .eq("id", args.id);
       if (error) throw error;
     },

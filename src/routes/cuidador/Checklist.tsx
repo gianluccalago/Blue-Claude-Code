@@ -19,6 +19,7 @@ import {
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { usePlantao } from "@/hooks/usePlantao";
 import { PlantaoBar } from "@/components/cuidador/PlantaoBar";
+import { ResumoAutonomiaCard } from "@/components/autonomia/ResumoAutonomiaCard";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -240,6 +241,9 @@ function ChecklistDoHospede({
           </div>
         </div>
       </div>
+
+      {/* ---- Autonomia (leitura): o que a pessoa faz sozinha, preferências, "deixe fazer" ---- */}
+      <ResumoAutonomiaCard residente={hospede} compacto recolhivel />
 
       {/* ---- Passagem de plantão (somente leitura) ---- */}
       {registrosAnteriores.length > 0 && (

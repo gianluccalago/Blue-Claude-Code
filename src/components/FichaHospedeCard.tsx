@@ -32,6 +32,7 @@ import { useDefinirFotoResidente } from "@/hooks/useResidentesGestao";
 import { uploadFotoResidente, BUCKET_FOTOS_RESIDENTE } from "@/lib/storage";
 import { fichaCompleta, podeVerFinanceiro, podeVerAlergias, podeVerGrauReal } from "@/lib/fichaHospede";
 import { GrauContratualReal } from "@/components/GrauContratualReal";
+import { AutonomiaNaFicha } from "@/components/autonomia/AutonomiaNaFicha";
 import { formatarQuarto } from "@/lib/quarto";
 import {
   calcularIdade,
@@ -173,6 +174,9 @@ export function FichaHospedeCard({
           <p className="text-sm text-muted-foreground">Não informado.</p>
         )}
       </Secao>
+
+      {/* AUTONOMIA (0147): estado das avaliações e resumo de leitura */}
+      <AutonomiaNaFicha residente={r} perfil={perfil} />
 
       {/* CLÍNICO-ASSISTENCIAL (resumo, leitura) */}
       <ResumoClinico

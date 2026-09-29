@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus, LayoutTemplate, ChevronRight, Salad, Lock } from "lucide-react";
+import { Plus, LayoutTemplate, ChevronRight, Salad, Lock, Target, AlertTriangle } from "lucide-react";
 import { useHospedesAtendidos, usePlanoItens } from "@/hooks/usePlanos";
 import {
   useAdicionarPlanoItem,
@@ -10,11 +10,12 @@ import {
   useRemoverPlanoItem,
   useAplicarModelo,
 } from "@/hooks/usePlanos";
-import type { Residente } from "@/types/database";
+import type { AutonomiaObjetivo, PlanoCuidadoItem, Residente } from "@/types/database";
 import { resumoAplicacaoModelo } from "@/lib/planoCuidado";
 import { useModelos } from "@/hooks/useModelos";
 import { useDietaAtiva } from "@/hooks/useNutricao";
 import { DietaInfo } from "@/components/nutricao/DietaInfo";
+import { useAutonomiaHospede } from "@/hooks/useAutonomia";
 import { HospedeSelector } from "@/components/HospedeSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemTarefaForm } from "@/components/coordenacao/ItemTarefaForm";
@@ -66,6 +67,8 @@ export function PlanosCuidado() {
         <PlanoDoHospede
           key={hospedeId}
           residenteId={hospedeId}
+          residente={residentes.data.find((r) => r.id === hospedeId)}
+          perfil={perfil}
           podeEditar={podeEditar}
           outrosHospedes={(residentes.data ?? []).filter((r) => r.id !== hospedeId)}
         />
@@ -76,14 +79,22 @@ export function PlanosCuidado() {
 
 function PlanoDoHospede({
   residenteId,
+  residente,
+  perfil,
   podeEditar,
   outrosHospedes,
 }: {
   residenteId: string;
+  residente: Residente | undefined;
+  perfil: string | undefined;
   podeEditar: boolean;
   outrosHospedes: Residente[];
 }) {
   const itens = usePlanoItens(residenteId);
+  // Autonomia (0147): objetivos funcionais ativos — as tarefas podem apoiá-los.
+  const autonomia = useAutonomiaHospede(residente);
+  const objetivosAtivos = (autonomia.data?.objetivos ?? []).filter((o) => o.status === "ativo");
+  const nomeObjetivo = new Map((autonomia.data?.objetivos ?? []).map((o) => [o.id, o.descricao]));
   const adicionar = useAdicionarPlanoItem(residenteId);
   const adicionarLote = useAdicionarPlanoItemEmLote();
   // Lote (3.4): outros hóspedes que receberão a MESMA tarefa ao salvar.
@@ -107,6 +118,13 @@ function PlanoDoHospede({
   return (
     <div className="space-y-6">
       <DietaDoHospede residenteId={residenteId} />
+      {autonomia.data && (
+        <ObjetivosNoPlano
+          objetivos={objetivosAtivos}
+          itens={itens.data ?? []}
+          linkAutonomia={perfil && ["coordenacao", "master"].includes(perfil) ? perfil : null}
+        />
+      )}
 
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
@@ -189,6 +207,7 @@ function PlanoDoHospede({
           {podeEditar && mostrarForm && (
             <div className="space-y-3">
               <ItemTarefaForm
+                objetivos={objetivosAtivos}
                 salvando={adicionar.isPending || adicionarLote.isPending}
                 onCancelar={() => {
                   setMostrarForm(false);
@@ -263,6 +282,8 @@ function PlanoDoHospede({
                     horarioInicial={item.horario}
                     turnoLivreInicial={item.turno_livre}
                     intervaloInicial={item.intervalo_dias}
+                    objetivos={objetivosAtivos}
+                    objetivoInicial={item.objetivo_id}
                     toleranciaInicial={item.tolerancia_minutos}
                     salvando={editar.isPending}
                     onCancelar={() => setEditandoId(null)}
@@ -280,6 +301,7 @@ function PlanoDoHospede({
                     horario={item.horario}
                     turnoLivre={item.turno_livre}
                     intervaloDias={item.intervalo_dias}
+                    objetivo={item.objetivo_id ? nomeObjetivo.get(item.objetivo_id) ?? null : null}
                     responsavel={item.responsavel}
                     toleranciaMinutos={item.tolerancia_minutos}
                     disabled={ocupado}
@@ -342,6 +364,53 @@ function DietaDoHospede({ residenteId }: { residenteId: string }) {
       </CardHeader>
       <CardContent>
         {dieta ? <DietaInfo dieta={dieta} compact /> : <EmptyState label="Sem dieta definida." />}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Autonomia mensurável NO PLANO: objetivos funcionais ativos e quantas tarefas
+// do plano apoiam cada um. Plano sem objetivo fica sinalizado.
+function ObjetivosNoPlano({
+  objetivos,
+  itens,
+  linkAutonomia,
+}: {
+  objetivos: AutonomiaObjetivo[];
+  itens: PlanoCuidadoItem[];
+  linkAutonomia: string | null;
+}) {
+  const apoio = (id: string) => itens.filter((i) => i.objetivo_id === id).length;
+  return (
+    <Card className={objetivos.length === 0 ? "border-warning/50" : undefined}>
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Target className="size-4 text-primary" /> Objetivos de autonomia
+        </CardTitle>
+        {linkAutonomia && (
+          <Link to="/app/$perfil/autonomia" params={{ perfil: linkAutonomia }} className="text-sm font-semibold text-primary hover:underline">
+            Abrir módulo Autonomia
+          </Link>
+        )}
+      </CardHeader>
+      <CardContent>
+        {objetivos.length === 0 ? (
+          <p className="flex items-center gap-2 text-sm text-warning-foreground">
+            <AlertTriangle className="size-4 shrink-0 text-warning" /> Plano sem objetivo funcional de autonomia.
+          </p>
+        ) : (
+          <ul className="space-y-1.5 text-sm">
+            {objetivos.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-secondary">{o.descricao}</span>
+                <span className="text-muted-foreground">· {o.meta}</span>
+                <Badge variant={apoio(o.id) ? "success" : "warning"}>
+                  {apoio(o.id) ? `${apoio(o.id)} tarefa(s) apoiam` : "nenhuma tarefa apoia"}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );

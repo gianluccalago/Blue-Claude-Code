@@ -57,6 +57,7 @@ export const PERFIS: PerfilDef[] = [
       // OPERACIONAL
       { label: "Painel operacional", to: "/app/master/operacional", grupo: "Operacional" },
       { label: "Supervisão clínica", to: "/app/master/clinica", grupo: "Operacional" },
+      { label: "Autonomia", to: "/app/master/autonomia", grupo: "Operacional" },
       { label: "Visão do hóspede (360°)", to: "/app/master/hospede", grupo: "Operacional" },
       { label: "Hóspedes", to: "/app/master/residentes", grupo: "Operacional" },
       { label: "Day Care", to: "/app/master/day-care", grupo: "Operacional" },
@@ -103,6 +104,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Prescrições", to: "/app/medico/prescricoes" },
       { label: "Evolução de admissão", to: "/app/medico/admissao" },
+      { label: "Autonomia", to: "/app/medico/autonomia" },
       { label: "Testes cognitivos", to: "/app/medico/testes-cognitivos" },
       { label: "Hóspedes", to: "/app/medico/ficha" },
       { label: "Painel clínico", to: "/app/medico/escalados" },
@@ -130,6 +132,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Solicitações da família", to: "/app/coordenacao/solicitacoes-familia" },
       { label: "Escalas", to: "/app/coordenacao/escalas" },
       { label: "Planos de cuidado", to: "/app/coordenacao/planos" },
+      { label: "Autonomia", to: "/app/coordenacao/autonomia" },
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Pesquisa NPS", to: "/app/coordenacao/pesquisa-nps" },
       { label: "Estoque de resgate", to: "/app/coordenacao/resgate" },
@@ -217,6 +220,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Atividades", to: "/app/multidisciplinar/atividades" },
       { label: "Atendimentos individuais", to: "/app/multidisciplinar/atendimentos" },
+      { label: "Autonomia", to: "/app/multidisciplinar/autonomia" },
       { label: "Hóspedes", to: "/app/multidisciplinar/ficha" },
       { label: "Day Care", to: "/app/multidisciplinar/day-care" },
       { label: "Pesquisa NPS", to: "/app/multidisciplinar/pesquisa-nps" },
@@ -232,6 +236,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/nutricionista/dietas",
     menu: [
       { label: "Dietas", to: "/app/nutricionista/dietas" },
+      { label: "Autonomia", to: "/app/nutricionista/autonomia" },
       { label: "Hóspedes", to: "/app/nutricionista/ficha" },
       { label: "Day Care", to: "/app/nutricionista/day-care" },
       { label: "Insumos", to: "/app/nutricionista/insumos" },

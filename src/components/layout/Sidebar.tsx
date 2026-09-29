@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Map as MapIcon,
+  HandHeart,
   Archive,
   Landmark,
   Boxes,
@@ -89,6 +90,11 @@ const ICONE_POR_ROTA: Record<string, LucideIcon> = {
   "/app/master/hospede": UserRound,
   "/app/master/operacional": Activity,
   "/app/master/clinica": HeartPulse,
+  "/app/master/autonomia": HandHeart,
+  "/app/medico/autonomia": HandHeart,
+  "/app/coordenacao/autonomia": HandHeart,
+  "/app/multidisciplinar/autonomia": HandHeart,
+  "/app/nutricionista/autonomia": HandHeart,
   "/app/master/usuarios": Shield,
   "/app/master/residentes": Users2,
   "/app/master/equipe": UserCog,

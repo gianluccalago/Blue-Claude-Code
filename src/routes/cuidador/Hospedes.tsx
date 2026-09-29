@@ -2,6 +2,7 @@ import { BedDouble, Cake, AlertCircle, Wrench, User, Phone, BookOpen, ArrowRight
 import { Link, useParams } from "@tanstack/react-router";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
+import { ResumoAutonomiaCard } from "@/components/autonomia/ResumoAutonomiaCard";
 import { DietaResumo } from "@/components/nutricao/DietaResumo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,7 @@ function HospedeCard({ hospede: h, perfil }: { hospede: Residente; perfil: strin
           <p className="text-muted-foreground">{ouNaoInformado(h.historia_vida)}</p>
         </div>
         <DietaResumo residenteId={h.id} />
+        <ResumoAutonomiaCard residente={h} compacto recolhivel />
         <Link
           to="/app/$perfil/ficha"
           params={{ perfil }}

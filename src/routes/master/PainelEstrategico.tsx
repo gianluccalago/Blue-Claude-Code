@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { IndicadorAutonomiaCard } from "@/components/autonomia/IndicadorAutonomiaCard";
 import { Link } from "@tanstack/react-router";
 import {
   Building2,
@@ -454,6 +455,14 @@ export function PainelEstrategico() {
               </div>
             }
           />
+        </div>
+      </section>
+
+      {/* ===================== AUTONOMIA (0147) ============================ */}
+      <section className="space-y-3">
+        <SectionTitle icon={HeartPulse} titulo="Autonomia" tom="operacional" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <IndicadorAutonomiaCard />
         </div>
       </section>
     </div>
