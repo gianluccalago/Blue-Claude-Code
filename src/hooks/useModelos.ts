@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { ModeloRotina, ModeloRotinaItem } from "@/types/database";
 import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
+import type { EdicaoItemTarefa } from "@/components/coordenacao/EditarItemForm";
 
 export interface ModeloComContagem extends ModeloRotina {
   total_itens: number;
@@ -93,6 +94,7 @@ export function useAdicionarModeloItem(modeloId: string) {
         modelo_id: modeloId,
         tarefa: valor.tarefa,
         horario: valor.horario,
+        turno_livre: valor.turno_livre,
         responsavel: valor.responsavel,
         tolerancia_minutos: valor.tolerancia_minutos,
       });
@@ -105,10 +107,10 @@ export function useAdicionarModeloItem(modeloId: string) {
 export function useEditarModeloItem(modeloId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { id: string; horario: string; tolerancia_minutos: number }) => {
+    mutationFn: async (args: { id: string } & EdicaoItemTarefa) => {
       const { error } = await supabase
         .from("modelo_rotina_item")
-        .update({ horario: args.horario, tolerancia_minutos: args.tolerancia_minutos })
+        .update({ horario: args.horario, turno_livre: args.turno_livre, tolerancia_minutos: args.tolerancia_minutos })
         .eq("id", args.id);
       if (error) throw error;
     },

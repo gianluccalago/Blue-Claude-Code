@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { PlanoCuidadoItem, Residente } from "@/types/database";
 import type { ItemTarefaValor } from "@/components/coordenacao/ItemTarefaForm";
+import type { EdicaoItemTarefa } from "@/components/coordenacao/EditarItemForm";
 import type { ResultadoAplicacaoModelo } from "@/lib/planoCuidado";
 
 /**
@@ -121,6 +122,7 @@ export function useAdicionarPlanoItemEmLote() {
         residente_id: residenteId,
         tarefa: args.valor.tarefa,
         horario: args.valor.horario,
+        turno_livre: args.valor.turno_livre,
         responsavel: args.valor.responsavel,
         tolerancia_minutos: args.valor.tolerancia_minutos,
         ativa: true,
@@ -143,6 +145,7 @@ export function useAdicionarPlanoItem(residenteId: string) {
         residente_id: residenteId,
         tarefa: valor.tarefa,
         horario: valor.horario,
+        turno_livre: valor.turno_livre,
         responsavel: valor.responsavel,
         tolerancia_minutos: valor.tolerancia_minutos,
         ativa: true,
@@ -154,7 +157,7 @@ export function useAdicionarPlanoItem(residenteId: string) {
 }
 
 /**
- * Edita apenas horário e tolerância de um item do plano — in-place, de
+ * Edita apenas o "quando" (horário/turno livre) e a tolerância — in-place, de
  * propósito: tarefa_registro guarda o ID do item em `tarefa` e o horário DA
  * ÉPOCA em `horario`, então os registros passados não mudam. Texto, responsável
  * e hóspede do item são imutáveis no banco (trigger 0137): para trocá-los,
@@ -163,10 +166,10 @@ export function useAdicionarPlanoItem(residenteId: string) {
 export function useEditarPlanoItem(residenteId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { id: string; horario: string; tolerancia_minutos: number }) => {
+    mutationFn: async (args: { id: string } & EdicaoItemTarefa) => {
       const { error } = await supabase
         .from("plano_cuidado_item")
-        .update({ horario: args.horario, tolerancia_minutos: args.tolerancia_minutos })
+        .update({ horario: args.horario, turno_livre: args.turno_livre, tolerancia_minutos: args.tolerancia_minutos })
         .eq("id", args.id);
       if (error) throw error;
     },

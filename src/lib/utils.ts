@@ -125,7 +125,7 @@ function minutosLocaisDeISO(iso: string): number {
  * Verifica se um horário "HH:MM" cai dentro da janela do turno (cobre turnos
  * que cruzam a meia-noite, ex: 19h–7h). Sem horário ou sem turno ativo => sempre true.
  */
-export function horarioNoTurno(horario: string | null, turno: Turno | null): boolean {
+export function horarioNoTurno(horario: string | null, turno: Pick<Turno, "inicio" | "fim"> | null): boolean {
   if (!turno || !horario) return true;
   const alvo = horarioParaMinutos(horario);
   if (alvo === null) return true;

@@ -27,6 +27,8 @@ export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfer
 export type VinculoProfissional = "CLT" | "PJ";
 export type CategoriaTurno = "cuidadoras" | "enfermeiras";
 export type TagTurno = "diurno" | "noturno";
+/** Tarefa sem horário fixo: a qualquer momento do plantão indicado (0145). */
+export type TurnoLivre = "diurno" | "noturno" | "ambos";
 
 export type GrauDependencia = "I" | "II" | "III";
 /** Ocupação da suíte. */
@@ -535,6 +537,7 @@ export interface Database {
           residente_id: string;
           tarefa: string;
           horario: string | null;
+          turno_livre: TurnoLivre | null;
           responsavel: string | null;
           tolerancia_minutos: number;
           ativa: boolean;
@@ -544,6 +547,7 @@ export interface Database {
           residente_id: string;
           tarefa: string;
           horario?: string | null;
+          turno_livre?: TurnoLivre | null;
           responsavel?: string | null;
           tolerancia_minutos?: number;
           ativa?: boolean;
@@ -759,6 +763,7 @@ export interface Database {
           modelo_id: string;
           tarefa: string;
           horario: string | null;
+          turno_livre: TurnoLivre | null;
           responsavel: string | null;
           tolerancia_minutos: number;
         };
@@ -767,6 +772,7 @@ export interface Database {
           modelo_id: string;
           tarefa: string;
           horario?: string | null;
+          turno_livre?: TurnoLivre | null;
           responsavel?: string | null;
           tolerancia_minutos?: number;
         };

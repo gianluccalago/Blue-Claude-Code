@@ -1,4 +1,4 @@
-import { dataISO } from "@/lib/utils";
+import { dataISO, horarioNoTurno } from "@/lib/utils";
 import { minutosAgoraSP } from "@/lib/periodos";
 import type {
   Administracao,
@@ -6,6 +6,7 @@ import type {
   PlanoCuidadoItem,
   TagTurno,
   Turno,
+  TurnoLivre,
 } from "@/types/database";
 
 // ===========================================================================
@@ -156,12 +157,20 @@ export interface StatusTarefa {
  * é a das 06h de 25/09, e só atrasa depois disso.
  */
 export function statusTarefaNoPlantao(
-  item: Pick<PlanoCuidadoItem, "horario" | "tolerancia_minutos">,
+  item: Pick<PlanoCuidadoItem, "horario" | "tolerancia_minutos"> & { turno_livre?: TurnoLivre | null },
   feito: boolean,
   janela: JanelaPlantao,
   agora: Date = new Date(),
 ): StatusTarefa {
   if (feito) return { key: "feito", label: "Feito", dot: "bg-success" };
+  // Tarefa AO LONGO DO TURNO (0145): nunca "em atraso" dentro do plantão;
+  // avisa quando falta 1 h para o turno acabar e ela ainda não foi feita.
+  if (item.turno_livre) {
+    const restante = janela.fim.getTime() - TOLERANCIA_PLANTAO_MS - agora.getTime();
+    if (restante <= 60 * 60 * 1000)
+      return { key: "em_breve", label: "Turno terminando — ainda não feita", dot: "bg-warning" };
+    return { key: "normal", label: "A qualquer momento do turno", dot: "bg-muted-foreground/40" };
+  }
   const alvo = instanteNoPlantao(item.horario, janela);
   if (alvo === null) return { key: "normal", label: "Normal", dot: "bg-muted-foreground/40" };
   const alvoMs = alvo.getTime();
@@ -171,6 +180,20 @@ export function statusTarefaNoPlantao(
   if (agoraMs >= alvoMs - 30 * 60 * 1000)
     return { key: "em_breve", label: "Em breve", dot: "bg-warning" };
   return { key: "normal", label: "Normal", dot: "bg-muted-foreground/40" };
+}
+
+/**
+ * A tarefa do plano pertence a este plantão? Com horário fixo, vale a regra
+ * de sempre (horário dentro do turno). Ao longo do turno (0145): entra no
+ * plantão da tag indicada (ou em todos, "ambos"). Sem turno ativo, tudo entra.
+ */
+export function tarefaNoTurno(
+  item: Pick<PlanoCuidadoItem, "horario"> & { turno_livre?: TurnoLivre | null },
+  turno: Pick<Turno, "inicio" | "fim" | "tag"> | null,
+): boolean {
+  if (!turno) return true;
+  if (item.turno_livre) return item.turno_livre === "ambos" || item.turno_livre === turno.tag;
+  return horarioNoTurno(item.horario, turno);
 }
 
 // ─── Pendências da Coordenação ────────────────────────────────────────────────

@@ -102,6 +102,13 @@ export function calcularAderencia(
   let totalComPrazo = 0;
   for (const it of itens) {
     if (residentesAtivos && !residentesAtivos.has(it.residente_id)) continue; // hóspede fora da casa
+    // Ao longo do turno (0145): sem hora marcada — no prazo se feita no dia.
+    if (it.turno_livre) {
+      totalComPrazo += 1;
+      if (maisCedo.has(`${it.residente_id}|${it.tarefa}`)) noPrazo += 1;
+      else pendentes += 1;
+      continue;
+    }
     const alvo = horarioParaMinutos(it.horario);
     if (alvo === null) continue; // sem horário não entra na aderência
     totalComPrazo += 1;

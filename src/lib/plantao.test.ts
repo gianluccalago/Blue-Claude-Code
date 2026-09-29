@@ -9,6 +9,7 @@ import {
   registrosDoPlantaoAnterior,
   rotuloPlantao,
   statusTarefaNoPlantao,
+  tarefaNoTurno,
 } from "@/lib/plantao";
 import type { Administracao } from "@/types/database";
 
@@ -162,6 +163,44 @@ describe("statusTarefaNoPlantao", () => {
 });
 
 // ─── Coordenação: pendências não somem à meia-noite e fecham com "sim" posterior ─
+
+describe("tarefas ao longo do turno (turno_livre, 0145)", () => {
+  const banhoDia = { horario: null, tolerancia_minutos: 0, turno_livre: "diurno" as const };
+  const banhoNoite = { horario: null, tolerancia_minutos: 0, turno_livre: "noturno" as const };
+  const hidratar = { horario: null, tolerancia_minutos: 0, turno_livre: "ambos" as const };
+  const fixa = { horario: "10:00", tolerancia_minutos: 30, turno_livre: null };
+
+  it("entra só no plantão da tag indicada; 'ambos' entra nos dois; horário fixo segue a regra antiga", () => {
+    const diurno = { ...DIURNO_25, tag: "diurno" as const };
+    const noturno = { ...NOTURNO_24, tag: "noturno" as const };
+    expect(tarefaNoTurno(banhoDia, diurno)).toBe(true);
+    expect(tarefaNoTurno(banhoDia, noturno)).toBe(false);
+    expect(tarefaNoTurno(banhoNoite, diurno)).toBe(false);
+    expect(tarefaNoTurno(banhoNoite, noturno)).toBe(true);
+    expect(tarefaNoTurno(hidratar, diurno)).toBe(true);
+    expect(tarefaNoTurno(hidratar, noturno)).toBe(true);
+    expect(tarefaNoTurno(fixa, diurno)).toBe(true);
+    expect(tarefaNoTurno(fixa, noturno)).toBe(false);
+    // sem turno ativo, tudo aparece
+    expect(tarefaNoTurno(banhoNoite, null)).toBe(true);
+  });
+
+  it("nunca fica 'em atraso' dentro do plantão; avisa na última hora; 'feito' quando registrada", () => {
+    const j = janelaDoPlantao(DIURNO_25, sp("2026-09-25", "10:00"));
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "07:05")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "15:00")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "17:59")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "18:00")).key).toBe("em_breve");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "18:59")).key).toBe("em_breve");
+    expect(statusTarefaNoPlantao(banhoDia, true, j, sp("2026-09-25", "18:59")).key).toBe("feito");
+  });
+
+  it("no noturno, a última hora é 06h–07h do dia seguinte", () => {
+    const j = janelaDoPlantao(NOTURNO_24, sp("2026-09-24", "20:00"));
+    expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "00:30")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "06:10")).key).toBe("em_breve");
+  });
+});
 
 describe("plantaoDoInstante / rotuloPlantao", () => {
   it("madrugada pertence ao noturno da véspera; 07h–19h é diurno", () => {

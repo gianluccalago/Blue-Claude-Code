@@ -261,6 +261,7 @@ function PlanoDoHospede({
                   <EditarItemForm
                     key={item.id}
                     horarioInicial={item.horario}
+                    turnoLivreInicial={item.turno_livre}
                     toleranciaInicial={item.tolerancia_minutos}
                     salvando={editar.isPending}
                     onCancelar={() => setEditandoId(null)}
@@ -276,6 +277,7 @@ function PlanoDoHospede({
                     key={item.id}
                     tarefa={item.tarefa}
                     horario={item.horario}
+                    turnoLivre={item.turno_livre}
                     responsavel={item.responsavel}
                     toleranciaMinutos={item.tolerancia_minutos}
                     disabled={ocupado}

@@ -1,14 +1,25 @@
-import { Clock4, Pencil, Trash2 } from "lucide-react";
+import { Clock4, Pencil, Trash2, Sun, Moon, SunMoon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ouNaoInformado } from "@/lib/utils";
+import { rotuloTurnoLivre } from "@/data/tarefas";
+import type { TurnoLivre } from "@/types/database";
+
+/** Ícone do "quando" de uma tarefa ao longo do turno. */
+export function IconeTurnoLivre({ turnoLivre, className }: { turnoLivre: TurnoLivre; className?: string }) {
+  const cls = className ?? "size-4 text-muted-foreground";
+  if (turnoLivre === "diurno") return <Sun className={cls} />;
+  if (turnoLivre === "noturno") return <Moon className={cls} />;
+  return <SunMoon className={cls} />;
+}
 
 /**
- * Cartão de exibição de uma tarefa (plano ou modelo): horário, nome,
- * responsável e tolerância, com ações de editar e remover.
+ * Cartão de exibição de uma tarefa (plano ou modelo): horário (ou "ao longo
+ * do turno"), nome, responsável e tolerância, com ações de editar e remover.
  */
 export function ItemTarefaCard({
   tarefa,
   horario,
+  turnoLivre,
   responsavel,
   toleranciaMinutos,
   onEditar,
@@ -17,6 +28,7 @@ export function ItemTarefaCard({
 }: {
   tarefa: string;
   horario: string | null;
+  turnoLivre?: TurnoLivre | null;
   responsavel: string | null;
   toleranciaMinutos: number;
   /** Sem onEditar/onRemover → cartão somente leitura (esconde as ações). */
@@ -26,9 +38,18 @@ export function ItemTarefaCard({
 }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
-      <div className="flex w-16 shrink-0 flex-col items-center">
-        <Clock4 className="size-4 text-muted-foreground" />
-        <span className="text-sm font-bold tabular-nums text-secondary">{horario ?? "--:--"}</span>
+      <div className="flex w-16 shrink-0 flex-col items-center text-center">
+        {turnoLivre ? (
+          <>
+            <IconeTurnoLivre turnoLivre={turnoLivre} />
+            <span className="text-[11px] font-bold leading-tight text-secondary">{rotuloTurnoLivre(turnoLivre)}</span>
+          </>
+        ) : (
+          <>
+            <Clock4 className="size-4 text-muted-foreground" />
+            <span className="text-sm font-bold tabular-nums text-secondary">{horario ?? "--:--"}</span>
+          </>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="font-semibold text-secondary">{tarefa}</div>
@@ -37,7 +58,7 @@ export function ItemTarefaCard({
             {ouNaoInformado(responsavel)}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            Tolerância: {toleranciaMinutos} min
+            {turnoLivre ? "A qualquer momento do turno" : `Tolerância: ${toleranciaMinutos} min`}
           </span>
         </div>
       </div>

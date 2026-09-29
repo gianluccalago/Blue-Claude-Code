@@ -26,7 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { cn, horarioNoTurno, ouNaoInformado, formatarHoraBR, formatarDataHoraBR, inicioDoDiaISO } from "@/lib/utils";
-import { janelaDoPlantao, dentroDaJanela, diaAnterior, statusTarefaNoPlantao } from "@/lib/plantao";
+import { janelaDoPlantao, dentroDaJanela, diaAnterior, statusTarefaNoPlantao, tarefaNoTurno } from "@/lib/plantao";
+import { IconeTurnoLivre } from "@/components/coordenacao/ItemTarefaCard";
+import { rotuloTurnoLivre } from "@/data/tarefas";
 import type { PlanoCuidadoItem, Residente, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
@@ -130,8 +132,10 @@ function ChecklistDoHospede({
   );
   const planoItens = plano.data ?? [];
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
+  // Tarefas com horário no turno + tarefas AO LONGO DO TURNO (0145: sem hora
+  // marcada, ex. banho — feitas em qualquer momento do plantão de 12h).
   const planoItensDoTurno = useMemo(
-    () => planoItens.filter((item) => horarioNoTurno(item.horario, turno)),
+    () => planoItens.filter((item) => tarefaNoTurno(item, turno)),
     [planoItens, turno]
   );
   const refeicoesDoTurno = useMemo(
@@ -270,11 +274,20 @@ function ChecklistDoHospede({
                     status.key === "em_breve" && "border-warning/40 bg-warning/5",
                   )}
                 >
-                  <div className="flex w-16 shrink-0 flex-col items-center">
-                    <Clock4 className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-bold tabular-nums text-secondary">
-                      {item.horario ?? "--:--"}
-                    </span>
+                  <div className="flex w-16 shrink-0 flex-col items-center text-center">
+                    {item.turno_livre ? (
+                      <>
+                        <IconeTurnoLivre turnoLivre={item.turno_livre} />
+                        <span className="text-[11px] font-bold leading-tight text-secondary">{rotuloTurnoLivre(item.turno_livre)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock4 className="size-4 text-muted-foreground" />
+                        <span className="text-sm font-bold tabular-nums text-secondary">
+                          {item.horario ?? "--:--"}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-secondary">{item.tarefa}</div>
@@ -282,7 +295,7 @@ function ChecklistDoHospede({
                       <span className={cn("size-2 rounded-full", status.dot)} />
                       {feito ? (
                         <span className="text-xs font-semibold text-success">
-                          Feito às {formatarHoraBR(registro!.feito_em)}
+                          Feito às {formatarHoraBR(registro!.feito_em)}{registro!.feito_por ? ` por ${registro!.feito_por}` : ""}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">{status.label}</span>

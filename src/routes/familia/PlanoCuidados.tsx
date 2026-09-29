@@ -22,7 +22,9 @@ const QUEM_FAZ: Record<string, string> = {
 };
 
 /** Agrupa por turno para a leitura ficar natural. */
-function turnoDe(horario: string | null): "Manhã" | "Tarde" | "Noite" | "Ao longo do dia" {
+function turnoDe(horario: string | null, turnoLivre?: string | null): "Manhã" | "Tarde" | "Noite" | "Ao longo do dia" {
+  // Tarefa sem hora marcada (0145): "ao longo do dia" ou, se só à noite, "Noite".
+  if (turnoLivre) return turnoLivre === "noturno" ? "Noite" : "Ao longo do dia";
   if (!horario) return "Ao longo do dia";
   const h = parseInt(horario.slice(0, 2), 10);
   if (Number.isNaN(h)) return "Ao longo do dia";
@@ -60,7 +62,7 @@ export function PlanoCuidados() {
   const itens = plano.data ?? [];
   const porTurno = ORDEM_TURNOS.map((t) => ({
     turno: t,
-    itens: itens.filter((i) => turnoDe(i.horario) === t),
+    itens: itens.filter((i) => turnoDe(i.horario, i.turno_livre) === t),
   })).filter((g) => g.itens.length > 0);
 
   return (
@@ -108,6 +110,11 @@ export function PlanoCuidados() {
                       <span className="flex shrink-0 items-center gap-2">
                         {i.horario && (
                           <span className="text-xs font-semibold tabular-nums text-muted-foreground">{i.horario}</span>
+                        )}
+                        {i.turno_livre && (
+                          <span className="text-xs font-semibold text-muted-foreground">
+                            {i.turno_livre === "noturno" ? "durante a noite" : i.turno_livre === "diurno" ? "durante o dia" : "em todo turno"}
+                          </span>
                         )}
                         <Badge variant="muted">{QUEM_FAZ[i.responsavel ?? ""] ?? "Equipe"}</Badge>
                       </span>
