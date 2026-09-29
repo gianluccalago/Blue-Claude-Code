@@ -98,8 +98,15 @@ export function rest(caminho, params, email) {
 /** Consulta como usuário (RLS) e devolve JSON. */
 export function consultarComo(select, email) {
   const json = sql(`${comoUsuario(email)}select coalesce(json_agg(t), '[]'::json)::text from (${select}) t`);
-  const linhas = json.trim().split("\n").filter(Boolean);
-  try { return JSON.parse(linhas[linhas.length - 1] || "[]"); } catch { return []; }
+  // json_agg quebra linha entre elementos: parse do JSON inteiro, do 1º "[" em diante.
+  return parseSaidaJson(json);
+}
+
+function parseSaidaJson(saida) {
+  const t = saida.trim();
+  const i = Math.min(...[t.indexOf("["), t.indexOf("{")].filter((x) => x >= 0));
+  if (!Number.isFinite(i)) return [];
+  try { return JSON.parse(t.slice(i)); } catch { return []; }
 }
 
 const litJson = (v) => v === null || v === undefined ? "null" : `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
@@ -133,8 +140,7 @@ export function restEscrita(metodo, caminho, params, corpo, prefer, email) {
       const args2 = Object.entries(corpo ?? {}).map(([k, v]) => `${k} := ${litValor(v)}`).join(", ");
       q = `select to_jsonb(r) from public.${fn}(${args2}) r`;
       const out = sql(`${comoUsuario(email)}select coalesce(json_agg(x), '[]'::json)::text from (${q}) x`);
-      const linhas = out.trim().split("\n").filter(Boolean);
-      const arr = JSON.parse(linhas[linhas.length - 1] || "[]").map((x) => x.to_jsonb ?? x);
+      const arr = parseSaidaJson(out).map((x) => x.to_jsonb ?? x);
       return { status: 200, corpo: arr.length === 1 && (arr[0] === null || typeof arr[0] !== "object") ? arr[0] : arr };
     }
     if (!/^[a-z_][a-z0-9_]*$/.test(alvo)) return { status: 404, corpo: { message: "tabela inválida" } };
@@ -157,8 +163,7 @@ export function restEscrita(metodo, caminho, params, corpo, prefer, email) {
       q = `delete from public."${alvo}"${where} returning *`;
     } else return { status: 405, corpo: { message: "método não suportado" } };
     const out = sql(`${comoUsuario(email)}with r as (${q}) select coalesce(json_agg(r), '[]'::json)::text from r`);
-    const linhas = out.trim().split("\n").filter(Boolean);
-    return { status: metodo === "POST" ? 201 : 200, corpo: JSON.parse(linhas[linhas.length - 1] || "[]") };
+    return { status: metodo === "POST" ? 201 : 200, corpo: parseSaidaJson(out) };
   } catch (e) {
     const msg = String(e.stderr ?? e.message ?? e);
     const m = msg.match(/ERROR:\s*(.*)/);
