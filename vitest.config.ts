@@ -14,7 +14,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // Inclui o módulo puro da Edge Function de rondas (validação da tag).
+    include: ["src/**/*.test.ts", "supabase/functions/**/*.test.ts"],
     // Alguns módulos testados (ex.: lib/storage) importam o cliente Supabase,
     // que exige as variáveis para inicializar. Valores fictícios: os testes
     // são de funções puras e nunca chegam a fazer chamada de rede.
