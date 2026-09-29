@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -42,6 +42,9 @@ import {
   STATUS_PROPORCAO_VARIANTE,
 } from "@/lib/proporcaoRh";
 import { parseQuarto, formatarQuarto } from "@/lib/quarto";
+import { useElencoSemana, useAplicarRotacao } from "@/hooks/useCobertura";
+import { planejarRotacao, redistribuirAusentes, itensDoPlano, indiceSemana, segundaDaSemana, domingoDaSemana, diasDaSemana, type GrupoRotacao } from "@/lib/rotacaoCuidado";
+import { formatarDataBR } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -312,6 +315,9 @@ function ConteudoCobertura({
           )}
         </CardContent>
       </Card>
+
+      {/* Rotação semanal: cada cuidadora com um grupo diferente de hóspedes a cada semana */}
+      <RotacaoSemanalCard data={data} tag={tag} hospedes={hospedes} escaladas={cuidadoresEscalados} descobertos={descobertos} podeEditar={podeEditar} />
 
       {/* Indicador-resumo da proporção mínima de cuidadores (RDC 502 Art. 16).
           Detalhe completo fica na aba Vigilância Sanitária. */}
@@ -612,5 +618,113 @@ function ChipPresenca({ pessoa }: { pessoa: PessoaTurno }) {
     <Badge variant={PRESENCA_VARIANTE[pessoa.presenca]} className="text-[10px]">
       {PRESENCA_LABEL[pessoa.presenca]}
     </Badge>
+  );
+}
+
+
+// ─── Rotação semanal de cuidadoras ────────────────────────────────────────────
+// A cada semana cada cuidadora fica com um grupo diferente de hóspedes, do
+// mesmo andar (regra em src/lib/rotacaoCuidado.ts). A Coordenação ajusta à
+// vontade: o que ela designa à mão prevalece. Se o turno ainda não tem nenhuma
+// designação, o app aplica a rotação sozinho ao abrir a tela.
+function RotacaoSemanalCard({ data, tag, hospedes, escaladas, descobertos, podeEditar }: {
+  data: string;
+  tag: TagTurno;
+  hospedes: HospedeCobertura[];
+  escaladas: PessoaTurno[];
+  descobertos: number;
+  podeEditar: boolean;
+}) {
+  const elenco = useElencoSemana(data, tag);
+  const aplicar = useAplicarRotacao();
+  const tentouAuto = useRef<string | null>(null);
+  const semana = indiceSemana(data);
+
+  const hospedesRot = useMemo(
+    () => hospedes.map((h) => ({ id: h.residente.id, nome: h.residente.nome, quarto: h.residente.quarto })),
+    [hospedes],
+  );
+  // Plano da SEMANA (elenco = quem está escalada em algum dia da semana);
+  // plano do DIA = o da semana só com quem está escalada hoje (ausentes redistribuídas).
+  const planoSemana: GrupoRotacao[] = useMemo(
+    () => planejarRotacao(hospedesRot, elenco.data?.cuidadoras ?? [], semana),
+    [hospedesRot, elenco.data, semana],
+  );
+  const planoDia = useMemo(
+    () => redistribuirAusentes(planoSemana, new Set(escaladas.map((c) => c.id))),
+    [planoSemana, escaladas],
+  );
+
+  function aplicarHoje() {
+    aplicar.mutate([{ data, turno: tag, itens: itensDoPlano(planoDia) }], {
+      onSuccess: (r) => toast.success(`Rotação aplicada: ${r.inseridas} designação(ões)${r.manuais ? `, ${r.manuais} manual(is) mantida(s)` : ""}.`),
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível aplicar a rotação."),
+    });
+  }
+  function aplicarSemana() {
+    const porDia = elenco.data?.porDia ?? new Map<string, Set<string>>();
+    const lotes = diasDaSemana(data).map((dia) => ({
+      data: dia, turno: tag,
+      itens: itensDoPlano(redistribuirAusentes(planoSemana, porDia.get(dia) ?? new Set<string>())),
+    }));
+    aplicar.mutate(lotes, {
+      onSuccess: (r) => toast.success(`Rotação aplicada em ${r.turnos} turno(s) da semana: ${r.inseridas} designação(ões).`),
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível aplicar a rotação."),
+    });
+  }
+
+  // Automático: turno sem NENHUMA designação e com cuidadoras escaladas → aplica.
+  useEffect(() => {
+    const chave = `${data}|${tag}`;
+    if (!podeEditar || tentouAuto.current === chave) return;
+    if (hospedes.length === 0 || descobertos !== hospedes.length || planoDia.length === 0 || aplicar.isPending) return;
+    tentouAuto.current = chave;
+    aplicar.mutate([{ data, turno: tag, itens: itensDoPlano(planoDia) }], {
+      onSuccess: (r) => toast.success(`Rotação da semana aplicada automaticamente: ${r.inseridas} designação(ões). Ajuste o que precisar.`),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, tag, podeEditar, hospedes.length, descobertos, planoDia.length]);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Users className="size-4 text-primary" /> Rotação semanal
+          <Badge variant="muted" className="ml-1">{formatarDataBR(segundaDaSemana(data))} – {formatarDataBR(domingoDaSemana(data))}</Badge>
+        </CardTitle>
+        {podeEditar && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={aplicarHoje} loading={aplicar.isPending} disabled={planoDia.length === 0}>Aplicar neste turno</Button>
+            <Button size="sm" onClick={aplicarSemana} loading={aplicar.isPending} disabled={planoSemana.length === 0}>Aplicar na semana ({TURNO_LABEL[tag].toLowerCase()})</Button>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Cada cuidadora fica uma semana com um grupo de hóspedes do mesmo andar; na semana seguinte o grupo muda. O que a Coordenação designar à mão prevalece sobre a rotação.
+        </p>
+        {elenco.isLoading ? <LoadingState /> : planoSemana.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem cuidadoras escaladas neste turno na semana — monte a escala primeiro.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {planoSemana.map((g) => {
+              const presenteHoje = escaladas.some((c) => c.id === g.cuidadora.id);
+              return (
+                <div key={g.cuidadora.id} className={cn("rounded-lg border p-3", presenteHoje ? "border-border" : "border-dashed opacity-70")}>
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-secondary">
+                    {g.cuidadora.nome}
+                    {g.andar != null && <Badge variant="muted">Módulo {g.modulo} · Andar {g.andar}</Badge>}
+                    {!presenteHoje && <Badge variant="warning">fora da escala hoje</Badge>}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {g.hospedes.map((h) => `${h.nome}${h.quarto ? ` (${formatarQuarto(h.quarto)})` : ""}`).join(" · ")}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

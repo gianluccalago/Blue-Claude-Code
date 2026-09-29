@@ -2156,6 +2156,7 @@ export interface Database {
           cuidador_id: string;
           data: string;
           turno: string;
+          origem: "manual" | "rotacao";
           criado_por: string | null;
           criado_em: string;
         };
@@ -2165,6 +2166,7 @@ export interface Database {
           cuidador_id: string;
           data: string;
           turno: string;
+          origem?: "manual" | "rotacao";
           criado_por?: string | null;
           criado_em?: string;
         };
@@ -3464,6 +3466,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      aplicar_rotacao_cuidado: {
+        Args: { p_data: string; p_turno: string; p_itens: { residente_id: string; cuidador_id: string }[] };
+        Returns: { removidas: number; inseridas: number; manuais_mantidas: number };
+      };
       // Atualiza somente a foto do PRÓPRIO usuário (segurança: não altera perfil).
       set_minha_foto: {
         Args: { p_url: string | null };

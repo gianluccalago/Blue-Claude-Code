@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { dayCareNoTurno, presencaDoTurno, estaPresente, type PresencaTurno } from "@/lib/cobertura";
+import { diasDaSemana } from "@/lib/rotacaoCuidado";
 import type { Residente, TagTurno } from "@/types/database";
 
 // ===========================================================================
@@ -188,6 +189,69 @@ export function useDesignarLote() {
         .from("designacao_cuidado")
         .upsert(linhas, { onConflict: "residente_id,cuidador_id,data,turno", ignoreDuplicates: true });
       if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+// ─── Rotação semanal de cuidadoras ───────────────────────────────────────────
+// Regras em src/lib/rotacaoCuidado.ts. Aqui: o ELENCO da semana (quem está
+// escalada no turno em algum dia da semana), a presença por dia e a gravação
+// pela RPC aplicar_rotacao_cuidado (a manual prevalece; ver migration 0143).
+
+export interface ElencoSemana {
+  cuidadoras: { id: string; nome: string }[];
+  /** dia (YYYY-MM-DD) → ids das cuidadoras escaladas naquele dia/turno */
+  porDia: Map<string, Set<string>>;
+}
+
+export function useElencoSemana(data: string, tag: TagTurno) {
+  const dias = diasDaSemana(data);
+  return useQuery({
+    queryKey: ["cobertura-elenco", dias[0], tag],
+    queryFn: async (): Promise<ElencoSemana> => {
+      const { data: turnos, error } = await supabase
+        .from("turnos")
+        .select("data, profissional_id")
+        .eq("categoria", "cuidadoras")
+        .eq("tag", tag)
+        .gte("data", dias[0])
+        .lte("data", dias[6])
+        .not("profissional_id", "is", null);
+      if (error) throw error;
+      const porDia = new Map<string, Set<string>>();
+      const ids = new Set<string>();
+      for (const t of turnos ?? []) {
+        const pid = t.profissional_id as string;
+        ids.add(pid);
+        if (!porDia.has(t.data)) porDia.set(t.data, new Set());
+        porDia.get(t.data)!.add(pid);
+      }
+      const usuarios = ids.size
+        ? (await supabase.from("usuarios").select("id, nome").in("id", [...ids])).data ?? []
+        : [];
+      return {
+        cuidadoras: usuarios.map((u) => ({ id: u.id, nome: u.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        porDia,
+      };
+    },
+  });
+}
+
+/** Grava a rotação de um ou mais turnos (RPC transacional; manual prevalece). */
+export function useAplicarRotacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (lotes: { data: string; turno: TagTurno; itens: { residente_id: string; cuidador_id: string }[] }[]) => {
+      let inseridas = 0, manuais = 0, turnos = 0;
+      for (const l of lotes) {
+        if (l.itens.length === 0) continue;
+        const { data, error } = await supabase.rpc("aplicar_rotacao_cuidado", { p_data: l.data, p_turno: l.turno, p_itens: l.itens });
+        if (error) throw error;
+        const r = (Array.isArray(data) ? data[0] : data) as { inseridas?: number; manuais_mantidas?: number } | null;
+        inseridas += r?.inseridas ?? 0; manuais += r?.manuais_mantidas ?? 0; turnos += 1;
+      }
+      return { inseridas, manuais, turnos };
     },
     onSuccess: () => invalidar(qc),
   });
