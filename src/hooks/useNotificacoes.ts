@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { buscarHistoricoPeriodicas, filtrarDevidas } from "@/hooks/useRotina";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/auth/AuthProvider";
 import { hojeISO, inicioDoDiaISO, dataISO, somarDias } from "@/lib/utils";
@@ -371,7 +372,7 @@ async function checklistAtrasado(residenteIds: string[]): Promise<number> {
     const [{ data: itens }, { data: regs }] = await Promise.all([
       supabase
         .from("plano_cuidado_item")
-        .select("residente_id, tarefa, horario")
+        .select("*")
         .eq("ativa", true)
         .in("residente_id", residenteIds),
       supabase
@@ -381,11 +382,13 @@ async function checklistAtrasado(residenteIds: string[]): Promise<number> {
         .in("residente_id", residenteIds),
     ]);
     const feito = new Set((regs ?? []).map((r) => `${r.residente_id}|${r.tarefa}`));
-    return (itens ?? []).filter((it) => {
+    // Periódicas (0146) só contam no dia em que vencem.
+    const devidas = filtrarDevidas(itens ?? [], await buscarHistoricoPeriodicas(itens ?? [], hojeISO()), hojeISO());
+    return devidas.filter((it) => {
       if (!it.horario) return false;
       const [h, mm] = String(it.horario).split(":").map(Number);
       const venc = h * 60 + (mm || 0) <= minAgora;
-      return venc && !feito.has(`${it.residente_id}|${it.tarefa}`);
+      return venc && !feito.has(`${it.residente_id}|${it.id}`) && !feito.has(`${it.residente_id}|${it.tarefa}`);
     }).length;
   } catch {
     return 0;

@@ -95,6 +95,7 @@ export function useAdicionarModeloItem(modeloId: string) {
         tarefa: valor.tarefa,
         horario: valor.horario,
         turno_livre: valor.turno_livre,
+        intervalo_dias: valor.intervalo_dias,
         responsavel: valor.responsavel,
         tolerancia_minutos: valor.tolerancia_minutos,
       });
@@ -110,7 +111,7 @@ export function useEditarModeloItem(modeloId: string) {
     mutationFn: async (args: { id: string } & EdicaoItemTarefa) => {
       const { error } = await supabase
         .from("modelo_rotina_item")
-        .update({ horario: args.horario, turno_livre: args.turno_livre, tolerancia_minutos: args.tolerancia_minutos })
+        .update({ horario: args.horario, turno_livre: args.turno_livre, intervalo_dias: args.intervalo_dias, tolerancia_minutos: args.tolerancia_minutos })
         .eq("id", args.id);
       if (error) throw error;
     },

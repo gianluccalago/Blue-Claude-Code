@@ -142,6 +142,14 @@ export function registrosDoPlantaoAnterior(
 
 // ─── Checklist ────────────────────────────────────────────────────────────────
 
+/** Antecedência do aviso "turno terminando" das tarefas sem hora marcada. */
+export const AVISO_FIM_TURNO_MS = 2 * 60 * 60 * 1000;
+
+/** Faltam 2 h ou menos para o fim do turno (sem contar a tolerância da janela)? */
+export function turnoTerminando(janela: JanelaPlantao, agora: Date = new Date()): boolean {
+  return janela.fim.getTime() - TOLERANCIA_PLANTAO_MS - agora.getTime() <= AVISO_FIM_TURNO_MS;
+}
+
 export type StatusTarefaKey = "feito" | "atraso" | "em_breve" | "normal";
 
 export interface StatusTarefa {
@@ -164,10 +172,10 @@ export function statusTarefaNoPlantao(
 ): StatusTarefa {
   if (feito) return { key: "feito", label: "Feito", dot: "bg-success" };
   // Tarefa AO LONGO DO TURNO (0145): nunca "em atraso" dentro do plantão;
-  // avisa quando falta 1 h para o turno acabar e ela ainda não foi feita.
+  // avisa quando faltam 2 h para o turno acabar e ela ainda não foi feita —
+  // tempo para a cuidadora fazer ou a Coordenação providenciar.
   if (item.turno_livre) {
-    const restante = janela.fim.getTime() - TOLERANCIA_PLANTAO_MS - agora.getTime();
-    if (restante <= 60 * 60 * 1000)
+    if (turnoTerminando(janela, agora))
       return { key: "em_breve", label: "Turno terminando — ainda não feita", dot: "bg-warning" };
     return { key: "normal", label: "A qualquer momento do turno", dot: "bg-muted-foreground/40" };
   }

@@ -538,6 +538,8 @@ export interface Database {
           tarefa: string;
           horario: string | null;
           turno_livre: TurnoLivre | null;
+          intervalo_dias: number | null;
+          inicio_em: string;
           responsavel: string | null;
           tolerancia_minutos: number;
           ativa: boolean;
@@ -548,6 +550,8 @@ export interface Database {
           tarefa: string;
           horario?: string | null;
           turno_livre?: TurnoLivre | null;
+          intervalo_dias?: number | null;
+          inicio_em?: string;
           responsavel?: string | null;
           tolerancia_minutos?: number;
           ativa?: boolean;
@@ -764,6 +768,7 @@ export interface Database {
           tarefa: string;
           horario: string | null;
           turno_livre: TurnoLivre | null;
+          intervalo_dias: number | null;
           responsavel: string | null;
           tolerancia_minutos: number;
         };
@@ -773,6 +778,7 @@ export interface Database {
           tarefa: string;
           horario?: string | null;
           turno_livre?: TurnoLivre | null;
+          intervalo_dias?: number | null;
           responsavel?: string | null;
           tolerancia_minutos?: number;
         };

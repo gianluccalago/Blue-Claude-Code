@@ -10,6 +10,8 @@ export interface ItemTarefaValor {
   horario: string | null;
   /** Ao longo do turno (0145): diurno | noturno | ambos; null = horário fixo. */
   turno_livre: TurnoLivre | null;
+  /** Periodicidade (0146): null = todo dia; N = a cada N dias. */
+  intervalo_dias: number | null;
   responsavel: Responsavel;
   tolerancia_minutos: number;
 }
@@ -40,6 +42,57 @@ export function SeletorQuando({
 }
 
 /**
+ * "Repetir": todo dia, ou a cada N dias (ex.: aferir pressão a cada 15 dias).
+ * `valor` null = todo dia. A tarefa periódica entra sozinha no checklist no
+ * dia em que vence e a próxima conta a partir do dia em que foi feita.
+ */
+export function SeletorRepeticao({
+  valor,
+  onChange,
+  compacto,
+}: {
+  valor: number | null;
+  onChange: (v: number | null) => void;
+  compacto?: boolean;
+}) {
+  const cls = compacto ? inputBase.replace("h-11", "h-10") : inputBase;
+  return (
+    <div className="flex gap-2">
+      <select
+        value={valor ? "periodica" : "diaria"}
+        onChange={(e) => onChange(e.target.value === "periodica" ? 15 : null)}
+        className={cls}
+      >
+        <option value="diaria">Todo dia</option>
+        <option value="periodica">A cada N dias</option>
+      </select>
+      {valor !== null && (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <input
+            type="number"
+            min={2}
+            max={365}
+            value={valor}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              onChange(Number.isFinite(n) ? n : 2);
+            }}
+            className={`${cls} w-20`}
+            aria-label="Intervalo em dias"
+          />
+          <span className="text-sm text-muted-foreground">dias</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Intervalo válido (2 a 365) ou null. */
+export function intervaloValido(v: number | null): boolean {
+  return v === null || (Number.isInteger(v) && v >= 2 && v <= 365);
+}
+
+/**
  * Formulário compartilhado para adicionar uma tarefa, usado tanto no plano de
  * cuidado do hóspede quanto nos itens de um modelo de rotina.
  * O seletor inclui a opção "Outra (digitar)" que libera um campo de texto livre.
@@ -61,11 +114,12 @@ export function ItemTarefaForm({
   const [horario, setHorario] = useState("");
   const [responsavel, setResponsavel] = useState<Responsavel | "">("");
   const [tolerancia, setTolerancia] = useState(30);
+  const [intervalo, setIntervalo] = useState<number | null>(null);
 
   const ehOutra = tarefaSel === TAREFA_OUTRA;
   const aoLongoDoTurno = quando !== "horario";
   const tarefaFinal = ehOutra ? tarefaOutra.trim() : tarefaSel;
-  const valido = !!tarefaFinal && (aoLongoDoTurno || !!horario) && !!responsavel;
+  const valido = !!tarefaFinal && (aoLongoDoTurno || !!horario) && !!responsavel && intervaloValido(intervalo);
 
   function submeter() {
     if (!valido) return;
@@ -73,6 +127,7 @@ export function ItemTarefaForm({
       tarefa: tarefaFinal,
       horario: aoLongoDoTurno ? null : horario,
       turno_livre: aoLongoDoTurno ? quando : null,
+      intervalo_dias: intervalo,
       responsavel: responsavel as Responsavel,
       tolerancia_minutos: aoLongoDoTurno ? 0 : Number.isFinite(tolerancia) ? tolerancia : 30,
     });
@@ -115,6 +170,16 @@ export function ItemTarefaForm({
           {aoLongoDoTurno && (
             <p className="mt-1.5 text-xs text-muted-foreground">
               Sem hora marcada: a cuidadora marca como feita em qualquer momento do plantão e o sistema registra quem fez e quando.
+            </p>
+          )}
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block text-sm font-semibold text-secondary">Repetir</label>
+          <SeletorRepeticao valor={intervalo} onChange={setIntervalo} />
+          {intervalo !== null && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Entra sozinha no checklist no dia em que vence e fica até ser feita. A próxima conta a partir do dia em que foi feita.
             </p>
           )}
         </div>

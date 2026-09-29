@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Plus, X, Clock4, Droplet, CircleDot, AlertTriangle, Loader2, Utensils } from "lucide-react";
+import { Check, Plus, X, Clock4, Droplet, CircleDot, AlertTriangle, Loader2, Utensils, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { CUIDADOR_ATUAL } from "@/data/profiles";
 import { useHospedesDesignados } from "@/hooks/useHospedes";
@@ -29,6 +29,8 @@ import { cn, horarioNoTurno, ouNaoInformado, formatarHoraBR, formatarDataHoraBR,
 import { janelaDoPlantao, dentroDaJanela, diaAnterior, statusTarefaNoPlantao, tarefaNoTurno } from "@/lib/plantao";
 import { IconeTurnoLivre } from "@/components/coordenacao/ItemTarefaCard";
 import { rotuloTurnoLivre } from "@/data/tarefas";
+import { useHistoricoPeriodicas, filtrarDevidas } from "@/hooks/useRotina";
+import { diasDeAtraso, ehPeriodica, rotuloIntervalo, ultimaExecucaoPorItem } from "@/lib/rotina";
 import type { PlanoCuidadoItem, Residente, TarefaRegistro, Turno } from "@/types/database";
 
 // 6 refeições, na ordem do dia, com horário de referência para filtrar por turno.
@@ -134,9 +136,19 @@ function ChecklistDoHospede({
   const planIds = useMemo(() => new Set(planoItens.map((p) => p.id)), [planoItens]);
   // Tarefas com horário no turno + tarefas AO LONGO DO TURNO (0145: sem hora
   // marcada, ex. banho — feitas em qualquer momento do plantão de 12h).
+  // Periódicas (0146, ex.: pressão a cada 15 dias) só entram no dia em que
+  // vencem — e ficam até serem feitas.
+  const historico = useHistoricoPeriodicas(plano.data, janela.dataPlantao);
+  const ultimas = useMemo(
+    () => ultimaExecucaoPorItem(historico.data ?? [], janela.dataPlantao),
+    [historico.data, janela.dataPlantao],
+  );
   const planoItensDoTurno = useMemo(
-    () => planoItens.filter((item) => tarefaNoTurno(item, turno)),
-    [planoItens, turno]
+    () =>
+      filtrarDevidas(planoItens, historico.data ?? [], janela.dataPlantao).filter((item) =>
+        tarefaNoTurno(item, turno),
+      ),
+    [planoItens, historico.data, janela.dataPlantao, turno]
   );
   const refeicoesDoTurno = useMemo(
     () => REFEICOES.filter((r) => horarioNoTurno(r.horario, turno)),
@@ -147,6 +159,9 @@ function ChecklistDoHospede({
   const [outros, setOutros] = useState("");
 
   function registroDaTarefa(tarefaId: string): TarefaRegistro | undefined {
+    // Periódica: vale o registro de qualquer plantão da data (feita uma vez no dia).
+    const item = planoItens.find((p) => p.id === tarefaId);
+    if (item && ehPeriodica(item)) return (registros.data ?? []).find((r) => r.tarefa === tarefaId);
     return registrosHoje.find((r) => r.tarefa === tarefaId);
   }
 
@@ -303,6 +318,13 @@ function ChecklistDoHospede({
                       <Badge variant={item.responsavel === "enfermagem" ? "secondary" : "muted"}>
                         {ouNaoInformado(item.responsavel)}
                       </Badge>
+                      {ehPeriodica(item) && (
+                        <Badge variant="default" className="gap-1">
+                          <Repeat className="size-3" /> {rotuloIntervalo(item.intervalo_dias)}
+                          {!feito && diasDeAtraso(item, ultimas.get(item.id) ?? null, janela.dataPlantao) > 0 &&
+                            ` · venceu há ${diasDeAtraso(item, ultimas.get(item.id) ?? null, janela.dataPlantao)} dia(s)`}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <Button

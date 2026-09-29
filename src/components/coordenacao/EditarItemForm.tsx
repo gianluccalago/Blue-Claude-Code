@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SeletorQuando, type QuandoTarefa } from "@/components/coordenacao/ItemTarefaForm";
+import { SeletorQuando, SeletorRepeticao, intervaloValido, type QuandoTarefa } from "@/components/coordenacao/ItemTarefaForm";
 import type { TurnoLivre } from "@/types/database";
 
 const inputBase =
@@ -10,17 +10,19 @@ const inputBase =
 export interface EdicaoItemTarefa {
   horario: string | null;
   turno_livre: TurnoLivre | null;
+  intervalo_dias: number | null;
   tolerancia_minutos: number;
 }
 
 /**
- * Edição enxuta de um item já existente: só "quando" (horário fixo com
- * tolerância, ou ao longo do turno). A tarefa e o responsável não mudam aqui.
+ * Edição enxuta de um item já existente: "quando" (horário fixo com
+ * tolerância, ou ao longo do turno) e "repetir" (todo dia / a cada N dias). A tarefa e o responsável não mudam aqui.
  * Reutilizado em planos e modelos.
  */
 export function EditarItemForm({
   horarioInicial,
   turnoLivreInicial,
+  intervaloInicial,
   toleranciaInicial,
   onSalvar,
   onCancelar,
@@ -28,6 +30,7 @@ export function EditarItemForm({
 }: {
   horarioInicial: string | null;
   turnoLivreInicial?: TurnoLivre | null;
+  intervaloInicial?: number | null;
   toleranciaInicial: number;
   onSalvar: (args: EdicaoItemTarefa) => void;
   onCancelar: () => void;
@@ -36,6 +39,7 @@ export function EditarItemForm({
   const [quando, setQuando] = useState<QuandoTarefa>(turnoLivreInicial ?? "horario");
   const [horario, setHorario] = useState(horarioInicial ?? "");
   const [tolerancia, setTolerancia] = useState(toleranciaInicial);
+  const [intervalo, setIntervalo] = useState<number | null>(intervaloInicial ?? null);
   const aoLongoDoTurno = quando !== "horario";
 
   return (
@@ -43,6 +47,10 @@ export function EditarItemForm({
       <div className="min-w-[220px]">
         <label className="mb-1 block text-xs font-semibold text-secondary">Quando</label>
         <SeletorQuando valor={quando} onChange={setQuando} className={inputBase} />
+      </div>
+      <div className="min-w-[200px]">
+        <label className="mb-1 block text-xs font-semibold text-secondary">Repetir</label>
+        <SeletorRepeticao valor={intervalo} onChange={setIntervalo} compacto />
       </div>
       {!aoLongoDoTurno && (
         <>
@@ -70,11 +78,12 @@ export function EditarItemForm({
       <div className="flex gap-2">
         <Button
           size="sm"
-          disabled={(!aoLongoDoTurno && !horario) || salvando}
+          disabled={(!aoLongoDoTurno && !horario) || !intervaloValido(intervalo) || salvando}
           onClick={() =>
             onSalvar({
               horario: aoLongoDoTurno ? null : horario,
               turno_livre: aoLongoDoTurno ? quando : null,
+              intervalo_dias: intervalo,
               tolerancia_minutos: aoLongoDoTurno ? 0 : Number.isFinite(tolerancia) ? tolerancia : 30,
             })
           }

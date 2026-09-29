@@ -185,20 +185,21 @@ describe("tarefas ao longo do turno (turno_livre, 0145)", () => {
     expect(tarefaNoTurno(banhoNoite, null)).toBe(true);
   });
 
-  it("nunca fica 'em atraso' dentro do plantão; avisa na última hora; 'feito' quando registrada", () => {
+  it("nunca fica 'em atraso' dentro do plantão; avisa nas 2 últimas horas; 'feito' quando registrada", () => {
     const j = janelaDoPlantao(DIURNO_25, sp("2026-09-25", "10:00"));
     expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "07:05")).key).toBe("normal");
     expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "15:00")).key).toBe("normal");
-    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "17:59")).key).toBe("normal");
-    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "18:00")).key).toBe("em_breve");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "16:59")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "17:00")).key).toBe("em_breve");
     expect(statusTarefaNoPlantao(banhoDia, false, j, sp("2026-09-25", "18:59")).key).toBe("em_breve");
     expect(statusTarefaNoPlantao(banhoDia, true, j, sp("2026-09-25", "18:59")).key).toBe("feito");
   });
 
-  it("no noturno, a última hora é 06h–07h do dia seguinte", () => {
+  it("no noturno, o aviso começa às 05h do dia seguinte", () => {
     const j = janelaDoPlantao(NOTURNO_24, sp("2026-09-24", "20:00"));
     expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "00:30")).key).toBe("normal");
-    expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "06:10")).key).toBe("em_breve");
+    expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "04:59")).key).toBe("normal");
+    expect(statusTarefaNoPlantao(banhoNoite, false, j, sp("2026-09-25", "05:00")).key).toBe("em_breve");
   });
 });
 

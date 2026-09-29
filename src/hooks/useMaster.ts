@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { buscarHistoricoPeriodicas, filtrarDevidas } from "@/hooks/useRotina";
 import { supabase } from "@/lib/supabase";
 import { dataISO, hojeISO, horarioParaMinutos } from "@/lib/utils";
 import type {
@@ -144,8 +145,11 @@ export function useAderenciaHoje() {
         .select("*")
         .eq("data", hojeISO());
       if (regResp.error) throw regResp.error;
+      const doPlano = (planoResp.data ?? []).filter((it) => ativos.has(it.residente_id));
+      // Periódicas (0146) só entram no denominador no dia em que vencem.
+      const historico = await buscarHistoricoPeriodicas(doPlano, hojeISO());
       return {
-        itens: (planoResp.data ?? []).filter((it) => ativos.has(it.residente_id)),
+        itens: filtrarDevidas(doPlano, historico, hojeISO()),
         registros: regResp.data ?? [],
       };
     },

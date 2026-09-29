@@ -205,6 +205,7 @@ function ItensDoModelo({
                   key={item.id}
                   horarioInicial={item.horario}
                   turnoLivreInicial={item.turno_livre}
+                    intervaloInicial={item.intervalo_dias}
                   toleranciaInicial={item.tolerancia_minutos}
                   salvando={editar.isPending}
                   onCancelar={() => setEditandoId(null)}
@@ -221,6 +222,7 @@ function ItensDoModelo({
                   tarefa={item.tarefa}
                   horario={item.horario}
                   turnoLivre={item.turno_livre}
+                    intervaloDias={item.intervalo_dias}
                   responsavel={item.responsavel}
                   toleranciaMinutos={item.tolerancia_minutos}
                   disabled={ocupado}

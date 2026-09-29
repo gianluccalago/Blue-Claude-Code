@@ -123,6 +123,7 @@ export function useAdicionarPlanoItemEmLote() {
         tarefa: args.valor.tarefa,
         horario: args.valor.horario,
         turno_livre: args.valor.turno_livre,
+        intervalo_dias: args.valor.intervalo_dias,
         responsavel: args.valor.responsavel,
         tolerancia_minutos: args.valor.tolerancia_minutos,
         ativa: true,
@@ -146,6 +147,7 @@ export function useAdicionarPlanoItem(residenteId: string) {
         tarefa: valor.tarefa,
         horario: valor.horario,
         turno_livre: valor.turno_livre,
+        intervalo_dias: valor.intervalo_dias,
         responsavel: valor.responsavel,
         tolerancia_minutos: valor.tolerancia_minutos,
         ativa: true,
@@ -169,7 +171,7 @@ export function useEditarPlanoItem(residenteId: string) {
     mutationFn: async (args: { id: string } & EdicaoItemTarefa) => {
       const { error } = await supabase
         .from("plano_cuidado_item")
-        .update({ horario: args.horario, turno_livre: args.turno_livre, tolerancia_minutos: args.tolerancia_minutos })
+        .update({ horario: args.horario, turno_livre: args.turno_livre, intervalo_dias: args.intervalo_dias, tolerancia_minutos: args.tolerancia_minutos })
         .eq("id", args.id);
       if (error) throw error;
     },
