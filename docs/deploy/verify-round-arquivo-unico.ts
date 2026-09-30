@@ -1,7 +1,7 @@
 // ===========================================================================
 // verify-round — VERSÃO EM ARQUIVO ÚNICO para colar no editor do Supabase.
-// Gerada a partir de supabase/functions/verify-round/{validacaoTag.ts,index.ts}.
-// A fonte oficial continua sendo a pasta supabase/functions/verify-round.
+// Gerada por scripts/gerar-verify-round-arquivo-unico.mjs a partir de
+// supabase/functions/verify-round (fonte oficial). Não edite aqui.
 // ===========================================================================
 // ===========================================================================
 // Edge Function "verify-round" — check-in NFC da ronda.
@@ -18,6 +18,8 @@
 //    hóspede do quarto — sempre com o horário do SERVIDOR.
 // Nenhuma chave de tag existe aqui (NTAG213 não tem criptografia). As
 // variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do Supabase.
+// Sem bibliotecas externas: fala direto com a API do Supabase (Auth e
+// PostgREST) por fetch — sobe mais rápido e não depende de versão de SDK.
 //
 // Publicação: Supabase → Edge Functions → Deploy new function → nome
 // "verify-round" (o endereço nasce do nome e não muda depois), com os
@@ -26,7 +28,6 @@
 // confere o login ela mesma (auth.getUser abaixo) e recusa quem não estiver
 // logado; ligado, projetos com as chaves novas do Supabase recusam o login.
 // ===========================================================================
-import { createClient } from "npm:@supabase/supabase-js@2";
 
 // ===========================================================================
 // VALIDAÇÃO DA LEITURA DA TAG — interface única, implementação trocável.
@@ -157,52 +158,79 @@ async function sha256Hex(texto: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Cabeçalhos com a chave de serviço (JWT antigo "eyJ…" ou chave nova "sb_secret_…"). */
+function cabecalhosServico(chave: string): Record<string, string> {
+  const h: Record<string, string> = { apikey: chave, "Content-Type": "application/json" };
+  if (chave.startsWith("eyJ")) h.Authorization = `Bearer ${chave}`;
+  return h;
+}
+
+/** E-mail do usuário logado (token do app), conferido no Auth do Supabase. */
+async function emailDoLogin(url: string, chave: string, jwt: string): Promise<string | null> {
+  if (!jwt) return null;
+  const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: chave, Authorization: `Bearer ${jwt}` } });
+  if (!r.ok) return null;
+  const u = (await r.json().catch(() => null)) as { email?: string } | null;
+  return u?.email ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return resposta(405, { ok: false, status: "metodo_invalido" });
-
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-    auth: { persistSession: false },
-  });
-
-  // Quem: o login da cuidadora no tablet.
-  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const { data: auth } = jwt ? await admin.auth.getUser(jwt) : { data: { user: null } };
-  const email = auth.user?.email ?? null;
-  if (!email) return resposta(401, { ok: false, status: "nao_autenticado" });
-
-  let corpo: {
-    url?: string;
-    serial_number?: string | null;
-    offline?: boolean;
-    capturado_em?: string | null;
-    checklist?: Record<string, unknown> | null;
-  };
   try {
-    corpo = await req.json();
-  } catch {
-    return resposta(400, { ok: false, status: "rejeitada_payload" });
+    const url = Deno.env.get("SUPABASE_URL") ?? "";
+    const chave = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!url || !chave) return resposta(500, { ok: false, status: "erro_servidor", mensagem: "SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente na função." });
+
+    // Quem: o login da cuidadora no tablet.
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const email = await emailDoLogin(url, chave, jwt);
+    if (!email) return resposta(401, { ok: false, status: "nao_autenticado" });
+
+    let corpo: {
+      url?: string;
+      serial_number?: string | null;
+      offline?: boolean;
+      capturado_em?: string | null;
+      checklist?: Record<string, unknown> | null;
+    };
+    try {
+      corpo = await req.json();
+    } catch {
+      return resposta(400, { ok: false, status: "rejeitada_payload" });
+    }
+
+    const leitura = await validateTagRead({ url: corpo.url, serialNumber: corpo.serial_number });
+    const token = req.headers.get("x-device-token") ?? "";
+
+    const r = await fetch(`${url}/rest/v1/rpc/registrar_leitura_nfc`, {
+      method: "POST",
+      headers: cabecalhosServico(chave),
+      body: JSON.stringify({
+        p: {
+          email,
+          device_token_hash: token ? await sha256Hex(token) : "",
+          tag_uid: leitura.tagUid,
+          contador: leitura.counter,
+          valida: leitura.valid,
+          motivo: leitura.motivo,
+          flags: leitura.flags,
+          implementacao: leitura.implementacao,
+          offline: !!corpo.offline,
+          capturado_em: corpo.capturado_em ?? null,
+          checklist: corpo.checklist ?? null,
+        },
+      }),
+    });
+    const dados = await r.json().catch(() => null);
+    if (!r.ok) {
+      console.error("registrar_leitura_nfc falhou", r.status, dados);
+      return resposta(500, { ok: false, status: "erro_servidor", mensagem: (dados as { message?: string } | null)?.message ?? `HTTP ${r.status}` });
+    }
+    // 200 também nas recusas: o app mostra o motivo e não tenta de novo.
+    return resposta(200, dados);
+  } catch (e) {
+    console.error("verify-round", e);
+    return resposta(500, { ok: false, status: "erro_servidor", mensagem: e instanceof Error ? e.message : String(e) });
   }
-
-  const leitura = await validateTagRead({ url: corpo.url, serialNumber: corpo.serial_number });
-  const token = req.headers.get("x-device-token") ?? "";
-
-  const { data, error } = await admin.rpc("registrar_leitura_nfc", {
-    p: {
-      email,
-      device_token_hash: token ? await sha256Hex(token) : "",
-      tag_uid: leitura.tagUid,
-      contador: leitura.counter,
-      valida: leitura.valid,
-      motivo: leitura.motivo,
-      flags: leitura.flags,
-      implementacao: leitura.implementacao,
-      offline: !!corpo.offline,
-      capturado_em: corpo.capturado_em ?? null,
-      checklist: corpo.checklist ?? null,
-    },
-  });
-  if (error) return resposta(500, { ok: false, status: "erro_servidor", mensagem: error.message });
-  // 200 também nas recusas: o app mostra o motivo e não tenta de novo.
-  return resposta(200, data);
 });
