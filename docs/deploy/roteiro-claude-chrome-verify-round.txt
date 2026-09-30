@@ -1,0 +1,250 @@
+Tarefa no painel do Supabase (projeto "Blue Claude App", ref hqfrxdwumyyujewjgxgc). Faça exatamente estes passos e me mostre o resultado do teste no final.
+
+1. Abra https://supabase.com/dashboard/project/hqfrxdwumyyujewjgxgc/functions e entre na função "verify-round".
+2. Vá na aba "Code". Selecione TODO o conteúdo do arquivo index.ts, apague, e cole o código que está no fim desta mensagem, entre as linhas ===INÍCIO DO CÓDIGO=== e ===FIM DO CÓDIGO=== (sem incluir essas duas linhas). Se houver outros arquivos na função além do index.ts, não mexa neles.
+3. Clique em "Deploy" (ou "Deploy updates") e espere confirmar que publicou.
+4. Vá na aba "Settings". Em "Verify JWT with legacy secret", deixe DESLIGADO. Se mudou algo, clique em "Save changes".
+5. Abra o teste da função (botão "Test"). Deixe o método POST e o corpo { "name": "Functions" }, sem cabeçalhos extras, e clique em "Send Request".
+6. Resultado esperado: status 401 com a resposta {"ok":false,"status":"nao_autenticado"}. Se vier isso, está certo. Se vier outra coisa, abra a aba "Logs" da função e me traga a última mensagem de erro completa.
+7. Se ainda existir uma função chamada "clever-service" na lista de Edge Functions, me pergunte antes de apagar.
+
+Não altere nenhuma outra função, tabela ou configuração do projeto.
+
+===INÍCIO DO CÓDIGO===
+// ===========================================================================
+// verify-round — VERSÃO EM ARQUIVO ÚNICO para colar no editor do Supabase.
+// Gerada por scripts/gerar-verify-round-arquivo-unico.mjs a partir de
+// supabase/functions/verify-round (fonte oficial). Não edite aqui.
+// ===========================================================================
+// ===========================================================================
+// Edge Function "verify-round" — check-in NFC da ronda.
+//
+// Recebe do tablet: a URL lida da tag (NDEF), o serialNumber do Web NFC, e,
+// no cabeçalho x-device-token, o token do tablet cadastrado. A cuidadora é
+// identificada pelo login (JWT do Supabase no Authorization).
+// Fila offline: manda também offline=true, capturado_em (relógio do tablet,
+// só informativo) e o checklist já preenchido.
+//
+// 1) valida a leitura pelo módulo trocável validateTagRead (hoje "ntag213");
+// 2) grava tudo pela RPC registrar_leitura_nfc (service_role, transação e
+//    trava da tag): dispositivo, usuário, tag, contador, flags, rondas por
+//    hóspede do quarto — sempre com o horário do SERVIDOR.
+// Nenhuma chave de tag existe aqui (NTAG213 não tem criptografia). As
+// variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do Supabase.
+// Sem bibliotecas externas: fala direto com a API do Supabase (Auth e
+// PostgREST) por fetch — sobe mais rápido e não depende de versão de SDK.
+//
+// Publicação: Supabase → Edge Functions → Deploy new function → nome
+// "verify-round" (o endereço nasce do nome e não muda depois), com os
+// arquivos index.ts e validacaoTag.ts (ou o arquivo único em docs/deploy).
+// Em Settings, deixe "Verify JWT with legacy secret" DESLIGADO: a função
+// confere o login ela mesma (auth.getUser abaixo) e recusa quem não estiver
+// logado; ligado, projetos com as chaves novas do Supabase recusam o login.
+// ===========================================================================
+
+// ===========================================================================
+// VALIDAÇÃO DA LEITURA DA TAG — interface única, implementação trocável.
+//
+// Todo o fluxo de rondas chama só `validateTagRead(payload)`, que devolve
+// { valid, tagUid, counter, flags }. Hoje a implementação é "ntag213"; uma
+// futura "ntag424" (SUN: PICCData cifrado + CMAC) entra aqui, com a mesma
+// assinatura, sem mexer na Edge Function, no banco nem no app.
+//
+// Este arquivo é PURO (sem Deno, sem rede, sem imports): roda na Edge
+// Function, no app (tela de cadastro de tag) e nos testes do Vitest.
+//
+// NTAG213 — o que o chip grava na URL (espelhamento ASCII, datasheet NXP
+// NTAG213/215/216, "UID and NFC counter mirror"):
+//   · UID: 7 bytes → 14 caracteres hex;
+//   · contador NFC: 3 bytes → 6 caracteres hex, incrementado pelo próprio
+//     chip na primeira leitura de cada toque;
+//   · com os DOIS espelhos ligados, o chip escreve num ponto só:
+//     "<UID>x<CONTADOR>" (o 'x' é inserido pelo chip). Por isso o formato
+//     principal é  https://app.blueseniorliving.com.br/r?m=04A1B2C3D4E5F6x00002A
+//   · também aceitamos ?u=<UID>&c=<CONTADOR> (espelhos em posições
+//     separadas, se algum dia a gravação for feita assim).
+// A NTAG213 NÃO tem criptografia: a prova de presença vem da soma "tag
+// cadastrada + contador sempre crescente + tablet cadastrado + número de
+// série lido pelo Android igual ao UID da URL" — checagens de estado feitas
+// no banco (RPC registrar_leitura_nfc), atômicas.
+// ===========================================================================
+
+interface TagReadPayload {
+  /** URL do registro NDEF lido (ou colada, em testes). */
+  url: string | null | undefined;
+  /** `serialNumber` do Web NFC (ex.: "04:a1:b2:c3:d4:e5:f6"); pode vir vazio. */
+  serialNumber: string | null | undefined;
+}
+
+type FlagLeitura =
+  /** O aparelho não informou o número de série: vale só o UID da URL. */
+  | "uid_nao_confirmado";
+
+type MotivoRejeicao = "payload_invalido" | "uid_divergente";
+
+interface TagReadResult {
+  valid: boolean;
+  tagUid: string | null;
+  counter: number | null;
+  flags: FlagLeitura[];
+  motivo: MotivoRejeicao | null;
+  implementacao: string;
+}
+
+interface TagValidator {
+  id: string;
+  validate(payload: TagReadPayload): Promise<TagReadResult>;
+}
+
+const UID_RE = /^[0-9A-F]{14}$/;
+const CTR_RE = /^[0-9A-F]{6}$/;
+
+/** "04:a1:b2…" / "04A1B2…" → "04A1B2…" (14 hex maiúsculos) ou null. */
+function normalizarUid(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const hex = v.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+  return UID_RE.test(hex) ? hex : null;
+}
+
+/** Extrai UID e contador da URL gravada na NTAG213 (?m=UIDxCTR ou ?u=&c=). */
+function lerUrlNtag213(url: string | null | undefined): { uid: string; counter: number } | null {
+  if (!url) return null;
+  let q: URLSearchParams;
+  try {
+    q = new URL(url).searchParams;
+  } catch {
+    return null;
+  }
+  let uidTxt: string | null = null;
+  let ctrTxt: string | null = null;
+  const m = q.get("m");
+  if (m) {
+    const partes = m.toUpperCase().split("X");
+    if (partes.length !== 2) return null;
+    [uidTxt, ctrTxt] = partes;
+  } else {
+    uidTxt = q.get("u")?.toUpperCase() ?? null;
+    ctrTxt = q.get("c")?.toUpperCase() ?? null;
+  }
+  if (!uidTxt || !ctrTxt || !UID_RE.test(uidTxt) || !CTR_RE.test(ctrTxt)) return null;
+  return { uid: uidTxt, counter: parseInt(ctrTxt, 16) };
+}
+
+const ntag213: TagValidator = {
+  id: "ntag213",
+  async validate({ url, serialNumber }) {
+    const base = { implementacao: "ntag213" };
+    const lido = lerUrlNtag213(url);
+    if (!lido) return { ...base, valid: false, tagUid: null, counter: null, flags: [], motivo: "payload_invalido" };
+    const flags: FlagLeitura[] = [];
+    const serial = normalizarUid(serialNumber);
+    if (!serial) {
+      flags.push("uid_nao_confirmado");
+    } else if (serial !== lido.uid) {
+      // UID da URL ≠ chip encostado: URL copiada/forjada ou tag regravada.
+      return { ...base, valid: false, tagUid: lido.uid, counter: lido.counter, flags, motivo: "uid_divergente" };
+    }
+    return { ...base, valid: true, tagUid: lido.uid, counter: lido.counter, flags, motivo: null };
+  },
+};
+
+/** Ponto único de validação. Trocar a implementação aqui (ex.: ntag424). */
+const VALIDADOR_ATIVO: TagValidator = ntag213;
+
+function validateTagRead(payload: TagReadPayload, validador: TagValidator = VALIDADOR_ATIVO): Promise<TagReadResult> {
+  return validador.validate(payload);
+}
+
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-token",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function resposta(status: number, corpo: unknown) {
+  return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+}
+
+async function sha256Hex(texto: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Cabeçalhos com a chave de serviço (JWT antigo "eyJ…" ou chave nova "sb_secret_…"). */
+function cabecalhosServico(chave: string): Record<string, string> {
+  const h: Record<string, string> = { apikey: chave, "Content-Type": "application/json" };
+  if (chave.startsWith("eyJ")) h.Authorization = `Bearer ${chave}`;
+  return h;
+}
+
+/** E-mail do usuário logado (token do app), conferido no Auth do Supabase. */
+async function emailDoLogin(url: string, chave: string, jwt: string): Promise<string | null> {
+  if (!jwt) return null;
+  const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: chave, Authorization: `Bearer ${jwt}` } });
+  if (!r.ok) return null;
+  const u = (await r.json().catch(() => null)) as { email?: string } | null;
+  return u?.email ?? null;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return resposta(405, { ok: false, status: "metodo_invalido" });
+  try {
+    const url = Deno.env.get("SUPABASE_URL") ?? "";
+    const chave = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!url || !chave) return resposta(500, { ok: false, status: "erro_servidor", mensagem: "SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente na função." });
+
+    // Quem: o login da cuidadora no tablet.
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const email = await emailDoLogin(url, chave, jwt);
+    if (!email) return resposta(401, { ok: false, status: "nao_autenticado" });
+
+    let corpo: {
+      url?: string;
+      serial_number?: string | null;
+      offline?: boolean;
+      capturado_em?: string | null;
+      checklist?: Record<string, unknown> | null;
+    };
+    try {
+      corpo = await req.json();
+    } catch {
+      return resposta(400, { ok: false, status: "rejeitada_payload" });
+    }
+
+    const leitura = await validateTagRead({ url: corpo.url, serialNumber: corpo.serial_number });
+    const token = req.headers.get("x-device-token") ?? "";
+
+    const r = await fetch(`${url}/rest/v1/rpc/registrar_leitura_nfc`, {
+      method: "POST",
+      headers: cabecalhosServico(chave),
+      body: JSON.stringify({
+        p: {
+          email,
+          device_token_hash: token ? await sha256Hex(token) : "",
+          tag_uid: leitura.tagUid,
+          contador: leitura.counter,
+          valida: leitura.valid,
+          motivo: leitura.motivo,
+          flags: leitura.flags,
+          implementacao: leitura.implementacao,
+          offline: !!corpo.offline,
+          capturado_em: corpo.capturado_em ?? null,
+          checklist: corpo.checklist ?? null,
+        },
+      }),
+    });
+    const dados = await r.json().catch(() => null);
+    if (!r.ok) {
+      console.error("registrar_leitura_nfc falhou", r.status, dados);
+      return resposta(500, { ok: false, status: "erro_servidor", mensagem: (dados as { message?: string } | null)?.message ?? `HTTP ${r.status}` });
+    }
+    // 200 também nas recusas: o app mostra o motivo e não tenta de novo.
+    return resposta(200, dados);
+  } catch (e) {
+    console.error("verify-round", e);
+    return resposta(500, { ok: false, status: "erro_servidor", mensagem: e instanceof Error ? e.message : String(e) });
+  }
+});
+===FIM DO CÓDIGO===
