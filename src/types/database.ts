@@ -646,6 +646,31 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      chamado: {
+        Row: {
+          id: string; quarto_id: string; leito_id: string | null; tipo: "chamado" | "emergencia"; origem: "botao" | "corda" | "simulado";
+          dispositivo_id: string | null; simulado: boolean; status: "aberto" | "atendido" | "encerrado_excepcional";
+          aberto_em: string; acionamentos: number; ultimo_acionamento_em: string; escalado_em: string | null;
+          reconhecido_por_id: string | null; reconhecido_por: string | null; reconhecido_em: string | null;
+          atendido_por_id: string | null; atendido_por: string | null; atendido_em: string | null;
+          atendimento_via: "nfc" | "presenca_dispositivo" | "excepcional" | null; leitura_id: string | null; justificativa: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      chamado_central: {
+        Row: { id: string; nome: string; token_hash: string; ativo: boolean; ultimo_sinal_em: string | null; cadastrado_por: string | null; criado_em: string; revogado_em: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      chamado_dispositivo: {
+        Row: { id: string; codigo_externo: string; quarto_id: string; leito_id: string | null; tipo: "botao" | "corda" | "presenca"; local: string | null; ativo: boolean; cadastrado_por: string | null; criado_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       autonomia_modulo: {
         Row: { id: boolean; ativado_em: string };
         Insert: { id?: boolean; ativado_em?: string };
@@ -3664,6 +3689,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      // Chamados (0149)
+      reconhecer_chamado: { Args: { p_id: string }; Returns: undefined };
+      encerrar_chamado_excepcional: { Args: { p_id: string; p_justificativa: string }; Returns: undefined };
+      simular_chamado: { Args: { p_quarto: string; p_tipo: string }; Returns: string };
+      cadastrar_central_chamado: { Args: { p_nome: string }; Returns: string };
+      revogar_central_chamado: { Args: { p_id: string }; Returns: undefined };
+      cadastrar_dispositivo_chamado: { Args: { p_codigo: string; p_quarto: string; p_tipo: string; p_local?: string | null }; Returns: string };
+      definir_dispositivo_chamado_ativo: { Args: { p_id: string; p_ativo: boolean }; Returns: undefined };
       // Rondas NFC (0148)
       cadastrar_tag_nfc: { Args: { p_uid: string; p_quarto: string; p_contador: number | null; p_observacao?: string | null }; Returns: string };
       definir_tag_ativa: { Args: { p_id: string; p_ativa: boolean }; Returns: undefined };

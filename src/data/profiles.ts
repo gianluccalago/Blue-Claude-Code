@@ -56,10 +56,11 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       // OPERACIONAL
       { label: "Painel operacional", to: "/app/master/operacional", grupo: "Operacional" },
+      { label: "Chamados", to: "/app/master/chamados", grupo: "Operacional" },
       { label: "Supervisão clínica", to: "/app/master/clinica", grupo: "Operacional" },
       { label: "Autonomia", to: "/app/master/autonomia", grupo: "Operacional" },
       { label: "Painel de rondas", to: "/app/master/rondas", grupo: "Operacional" },
-      { label: "Tags e tablets", to: "/app/master/nfc", grupo: "Operacional" },
+      { label: "Tags, tablets e chamados", to: "/app/master/nfc", grupo: "Operacional" },
       { label: "Visão do hóspede (360°)", to: "/app/master/hospede", grupo: "Operacional" },
       { label: "Hóspedes", to: "/app/master/residentes", grupo: "Operacional" },
       { label: "Day Care", to: "/app/master/day-care", grupo: "Operacional" },
@@ -127,6 +128,7 @@ export const PERFIS: PerfilDef[] = [
     // Ordenado por frequência de uso no dia a dia da coordenação.
     menu: [
       { label: "Visão geral", to: "/app/coordenacao" },
+      { label: "Chamados", to: "/app/coordenacao/chamados" },
       { label: "Cobertura Assistencial", to: "/app/coordenacao/cobertura" },
       { label: "Hóspedes", to: "/app/coordenacao/ficha" },
       { label: "Medicação (enfermagem)", to: "/app/coordenacao/medicacao-enfermagem" },
@@ -137,7 +139,7 @@ export const PERFIS: PerfilDef[] = [
       { label: "Autonomia", to: "/app/coordenacao/autonomia" },
       { label: "Painel de rondas", to: "/app/coordenacao/rondas" },
       { label: "Ronda (auditoria)", to: "/app/coordenacao/ronda" },
-      { label: "Tags e tablets", to: "/app/coordenacao/nfc" },
+      { label: "Tags, tablets e chamados", to: "/app/coordenacao/nfc" },
       { label: "Modelos de rotina", to: "/app/coordenacao/modelos" },
       { label: "Pesquisa NPS", to: "/app/coordenacao/pesquisa-nps" },
       { label: "Estoque de resgate", to: "/app/coordenacao/resgate" },
@@ -161,6 +163,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/enfermeira",
     menu: [
       { label: "Visão geral", to: "/app/enfermeira" },
+      { label: "Chamados", to: "/app/enfermeira/chamados" },
       { label: "Hóspedes", to: "/app/enfermeira/ficha" },
       { label: "Medicação (enfermagem)", to: "/app/enfermeira/medicacao-enfermagem" },
       { label: "Intercorrências", to: "/app/enfermeira/intercorrencias" },
@@ -180,6 +183,7 @@ export const PERFIS: PerfilDef[] = [
     rotaInicial: "/app/cuidador/checklist",
     menu: [
       { label: "Checklist do turno", to: "/app/cuidador/checklist" },
+      { label: "Chamados", to: "/app/cuidador/chamados" },
       { label: "Ronda", to: "/app/cuidador/ronda" },
       { label: "Medicação", to: "/app/cuidador/medicacao" },
       { label: "Compromissos externos", to: "/app/cuidador/compromissos" },
@@ -206,6 +210,7 @@ export const PERFIS: PerfilDef[] = [
     menu: [
       { label: "Cobertura Assistencial", to: "/app/enfermagem/cobertura" },
       { label: "Checklist do turno", to: "/app/enfermagem/checklist" },
+      { label: "Chamados", to: "/app/enfermagem/chamados" },
       { label: "Medicação", to: "/app/enfermagem/medicacao" },
       { label: "Medicação de enfermagem", to: "/app/enfermagem/medicacao-enfermagem" },
       { label: "Compromissos externos", to: "/app/enfermagem/compromissos" },

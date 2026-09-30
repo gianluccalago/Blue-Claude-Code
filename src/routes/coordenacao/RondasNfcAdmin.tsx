@@ -16,6 +16,7 @@ import {
 } from "@/hooks/useRondas";
 import { lerUmaTag, lerUrlNtag213, nfcDisponivel, normalizarUid } from "@/lib/nfc";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CentralChamadosAdmin, DispositivosChamadoAdmin } from "@/components/chamados/ChamadosAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,8 @@ export function RondasNfcAdmin() {
       <ListaTags />
       <ListaTablets />
       <Parametros />
+      <CentralChamadosAdmin />
+      <DispositivosChamadoAdmin />
     </div>
   );
 }

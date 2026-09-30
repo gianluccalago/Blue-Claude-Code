@@ -25,6 +25,7 @@ import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
 import { DayCare } from "@/routes/DayCare";
 import { Autonomia } from "@/routes/Autonomia";
 import { Ronda } from "@/routes/Ronda";
+import { Chamados } from "@/routes/Chamados";
 import { TagRonda } from "@/routes/TagRonda";
 import { RondasPainel } from "@/routes/coordenacao/RondasPainel";
 import { RondasNfcAdmin } from "@/routes/coordenacao/RondasNfcAdmin";
@@ -689,6 +690,8 @@ const dayCareRoute = createRoute({
 });
 // Rondas NFC (0148): tela da cuidadora, painel e tags/tablets.
 const rondaRoute = createRoute({ getParentRoute: () => appRoute, path: "ronda", component: Ronda });
+// Chamados de hóspede (0149): mapa do Módulo 5 com alertas ao vivo.
+const chamadosRoute = createRoute({ getParentRoute: () => appRoute, path: "chamados", component: Chamados });
 const rondasPainelRoute = createRoute({ getParentRoute: () => appRoute, path: "rondas", component: RondasPainel });
 const rondasNfcRoute = createRoute({ getParentRoute: () => appRoute, path: "nfc", component: RondasNfcAdmin });
 // Destino do link gravado nas etiquetas (público; não registra nada).
@@ -754,6 +757,7 @@ const routeTree = rootRoute.addChildren([
     dayCareRoute,
     autonomiaRoute,
     rondaRoute,
+    chamadosRoute,
     rondasPainelRoute,
     rondasNfcRoute,
     prescricoesRoute,

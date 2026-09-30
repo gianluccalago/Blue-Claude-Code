@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { PainelChamados } from "@/components/chamados/PainelChamados";
 import {
   ClipboardCheck,
   Pill,
@@ -177,6 +178,9 @@ export function PainelOperacional() {
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Painel operacional</h2>
         </div>
       </div>
+
+      {/* CHAMADOS — mapa do Módulo 5 com alertas ao vivo (0149) */}
+      <PainelChamados compacto />
 
       {/* COBERTURA ASSISTENCIAL — mapa vivo de quem cuida de cada hóspede no
           turno. Master vê e edita aqui mesmo (componente da Coordenação). */}

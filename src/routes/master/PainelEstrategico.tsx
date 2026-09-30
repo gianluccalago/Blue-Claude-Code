@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { PainelChamados } from "@/components/chamados/PainelChamados";
 import { IndicadorAutonomiaCard } from "@/components/autonomia/IndicadorAutonomiaCard";
 import { Link } from "@tanstack/react-router";
 import {
@@ -218,6 +219,9 @@ export function PainelEstrategico() {
           </div>
         </div>
       </div>
+
+      {/* CHAMADOS — mapa do Módulo 5 com alertas ao vivo (0149) */}
+      <PainelChamados compacto />
 
       {/* ====================== VOO-ALTO (ESTRATÉGICO) ====================== */}
 

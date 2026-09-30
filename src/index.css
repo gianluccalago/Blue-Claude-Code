@@ -378,3 +378,20 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Chamados de hóspede: pulso do alerta no mapa (emergência mais rápido). */
+@layer utilities {
+  .alerta-pulso {
+    animation: alerta-pulso 2s ease-in-out infinite;
+  }
+  .alerta-pulso-rapido {
+    animation: alerta-pulso 0.9s ease-in-out infinite;
+  }
+  @keyframes alerta-pulso {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.85; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .alerta-pulso, .alerta-pulso-rapido { animation: none; opacity: 0.6; }
+  }
+}
