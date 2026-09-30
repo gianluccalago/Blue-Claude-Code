@@ -20,7 +20,11 @@
 // variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm do Supabase.
 //
 // Publicação: Supabase → Edge Functions → Deploy new function → nome
-// "verify-round", com os arquivos index.ts e validacaoTag.ts.
+// "verify-round" (o endereço nasce do nome e não muda depois), com os
+// arquivos index.ts e validacaoTag.ts (ou o arquivo único em docs/deploy).
+// Em Settings, deixe "Verify JWT with legacy secret" DESLIGADO: a função
+// confere o login ela mesma (auth.getUser abaixo) e recusa quem não estiver
+// logado; ligado, projetos com as chaves novas do Supabase recusam o login.
 // ===========================================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
