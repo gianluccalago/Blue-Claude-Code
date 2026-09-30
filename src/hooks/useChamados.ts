@@ -26,8 +26,10 @@ async function codigosDosQuartos(): Promise<Map<string, string>> {
 export function useChamadosAoVivo() {
   const qc = useQueryClient();
   useEffect(() => {
+    // Nome único por tela: a faixa do topo e o painel assinam ao mesmo tempo,
+    // e o Supabase não aceita registrar de novo num canal já assinado.
     const canal = supabase
-      .channel("chamados-ao-vivo")
+      .channel(`chamados-ao-vivo-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "chamado" }, () => invalidar(qc))
       .subscribe();
     return () => {

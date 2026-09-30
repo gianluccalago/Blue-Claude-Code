@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 // ===========================================================================
 
 const PORTA = 26;
+// Recorte do quadro original (930 × 840) só onde há desenho — mapa maior na tela.
+const VIEWBOX = `12 62 ${MAPA_LARGURA - 24} ${MAPA_ALTURA - 72}`;
 
 function barraPorta(s: SuiteMapa) {
   const cx = s.x + s.w / 2;
@@ -40,7 +42,7 @@ export function MapaModulo({
 }) {
   return (
     <svg
-      viewBox={`0 0 ${MAPA_LARGURA} ${MAPA_ALTURA}`}
+      viewBox={VIEWBOX}
       className="h-auto w-full select-none"
       role="img"
       aria-label={`Mapa do Módulo 5, ${andar.andar}º andar`}
@@ -109,14 +111,14 @@ export function MapaModulo({
             />
             <rect x={porta.x} y={porta.y} width={porta.w} height={porta.h} rx={3} className="fill-primary" />
             <circle cx={s.x + s.w - 16} cy={s.y + 17} r={6} className={emerg ? "fill-destructive" : c ? "fill-warning" : "fill-border"} />
-            <text x={cx} y={topo} textAnchor="middle" fontSize={24} fontWeight={800} className={emerg ? "fill-destructive" : "fill-secondary"}>
+            <text x={cx} y={topo} textAnchor="middle" fontSize={26} fontWeight={800} className={emerg ? "fill-destructive" : "fill-secondary"}>
               {s.codigo}
             </text>
             {hosp.length === 0 ? (
-              <text x={cx} y={topo + 20} textAnchor="middle" fontSize={11} className="fill-muted-foreground">vaga</text>
+              <text x={cx} y={topo + 20} textAnchor="middle" fontSize={12} className="fill-muted-foreground">vaga</text>
             ) : (
               hosp.slice(0, 2).map((h, i) => (
-                <text key={h.leito} x={cx} y={topo + 19 + i * 15} textAnchor="middle" fontSize={11.5} fontWeight={600} className="fill-foreground/80">
+                <text key={h.leito} x={cx} y={topo + 20 + i * 16} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-foreground/80">
                   {h.leito.slice(-1)} · {primeiroNome(h.nome)}
                 </text>
               ))
@@ -124,26 +126,30 @@ export function MapaModulo({
             {c && (
               <>
                 <rect
-                  x={s.x + 10}
-                  y={s.y + s.h - (deitada ? 30 : 40)}
-                  width={s.w - 20}
-                  height={deitada ? 20 : 26}
-                  rx={8}
+                  x={s.x + 9}
+                  y={s.y + s.h - (deitada ? 32 : 46)}
+                  width={s.w - 18}
+                  height={deitada ? 24 : 36}
+                  rx={9}
                   className={emerg ? "fill-destructive" : "fill-warning"}
                 />
-                <text
-                  x={cx}
-                  y={s.y + s.h - (deitada ? 16 : 23)}
-                  textAnchor="middle"
-                  fontSize={10.5}
-                  fontWeight={800}
-                  className={emerg ? "fill-white" : "fill-warning-foreground"}
-                >
-                  {emerg ? "EMERGÊNCIA" : "CHAMADO"} · {tempoDesde(c.aberto_em, agora)}
-                </text>
-                {c.reconhecido_por && !deitada && (
-                  <text x={cx} y={s.y + s.h - 46} textAnchor="middle" fontSize={9.5} fontWeight={700} className={emerg ? "fill-destructive" : "fill-warning-foreground"}>
-                    a caminho: {primeiroNome(c.reconhecido_por)}
+                {deitada ? (
+                  <text x={cx} y={s.y + s.h - 15} textAnchor="middle" fontSize={11} fontWeight={800} className={emerg ? "fill-white" : "fill-warning-foreground"}>
+                    {emerg ? "EMERGÊNCIA" : "CHAMADO"} · {tempoDesde(c.aberto_em, agora)}
+                  </text>
+                ) : (
+                  <>
+                    <text x={cx} y={s.y + s.h - 31} textAnchor="middle" fontSize={10.5} fontWeight={800} className={emerg ? "fill-white" : "fill-warning-foreground"}>
+                      {emerg ? "EMERGÊNCIA" : "CHAMADO"}
+                    </text>
+                    <text x={cx} y={s.y + s.h - 17} textAnchor="middle" fontSize={11} fontWeight={700} className={emerg ? "fill-white" : "fill-warning-foreground"}>
+                      {tempoDesde(c.aberto_em, agora)}
+                    </text>
+                  </>
+                )}
+                {c.reconhecido_por && (
+                  <text x={cx} y={s.y + s.h - (deitada ? 38 : 54)} textAnchor="middle" fontSize={11} fontWeight={800} className={emerg ? "fill-destructive" : "fill-warning-foreground"}>
+                    → {primeiroNome(c.reconhecido_por)}
                   </text>
                 )}
               </>

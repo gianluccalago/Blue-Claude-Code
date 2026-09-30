@@ -44,10 +44,13 @@ function Faixa({ perfil, naTela }: { perfil: string; naTela: boolean }) {
       params={{ perfil }}
       className={cn(
         "flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm font-bold sm:px-6 lg:px-8",
-        emerg.length ? "animate-pulse bg-destructive text-white" : "bg-warning text-warning-foreground",
+        emerg.length ? "bg-destructive text-white" : "bg-warning text-warning-foreground",
       )}
     >
-      {emerg.length ? <Siren className="size-5" /> : <BellRing className="size-5" />}
+      <span className="relative grid size-6 place-items-center">
+        <span className={cn("absolute inset-0 animate-ping rounded-full", emerg.length ? "bg-white/60" : "bg-warning-foreground/40")} />
+        {emerg.length ? <Siren className="relative size-5" /> : <BellRing className="relative size-5" />}
+      </span>
       {emerg.length > 0 && <span>EMERGÊNCIA: {emerg.map((c) => c.quarto).join(", ")}</span>}
       {lista.length - emerg.length > 0 && (
         <span>Chamado: {lista.filter((c) => c.tipo !== "emergencia").map((c) => `${c.quarto} (${tempoDesde(c.aberto_em, agora)})`).join(", ")}</span>
