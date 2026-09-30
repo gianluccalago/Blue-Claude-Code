@@ -1,0 +1,64 @@
+Teste do caminho completo da verify-round (leitura de etiqueta → registro no banco), SEM etiqueta física.
+Projeto Supabase: hqfrxdwumyyujewjgxgc. App: https://app.blueseniorliving.com.br
+Nenhum token deve ser copiado para fora do navegador nem colado em mensagens. Tudo acontece dentro do próprio app.
+
+PARTE 1 — Etiqueta de teste (Supabase › SQL Editor)
+Rode este SQL. Ele cria uma etiqueta de teste numa suíte SEM hóspede, para não gerar ronda de ninguém de verdade, e mostra qual suíte foi usada:
+
+insert into public.nfc_tags (uid, quarto_id, last_counter, observacao, cadastrada_por)
+select '04000000000001', q.id, 0, 'TESTE - apagar', 'teste'
+  from public.quarto q
+ where q.modulo = 5
+   and not exists (select 1 from public.residentes r join public.leito l on l.id = r.leito_id
+                    where l.quarto_id = q.id and r.status_hospede = 'ativo')
+   and not exists (select 1 from public.chamado c where c.quarto_id = q.id and c.status = 'aberto')
+ order by q.codigo limit 1
+on conflict (uid) do nothing;
+select t.uid, q.codigo as suite from public.nfc_tags t join public.quarto q on q.id = t.quarto_id where t.uid = '04000000000001';
+
+Se a segunda consulta não devolver linha, pare e me avise (não há suíte vazia no Módulo 5).
+
+PARTE 2 — Tablet de teste (no app, logado como Master ou Coordenação)
+1. Abra https://app.blueseniorliving.com.br e entre com um usuário Master ou Coordenação.
+2. Menu "Tags, tablets e chamados" › cartão "Este aparelho".
+3. Nome: TESTE navegador - apagar. Clique em "Cadastrar este tablet". O código fica salvo só neste navegador.
+
+PARTE 3 — Chamar a função (console do navegador, na aba do app)
+Ainda na aba do app, logado, abra o console (F12 › Console) e execute:
+
+(async () => {
+  const chave = Object.keys(localStorage).find((k) => /^sb-.*-auth-token$/.test(k));
+  const sessao = chave ? JSON.parse(localStorage.getItem(chave)) : null;
+  const tablet = localStorage.getItem("blue-device-token");
+  if (!sessao?.access_token) return console.log("Sem sessão: faça login no app nesta aba.");
+  if (!tablet) return console.log("Sem tablet: faça a PARTE 2 neste navegador.");
+  const chamar = async (contador) => {
+    const r = await fetch("https://hqfrxdwumyyujewjgxgc.supabase.co/functions/v1/verify-round", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessao.access_token}`, "x-device-token": tablet },
+      body: JSON.stringify({ url: `https://app.blueseniorliving.com.br/r?m=04000000000001x${contador}`, serial_number: "04:00:00:00:00:00:01" }),
+    });
+    return `${r.status} ${await r.text()}`;
+  };
+  console.log("A) primeira leitura:", await chamar("000001"));
+  console.log("B) mesma leitura de novo:", await chamar("000001"));
+  console.log("C) pulando o contador:", await chamar("000004"));
+})();
+
+Resultado esperado:
+A) 200 com "ok":true e "status":"valida", e "quarto" igual à suíte da PARTE 1. Pode vir a sinalização "sem_plantao" (normal: quem testa não está escalado).
+B) 200 com "ok":false e "status":"rejeitada_contador_repetido".
+C) 200 com "ok":true, "status":"valida" e a sinalização "leituras_nao_registradas".
+Traga as três linhas exatamente como apareceram no console, sem o token.
+
+PARTE 4 — Limpeza (Supabase › SQL Editor), rode SEMPRE ao final, mesmo se algo falhar:
+
+delete from public.ronda_leitura where tag_uid = '04000000000001';
+delete from public.nfc_tags where uid = '04000000000001';
+delete from public.devices where nome = 'TESTE navegador - apagar';
+select (select count(*) from public.nfc_tags where uid = '04000000000001') as etiqueta,
+       (select count(*) from public.devices where nome = 'TESTE navegador - apagar') as tablet;
+
+A última consulta deve mostrar 0 e 0. Depois, no console do app, rode:  localStorage.removeItem("blue-device-token")
+
+Não altere nenhuma outra tabela, função ou configuração.
