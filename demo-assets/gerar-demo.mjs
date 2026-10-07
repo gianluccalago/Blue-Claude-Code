@@ -91,6 +91,9 @@ sec("0 · Moradores pré-existentes saem de cena (REVERSÍVEL)");
 add(`create table if not exists public.demo_backup_residentes as
   select id, data_saida from public.residentes
   where status_hospede = 'ativo' and id::text not like 'de300010%';`);
+// Backup fora do alcance da API (RLS ligado, sem policy): só o SQL Editor lê.
+add(`alter table public.demo_backup_residentes enable row level security;
+revoke all on public.demo_backup_residentes from anon, authenticated;`);
 add(`update public.residentes
      set status_hospede = 'inativo',
          data_saida = coalesce(data_saida, demo_ref() - 200)
@@ -127,6 +130,8 @@ for (const p of equipe) {
 sec("3 · CRM — jornada da Fernanda (ganha) + 2 leads em andamento");
 add(`create table if not exists public.demo_backup_crm as
   select id, status from public.crm_oportunidade where id::text not like 'de30003%';`);
+add(`alter table public.demo_backup_crm enable row level security;
+revoke all on public.demo_backup_crm from anon, authenticated;`);
 add(`update public.crm_oportunidade set status = 'pausada'
   where id in (select id from public.demo_backup_crm);`);
 // Origens e etapas já vêm das migrações (nome é UNIQUE) — a demo reusa.

@@ -29,6 +29,8 @@ create or replace function public.demo_ref() returns date
 create table if not exists public.demo_backup_residentes as
   select id, data_saida from public.residentes
   where status_hospede = 'ativo' and id::text not like 'de300010%';
+alter table public.demo_backup_residentes enable row level security;
+revoke all on public.demo_backup_residentes from anon, authenticated;
 update public.residentes
      set status_hospede = 'inativo',
          data_saida = coalesce(data_saida, demo_ref() - 200)
@@ -234,6 +236,8 @@ insert into public.usuarios (id, nome, email, perfil, ativo, funcao, vinculo, re
 
 create table if not exists public.demo_backup_crm as
   select id, status from public.crm_oportunidade where id::text not like 'de30003%';
+alter table public.demo_backup_crm enable row level security;
+revoke all on public.demo_backup_crm from anon, authenticated;
 update public.crm_oportunidade set status = 'pausada'
   where id in (select id from public.demo_backup_crm);
 insert into public.crm_contato (id, nome, telefones, emails, relacao, nome_idoso, idade_idoso, grau_estimado, base_legal_lgpd, criado_em) values
