@@ -4,10 +4,12 @@ import { ShieldCheck, Users, UserRound, AlertTriangle, Info, CheckCircle2 } from
 import { usePainelRondas, useRevisarLeitura } from "@/hooks/useRondas";
 import {
   FLAG_LABEL,
+  FLAGS_SO_REGISTRO,
   STATUS_LEITURA_LABEL,
   blocosDoTurno,
   contaNoHorario,
   pedeRevisao,
+  temSinalizacao,
   resumoChecklist,
   situacaoRonda,
   type BlocoRonda,
@@ -73,7 +75,7 @@ export function RondasPainel() {
         a.validas += 1;
         if (l.sincronizado_tarde) a.tardias += 1;
         if (l.quarto_id) a.quartos.add(quartos.get(l.quarto_id) ?? "?");
-        if (l.flags.some((f) => f !== "sem_plantao")) a.sinalizadas += 1;
+        if (temSinalizacao(l.flags)) a.sinalizadas += 1;
       } else a.recusadas += 1;
       porCuidadora.set(k, a);
     }
@@ -196,7 +198,7 @@ export function RondasPainel() {
                         <span>{l.cuidador_nome ?? "—"}</span>
                         <span className="text-muted-foreground">quarto {l.quarto_id ? calc.quartos.get(l.quarto_id) : "?"} · contador {l.contador ?? "—"}</span>
                         <Badge variant={l.status_validacao === "valida" ? "muted" : "destructive"}>{STATUS_LEITURA_LABEL[l.status_validacao]}</Badge>
-                        {l.flags.map((f) => <Badge key={f} variant="warning">{FLAG_LABEL[f] ?? f}</Badge>)}
+                        {l.flags.map((f) => <Badge key={f} variant={FLAGS_SO_REGISTRO.includes(f) ? "muted" : "warning"}>{FLAG_LABEL[f] ?? f}</Badge>)}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <input

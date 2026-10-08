@@ -121,13 +121,27 @@ export const STATUS_LEITURA_CUIDADORA: Record<StatusLeituraRonda, string> = {
 
 export const FLAG_LABEL: Record<string, string> = {
   uid_nao_confirmado: "Número de série não confirmado",
-  leituras_nao_registradas: "Leituras não registradas (salto de contador)",
+  leituras_nao_registradas: "Etiqueta lida antes fora do app (salto de contador)",
   plausibilidade: "Quartos diferentes em poucos segundos",
   sincronizado_tarde: "Sincronizada tarde (sem rede)",
   sem_plantao: "Fora do plantão escalado",
   possivel_forjada: "Possível check-in forjado",
   dispositivo_revogado: "Tablet revogado",
 };
+
+/**
+ * Sinalizações que ficam só no registro, sem pedir revisão:
+ * - sem_plantao: cobertura/terceirizada é comum;
+ * - leituras_nao_registradas: o contador da etiqueta sobe a cada leitura de
+ *   qualquer celular (alguém encostou o próprio telefone, um teste) — não
+ *   indica problema na ronda.
+ */
+export const FLAGS_SO_REGISTRO: readonly string[] = ["sem_plantao", "leituras_nao_registradas"];
+
+/** Tem alguma sinalização que pede olhar do supervisor. */
+export function temSinalizacao(flags: string[]): boolean {
+  return flags.some((f) => !FLAGS_SO_REGISTRO.includes(f));
+}
 
 // ─── Status do hóspede no plantão ─────────────────────────────────────────────
 
@@ -221,6 +235,5 @@ export function resumoChecklist(c: Record<string, string | string[]> | null): st
 export function pedeRevisao(l: Pick<RondaLeitura, "status_validacao" | "flags" | "revisada_em">): boolean {
   if (l.revisada_em) return false;
   if (l.status_validacao !== "valida") return true;
-  // "Fora do plantão escalado" sozinho não pede revisão (cobertura/terceirizada é comum).
-  return l.flags.some((f) => f !== "sem_plantao");
+  return temSinalizacao(l.flags);
 }

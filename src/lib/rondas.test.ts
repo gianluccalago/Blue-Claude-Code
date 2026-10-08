@@ -62,5 +62,9 @@ describe("leituras", () => {
     expect(pedeRevisao({ status_validacao: "valida", flags: [], revisada_em: null })).toBe(false);
     expect(pedeRevisao({ status_validacao: "valida", flags: ["plausibilidade"], revisada_em: null })).toBe(true);
     expect(pedeRevisao({ status_validacao: "valida", flags: ["plausibilidade"], revisada_em: "2026-09-30T10:00:00Z" })).toBe(false);
+    // Salto de contador e fora do plantão ficam só no registro.
+    expect(pedeRevisao({ status_validacao: "valida", flags: ["leituras_nao_registradas"], revisada_em: null })).toBe(false);
+    expect(pedeRevisao({ status_validacao: "valida", flags: ["sem_plantao", "leituras_nao_registradas"], revisada_em: null })).toBe(false);
+    expect(pedeRevisao({ status_validacao: "valida", flags: ["leituras_nao_registradas", "uid_nao_confirmado"], revisada_em: null })).toBe(true);
   });
 });
