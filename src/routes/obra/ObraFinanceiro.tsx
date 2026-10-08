@@ -10,6 +10,8 @@ import { useMarcos, useDisciplinas } from "@/hooks/useObraProjetos";
 import { useOrdensCompra } from "@/hooks/useObraMateriais";
 import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useBaseline, useAtualizarBaseline } from "@/hooks/useObraFinanceiro";
+import { useOrcamentosAvulsos } from "@/hooks/useObraAvulsos";
+import { codigoAvulso, valorVigente } from "@/lib/orcamentoAvulso";
 import { NotasConstrutora } from "@/routes/obra/ObraNotasFiscais";
 import {
   serieAcumuladaMensal,
@@ -31,7 +33,7 @@ import type { ObraBaseline } from "@/types/database";
 const GRUPO_LABEL: Record<string, string> = {
   mo: "Mão de obra", projetos: "Projetos", materiais: "Materiais",
   fornecedores: "Fornecedores diretos", ensaios: "Ensaios", taxas: "Taxas",
-  indiretos: "Custos indiretos",
+  indiretos: "Custos indiretos", avulsos: "Orçamentos avulsos aprovados",
 };
 
 export function ObraFinanceiro() {
@@ -45,6 +47,7 @@ export function ObraFinanceiro() {
   const disciplinas = useDisciplinas();
   const ordens = useOrdensCompra();
   const custos = useCustosIndiretos();
+  const avulsos = useOrcamentosAvulsos();
 
   // Edição do orçado: um grupo pode ter várias linhas (MO tem 4 fases) — o
   // modal lista todas as linhas do grupo, cada uma editável.
@@ -66,6 +69,11 @@ export function ObraFinanceiro() {
   const listaOC = ordens.data ?? [];
   const nomeDisc = new Map((disciplinas.data ?? []).map((d) => [d.id, d.nome]));
   const marcoDisc = new Map(listaMarcos.map((m) => [m.id, m.disciplina_id]));
+  // Avulsos aprovados ampliam o contrato da construtora (aditivo): o valor
+  // aprovado entra no orçado e no comprometido; trocado pelo real quando confirmado.
+  const avulsosNaConta = (avulsos.data ?? []).filter((o) => ["aprovado", "executado", "conferido", "pago"].includes(o.status));
+  const avulsosPagos = avulsosNaConta.filter((o) => o.status === "pago");
+  const totalAvulsos = avulsosNaConta.reduce((s, o) => s + valorVigente(o), 0);
 
   // ── Resumo por grupo (orçado × comprometido × realizado) ──
   const orcPorGrupo = (g: string) => listaBase.filter((b) => b.grupo === g).reduce((s, b) => s + b.valor_orcado, 0);
@@ -91,6 +99,10 @@ export function ObraFinanceiro() {
       comprometido: (custos.data ?? []).reduce((s, c) => s + c.valor, 0),
       realizado: (custos.data ?? []).reduce((s, c) => s + c.valor, 0),
     },
+    ...(avulsosNaConta.length > 0 ? [{
+      grupo: "avulsos", rotulo: GRUPO_LABEL.avulsos, orcado: totalAvulsos, comprometido: totalAvulsos,
+      realizado: avulsosPagos.reduce((s, o) => s + valorVigente(o), 0),
+    }] : []),
     ...(["fornecedores", "ensaios", "taxas"] as const).map((g) => ({
       grupo: g, rotulo: GRUPO_LABEL[g], orcado: orcPorGrupo(g), comprometido: 0, realizado: 0,
     })),
@@ -99,7 +111,7 @@ export function ObraFinanceiro() {
   // ── Separação: CONTRATO DA CONSTRUTORA (MO + projetos = R$ 12,52M) vs
   //    CUSTOS DO CONTRATANTE (materiais, fornecedores, ensaios, taxas,
   //    indiretos — dinheiro nosso, fora do contrato da TRÍADE). ──
-  const GRUPOS_CONTRATO = ["mo", "projetos"];
+  const GRUPOS_CONTRATO = ["mo", "projetos", "avulsos"];
   const secaoContrato = resumo.filter((l) => GRUPOS_CONTRATO.includes(l.grupo));
   const secaoContratante = resumo.filter((l) => !GRUPOS_CONTRATO.includes(l.grupo));
   const somaSecao = (linhas: LinhaResumo[]) => ({
@@ -122,6 +134,7 @@ export function ObraFinanceiro() {
   const evFin = [
     ...listaMed.filter((m) => m.status === "Pago" && m.data_pagamento).map((m) => ({ mes: m.data_pagamento!.slice(0, 7), valor: m.valor_bruto })),
     ...listaMarcos.filter((m) => m.status === "Pago" && m.data_pagamento).map((m) => ({ mes: m.data_pagamento!.slice(0, 7), valor: m.valor })),
+    ...avulsosPagos.filter((o) => o.data_pagamento).map((o) => ({ mes: o.data_pagamento!.slice(0, 7), valor: valorVigente(o) })),
   ];
   const serieFin = serieAcumuladaMensal(evFin);
   const areaFisicaFinal = serieFisica.length ? serieFisica[serieFisica.length - 1].acumulado : 0; // em m²·%? → normaliza abaixo
@@ -179,6 +192,11 @@ export function ObraFinanceiro() {
         } : null;
       })
       .filter((c): c is NonNullable<typeof c> => c !== null),
+    // Avulso com valor real confirmado: pronto para pagar.
+    ...(avulsos.data ?? []).filter((o) => o.status === "conferido").map((o) => ({
+      tipo: "Orçamento avulso", ref: `${codigoAvulso(o.numero)} · ${o.titulo}`, valor: valorVigente(o),
+      venc: (o.data_conferencia ?? hojeISO()).slice(0, 10),
+    })),
     ...listaOC.filter((o) => (o.status === "Emitida" || o.status === "Entregue parcial") && o.previsao_entrega).map((o) => ({
       tipo: "Material (OC)", ref: `${o.item} · ${o.fornecedor}`, valor: o.valor_total, venc: o.previsao_entrega!,
     })),
@@ -204,7 +222,7 @@ export function ObraFinanceiro() {
     <div className="space-y-6 pb-8">
       {/* Totais — o contrato da construtora NÃO se mistura com custos nossos */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icone={<Wallet className="size-5" />} rotulo="Contrato construtora (MO + projetos)" valor={formatarMoeda(subContrato.orcado)} />
+        <Kpi icone={<Wallet className="size-5" />} rotulo={avulsosNaConta.length ? "Contrato construtora (MO + projetos + avulsos)" : "Contrato construtora (MO + projetos)"} valor={formatarMoeda(subContrato.orcado)} />
         <Kpi icone={<TrendingUp className="size-5" />} rotulo="Custos do Contratante (orçado)" valor={formatarMoeda(subContratante.orcado)} />
         <Kpi icone={<Wallet className="size-5" />} rotulo="Realizado (pago) — tudo" valor={formatarMoeda(totRealizado)} tom="success" />
         <Kpi icone={<Ruler className="size-5" />} rotulo="Custo/m² acumulado" valor={formatarMoeda(custoPorM2)} />
@@ -231,7 +249,7 @@ export function ObraFinanceiro() {
               {/* ── Seção 1: contrato da construtora (R$ 12,52M — só TRÍADE) ── */}
               <tr>
                 <td colSpan={5} className="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-primary-strong">
-                  Contrato construtora — TRÍADE (MO + projetos)
+                  Contrato construtora — TRÍADE (MO + projetos{avulsosNaConta.length ? " + avulsos aprovados" : ""})
                 </td>
               </tr>
               {secaoContrato.map((l) => (
@@ -273,7 +291,7 @@ export function ObraFinanceiro() {
             </tfoot>
           </table>
           <p className="text-[11px] text-muted-foreground">
-            O contrato da construtora ({formatarMoeda(subContrato.orcado)}) cobre APENAS mão de obra + projetos.
+            O contrato da construtora ({formatarMoeda(subContrato.orcado)}) cobre APENAS mão de obra + projetos{avulsosNaConta.length ? " + orçamentos avulsos aprovados (pelo valor real, quando confirmado)" : ""}.
             Materiais, fornecedores, ensaios, taxas e custos indiretos são desembolsos do Contratante, somados à parte.
           </p>
         </CardContent>
@@ -373,6 +391,9 @@ function LinhaPacote({
         {l.rotulo}
         {l.grupo === "projetos" && (
           <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">integra o contrato</span>
+        )}
+        {l.grupo === "avulsos" && (
+          <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">fora do previsto, aprovados pela Blue</span>
         )}
         {podeEditar && linhasGrupo.length > 0 && (
           <button onClick={() => onEditar(linhasGrupo)} className="ml-2 text-muted-foreground hover:text-primary" title="Editar valor orçado"><Pencil className="inline size-3.5" /></button>

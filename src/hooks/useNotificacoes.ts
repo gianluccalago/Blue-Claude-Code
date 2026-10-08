@@ -295,6 +295,13 @@ async function calcular(
         headCount("chamado_manutencao").eq("urgencia", "emergencia").neq("status", "resolvido"),
       );
       set("/app/master", emerg, "destructive");
+      set("/app/master/obra", await avulsosAguardandoBlue(), "warning");
+      break;
+    }
+
+    // ─── DIREÇÃO (ponto) — orçamentos avulsos da obra esperando a Blue ────────
+    case "direcao": {
+      set("/app/direcao/obra", await avulsosAguardandoBlue(), "warning");
       break;
     }
 
@@ -495,6 +502,11 @@ async function residentesSemDieta(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/** Orçamentos avulsos da obra que dependem da Blue: aprovar ou conferir o valor real. */
+async function avulsosAguardandoBlue(): Promise<number> {
+  return contar(headCount("obra_orcamentos_avulsos").in("status", ["enviado", "executado"]));
 }
 
 /** Mensalidades vencidas no mês corrente (mesma regra do Painel de Cobrança). */

@@ -15,6 +15,7 @@ import { useFotosAndamento, useEnviarFotosAndamento, useSolicitacoesObra, useCri
 import { ObraCronograma } from "@/routes/obra/ObraCronograma";
 import { DiarioObra } from "@/routes/obra/DiarioObra";
 import { FaturamentoPrestador } from "@/routes/obra/ObraNotasFiscais";
+import { OrcamentosAvulsos } from "@/components/obra/OrcamentosAvulsos";
 import { ultimaVerificacaoPorEtapa, etapaConcluida, avancoFisico, OBRA_FASE_STATUS_LABEL } from "@/lib/obra";
 import { somarDiasISO, arred } from "@/lib/obraCalc";
 import { FotoSegura } from "@/components/AnexoSeguro";
@@ -103,7 +104,7 @@ export function PortalPrestador() {
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-gradient text-white shadow-glow-primary"><HardHat className="size-5" /></div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary">Portal da obra — TRÍADE</h1>
-          <p className="text-xs text-muted-foreground">Cronograma · diário · insumos · medições · fotos · entregas · solicitações.</p>
+          <p className="text-xs text-muted-foreground">Cronograma · diário · insumos · medições · fotos · entregas · orçamentos avulsos · solicitações.</p>
         </div>
       </div>
 
@@ -126,6 +127,7 @@ export function PortalPrestador() {
           <TabsTrigger value="medicoes">Medições & NF</TabsTrigger>
           <TabsTrigger value="fotos">Fotos</TabsTrigger>
           <TabsTrigger value="entregas">Entregas & Docs</TabsTrigger>
+          <TabsTrigger value="avulsos">Orçamentos avulsos</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
         </TabsList>
 
@@ -241,6 +243,11 @@ export function PortalPrestador() {
         <TabsContent value="entregas" className="space-y-5">
           <ProjetosPrestador />
           <DocumentosPrestador documentos={documentos.data ?? []} />
+        </TabsContent>
+
+        {/* ── ORÇAMENTOS AVULSOS (serviços não previstos, para aprovação da Blue) ── */}
+        <TabsContent value="avulsos">
+          <OrcamentosAvulsos quem="construtora" />
         </TabsContent>
 
         {/* ── SOLICITAÇÕES ── */}

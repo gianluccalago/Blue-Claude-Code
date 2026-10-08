@@ -27,6 +27,10 @@ export type FuncaoProfissional = "Cuidadora" | "Técnica de Enfermagem" | "Enfer
 export type VinculoProfissional = "CLT" | "PJ";
 export type CategoriaTurno = "cuidadoras" | "enfermeiras";
 export type TagTurno = "diurno" | "noturno";
+/** Orçamentos avulsos da obra (0151). */
+export type StatusOrcamentoAvulso =
+  | "rascunho" | "enviado" | "ajustes" | "aprovado" | "reprovado" | "executado" | "conferido" | "pago" | "cancelado";
+export type FonteItemAvulso = "SINAPI" | "CPU" | "Cotação" | "Outra";
 /** Rondas NFC (0148). */
 export type StatusLeituraRonda =
   | "valida" | "rejeitada_payload" | "rejeitada_uid_divergente" | "rejeitada_tag_desconhecida" | "rejeitada_tag_inativa"
@@ -3075,6 +3079,44 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      obra_orcamentos_avulsos: {
+        Row: {
+          id: string; numero: number; titulo: string; descricao: string | null; justificativa: string | null;
+          fase_id: string | null; referencia_precos: string | null; status: StatusOrcamentoAvulso;
+          valor_previsto: number; valor_aprovado: number | null; valor_real: number | null; centro_custo: string;
+          data_envio: string | null; data_aprovacao: string | null; aprovado_por: string | null;
+          data_execucao: string | null; data_conferencia: string | null; conferido_por: string | null;
+          data_pagamento: string | null; pago_por: string | null; nf_numero: string | null; nf_url: string | null;
+          comprovante_url: string | null; registrado_por: string | null; criado_em: string; atualizado_em: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      obra_orcamento_avulso_itens: {
+        Row: {
+          id: string; orcamento_id: string; ordem: number; fonte: FonteItemAvulso; codigo: string | null; descricao: string;
+          unidade: string; quantidade_prevista: number; preco_unitario: number; quantidade_real: number | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      obra_orcamento_avulso_anexos: {
+        Row: { id: string; orcamento_id: string; arquivo_url: string; nome: string | null; tipo: "imagem" | "documento"; registrado_por: string | null; criado_em: string };
+        Insert: { id?: string; orcamento_id: string; arquivo_url: string; nome?: string | null; tipo?: "imagem" | "documento"; registrado_por?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      obra_orcamento_avulso_eventos: {
+        Row: {
+          id: string; orcamento_id: string; acao: string; de_status: string | null; para_status: string | null;
+          comentario: string | null; valor: number | null; por: string | null; perfil: string | null; em: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       obra_solicitacoes: {
         Row: {
           id: string;
@@ -3689,6 +3731,16 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      // Orçamentos avulsos (0151)
+      obra_avulso_salvar: { Args: { p: Record<string, unknown> }; Returns: string };
+      obra_avulso_enviar: { Args: { p_id: string; p_comentario?: string | null }; Returns: undefined };
+      obra_avulso_decidir: { Args: { p_id: string; p_decisao: string; p_comentario?: string | null }; Returns: undefined };
+      obra_avulso_informar_execucao: { Args: { p_id: string; p_itens: { id: string; quantidade_real: number }[]; p_comentario?: string | null }; Returns: undefined };
+      obra_avulso_conferir: { Args: { p_id: string; p_valor_real?: number | null; p_comentario?: string | null }; Returns: undefined };
+      obra_avulso_pagar: { Args: { p_id: string; p_data: string; p_nf_numero?: string | null; p_nf_url?: string | null; p_comprovante_url?: string | null }; Returns: { no_caixa: boolean; pela_planilha: boolean } };
+      obra_avulso_desfazer_pagamento: { Args: { p_id: string; p_comentario: string }; Returns: undefined };
+      obra_avulso_cancelar: { Args: { p_id: string; p_comentario: string }; Returns: undefined };
+      obra_avulso_comentar: { Args: { p_id: string; p_comentario: string }; Returns: undefined };
       // Chamados (0149)
       reconhecer_chamado: { Args: { p_id: string }; Returns: undefined };
       encerrar_chamado_excepcional: { Args: { p_id: string; p_justificativa: string }; Returns: undefined };
@@ -4009,6 +4061,10 @@ export type ModeloRotina = Database["public"]["Tables"]["modelo_rotina"]["Row"];
 export type ModeloRotinaItem = Database["public"]["Tables"]["modelo_rotina_item"]["Row"];
 export type AutonomiaAvaliacao = Database["public"]["Tables"]["autonomia_avaliacao"]["Row"];
 export type NfcTag = Database["public"]["Tables"]["nfc_tags"]["Row"];
+export type OrcamentoAvulso = Database["public"]["Tables"]["obra_orcamentos_avulsos"]["Row"];
+export type OrcamentoAvulsoItem = Database["public"]["Tables"]["obra_orcamento_avulso_itens"]["Row"];
+export type OrcamentoAvulsoAnexo = Database["public"]["Tables"]["obra_orcamento_avulso_anexos"]["Row"];
+export type OrcamentoAvulsoEvento = Database["public"]["Tables"]["obra_orcamento_avulso_eventos"]["Row"];
 export type Dispositivo = Database["public"]["Tables"]["devices"]["Row"];
 export type RondaConfig = Database["public"]["Tables"]["ronda_config"]["Row"];
 export type RondaLeitura = Database["public"]["Tables"]["ronda_leitura"]["Row"];

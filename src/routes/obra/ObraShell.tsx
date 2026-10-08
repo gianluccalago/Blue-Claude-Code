@@ -13,6 +13,7 @@ import { ObraCaixa } from "@/routes/obra/ObraCaixa";
 import { ObraCustos } from "@/routes/obra/ObraCustos";
 import { ObraFisica } from "@/routes/obra/ObraFisica";
 import { PortalPrestador } from "@/routes/obra/PortalPrestador";
+import { OrcamentosAvulsos } from "@/components/obra/OrcamentosAvulsos";
 
 // ===========================================================================
 // MÓDULO OBRA — shell com abas, organizado pela FASE ATUAL do empreendimento
@@ -58,6 +59,7 @@ export function ObraShell() {
           <TabsTrigger value="diario">Diário</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="avulsos">Avulsos</TabsTrigger>
           <TabsTrigger value="caixa">Caixa</TabsTrigger>
           <TabsTrigger value="indiretos">Indiretos</TabsTrigger>
           <TabsTrigger value="fisica">Obra física</TabsTrigger>
@@ -76,6 +78,9 @@ export function ObraShell() {
         </TabsContent>
         <TabsContent value="financeiro">
           <ObraFinanceiro />
+        </TabsContent>
+        <TabsContent value="avulsos">
+          <OrcamentosAvulsos quem="blue" />
         </TabsContent>
         <TabsContent value="caixa">
           <ObraCaixa />
