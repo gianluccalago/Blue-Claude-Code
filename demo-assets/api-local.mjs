@@ -59,16 +59,40 @@ function filtro(coluna, expr) {
   }
 }
 
-/** Colunas do select do PostgREST; relações embutidas viram NULL (o app tolera). */
-function colunas(select) {
-  if (!select || select === "*") return "*";
-  // Remove embeds "rel(...)" — o emulador não faz join; devolve as colunas simples.
-  const semEmbed = select.replace(/[\w:]+\([^)]*\)/g, "").replace(/,\s*,/g, ",").replace(/^,|,$/g, "");
-  if (!semEmbed.trim()) return "*";
-  return semEmbed.split(",").map((c) => {
+/** Tabela e coluna referenciadas pela FK `coluna` de `tabela` (para embeds "alias:fk(cols)"). */
+function alvoFk(tabela, coluna) {
+  const out = sql(`select c.confrelid::regclass::text || '|' || af.attname
+    from pg_constraint c
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+    join pg_attribute af on af.attrelid = c.confrelid and af.attnum = c.confkey[1]
+    where c.contype = 'f' and c.conrelid = 'public."${tabela}"'::regclass and a.attname = '${coluna}' limit 1`).trim();
+  const [alvo, ref] = out.split("\n").pop().split("|");
+  return alvo && ref ? { alvo: alvo.replace(/^public\./, ""), ref } : null;
+}
+
+/**
+ * Colunas do select do PostgREST. Embeds simples "alias:coluna_fk(c1,c2)"
+ * viram um objeto (subconsulta pela FK); os demais embeds viram NULL (o app tolera).
+ */
+function colunas(select, tabela) {
+  if (!select || select === "*") return "t.*";
+  const partes = [];
+  const semEmbed = select.replace(/([\w]+):([\w]+)\(([^)]*)\)/g, (_m, alias, fk, cols) => {
+    try {
+      const a = alvoFk(tabela, fk);
+      const lista = cols.split(",").map((c) => c.trim()).filter((c) => /^[a-z_][a-z0-9_]*$/i.test(c));
+      if (a && lista.length) {
+        partes.push(`(select to_jsonb(e) from (select ${lista.map((c) => `x."${c}"`).join(", ")} from public."${a.alvo}" x where x."${a.ref}" = t."${fk}") e) as "${alias}"`);
+      }
+    } catch { /* sem FK conhecida: fica NULL */ }
+    return "";
+  }).replace(/[\w:]+\([^)]*\)/g, "").replace(/,\s*,/g, ",").replace(/^,|,$/g, "");
+  for (const c of semEmbed.split(",")) {
     const nome = c.trim().split(":").pop();
-    return /^[a-z_][a-z0-9_]*$/i.test(nome) ? `"${nome}"` : null;
-  }).filter(Boolean).join(", ") || "*";
+    if (nome === "*") partes.unshift("t.*");
+    else if (/^[a-z_][a-z0-9_]*$/i.test(nome)) partes.push(`t."${nome}"`);
+  }
+  return partes.length ? partes.join(", ") : "t.*";
 }
 
 /** GET /rest/v1/<tabela>?... → linhas. */
@@ -90,8 +114,8 @@ export function rest(caminho, params, email) {
     if (k === "offset" || k === "on_conflict" || k === "columns") continue;
     if (/^[a-z_][a-z0-9_]*$/.test(k)) where.push(filtro(k, v));
   }
-  const cols = colunas(params.get("select"));
-  const q = `select ${cols} from public."${tabela}"${where.length ? " where " + where.join(" and ") : ""}${order}${limite}`;
+  const cols = colunas(params.get("select"), tabela);
+  const q = `select ${cols} from public."${tabela}" t${where.length ? " where " + where.join(" and ") : ""}${order}${limite}`;
   try { return consultarComo(q, email); } catch { return []; }
 }
 

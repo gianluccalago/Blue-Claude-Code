@@ -23,6 +23,7 @@ import {
   useParticipacoesResidente,
   useCompromissosResidente,
 } from "@/hooks/useFamilia";
+import { REFEICOES_NUTRI } from "@/lib/nutricao";
 import { useRecadosResidente } from "@/hooks/useRecados";
 import { useTelefonePlantao } from "@/hooks/useConfiguracao";
 import { useSolicitacoesFamilia } from "@/hooks/useSolicitacoes";
@@ -143,7 +144,13 @@ function CardDiaDoHospede({ residenteId, nome }: { residenteId: string; nome: st
   const hoje = hojeISO();
 
   // Refeições — só as positivas (baixa aceitação é omitida).
-  const refeicoesPositivas = (aceitacao.data ?? []).filter((r) => FRASE_ACEITACAO_POSITIVA[r.nivel]);
+  const ordem = (refeicao: string) => {
+    const i = (REFEICOES_NUTRI as readonly string[]).indexOf(refeicao);
+    return i < 0 ? 99 : i;
+  };
+  const refeicoesPositivas = (aceitacao.data ?? [])
+    .filter((r) => FRASE_ACEITACAO_POSITIVA[r.nivel])
+    .sort((x, y) => ordem(x.refeicao) - ordem(y.refeicao)); // na ordem do dia
 
   // Atividades de hoje (títulos distintos).
   const titulosHoje = [...new Set((participacoes.data ?? []).filter((p) => p.data === hoje).map((p) => p.atividadeTitulo))];
