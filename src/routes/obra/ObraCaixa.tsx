@@ -20,7 +20,7 @@ import { useCustosIndiretos } from "@/hooks/useObraCustos";
 import { useNotasFiscais } from "@/hooks/useObraNotas";
 import {
   CENTROS_CUSTO, PAGADORES, rotuloCentro, rotuloPagador, rotuloGrupo, serieMensalFC, serieCaixaMensal,
-  apenasEmpreendimento, mesCurto, lerPercentual, formatarPercentual, lerReais, ESCOPOS, rotuloEscopo, escopoSugerido,
+  apenasEmpreendimento, mesesSemIpca, mesCurto, lerPercentual, formatarPercentual, lerReais, ESCOPOS, rotuloEscopo, escopoSugerido,
   type GrupoFC, type EscopoFC,
 } from "@/lib/fluxoCaixa";
 import { exportarCSV } from "@/lib/exportCsv";
@@ -145,6 +145,7 @@ export function ObraCaixa() {
   const serieGlobal = useMemo(() => serieMensalFC(empreendimento, ipca.data ?? new Map()), [empreendimento, ipca.data]);
   const corrigidoFinal = serieGlobal.at(-1)?.corrigido ?? 0;
   const custoNominal = serieGlobal.at(-1)?.acumulado ?? 0;
+  const semIpca = useMemo(() => mesesSemIpca(serieGlobal, ipca.data ?? new Map(), hojeISO()), [serieGlobal, ipca.data]);
 
   const mesAtual = hojeISO().slice(0, 7);
   const linhaMesAtual = caixa.find((c) => c.mes === mesAtual);
@@ -210,6 +211,17 @@ export function ObraCaixa() {
           <Button size="sm" onClick={() => setNovo(true)}><Plus className="size-4" /> Novo lançamento</Button>
         </div>
       </div>
+
+      {/* IPCA faltando: o mês corrige por zero e o total corrigido fica abaixo do real */}
+      {!ipca.isLoading && semIpca.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-secondary">
+          <span>
+            <strong>Falta o IPCA de {semIpca.map(mesCurto).join(", ")}.</strong>{" "}
+            Sem o índice, {semIpca.length === 1 ? "esse mês fica" : "esses meses ficam"} sem correção e o custo corrigido aparece menor do que é.
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setIpcaAberto(true)}><Percent className="size-4" /> Cadastrar IPCA</Button>
+        </div>
+      )}
 
       {/* KPIs */}
       {ehSocio ? (
@@ -567,7 +579,7 @@ function ModalIpca({ serie, ipca, onFechar }: {
           <button onClick={onFechar} className="text-muted-foreground hover:text-secondary"><X className="size-5" /></button>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          Corrige o custo do empreendimento (terreno, projetos, construtora, materiais, indiretos):
+          Corrige o custo do empreendimento (terreno, projetos, construtora, materiais, indiretos, CAPEX e OPEX do Blue):
           corrigido do mês = (anterior + desembolso do mês) × (1 + IPCA). Cadastre o índice de cada mês novo.
         </p>
         <div className="mb-4 flex items-end gap-2">

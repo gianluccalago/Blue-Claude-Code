@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serieMensalFC, mesCurto, lerPercentual, formatarPercentual } from "@/lib/fluxoCaixa";
+import { serieMensalFC, mesCurto, lerPercentual, formatarPercentual, mesesSemIpca } from "@/lib/fluxoCaixa";
 
 describe("serieMensalFC", () => {
   it("reproduz a fórmula da planilha CustoBlue (primeiros meses reais)", () => {
@@ -253,5 +253,39 @@ describe("escopo Blue × Seniors Care", () => {
     ];
     const [s] = serieMensalFC(apenasEmpreendimento(ls), new Map());
     expect(s.total).toBe(1000);
+  });
+});
+
+describe("conciliação com a CustoBlue (out/2026)", () => {
+  it("CAPEX e OPEX do Blue entram no custo do empreendimento, como na CustoBlue", () => {
+    const ls = [
+      { data: "2026-09-15", valor: -880, grupo: "saida" as const, centro_custo: "capex" },
+      { data: "2026-10-15", valor: -590.27, grupo: "saida" as const, centro_custo: "opex" },
+      { data: "2026-10-15", valor: -500, grupo: "saida" as const, centro_custo: "administrativo" },
+    ];
+    expect(apenasEmpreendimento(ls).map((l) => l.valor)).toEqual([-880, -590.27]);
+  });
+  it("marcas e patentes, sensor e Claude são classificados como CAPEX/OPEX", () => {
+    expect(centroDoRotulo("marcas e patentes", "saida")).toBe("capex");
+    expect(centroDoRotulo("sensor mmWave", "saida")).toBe("capex");
+    expect(centroDoRotulo("Cloude", "saida")).toBe("opex");
+    expect(centroDoRotulo("Claude", "saida")).toBe("opex");
+    expect(escopoSugerido("capex", "marcas e patentes")).toBe("blue");
+  });
+  it("o IPCA corrige o acumulado uma vez por mês, mesmo com várias saídas no mês", () => {
+    // Setembro/2026 da CustoBlue: 4 saídas e IPCA de 0,82%. A planilha
+    // corrigia o acumulado de novo a cada linha; o certo é uma vez só.
+    const anterior = [{ data: "2026-08-10", valor: -1_000_000 }];
+    const setembro = [3500, 183382, 5000, 880].map((v) => ({ data: "2026-09-10", valor: -v }));
+    const s = serieMensalFC([...anterior, ...setembro], new Map([["2026-08", 0], ["2026-09", 0.0082]]));
+    expect(s.at(-1)!.corrigido).toBeCloseTo((1_000_000 + 192_762) * 1.0082, 2);
+  });
+  it("aponta os meses sem IPCA que já deveriam ter o índice", () => {
+    const serie = ["2026-06", "2026-07", "2026-08", "2026-09", "2026-10"].map((mes) => ({ mes }));
+    const ipca = new Map([["2026-06", 0.0016], ["2026-08", -0.0032]]);
+    // 29/10: setembro já foi divulgado (dia 10); outubro ainda não.
+    expect(mesesSemIpca(serie, ipca, "2026-10-29")).toEqual(["2026-07", "2026-09"]);
+    // 05/10: setembro ainda não saiu — não cobra.
+    expect(mesesSemIpca(serie, ipca, "2026-10-05")).toEqual(["2026-07"]);
   });
 });

@@ -6,6 +6,8 @@
 // Saldo do mês = saldo inicial + Σ entradas + Σ saídas.
 // Correção IPCA (herdada da CustoBlue) só sobre o CUSTO DO EMPREENDIMENTO:
 //   corrigido(mês) = (corrigido anterior + desembolso do mês) × (1 + IPCA)
+// O IPCA corrige o acumulado UMA vez por mês (a CustoBlue repetia a correção
+// em cada linha do mesmo mês a partir de jul/2026 — erro de fórmula dela).
 // ===========================================================================
 
 export type GrupoFC = "entrada" | "saida";
@@ -19,6 +21,9 @@ export const CENTROS_CUSTO = [
   { value: "construtora", label: "Construtora (mão de obra)", grupo: "saida" },
   { value: "materiais", label: "Materiais de construção", grupo: "saida" },
   { value: "indiretos", label: "Indiretos (gerais e subcontratos)", grupo: "saida" },
+  // Investimento do Blue fora da obra (a CustoBlue chama de CAPEX e OPEX)
+  { value: "capex", label: "Blue · CAPEX (equipamentos, marcas e patentes)", grupo: "saida" },
+  { value: "opex", label: "Blue · OPEX (software e serviços)", grupo: "saida" },
   // Empresa (o restante da planilha do sócio-diretor)
   { value: "impostos", label: "Impostos da empresa", grupo: "saida" },
   { value: "administrativo", label: "Administrativo e jurídico", grupo: "saida" },
@@ -31,9 +36,13 @@ export const CENTROS_CUSTO = [
 
 export type CentroCusto = (typeof CENTROS_CUSTO)[number]["value"];
 
-/** Centros que compõem o CUSTO DO EMPREENDIMENTO (base da correção IPCA). */
+/**
+ * Centros que compõem o CUSTO DO EMPREENDIMENTO (base da correção IPCA) — o
+ * mesmo que a CustoBlue soma no "total acumulado": obra, terreno, projetos e
+ * também o CAPEX e o OPEX do Blue.
+ */
 export const CENTROS_EMPREENDIMENTO: ReadonlySet<string> = new Set([
-  "terreno", "projetos", "complementares", "construtora", "materiais", "indiretos",
+  "terreno", "projetos", "complementares", "construtora", "materiais", "indiretos", "capex", "opex",
 ]);
 
 export function ehEmpreendimento(centro: string): boolean {
@@ -103,6 +112,8 @@ export function centroDoRotulo(rotulo: string, grupo: GrupoFC): string {
   ) return "seniors_club";
   if (/^despesas obra pagas por/.test(r)) return "indiretos";
   if (/^emprestimo/.test(r) || /^empr.stimo/.test(r)) return "socios";
+  if (/marcas? e patentes?/.test(r) || /^patente/.test(r) || /^sensor/.test(r) || /mmwave/.test(r)) return "capex";
+  if (/^claude/.test(r) || /^cloude/.test(r) || /anthropic/.test(r)) return "opex";
   if (/^marlon/.test(r) || /^cabelo/.test(r) || /^uber/.test(r) || /^copiadora/.test(r) || /^combustivel/.test(r) || /^gasolina/.test(r)) return "indiretos";
   if (["pis", "cofins", "irpj", "csll"].includes(r) || /^ir retido/.test(r) || /^ir s\.nf/.test(r) || /^tributos federais/.test(r) || /^imposto/.test(r)) return "impostos";
   if (
@@ -217,6 +228,22 @@ export function serieMensalFC(
     out.push({ mes, total, acumulado, corrigido });
   }
   return out;
+}
+
+/**
+ * Meses da série sem IPCA cadastrado que JÁ deveriam ter o índice. O IBGE
+ * divulga o IPCA de um mês por volta do dia 10 do mês seguinte: o mês atual
+ * nunca entra; o mês anterior só entra a partir do dia 12.
+ * Sem o índice, a série corrige por zero naquele mês e o total fica abaixo.
+ */
+export function mesesSemIpca(serie: { mes: string }[], ipca: Map<string, number>, hoje: string): string[] {
+  const mesHoje = hoje.slice(0, 7);
+  const dia = Number(hoje.slice(8, 10));
+  const [a, m] = mesHoje.split("-").map(Number);
+  const anterior = m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
+  return serie
+    .map((l) => l.mes)
+    .filter((mes) => !ipca.has(mes) && mes < mesHoje && (mes !== anterior || dia >= 12));
 }
 
 /** Sequência de meses 'YYYY-MM' de `de` até `ate`, inclusive. */
