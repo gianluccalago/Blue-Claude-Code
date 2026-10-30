@@ -113,7 +113,7 @@ export function centroDoRotulo(rotulo: string, grupo: GrupoFC): string {
   if (/^despesas obra pagas por/.test(r)) return "indiretos";
   if (/^emprestimo/.test(r) || /^empr.stimo/.test(r)) return "socios";
   if (/marcas? e patentes?/.test(r) || /^patente/.test(r) || /^sensor/.test(r) || /mmwave/.test(r)) return "capex";
-  if (/^claude/.test(r) || /^cloude/.test(r) || /anthropic/.test(r)) return "opex";
+  if (/^claude/.test(r) || /^cloude/.test(r) || /anthropic/.test(r) || /^wispr/.test(r)) return "opex";
   if (/^marlon/.test(r) || /^cabelo/.test(r) || /^uber/.test(r) || /^copiadora/.test(r) || /^combustivel/.test(r) || /^gasolina/.test(r)) return "indiretos";
   if (["pis", "cofins", "irpj", "csll"].includes(r) || /^ir retido/.test(r) || /^ir s\.nf/.test(r) || /^tributos federais/.test(r) || /^imposto/.test(r)) return "impostos";
   if (

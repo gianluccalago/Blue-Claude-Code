@@ -270,6 +270,7 @@ describe("conciliação com a CustoBlue (out/2026)", () => {
     expect(centroDoRotulo("sensor mmWave", "saida")).toBe("capex");
     expect(centroDoRotulo("Cloude", "saida")).toBe("opex");
     expect(centroDoRotulo("Claude", "saida")).toBe("opex");
+    expect(centroDoRotulo("Wispr Flow (assinatura)", "saida")).toBe("opex");
     expect(escopoSugerido("capex", "marcas e patentes")).toBe("blue");
   });
   it("o IPCA corrige o acumulado uma vez por mês, mesmo com várias saídas no mês", () => {
