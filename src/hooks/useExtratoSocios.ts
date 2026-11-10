@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { KEY_FC, useLancamentosFC } from "@/hooks/useFluxoCaixa";
 import { centroDoRotulo, diaDoCentro, escopoSugerido, type GrupoFC } from "@/lib/fluxoCaixa";
+import { intervaloDoMes } from "@/lib/mensalidade";
 import type { LinhaExtrato } from "@/lib/extratoSocios";
 import type { FcLancamento } from "@/types/database";
 
@@ -66,7 +67,7 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
  * Adiciona uma linha "como na planilha": mês, bloco, rótulo e valor com sinal.
  * CONCILIAÇÃO: quando o sócio-diretor lança a linha "Triade" do mês, os
  * pagamentos à TRÍADE que o módulo Obra já tinha sincronizado naquele mês
- * (NF, retenções, marcos, medições) saem — a planilha prevalece, e o mesmo
+ * (NF, retenções, marcos, medições, orçamentos avulsos) saem — a planilha prevalece, e o mesmo
  * dinheiro não fica duas vezes. Devolve quantos foram removidos.
  */
 export function useCriarLinhaExtrato() {
@@ -82,9 +83,9 @@ export function useCriarLinhaExtrato() {
         const { data, error: eDel } = await supabase
           .from("fc_lancamentos")
           .delete()
-          .in("origem", ["nf", "nf_retencao", "marco", "medicao"])
-          .gte("data", `${v.mes}-01`)
-          .lte("data", `${v.mes}-31`)
+          .in("origem", ["nf", "nf_retencao", "marco", "medicao", "avulso"])
+          .gte("data", intervaloDoMes(v.mes).inicio)
+          .lte("data", intervaloDoMes(v.mes).fim) // último dia real do mês (30/11 não existe 31/11)
           .select("id");
         if (eDel) throw eDel;
         removidos = data?.length ?? 0;
