@@ -3165,7 +3165,7 @@ export interface Database {
           fornecedor: string;
           descricao: string | null;
           pagador: "seniors" | "pht" | "ernesto";
-          origem: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao";
+          origem: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao" | "retencao" | "avulso";
           origem_id: string | null;
           observacao: string | null;
           registrado_por: string | null;
@@ -3182,7 +3182,7 @@ export interface Database {
           fornecedor: string;
           descricao?: string | null;
           pagador?: "seniors" | "pht" | "ernesto";
-          origem?: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao";
+          origem?: "planilha" | "manual" | "marco" | "medicao" | "oc" | "indireto" | "nf" | "nf_retencao" | "retencao" | "avulso";
           origem_id?: string | null;
           observacao?: string | null;
           registrado_por?: string | null;
