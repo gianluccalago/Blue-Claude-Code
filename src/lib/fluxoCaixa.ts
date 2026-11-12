@@ -283,6 +283,12 @@ export function escopoSugerido(centro: string, rotulo: string): EscopoFC {
   if (CENTROS_SENIORS_CARE.has(centro)) return "seniors_care";
   const r = (rotulo ?? "").trim().toLowerCase();
   if (/^marlon/.test(r) || r.includes("habite-se") || r.includes("cvco") || /^laudo lincoln/.test(r) || /^despesas obra pagas por/.test(r)) return "seniors_care";
+  // Pelo nome, mesmo que o centro escolhido seja outro (ex.: "Contabilidade"
+  // lançada como indiretos): impostos, contabilidade, tarifas e Seniors Club
+  // são da Seniors Care. Marca/patente no INPI é do Blue (CAPEX).
+  const peloNome = centroDoRotulo(r, "saida");
+  if (peloNome === "impostos" || peloNome === "seniors_club") return "seniors_care";
+  if (peloNome === "administrativo" && !/inpi|marca|patente/.test(r)) return "seniors_care";
   return "blue";
 }
 

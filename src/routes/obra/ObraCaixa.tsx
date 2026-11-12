@@ -450,6 +450,9 @@ function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
     observacao: original?.observacao ?? "",
     escopo: original?.escopo ?? "blue",
   });
+  // Lançamento novo: "de quem é" segue a sugestão (centro + nome) até a pessoa marcar à mão.
+  const [escopoManual, setEscopoManual] = useState(!!original);
+  const escopoEfetivo: EscopoFC = escopoManual ? v.escopo : escopoSugerido(v.centroCusto, v.fornecedor);
   const [valorTxt, setValorTxt] = useState(original ? String(original.grupo === "saida" ? Math.abs(original.valor) : original.valor).replace(".", ",") : "");
   const pending = criar.isPending || editar.isPending;
   const valorLido = lerReais(valorTxt);
@@ -463,7 +466,7 @@ function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
   }
 
   async function salvar() {
-    const payload = { ...v, valor: valorLido };
+    const payload = { ...v, valor: valorLido, escopo: escopoEfetivo };
     try {
       if (original) await editar.mutateAsync({ id: original.id, ...payload });
       else await criar.mutateAsync(payload);
@@ -524,12 +527,12 @@ function ModalLancamento({ original, fornecedores, permiteEntrada, onFechar }: {
           <label className="block space-y-1"><span className="text-sm font-semibold text-secondary">Observação</span>
             <input value={v.observacao} onChange={(e) => setV((p) => ({ ...p, observacao: e.target.value }))} className={inputBase} /></label>
           {permiteEntrada && (
-            <label className={cn("flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm", v.escopo === "seniors_care" ? "border-warning/60 bg-warning/5" : "border-border")}>
-              <input type="checkbox" checked={v.escopo === "seniors_care"} onChange={(e) => setV((p) => ({ ...p, escopo: e.target.checked ? "seniors_care" : "blue" }))} className="mt-0.5 size-4 accent-primary" />
+            <label className={cn("flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm", escopoEfetivo === "seniors_care" ? "border-warning/60 bg-warning/5" : "border-border")}>
+              <input type="checkbox" checked={escopoEfetivo === "seniors_care"} onChange={(e) => { setEscopoManual(true); setV((p) => ({ ...p, escopo: e.target.checked ? "seniors_care" : "blue" })); }} className="mt-0.5 size-4 accent-primary" />
               <span>
                 <span className="font-semibold text-secondary">É da Seniors Care (imóvel antigo)</span>
                 <span className="block text-xs text-muted-foreground">Impostos, contabilidade, tarifas e obras do Seniors Club. Fica no fluxo de caixa e no Demonstrativo, mas sai do custo do Blue e da correção IPCA.
-                  {escopoSugerido(v.centroCusto, v.fornecedor) === "seniors_care" && v.escopo !== "seniors_care" ? " Pelo centro de custo e pelo nome, parece ser da Seniors Care." : ""}</span>
+                  {escopoSugerido(v.centroCusto, v.fornecedor) === "seniors_care" && escopoEfetivo !== "seniors_care" ? " Pelo centro de custo e pelo nome, parece ser da Seniors Care." : ""}</span>
               </span>
             </label>
           )}

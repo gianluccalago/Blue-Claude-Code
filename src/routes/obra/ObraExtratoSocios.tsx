@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import { FileText, X, Plus, Pencil, Trash2, Check } from "lucide-react";
 import {
   useExtratoLinhas, useExtratoSaldos, useCriarLinhaExtrato, useEditarLinhaExtrato,
-  useExcluirLinhaExtrato, useDefinirSaldoInicial, type LinhaExtratoId,
+  useExcluirLinhaExtrato, useDefinirSaldoInicial, useAlterarEscopoExtrato, type LinhaExtratoId,
 } from "@/hooks/useExtratoSocios";
 import { resumoMesExtrato, consolidarAno, rotuloMesExtenso, saldosEfetivos, SOCIO_ASSINATURA, type LinhaExtrato } from "@/lib/extratoSocios";
-import { lerReais, type GrupoFC } from "@/lib/fluxoCaixa";
+import { lerReais, centroDoRotulo, escopoSugerido, type EscopoFC, type GrupoFC } from "@/lib/fluxoCaixa";
 import { gerarDemonstrativoMensalPdf, gerarDemonstrativoAnualPdf } from "@/lib/exportDemonstrativoCaixa";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
   return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
       <button aria-hidden tabIndex={-1} onClick={onFechar} className="fixed inset-0 animate-fade-in cursor-default bg-secondary/40 backdrop-blur-sm" />
-      <div className="relative my-auto w-full max-w-2xl animate-modal-in rounded-lg border bg-card p-6 shadow-lifted">
+      <div className="relative my-auto w-full min-w-0 max-w-2xl animate-modal-in rounded-lg border bg-card p-4 shadow-lifted sm:p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-secondary">Demonstrativo de Caixa — sócios</h2>
@@ -123,6 +123,11 @@ export function ModalExtratoSocios({ onFechar }: { onFechar: () => void }) {
   );
 }
 
+/** Soma (com sinal) das linhas de um bloco que são do escopo pedido. */
+function somaEscopo(linhas: Linha[], grupo: GrupoFC, escopo: EscopoFC): number {
+  return linhas.filter((l) => l.grupo === grupo && l.escopo === escopo).reduce((s, l) => s + l.valor, 0);
+}
+
 // ── Editor do mês (saldo inicial + lançamentos, tudo editável) ─────────────
 function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   mes: string;
@@ -138,6 +143,10 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
   const [novoGrupo, setNovoGrupo] = useState<GrupoFC>("saida");
   const [novoRotulo, setNovoRotulo] = useState("");
   const [novoValor, setNovoValor] = useState("");
+  // De quem é: segue a sugestão pelo rótulo até a pessoa escolher à mão.
+  const [novoEscopo, setNovoEscopo] = useState<EscopoFC | null>(null);
+  const escopoSugeridoNovo: EscopoFC = novoRotulo.trim() ? escopoSugerido(centroDoRotulo(novoRotulo, novoGrupo), novoRotulo) : "blue";
+  const escopoNovo = novoEscopo ?? escopoSugeridoNovo;
   const [excluindo, setExcluindo] = useState<Linha | null>(null);
 
   function salvarSaldo() {
@@ -153,9 +162,9 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
     // permanece positiva (dividendo pago deve ser digitado com o sinal −).
     const valor = novoGrupo === "saida" ? -Math.abs(bruto) : bruto;
     const ordem = Math.max(0, ...linhas.filter((l) => l.grupo === novoGrupo).map((l) => l.ordem)) + 1;
-    criar.mutate({ mes, grupo: novoGrupo, rotulo: novoRotulo, valor, ordem }, {
+    criar.mutate({ mes, grupo: novoGrupo, rotulo: novoRotulo, valor, ordem, escopo: escopoNovo }, {
       onSuccess: (r) => {
-        setNovoRotulo(""); setNovoValor("");
+        setNovoRotulo(""); setNovoValor(""); setNovoEscopo(null);
         if (r.removidos > 0) toast.success(`Lançado. ${r.removidos} pagamento(s) à TRÍADE já sincronizado(s) do módulo Obra saíram — a planilha prevalece.`);
         else toast.success("Lançado.");
       },
@@ -191,7 +200,7 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
       {/* Blocos */}
       <div className="grid gap-4 sm:grid-cols-2">
         {(["entrada", "saida"] as const).map((grupo) => (
-          <div key={grupo} className="space-y-1">
+          <div key={grupo} className="min-w-0 space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               {grupo === "entrada" ? "Entradas e movimentações societárias" : "Saídas"}
             </p>
@@ -206,6 +215,12 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
             <p className="border-t pt-1 text-right text-sm font-bold tabular-nums text-secondary">
               {formatarMoeda(grupo === "entrada" ? resumo.totalEntradas : resumo.totalSaidas)}
             </p>
+            {grupo === "saida" && (
+              <p className="flex flex-wrap justify-end gap-x-3 text-xs tabular-nums text-muted-foreground">
+                <span><span className="font-semibold text-primary">Blue</span> {formatarMoeda(somaEscopo(linhas, "saida", "blue"))}</span>
+                <span><span className="font-semibold text-warning">Seniors Care</span> {formatarMoeda(somaEscopo(linhas, "saida", "seniors_care"))}</span>
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -218,8 +233,31 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
         </select>
         <input value={novoRotulo} onChange={(e) => setNovoRotulo(e.target.value)} placeholder="descrição (ex.: aluguel, IPTU…)" className={cn(selBase, "min-w-40 flex-1")} />
         <input value={novoValor} onChange={(e) => setNovoValor(e.target.value)} inputMode="decimal" placeholder="valor" className={cn(selBase, "w-28 text-right")} />
+        <div className="flex overflow-hidden rounded-md border" role="radiogroup" aria-label="De quem é o gasto">
+          {(["blue", "seniors_care"] as const).map((e) => (
+            <button
+              key={e}
+              type="button"
+              role="radio"
+              aria-checked={escopoNovo === e}
+              onClick={() => setNovoEscopo(e)}
+              className={cn(
+                "h-9 px-3 text-xs font-semibold transition-colors",
+                escopoNovo === e
+                  ? e === "blue" ? "bg-primary text-primary-foreground" : "bg-warning text-warning-foreground"
+                  : "bg-card text-muted-foreground hover:text-secondary",
+              )}
+            >
+              {e === "blue" ? "Blue" : "Seniors Care"}
+            </button>
+          ))}
+        </div>
         <Button size="sm" variant="outline" onClick={adicionar} loading={criar.isPending}><Plus className="size-4" /> Adicionar</Button>
       </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        <span className="font-semibold text-primary">Blue</span> entra no custo do empreendimento;{" "}
+        <span className="font-semibold text-warning">SC</span> é da Seniors Care e fica fora. Toque na etiqueta de qualquer linha para trocar.
+      </p>
 
       <div className="rounded-lg bg-secondary px-4 py-2.5 text-sm font-bold text-white">
         <span>Saldo final de caixa</span>
@@ -245,6 +283,7 @@ function EditorMes({ mes, linhas, resumo, temSaldoDeclarado }: {
 
 function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => void }) {
   const editar = useEditarLinhaExtrato();
+  const alterarEscopo = useAlterarEscopoExtrato();
   const [editando, setEditando] = useState(false);
   const [rotulo, setRotulo] = useState(linha.rotulo);
   const [valor, setValor] = useState(String(linha.valor));
@@ -268,13 +307,34 @@ function LinhaEditavel({ linha, onExcluir }: { linha: Linha; onExcluir: () => vo
   }
   return (
     <div className="group flex items-center justify-between gap-2 text-sm">
-      <span className="min-w-0 truncate text-secondary">{linha.rotulo}{linha.escopo === "seniors_care" && <span className="ml-1 rounded bg-warning/15 px-1 text-[10px] font-semibold text-warning" title="Seniors Care — fora das análises do Blue">SC</span>}</span>
+      <span className="flex min-w-0 items-center gap-1.5">
+        <button
+          type="button"
+          disabled={alterarEscopo.isPending}
+          onClick={() => {
+            const escopo: EscopoFC = linha.escopo === "seniors_care" ? "blue" : "seniors_care";
+            alterarEscopo.mutate({ id: linha.id, escopo }, {
+              onSuccess: () => toast.success(`${linha.rotulo}: agora ${escopo === "blue" ? "Blue" : "Seniors Care"}.`),
+              onError: (e) => toast.error(e instanceof Error ? e.message : "Falha."),
+            });
+          }}
+          className={cn(
+            "w-9 shrink-0 rounded py-0.5 text-center text-[10px] font-bold transition-colors disabled:opacity-50",
+            linha.escopo === "seniors_care" ? "bg-warning/15 text-warning hover:bg-warning/25" : "bg-primary/10 text-primary hover:bg-primary/20",
+          )}
+          title={linha.escopo === "seniors_care" ? "Seniors Care — fora do custo do Blue. Toque para passar ao Blue." : "Blue — entra no custo do empreendimento. Toque para passar à Seniors Care."}
+          aria-label={`De quem é: ${linha.escopo === "seniors_care" ? "Seniors Care" : "Blue"}. Trocar.`}
+        >
+          {linha.escopo === "seniors_care" ? "SC" : "Blue"}
+        </button>
+        <span className="min-w-0 truncate text-secondary">{linha.rotulo}</span>
+      </span>
       <span className="flex shrink-0 items-center gap-1.5">
         <span className={cn("tabular-nums font-semibold", linha.valor < 0 ? "text-destructive" : "text-secondary")}>{formatarMoeda(linha.valor)}</span>
         {!linha.sincronizado && (
-          <button onClick={() => setEditando(true)} className="text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100" title="Editar"><Pencil className="size-3" /></button>
+          <button onClick={() => setEditando(true)} className="text-muted-foreground transition-opacity hover:text-primary sm:opacity-0 sm:group-hover:opacity-100" title="Editar"><Pencil className="size-3" /></button>
         )}
-        <button onClick={onExcluir} className="text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100" title="Excluir"><Trash2 className="size-3" /></button>
+        <button onClick={onExcluir} className="text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100" title="Excluir"><Trash2 className="size-3" /></button>
       </span>
     </div>
   );

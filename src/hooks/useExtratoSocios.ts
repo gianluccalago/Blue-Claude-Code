@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import { KEY_FC, useLancamentosFC } from "@/hooks/useFluxoCaixa";
-import { centroDoRotulo, diaDoCentro, escopoSugerido, type GrupoFC } from "@/lib/fluxoCaixa";
+import { centroDoRotulo, diaDoCentro, escopoSugerido, type EscopoFC, type GrupoFC } from "@/lib/fluxoCaixa";
 import { intervaloDoMes } from "@/lib/mensalidade";
 import type { LinhaExtrato } from "@/lib/extratoSocios";
 import type { FcLancamento } from "@/types/database";
@@ -73,7 +73,7 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
 export function useCriarLinhaExtrato() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { mes: string; grupo: GrupoFC; rotulo: string; valor: number; ordem: number }): Promise<{ removidos: number }> => {
+    mutationFn: async (v: { mes: string; grupo: GrupoFC; rotulo: string; valor: number; ordem: number; escopo?: EscopoFC }): Promise<{ removidos: number }> => {
       if (!v.rotulo.trim()) throw new Error("Informe a descrição.");
       if (!v.valor) throw new Error("Informe o valor (negativo para saídas/dividendos).");
       const centro = centroDoRotulo(v.rotulo, v.grupo);
@@ -96,7 +96,7 @@ export function useCriarLinhaExtrato() {
         grupo: v.grupo,
         ordem: v.ordem,
         centro_custo: centro,
-        escopo: escopoSugerido(centro, v.rotulo),
+        escopo: v.escopo ?? escopoSugerido(centro, v.rotulo),
         fornecedor: v.rotulo.trim(),
         descricao: null,
         pagador: "seniors",
@@ -129,6 +129,22 @@ export function useEditarLinhaExtrato() {
           ...(v.origem === "planilha" ? { centro_custo: centroDoRotulo(v.rotulo, v.grupo) } : {}),
         })
         .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc),
+  });
+}
+
+/**
+ * De quem é o gasto: Blue (empreendimento) ou Seniors Care (imóvel antigo,
+ * fora das análises e do custo do Blue). Só muda o escopo: valor, mês e
+ * centro de custo ficam como estão.
+ */
+export function useAlterarEscopoExtrato() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: string; escopo: EscopoFC }) => {
+      const { error } = await supabase.from("fc_lancamentos").update({ escopo: v.escopo }).eq("id", v.id);
       if (error) throw error;
     },
     onSuccess: () => invalidar(qc),

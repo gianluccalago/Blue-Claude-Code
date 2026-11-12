@@ -290,3 +290,17 @@ describe("conciliação com a CustoBlue (out/2026)", () => {
     expect(mesesSemIpca(serie, ipca, "2026-10-05")).toEqual(["2026-07"]);
   });
 });
+
+describe("de quem é o gasto (Blue × Seniors Care) pelo nome", () => {
+  it("contabilidade é da Seniors Care mesmo lançada em outro centro", () => {
+    expect(escopoSugerido("indiretos", "Contabilidade")).toBe("seniors_care");
+    expect(escopoSugerido("indiretos", "Tarifas bancarias")).toBe("seniors_care");
+    expect(escopoSugerido("indiretos", "Impostos")).toBe("seniors_care");
+  });
+  it("marca no INPI, obra e terreno seguem no Blue", () => {
+    expect(escopoSugerido("capex", "Marca INPI")).toBe("blue");
+    expect(escopoSugerido("indiretos", "Marca INPI")).toBe("blue");
+    expect(escopoSugerido("complementares", "Tríade tapume")).toBe("blue");
+    expect(escopoSugerido("indiretos", "Cartões visita China")).toBe("blue");
+  });
+});
