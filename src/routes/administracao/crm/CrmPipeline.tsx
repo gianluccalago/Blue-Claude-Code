@@ -138,9 +138,9 @@ export function CrmPipeline() {
             <option value="todas">Todas</option>
             <option value="nova">Nova</option>
             <option value="em_andamento">Em andamento</option>
-            <option value="ganha">Ganha</option>
-            <option value="perdida">Perdida</option>
-            <option value="pausada">Pausada</option>
+            <option value="ganha">Vendido</option>
+            <option value="perdida">Perdido</option>
+            <option value="pausada">Pausado (nutrição)</option>
           </select>
           <select value={fResponsavel} onChange={(e) => setFResponsavel(e.target.value)} className={inputBase}>
             <option value="">Todos os responsáveis</option>

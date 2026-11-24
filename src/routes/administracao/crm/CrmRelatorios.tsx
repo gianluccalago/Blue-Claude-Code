@@ -76,7 +76,7 @@ export function CrmRelatorios() {
             <StatCard icon={Trophy} rotulo="Oportunidades no período" valor={total} tom="primary" />
             <StatCard
               icon={Trophy}
-              rotulo="Admissões (ganhas)"
+              rotulo="Vendidos"
               valor={ganhas.length}
               tom="success"
               apoio={total > 0 ? `${Math.round((ganhas.length / total) * 100)}% de conversão` : undefined}
@@ -244,11 +244,11 @@ function TempoAteAdmissao({ ganhas }: { ganhas: OportunidadeCard[] }) {
     <div className="grid gap-4 sm:grid-cols-2">
       <StatCard
         icon={Clock}
-        rotulo="Tempo médio até admissão"
+        rotulo="Tempo médio até a venda"
         valor={mediaDias != null ? mediaDias : "sem dados"}
         sufixo={mediaDias != null ? (mediaDias === 1 ? "dia" : "dias") : undefined}
         tom="primary"
-        apoio={comDatas.length > 0 ? `base: ${comDatas.length} admissão(ões)` : "nenhuma admissão no período"}
+        apoio={comDatas.length > 0 ? `base: ${comDatas.length} venda(s)` : "nenhuma venda no período"}
       />
     </div>
   );

@@ -21,6 +21,8 @@ import { CrmOrigens } from "@/routes/administracao/crm/CrmOrigens";
 import { CrmConfig } from "@/routes/administracao/crm/CrmConfig";
 import { CrmRelatorios } from "@/routes/administracao/crm/CrmRelatorios";
 import { AgendaVisitas } from "@/routes/administracao/crm/AgendaVisitas";
+import { CrmPosVisita } from "@/routes/administracao/crm/CrmPosVisita";
+import { CrmBiblioteca } from "@/routes/administracao/crm/CrmBiblioteca";
 import { FunilVendas } from "@/routes/administracao/crm/FunilVendas";
 import { DayCare } from "@/routes/DayCare";
 import { Autonomia } from "@/routes/Autonomia";
@@ -678,6 +680,20 @@ const crmAgendaRoute = createRoute({
   path: "crm-agenda",
   component: AgendaVisitas,
 });
+const crmPosVisitaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-pos-visita",
+  validateSearch: (s: Record<string, unknown>): { op?: string; visita?: string } => ({
+    op: typeof s.op === "string" ? s.op : undefined,
+    visita: typeof s.visita === "string" ? s.visita : undefined,
+  }),
+  component: CrmPosVisita,
+});
+const crmBibliotecaRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "crm-biblioteca",
+  component: CrmBiblioteca,
+});
 const funilVendasRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "funil-vendas",
@@ -746,6 +762,8 @@ const routeTree = rootRoute.addChildren([
     fichaHospedeRoute,
     crmPipelineRoute,
     crmNovaRoute,
+    crmPosVisitaRoute,
+    crmBibliotecaRoute,
     crmOportunidadeRoute,
     crmTarefasRoute,
     crmContatosRoute,

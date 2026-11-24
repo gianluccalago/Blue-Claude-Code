@@ -3,6 +3,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { Check, Clock3, ListChecks, ArrowRight } from "lucide-react";
 import { useTodasTarefas, useConcluirTarefa, type TarefaComOportunidade } from "@/hooks/useCrm";
 import { CrmNav } from "./CrmNav";
+import { MensagemTarefa } from "@/components/crm/MensagemTarefa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,7 +98,14 @@ export function CrmTarefas() {
       ) : (
         <Card>
           <CardContent className="divide-y p-0">
-            {filtradas.map((t) => <LinhaTarefa key={t.id} t={t} base={base} onConcluir={() => concluir.mutate(t)} ocupado={concluir.isPending} />)}
+            {filtradas.map((t) => t.mensagem ? (
+              <div key={t.id} className="p-2">
+                <MensagemTarefa tarefa={t} telefone={t.telefone} email={t.email} optOut={t.optOut} nomeOportunidade={t.oportunidadeNome} />
+                <Link to={`${base}/crm-oportunidade` as string} search={{ id: t.oportunidade_id }} className="ml-1 mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                  Abrir oportunidade <ArrowRight className="size-3" />
+                </Link>
+              </div>
+            ) : <LinhaTarefa key={t.id} t={t} base={base} onConcluir={() => concluir.mutate(t)} ocupado={concluir.isPending} />)}
           </CardContent>
         </Card>
       )}

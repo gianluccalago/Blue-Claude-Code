@@ -4,8 +4,10 @@ import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ArrowLeft, Star, Phone, Mail, User, Wallet, BedDouble, CalendarClock, Check,
-  XCircle, BadgeCheck, Plus, MessageSquarePlus, History, ListChecks, Clock3, ShieldQuestion,
+  XCircle, BadgeCheck, Plus, MessageSquarePlus, History, ListChecks, Clock3, ShieldQuestion, PauseCircle, PlayCircle,
 } from "lucide-react";
+import { PosVisitaCard } from "@/components/crm/PosVisitaCard";
+import { usePausarNutricao, useRetomarPausado } from "@/hooks/usePosVisita";
 import {
   useOportunidade, useCrmEtapas, useEventos, useTarefasOportunidade,
   useMoverEtapa, useMarcarPerda, useMarcarAdmissao, useAnotar,
@@ -39,8 +41,11 @@ export function CrmOportunidade() {
   const admissao = useMarcarAdmissao();
   const criarResidente = useCriarResidente();
   const vincular = useVincularResidente();
+  const pausar = usePausarNutricao();
+  const retomar = useRetomarPausado();
 
   const [confirmarAdmissao, setConfirmarAdmissao] = useState(false);
+  const [confirmarPausa, setConfirmarPausa] = useState(false);
   const [modalPerda, setModalPerda] = useState(false);
   const [motivoSel, setMotivoSel] = useState("");
   const [criandoResidente, setCriandoResidente] = useState(false);
@@ -111,15 +116,24 @@ export function CrmOportunidade() {
             {!terminal && (
               <div className="flex flex-wrap gap-2">
                 <Button variant="success" onClick={() => setConfirmarAdmissao(true)} disabled={admissao.isPending}>
-                  <BadgeCheck className="size-4" /> Marcar admissão
+                  <BadgeCheck className="size-4" /> Marcar como vendido
                 </Button>
+                {op.status === "pausada" ? (
+                  <Button variant="outline" onClick={() => retomar.mutate(op.id, { onSuccess: () => toast.success("Lead retomado.") })} disabled={retomar.isPending}>
+                    <PlayCircle className="size-4" /> Retomar
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => setConfirmarPausa(true)} disabled={pausar.isPending}>
+                    <PauseCircle className="size-4" /> Pausar (nutrição)
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setModalPerda(true)}>
                   <XCircle className="size-4" /> Marcar perda
                 </Button>
               </div>
             )}
             {op.status === "perdida" && op.motivo_perda && (
-              <Badge variant="destructive">Perdida — {op.motivo_perda}</Badge>
+              <Badge variant="destructive">Perdido — {op.motivo_perda}</Badge>
             )}
           </div>
 
@@ -155,7 +169,7 @@ export function CrmOportunidade() {
         <Card className="border-success/40 bg-success/5">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
             <div className="min-w-0">
-              <p className="font-bold text-secondary">Admissão confirmada 🎉</p>
+              <p className="font-bold text-secondary">Vendido 🎉</p>
               <p className="text-sm text-muted-foreground">
                 Crie o cadastro de residente a partir desta oportunidade (já pré-preenchido).
               </p>
@@ -166,6 +180,8 @@ export function CrmOportunidade() {
           </CardContent>
         </Card>
       )}
+
+      <PosVisitaCard op={op} contato={contato} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Painel lateral */}
@@ -226,15 +242,29 @@ export function CrmOportunidade() {
       {/* Confirmar admissão */}
       <ConfirmDialog
         aberto={confirmarAdmissao}
-        titulo="Marcar como admissão?"
-        descricao="A oportunidade será fechada como GANHA. Depois você poderá criar o cadastro do residente a partir dela."
-        textoConfirmar="Confirmar admissão"
+        titulo="Marcar como vendido?"
+        descricao="A oportunidade sai do funil como VENDIDA e as mensagens pendentes são canceladas. Depois você poderá criar o cadastro do residente a partir dela."
+        textoConfirmar="Confirmar venda"
         varianteConfirmar="default"
         onConfirmar={() => {
           setConfirmarAdmissao(false);
-          admissao.mutate({ id: op.id }, { onSuccess: () => toast.success("Admissão registrada.") });
+          admissao.mutate({ id: op.id }, { onSuccess: () => toast.success("Venda registrada.") });
         }}
         onCancelar={() => setConfirmarAdmissao(false)}
+      />
+
+      {/* Pausar = nutrição de longo prazo */}
+      <ConfirmDialog
+        aberto={confirmarPausa}
+        titulo="Pausar para nutrição de longo prazo?"
+        descricao="As mensagens pendentes são canceladas e entram duas mensagens de nutrição, em 30 e 60 dias. Use quando a família disse que ainda não é a hora."
+        textoConfirmar="Pausar"
+        varianteConfirmar="default"
+        onConfirmar={() => {
+          setConfirmarPausa(false);
+          pausar.mutate(op.id, { onSuccess: () => toast.success("Pausado. Nutrição em 30 e 60 dias."), onError: (e) => toast.error(e instanceof Error ? e.message : "Falha.") });
+        }}
+        onCancelar={() => setConfirmarPausa(false)}
       />
 
       {/* Modal de perda (exige motivo) */}
@@ -318,7 +348,9 @@ function Linha({ icon: Icon, rotulo, valor }: { icon: typeof User; rotulo: strin
 
 const EVENTO_LABEL: Record<string, string> = {
   criacao: "Criação", mudanca_etapa: "Mudança de etapa", tarefa_concluida: "Tarefa concluída",
-  anotacao: "Anotação", perda: "Perda", admissao: "Admissão",
+  anotacao: "Anotação", perda: "Perda", admissao: "Venda",
+  pos_visita: "Pós-visita", mensagem_enviada: "Mensagem enviada", resposta: "Família respondeu",
+  opt_out: "Não receber mensagens", pausa: "Pausado", retomada: "Retomado",
 };
 
 function Timeline({ oportunidadeId }: { oportunidadeId: string }) {
@@ -361,7 +393,8 @@ function TarefasTab({ oportunidadeId }: { oportunidadeId: string }) {
     setAssunto(""); setData(""); setHora(""); setForm(false);
   }
 
-  const lista = tarefas.data ?? [];
+  // As mensagens do pós-visita ficam no quadro "Acompanhamento pós-visita".
+  const lista = (tarefas.data ?? []).filter((t) => !t.mensagem && !t.cancelada);
   const pendentes = lista.filter((t) => !t.concluida);
   const concluidas = lista.filter((t) => t.concluida);
 

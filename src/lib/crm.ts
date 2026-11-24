@@ -18,9 +18,9 @@ export const QUALIFICACAO_LABEL: Record<number, string> = {
 export const STATUS_LABEL: Record<CrmStatus, string> = {
   nova: "Nova",
   em_andamento: "Em andamento",
-  ganha: "Ganha",
-  perdida: "Perdida",
-  pausada: "Pausada",
+  ganha: "Vendido",
+  perdida: "Perdido",
+  pausada: "Pausado (nutrição)",
 };
 
 export const STATUS_VARIANTE: Record<CrmStatus, "secondary" | "success" | "destructive" | "warning" | "muted"> = {
@@ -35,13 +35,18 @@ export const RELACOES = ["Filho(a)", "Cônjuge", "Sobrinho(a)", "Outro"] as cons
 
 export const TIPOS_TAREFA = ["Ligar", "WhatsApp", "Email", "Visita agendada", "Reunião", "Outro"] as const;
 
+export const RELACOES_VISITANTE = ["Filho(a)", "Neto(a)", "Cônjuge", "Irmão(ã)", "Sobrinho(a)", "O próprio", "Outro"] as const;
+
 export const BASE_LEGAL_LABEL: Record<string, string> = {
   consentimento: "Consentimento",
   legitimo_interesse: "Legítimo interesse",
   nao_definida: "Não definida",
 };
 
+/** Etapa antiga de fechamento (inativa desde a 0154: o fechamento é o status "Vendido"). */
 export const ETAPA_ADMISSAO = "Admissão";
+/** Etapa em que a minuta do contrato vai por e-mail (cria as mensagens do contrato). */
+export const ETAPA_CONTRATO = "Contrato em preparação";
 
 /** A tarefa está vencida? (não concluída e com data anterior a hoje). */
 export function tarefaVencida(t: Pick<CrmTarefa, "concluida" | "data">): boolean {

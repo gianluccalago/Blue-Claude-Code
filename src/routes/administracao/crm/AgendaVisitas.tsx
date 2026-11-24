@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useLayoutEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { Link, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -17,6 +18,7 @@ import {
   Link2,
   Ban,
   Trash2,
+  ClipboardCheck,
 } from "lucide-react";
 import { CrmNav } from "@/routes/administracao/crm/CrmNav";
 import {
@@ -53,7 +55,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
-import { cn, formatarDataBR, ouNaoInformado } from "@/lib/utils";
+import { cn, formatarDataBR, ouNaoInformado, hojeISO } from "@/lib/utils";
 import type { VisitaAgendamento, VisitaDisponibilidade, VisitaStatus } from "@/types/database";
 
 const inputBase =
@@ -424,6 +426,8 @@ function CardSolicitacao({
   destaque: boolean;
   onRemarcar: () => void;
 }) {
+  const { perfil } = useParams({ strict: false }) as { perfil?: string };
+  const base = `/app/${perfil ?? "administracao"}`;
   const iniciarContato = useIniciarContato();
   const confirmar = useConfirmarVisita();
   const cancelar = useCancelarVisita();
@@ -504,6 +508,14 @@ function CardSolicitacao({
 
       {/* Ações — fluxo: pendente → em contato → confirmada (cancelar a qualquer momento) */}
       <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+        {/* Visita que já aconteceu: registrar o pós-visita (monta as mensagens da família). */}
+        {(a.status === "confirmada" || a.status === "remarcada") && a.data <= hojeISO() && (
+          <Button asChild size="sm">
+            <Link to={`${base}/crm-pos-visita` as string} search={(a.oportunidade_id ? { op: a.oportunidade_id, visita: a.id } : { visita: a.id }) as never}>
+              <ClipboardCheck className="size-4" /> Registrar pós-visita
+            </Link>
+          </Button>
+        )}
         {a.status === "pendente" && (
           <Button size="sm" onClick={handleIniciarContato} disabled={iniciarContato.isPending}>
             <MessageCircle className="size-4" /> Iniciar contato

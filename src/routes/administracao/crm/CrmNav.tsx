@@ -1,5 +1,5 @@
 import { Link, useParams, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, ListChecks, BarChart3, Contact, Radio, Settings, CalendarDays, type LucideIcon } from "lucide-react";
+import { TrendingUp, ListChecks, BarChart3, Contact, Radio, Settings, CalendarDays, BookOpen, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Sub-navegação interna do CRM. Substitui os vários itens de menu na sidebar
@@ -8,6 +8,7 @@ const ABAS: { rota: string; label: string; icon: LucideIcon }[] = [
   { rota: "crm", label: "Pipeline", icon: TrendingUp },
   { rota: "crm-agenda", label: "Agenda de Visitas", icon: CalendarDays },
   { rota: "crm-tarefas", label: "Tarefas", icon: ListChecks },
+  { rota: "crm-biblioteca", label: "Biblioteca", icon: BookOpen },
   { rota: "crm-relatorios", label: "Relatórios", icon: BarChart3 },
   { rota: "crm-contatos", label: "Contatos", icon: Contact },
   { rota: "crm-origens", label: "Origens", icon: Radio },

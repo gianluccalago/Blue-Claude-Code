@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { usuarioAtual } from "@/auth/usuarioAtual";
-import { tarefaVencida, ETAPA_ADMISSAO } from "@/lib/crm";
+import { tarefaVencida, ETAPA_CONTRATO } from "@/lib/crm";
 import { dataISO } from "@/lib/utils";
 import type {
   CrmContato,
@@ -110,7 +110,7 @@ export function useOportunidades() {
         supabase.from("crm_oportunidade").select("*").order("criado_em", { ascending: false }),
         supabase.from("crm_contato").select("*"),
         supabase.from("crm_origem").select("id, nome"),
-        supabase.from("crm_tarefa").select("oportunidade_id, data, concluida").eq("concluida", false),
+        supabase.from("crm_tarefa").select("oportunidade_id, data, concluida").eq("concluida", false).eq("cancelada", false),
       ]);
       if (ops.error) throw ops.error;
       if (contatos.error) throw contatos.error;
@@ -268,12 +268,21 @@ export function useMoverEtapa() {
         "mudanca_etapa",
         `Etapa alterada de "${args.etapaAnterior}" para "${args.etapa}".`,
       );
+      // Contrato em preparação: a minuta (provisória) vai por e-mail e um aviso pelo WhatsApp.
+      if (args.etapa === ETAPA_CONTRATO) {
+        const { criarMensagemDeModelo } = await import("@/hooks/usePosVisita");
+        const hoje = dataISO(new Date());
+        await criarMensagemDeModelo(args.id, "MINUTA_EMAIL", hoje, "email");
+        await criarMensagemDeModelo(args.id, "AVISO_CONTRATO", hoje, "whatsapp");
+      }
     },
     onSuccess: (_d, args) => {
       invalidarPipeline(qc);
       // A tela de detalhe lê estas chaves — antes ficava 30 s desatualizada.
       qc.invalidateQueries({ queryKey: ["crm-oportunidade", args.id] });
       qc.invalidateQueries({ queryKey: ["crm-eventos", args.id] });
+      qc.invalidateQueries({ queryKey: ["crm-tarefas", args.id] });
+      qc.invalidateQueries({ queryKey: ["crm-tarefas-todas"] });
     },
   });
 }
@@ -339,24 +348,39 @@ export function useTarefasOportunidade(oportunidadeId: string | undefined) {
   });
 }
 
-export type TarefaComOportunidade = CrmTarefa & { oportunidadeNome: string };
+export type TarefaComOportunidade = CrmTarefa & {
+  oportunidadeNome: string;
+  telefone: string | null;
+  email: string | null;
+  optOut: boolean;
+};
 
 /** Todas as tarefas do CRM (tela global), com o nome da oportunidade. */
 export function useTodasTarefas() {
   return useQuery({
     queryKey: ["crm-tarefas-todas"],
     queryFn: async (): Promise<TarefaComOportunidade[]> => {
-      const [tarefas, ops] = await Promise.all([
-        supabase.from("crm_tarefa").select("*"),
-        supabase.from("crm_oportunidade").select("id, nome"),
+      const [tarefas, ops, contatos] = await Promise.all([
+        supabase.from("crm_tarefa").select("*").eq("cancelada", false),
+        supabase.from("crm_oportunidade").select("id, nome, contato_id, opt_out"),
+        supabase.from("crm_contato").select("id, telefones, emails"),
       ]);
       if (tarefas.error) throw tarefas.error;
       if (ops.error) throw ops.error;
-      const nomePorOp = new Map((ops.data ?? []).map((o) => [o.id, o.nome]));
-      return (tarefas.data ?? []).map((t) => ({
-        ...t,
-        oportunidadeNome: nomePorOp.get(t.oportunidade_id) ?? "—",
-      }));
+      if (contatos.error) throw contatos.error;
+      const opPorId = new Map((ops.data ?? []).map((o) => [o.id, o]));
+      const contatoPorId = new Map((contatos.data ?? []).map((c) => [c.id, c]));
+      return (tarefas.data ?? []).map((t) => {
+        const o = opPorId.get(t.oportunidade_id);
+        const c = o ? contatoPorId.get(o.contato_id) : undefined;
+        return {
+          ...t,
+          oportunidadeNome: o?.nome ?? "—",
+          telefone: c?.telefones?.[0] ?? null,
+          email: c?.emails?.[0] ?? null,
+          optOut: o?.opt_out ?? false,
+        };
+      });
     },
   });
 }
@@ -439,9 +463,9 @@ export function useMarcarPerda() {
 }
 
 /**
- * Marca ADMISSÃO: status "ganha", etapa "Admissão", fechado_em. O vínculo com
- * o cadastro de residente (residente_id) é gravado pelo fluxo de criação de
- * residente (Bloco 4) — aqui só fecha a oportunidade como ganha.
+ * Marca como VENDIDO: status "ganha" e fechado_em (a etapa fica onde estava —
+ * "Vendido" é fora da fila desde a 0154). O vínculo com o cadastro de
+ * residente (residente_id) é gravado pelo fluxo de criação de residente.
  */
 export function useMarcarAdmissao() {
   const qc = useQueryClient();
@@ -449,10 +473,10 @@ export function useMarcarAdmissao() {
     mutationFn: async (args: { id: string }) => {
       const { error } = await supabase
         .from("crm_oportunidade")
-        .update({ status: "ganha", etapa: ETAPA_ADMISSAO, fechado_em: new Date().toISOString() })
+        .update({ status: "ganha", fechado_em: new Date().toISOString() })
         .eq("id", args.id);
       if (error) throw error;
-      await registrarEventoCrm(args.id, "admissao", "Oportunidade marcada como ADMISSÃO (ganha).");
+      await registrarEventoCrm(args.id, "admissao", "Oportunidade marcada como VENDIDA.");
     },
     onSuccess: (_r, args) => invalidarOportunidade(qc, args.id),
   });

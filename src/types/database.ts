@@ -2247,6 +2247,23 @@ export interface Database {
           residente_id: string | null;
           criado_em: string;
           fechado_em: string | null;
+          dores: string[];
+          objecoes: string[];
+          o_que_ouvimos: string | null;
+          detalhe_pessoal: string | null;
+          residente_chamar: string | null;
+          residente_tratamento: string | null;
+          perfil_visita: "familia" | "proprio_idoso" | "casal" | null;
+          visita_em: string | null;
+          visita_positiva: boolean | null;
+          simulacao: SimulacaoPosVisita | null;
+          simulacao_validade: string | null;
+          proximos_passos: ProximoPasso[];
+          pergunta_confirmacao: string | null;
+          consentimento_whatsapp: boolean;
+          opt_out: boolean;
+          ultimo_retorno_em: string | null;
+          visita_agendamento_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2264,6 +2281,8 @@ export interface Database {
           residente_id?: string | null;
           criado_em?: string;
           fechado_em?: string | null;
+          opt_out?: boolean;
+          ultimo_retorno_em?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["crm_oportunidade"]["Insert"]>;
         Relationships: [];
@@ -2280,6 +2299,14 @@ export interface Database {
           hora: string | null;
           concluida: boolean;
           criado_em: string;
+          modelo: string | null;
+          mensagem: string | null;
+          canal: "whatsapp" | "email" | "telefone" | null;
+          tentativa: number | null;
+          automatica: boolean;
+          cancelada: boolean;
+          motivo_cancelamento: string | null;
+          concluida_em: string | null;
         };
         Insert: {
           id?: string;
@@ -2292,8 +2319,76 @@ export interface Database {
           hora?: string | null;
           concluida?: boolean;
           criado_em?: string;
+          modelo?: string | null;
+          mensagem?: string | null;
+          canal?: "whatsapp" | "email" | "telefone" | null;
+          tentativa?: number | null;
+          automatica?: boolean;
+          cancelada?: boolean;
+          motivo_cancelamento?: string | null;
+          concluida_em?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["crm_tarefa"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_biblioteca: {
+        Row: {
+          codigo: string;
+          tipo: "dor" | "objecao";
+          titulo: string;
+          sinais: string | null;
+          o_que_ouvimos: string | null;
+          como_resolve: string | null;
+          prova_social: string | null;
+          conteudo_titulo: string | null;
+          conteudo_link: string | null;
+          texto_whatsapp: string;
+          observacoes: string | null;
+          ativo: boolean;
+          ordem: number;
+          atualizado_em: string;
+        };
+        Insert: {
+          codigo: string;
+          tipo: "dor" | "objecao";
+          titulo: string;
+          sinais?: string | null;
+          o_que_ouvimos?: string | null;
+          como_resolve?: string | null;
+          prova_social?: string | null;
+          conteudo_titulo?: string | null;
+          conteudo_link?: string | null;
+          texto_whatsapp: string;
+          observacoes?: string | null;
+          ativo?: boolean;
+          ordem?: number;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_biblioteca"]["Insert"]>;
+        Relationships: [];
+      };
+      crm_modelo_mensagem: {
+        Row: {
+          codigo: string;
+          nome: string;
+          dias_apos_visita: number | null;
+          quando: string | null;
+          texto: string;
+          ativo: boolean;
+          ordem: number;
+          atualizado_em: string;
+        };
+        Insert: {
+          codigo: string;
+          nome: string;
+          dias_apos_visita?: number | null;
+          quando?: string | null;
+          texto: string;
+          ativo?: boolean;
+          ordem?: number;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_modelo_mensagem"]["Insert"]>;
         Relationships: [];
       };
       crm_evento: {
@@ -3733,6 +3828,7 @@ export interface Database {
     Functions: {
       // Orçamentos avulsos (0151)
       obra_avulso_salvar: { Args: { p: Record<string, unknown> }; Returns: string };
+      crm_salvar_pos_visita: { Args: { p: Record<string, unknown> }; Returns: string };
       obra_avulso_enviar: { Args: { p_id: string; p_comentario?: string | null }; Returns: undefined };
       obra_avulso_decidir: { Args: { p_id: string; p_decisao: string; p_comentario?: string | null }; Returns: undefined };
       obra_avulso_informar_execucao: { Args: { p_id: string; p_itens: { id: string; quantidade_real: number }[]; p_comentario?: string | null }; Returns: undefined };
@@ -3977,6 +4073,30 @@ export type CrmContato = Database["public"]["Tables"]["crm_contato"]["Row"];
 export type CrmOportunidade = Database["public"]["Tables"]["crm_oportunidade"]["Row"];
 export type CrmTarefa = Database["public"]["Tables"]["crm_tarefa"]["Row"];
 export type CrmEvento = Database["public"]["Tables"]["crm_evento"]["Row"];
+export type CrmBiblioteca = Database["public"]["Tables"]["crm_biblioteca"]["Row"];
+export type CrmModeloMensagem = Database["public"]["Tables"]["crm_modelo_mensagem"]["Row"];
+
+/** Modalidades da simulação de valor do pós-visita. */
+export type ModalidadeSimulacao = "longa_permanencia" | "reabilitacao" | "curta_permanencia" | "day_use";
+export interface OpcaoSimulacao {
+  modalidade: ModalidadeSimulacao;
+  tipo_suite: string | null;
+  ocupacao: string | null;
+  grau: string | null;
+  /** Valor da tabela de preços (longa permanência e reabilitação); null quando digitado. */
+  valor_tabela: number | null;
+  desconto_pct: number;
+  valor_final: number | null;
+  /** "/mês", "/dia" ou "pacote". */
+  unidade: string;
+}
+export interface SimulacaoPosVisita {
+  opcoes: OpcaoSimulacao[];
+}
+export interface ProximoPasso {
+  passo: string;
+  data: string | null;
+}
 export type CrmStatus = CrmOportunidade["status"];
 export type VisitaDisponibilidade = Database["public"]["Tables"]["visita_disponibilidade"]["Row"];
 export type VisitaAgendamento = Database["public"]["Tables"]["visita_agendamento"]["Row"];

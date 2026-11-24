@@ -8,8 +8,8 @@ import type { CrmOportunidade, ModalidadeEstadia } from "@/types/database";
 //  - "Qualificado" = lead com valor de mensalidade estimado preenchido
 //                    (valor_mensalidade_estimado > 0). Alternativa: qualificacao
 //                    (1–5) alta — trocar AQUI se preferir esse critério.
-//  - "Visita"      = lead que ATINGIU a etapa "Visita realizada" (ordem ≥ 4).
-//                    Vendas (etapa "Admissão", ordem 6) também passaram por visita.
+//  - "Visita"      = lead que ATINGIU a etapa pós-visita (ordem ≥ 4): "Proposta
+//                    enviada" no funil da 0154 ("Visita realizada" no antigo).
 //  - "Venda"       = status = "ganha".
 //  - "Receita"     = soma dos valor_mensalidade_estimado das vendas.
 //
@@ -28,9 +28,13 @@ const ORDEM_ETAPA: Record<string, number> = {
   "Sem contato": 1,
   "Contato feito": 2,
   "Visita agendada": 3,
+  // Funil da 0154: a proposta (simulação) sai na visita — "Proposta enviada"
+  // já é pós-visita. "Visita realizada" e "Admissão" ficam para o histórico.
   "Visita realizada": 4,
-  "Proposta enviada": 5,
-  "Admissão": 6,
+  "Proposta enviada": 4,
+  "Contrato em preparação": 5,
+  "Em lista de espera": 6,
+  "Admissão": 7,
 };
 const ORDEM_VISITA = 4;
 
