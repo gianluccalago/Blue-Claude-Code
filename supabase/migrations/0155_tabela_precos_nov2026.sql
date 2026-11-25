@@ -8,7 +8,8 @@
 --    CHEIO; o "com desconto máximo" da planilha é o cheio com 15% — o desconto
 --    que a simulação do pós-visita aplica (conferido em todas as combinações).
 --    Faixas novas na mesma tabela: grau 'MC' (Memory Care) e 'REAB'
---    (Reabilitação, preço único — só Apartamento individual na planilha).
+--    (Reabilitação: valor único, independente da acomodação — fica na linha
+--    do Apartamento individual).
 --    Tipos novos: "Long Stay Cuidados Intensivos" (grau III individual) e
 --    "Suíte Master" (a planilha traz o valor já com desconto; o cheio é ele
 --    dividido por 0,85). "Suíte" do app recebe os preços da "Suíte Luxo".
@@ -16,9 +17,9 @@
 --    permanência por diária; Seniors Day por plano (2ª a 6ª, 2ª-4ª-6ª, 3ª e 5ª,
 --    sábado e domingo) e o pacote de fim de semana (17h de sexta às 10h de
 --    segunda). Sem desconto. A referência antiga "período da tarde" sai.
--- c) Serviços cobrados à parte (catálogo editável), com a REMOÇÃO: R$ 850,00
---    por remoção, quando necessário. Os itens sem valor na planilha ficam "a
---    combinar".
+-- c) Serviços cobrados à parte (catálogo editável), com os valores da tabela
+--    do contrato e a REMOÇÃO: R$ 850,00 por remoção, quando necessário. Itens
+--    sem valor ficam "a combinar".
 -- d) E-mail da minuta: o app passa a gerar a minuta em Word (contrato Blue)
 --    preenchida com os dados do CRM; o texto do e-mail é trocado só se ainda
 --    for o provisório da 0154.
