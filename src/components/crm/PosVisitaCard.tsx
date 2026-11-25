@@ -5,6 +5,7 @@ import { ClipboardCheck, MessageCircleReply, BellOff, Plus, XCircle, Send } from
 import { useTarefasOportunidade, useMarcarPerda } from "@/hooks/useCrm";
 import { useBiblioteca, useModelosMensagem, useFamiliaRespondeu, useOptOut, useNovaMensagem } from "@/hooks/usePosVisita";
 import { MensagemTarefa } from "@/components/crm/MensagemTarefa";
+import { BotaoMinuta } from "@/components/crm/BotaoMinuta";
 import { contatosFeitos, semRetornoApos3Contatos, modalidadeInfo, dataCurta } from "@/lib/posVisita";
 import { formatarMoeda } from "@/lib/mensalidade";
 import { formatarDataHoraBR, hojeISO, cn } from "@/lib/utils";
@@ -66,9 +67,12 @@ export function PosVisitaCard({ op, contato }: { op: CrmOportunidade; contato: C
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
         <CardTitle className="text-base">Acompanhamento pós-visita</CardTitle>
-        {!terminal && (
-          <Button asChild size="sm" variant="outline"><Link to={`${base}/crm-pos-visita` as string} search={{ op: op.id } as never}><ClipboardCheck className="size-4" /> Refazer pós-visita</Link></Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {op.status !== "perdida" && <BotaoMinuta op={op} contato={contato} />}
+          {!terminal && (
+            <Button asChild size="sm" variant="outline"><Link to={`${base}/crm-pos-visita` as string} search={{ op: op.id } as never}><ClipboardCheck className="size-4" /> Refazer pós-visita</Link></Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Resumo */}
@@ -148,7 +152,10 @@ export function PosVisitaCard({ op, contato }: { op: CrmOportunidade; contato: C
         {/* Mensagens */}
         <div className="space-y-2">
           {pendentes.length === 0 && enviadas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma mensagem programada.</p>}
-          {pendentes.map((t, i) => <MensagemTarefa key={t.id} tarefa={t} telefone={telefone} email={email} optOut={op.opt_out} aberta={i === 0 && (t.data ?? "") <= hojeISO()} />)}
+          {pendentes.map((t, i) => (
+            <MensagemTarefa key={t.id} tarefa={t} telefone={telefone} email={email} optOut={op.opt_out} aberta={i === 0 && (t.data ?? "") <= hojeISO()}
+              acaoExtra={t.modelo === "MINUTA_EMAIL" ? <BotaoMinuta op={op} contato={contato} /> : undefined} />
+          ))}
           {enviadas.map((t) => <MensagemTarefa key={t.id} tarefa={t} telefone={telefone} email={email} optOut={op.opt_out} />)}
           {canceladas.length > 0 && (
             <button onClick={() => setVerCanceladas((v) => !v)} className="text-xs font-semibold text-primary hover:underline">

@@ -31,6 +31,9 @@ import {
 import { useDefinirPrecoVigencia, useTabelaPreco } from "@/hooks/useMensalidades";
 import {
   GRAUS,
+  GRAUS_PRECO,
+  GRAU_PRECO_LABEL,
+  DESCONTO_MAXIMO_PCT,
   TIPOS_SUITE,
   OCUPACAO_LABEL,
   ocupacoesValidas,
@@ -44,7 +47,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState } from "@/components/states";
 import { formatarDataBR } from "@/lib/utils";
-import type { GrauDependencia, Ocupacao, TabelaPreco, TipoSuite } from "@/types/database";
+import { ServicosAParte } from "@/components/precos/ServicosAParte";
+import type { GrauPreco, Ocupacao, TabelaPreco, TipoSuite } from "@/types/database";
 
 function extrairErro(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -91,6 +95,11 @@ export function TabelaPrecos() {
             </div>
           )}
 
+          <p className="text-xs text-muted-foreground">
+            Preço cheio, por residente (na dupla, cada um paga o valor). Na venda, até {DESCONTO_MAXIMO_PCT}% de desconto.
+            “Suíte” é a Suíte Luxo do contrato. Reabilitação: valor único, qualquer acomodação.
+          </p>
+
           {TIPOS_SUITE.map((tipo) => (
             <div key={tipo} className="space-y-3 rounded-lg border bg-muted/20 p-4">
               <p className="text-sm font-bold text-secondary">{tipo}</p>
@@ -99,8 +108,9 @@ export function TabelaPrecos() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {OCUPACAO_LABEL[ocupacao]}
                   </p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    {GRAUS.map((grau) => (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    {/* Graus I–III sempre; Memory Care e Reabilitação só onde a tabela tem preço. */}
+                    {GRAUS_PRECO.filter((g) => (GRAUS as string[]).includes(g) || porCombinacao.has(chavePreco(tipo, g, ocupacao))).map((grau) => (
                       <PrecoCombo
                         key={grau}
                         tipo={tipo}
@@ -118,6 +128,8 @@ export function TabelaPrecos() {
           ))}
         </CardContent>
       </Card>
+
+      <ServicosAParte podeEditar={podeEditar} />
     </div>
   );
 }
@@ -133,7 +145,7 @@ function PrecoCombo({
   podeEditar,
 }: {
   tipo: TipoSuite;
-  grau: GrauDependencia;
+  grau: GrauPreco;
   ocupacao: Ocupacao;
   vigencias: TabelaPreco[];
   hoje: string;
@@ -152,7 +164,7 @@ function PrecoCombo({
 
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">Grau {grau}</label>
+      <label className="text-xs font-medium text-muted-foreground">{GRAU_PRECO_LABEL[grau]}</label>
       <div className="rounded-md border border-input bg-card p-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-bold tabular-nums text-secondary">
@@ -164,6 +176,11 @@ function PrecoCombo({
             </Badge>
           )}
         </div>
+        {vigenteValor !== null && (
+          <p className="text-[11px] tabular-nums text-muted-foreground">
+            com {DESCONTO_MAXIMO_PCT}%: {formatarMoeda(Math.round(vigenteValor * (100 - DESCONTO_MAXIMO_PCT)) / 100)}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => setAberto((v) => !v)}
@@ -241,7 +258,7 @@ function NovaVigenciaForm({
   hoje,
 }: {
   tipo: TipoSuite;
-  grau: GrauDependencia;
+  grau: GrauPreco;
   ocupacao: Ocupacao;
   valorAnteriorVigente: number | null;
   hoje: string;

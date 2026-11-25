@@ -31,7 +31,7 @@ import {
 } from "@/hooks/useCobrancaTemporaria";
 import { formatarMoeda, mesAtual, deslocarMes, formatarMesReferencia } from "@/lib/mensalidade";
 import { hojeISO, formatarDataBR, ouNaoInformado } from "@/lib/utils";
-import { MODALIDADE_LABEL } from "@/lib/modalidade";
+import { MODALIDADE_LABEL, TIPO_VALOR_DIARIA_LABEL, ORDEM_TIPO_VALOR_DIARIA } from "@/lib/modalidade";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +150,8 @@ function TabelaReferencia({ tabela, podeEditar }: { tabela: TabelaDiaria[]; pode
           <EmptyState label="Tabela de referência não cadastrada." />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
-            {tabela.map((t) => (
+            {[...tabela].sort((a, b) => a.modalidade.localeCompare(b.modalidade) || a.grau.localeCompare(b.grau)
+              || ORDEM_TIPO_VALOR_DIARIA.indexOf(a.tipo_valor) - ORDEM_TIPO_VALOR_DIARIA.indexOf(b.tipo_valor)).map((t) => (
               <LinhaReferencia key={t.id} t={t} podeEditar={podeEditar} />
             ))}
           </div>
@@ -186,7 +187,7 @@ function LinhaReferencia({ t, podeEditar }: { t: TabelaDiaria; podeEditar: boole
         <p className="text-sm font-semibold text-secondary">
           {MODALIDADE_LABEL[t.modalidade]} · Grau {t.grau}
         </p>
-        <p className="text-xs text-muted-foreground">{t.tipo_valor === "diaria" ? "por diária" : "por período (tarde)"}</p>
+        <p className="text-xs text-muted-foreground">{TIPO_VALOR_DIARIA_LABEL[t.tipo_valor] ?? t.tipo_valor}</p>
       </div>
       {editando ? (
         <div className="flex items-center gap-1.5">

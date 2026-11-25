@@ -6,7 +6,7 @@ import { hojeISO } from "@/lib/utils";
 import type {
   FechamentoMensal,
   FormaPagamento,
-  GrauDependencia,
+  GrauPreco,
   Ocupacao,
   PagamentoMensalidade,
   StatusPagamentoMensalidade,
@@ -37,7 +37,7 @@ export function useTabelaPreco() {
 
 export type DefinirPrecoVigenciaInput = {
   tipoSuite: TipoSuite;
-  grau: GrauDependencia;
+  grau: GrauPreco;
   ocupacao: Ocupacao;
   valor: number;
   /** Data a partir da qual o novo valor passa a valer (YYYY-MM-DD; hoje ou futuro). */

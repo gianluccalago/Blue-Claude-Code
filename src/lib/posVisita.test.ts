@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  calcularOpcao, validadeSimulacao, textoSimulacao, preencher, camposPendentes, diaVisitaTexto,
+  calcularOpcao, validadeSimulacao, textoSimulacao, preencher, camposPendentes, diaVisitaTexto, grauDaTabela, chaveTabelaPreco,
   gerarSequencia, semRetornoApos3Contatos, contatosFeitos, type DadosMensagem,
 } from "@/lib/posVisita";
 import type { CrmBiblioteca, CrmModeloMensagem } from "@/types/database";
@@ -44,11 +44,22 @@ describe("simulação", () => {
     expect(o.desconto_pct).toBe(15);
     expect(o.valor_final).toBe(7650);
   });
-  it("Day Use e curta permanência: valor digitado, sem desconto", () => {
-    const d = calcularOpcao({ modalidade: "day_use", tipo_suite: null, ocupacao: null, grau: null, valor_tabela: 9000, unidade: "/dia" }, 350);
-    expect(d).toMatchObject({ desconto_pct: 0, valor_final: 350, valor_tabela: null, unidade: "/dia" });
-    const c = calcularOpcao({ modalidade: "curta_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", valor_tabela: null, unidade: "pacote" }, 0);
+  it("Seniors Day e curta permanência: diária da tabela, sem desconto; valor digitado prevalece", () => {
+    const d = calcularOpcao({ modalidade: "day_use", tipo_suite: null, ocupacao: null, grau: "I", valor_tabela: 346.5, unidade: "/dia", plano: "sd_2a_6a" }, null);
+    expect(d).toMatchObject({ desconto_pct: 0, valor_final: 346.5, unidade: "/dia" });
+    expect(calcularOpcao({ modalidade: "day_use", tipo_suite: null, ocupacao: null, grau: "I", valor_tabela: 346.5, unidade: "/dia" }, 400).valor_final).toBe(400);
+    const c = calcularOpcao({ modalidade: "curta_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", valor_tabela: null, unidade: "/dia" }, 0);
     expect(c.valor_final).toBeNull();
+    expect(textoSimulacao([d], null)).toContain("Seniors Day (Day Use) · 2ª a 6ª · grau I\nR$ 346,50/dia");
+  });
+  it("Memory Care aparece pelo nome; reabilitação usa a faixa de preço única", () => {
+    const mc = calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "MC", valor_tabela: 20117.65, unidade: "/mês" }, null);
+    expect(mc.valor_final).toBe(17100); // = "com desconto máximo" da planilha
+    expect(textoSimulacao([mc], null)).toContain("Memory Care");
+    expect(grauDaTabela("reabilitacao", "II")).toBe("REAB");
+    expect(grauDaTabela("longa_permanencia", "MC")).toBe("MC");
+    expect(chaveTabelaPreco("reabilitacao", "Suíte", "II", "duplo")).toEqual({ tipoSuite: "Apartamento", grau: "REAB", ocupacao: "simples" });
+    expect(chaveTabelaPreco("longa_permanencia", "Suíte", "II", "duplo")).toEqual({ tipoSuite: "Suíte", grau: "II", ocupacao: "duplo" });
   });
   it("validade de 30 dias e aviso de avaliação médica", () => {
     expect(validadeSimulacao("2026-11-24")).toBe("2026-12-24");

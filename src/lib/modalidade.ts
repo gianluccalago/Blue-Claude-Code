@@ -1,4 +1,4 @@
-import type { ModalidadeEstadia, Residente } from "@/types/database";
+import type { ModalidadeEstadia, Residente, TipoValorDiaria } from "@/types/database";
 
 // ===========================================================================
 // Modalidade de estadia. Regras:
@@ -26,6 +26,19 @@ export const MODALIDADE_SELO: Record<ModalidadeEstadia, string | null> = {
   curta_permanencia: "Curta permanência",
   day_care: "Day Care",
 };
+
+/** Tipos de valor da tabela de diárias (referência; tabela nov/2026). */
+export const TIPO_VALOR_DIARIA_LABEL: Record<TipoValorDiaria, string> = {
+  diaria: "por diária",
+  day_care_periodo: "por período (tarde)",
+  sd_2a_6a: "Seniors Day · 2ª a 6ª (diária)",
+  sd_2a_4a_6a: "Seniors Day · 2ª, 4ª e 6ª (diária)",
+  sd_3a_5a: "Seniors Day · 3ª e 5ª (diária)",
+  sd_sab_dom: "Seniors Day · sábado e domingo (diária)",
+  fds_pacote: "Fim de semana · sexta 17h a segunda 10h (pacote)",
+};
+/** Ordem de exibição dos tipos de valor. */
+export const ORDEM_TIPO_VALOR_DIARIA: TipoValorDiaria[] = ["diaria", "sd_2a_6a", "sd_2a_4a_6a", "sd_3a_5a", "sd_sab_dom", "fds_pacote", "day_care_periodo"];
 
 /** Ocupa leito? Longa e curta sim; day care não. */
 export function ocupaLeito(m: ModalidadeEstadia | null | undefined): boolean {

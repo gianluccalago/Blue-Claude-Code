@@ -11,7 +11,7 @@ import { LoadingState, ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
 import type { GrauDependencia } from "@/types/database";
 
-const TIPOS_SUITE = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"] as const;
+const TIPOS_SUITE = ["Suíte", "Suíte Premium", "Suíte Master", "Long Stay", "Long Stay Cuidados Intensivos", "Apartamento"] as const;
 const inputBase =
   "h-11 w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const labelBase = "mb-1.5 block text-sm font-semibold text-secondary";

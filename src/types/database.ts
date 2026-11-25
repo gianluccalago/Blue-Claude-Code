@@ -114,7 +114,11 @@ export type EnxovalCategoria =
 export type EnxovalMovimentoTipo = "entrada" | "baixa_perda" | "ajuste";
 /** Categoria de custo de material (despesas da Administração). */
 export type CategoriaMaterial = "limpeza" | "manutencao";
-export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento";
+export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento" | "Suíte Master" | "Long Stay Cuidados Intensivos";
+/** Faixa da tabela de preços: grau RDC I–III, Memory Care (MC) ou Reabilitação (REAB, preço único). */
+export type GrauPreco = GrauDependencia | "MC" | "REAB";
+/** Tipo de valor da tabela de diárias (referência). */
+export type TipoValorDiaria = "diaria" | "day_care_periodo" | "sd_2a_6a" | "sd_2a_4a_6a" | "sd_3a_5a" | "sd_sab_dom" | "fds_pacote";
 /** Ocupação do quarto = preço por nº de leitos (simples/duplo/triplo). */
 export type Ocupacao = "simples" | "duplo" | "triplo";
 /** Sexo do hóspede. */
@@ -1464,7 +1468,7 @@ export interface Database {
         Row: {
           id: string;
           tipo_suite: TipoSuite;
-          grau: GrauDependencia;
+          grau: GrauPreco;
           ocupacao: Ocupacao;
           valor: number;
           // Vigência: data a partir da qual este valor passa a valer (YYYY-MM-DD).
@@ -1476,7 +1480,7 @@ export interface Database {
         Insert: {
           id?: string;
           tipo_suite: TipoSuite;
-          grau: GrauDependencia;
+          grau: GrauPreco;
           ocupacao?: Ocupacao;
           valor: number;
           vigente_a_partir_de?: string;
@@ -2063,7 +2067,7 @@ export interface Database {
           id: string;
           modalidade: ModalidadeTemporaria;
           grau: GrauDependencia;
-          tipo_valor: "diaria" | "day_care_periodo";
+          tipo_valor: TipoValorDiaria;
           valor_referencia: number;
           observacao: string | null;
           atualizado_em: string;
@@ -2073,13 +2077,39 @@ export interface Database {
           id?: string;
           modalidade: ModalidadeTemporaria;
           grau: GrauDependencia;
-          tipo_valor: "diaria" | "day_care_periodo";
+          tipo_valor: TipoValorDiaria;
           valor_referencia?: number;
           observacao?: string | null;
           atualizado_em?: string;
           atualizado_por?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["tabela_diaria"]["Insert"]>;
+        Relationships: [];
+      };
+      tabela_servico: {
+        Row: {
+          id: string;
+          nome: string;
+          valor: number | null;
+          unidade: string;
+          categoria_upselling: string;
+          ativo: boolean;
+          ordem: number;
+          atualizado_em: string;
+          atualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          valor?: number | null;
+          unidade: string;
+          categoria_upselling?: string;
+          ativo?: boolean;
+          ordem?: number;
+          atualizado_em?: string;
+          atualizado_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["tabela_servico"]["Insert"]>;
         Relationships: [];
       };
       cobranca_temporaria: {
@@ -4089,6 +4119,8 @@ export interface OpcaoSimulacao {
   valor_final: number | null;
   /** "/mês", "/dia" ou "pacote". */
   unidade: string;
+  /** Seniors Day: plano de dias (2ª a 6ª, 2ª-4ª-6ª, 3ª e 5ª, sáb. e dom., fim de semana). */
+  plano?: TipoValorDiaria | null;
 }
 export interface SimulacaoPosVisita {
   opcoes: OpcaoSimulacao[];
@@ -4218,6 +4250,7 @@ export type FechamentoMensal = Database["public"]["Tables"]["fechamento_mensal"]
 export type Upselling = Database["public"]["Tables"]["upselling"]["Row"];
 export type CustoMaterial = Database["public"]["Tables"]["custo_material"]["Row"];
 export type TabelaDiaria = Database["public"]["Tables"]["tabela_diaria"]["Row"];
+export type TabelaServico = Database["public"]["Tables"]["tabela_servico"]["Row"];
 export type CobrancaTemporaria = Database["public"]["Tables"]["cobranca_temporaria"]["Row"];
 export type RhAusencia = Database["public"]["Tables"]["rh_ausencia"]["Row"];
 export type RhAfastamento = Database["public"]["Tables"]["rh_afastamento"]["Row"];

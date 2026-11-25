@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { MessageCircle, Mail, Check, Pencil, Copy, AlertTriangle, Ban } from "lucide-react";
 import { useMarcarEnviada, useEditarMensagem } from "@/hooks/usePosVisita";
@@ -19,6 +19,7 @@ export function MensagemTarefa({
   optOut,
   nomeOportunidade,
   aberta: abertaInicial = false,
+  acaoExtra,
 }: {
   tarefa: CrmTarefa;
   telefone: string | null;
@@ -26,6 +27,8 @@ export function MensagemTarefa({
   optOut: boolean;
   nomeOportunidade?: string;
   aberta?: boolean;
+  /** Ação extra ao lado dos botões (ex.: baixar a minuta no e-mail do contrato). */
+  acaoExtra?: ReactNode;
 }) {
   const marcar = useMarcarEnviada();
   const editar = useEditarMensagem();
@@ -116,6 +119,7 @@ export function MensagemTarefa({
               <Button size="sm" variant="success" onClick={abrir}>
                 {ehEmail ? <Mail className="size-4" /> : <MessageCircle className="size-4" />} {ehEmail ? "Abrir e-mail" : "Abrir no WhatsApp"}
               </Button>
+              {acaoExtra}
               <Button size="sm" variant="outline" onClick={() => marcar.mutate({ ...t, mensagem: t.mensagem }, {
                 onSuccess: () => toast.success("Marcada como enviada."),
                 onError: (e) => toast.error(e instanceof Error ? e.message : "Falha."),

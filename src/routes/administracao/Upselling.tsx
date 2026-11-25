@@ -28,6 +28,7 @@ import {
   useUpsellingTodosDoMes,
 } from "@/hooks/useUpselling";
 import { CATEGORIAS_UPSELLING } from "@/lib/upselling";
+import { useTabelaServico } from "@/hooks/useTabelaServico";
 import { AnexoSeguro } from "@/components/AnexoSeguro";
 import { BUCKET_UPSELLING_COMPROVANTES } from "@/lib/storage";
 import { deslocarMes, formatarMesReferencia, formatarMoeda, mesAtual } from "@/lib/mensalidade";
@@ -39,7 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@/components/states";
 import { formatarDataBR, hojeISO } from "@/lib/utils";
-import type { CategoriaUpselling, Upselling as UpsellingRow } from "@/types/database";
+import type { CategoriaUpselling, TabelaServico, Upselling as UpsellingRow } from "@/types/database";
 
 function extrairErro(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -188,6 +189,34 @@ function LancamentosDoHospede({ residenteId, mes }: { residenteId: string; mes: 
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Atalho: serviço da tabela (cobrados à parte) preenche o lançamento ─────────
+
+function EscolherDoCatalogo({ onEscolher }: { onEscolher: (s: TabelaServico) => void }) {
+  const servicos = useTabelaServico();
+  const ativos = (servicos.data ?? []).filter((s) => s.ativo);
+  if (ativos.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-semibold text-secondary">Serviço da tabela (opcional)</label>
+      <select
+        defaultValue=""
+        onChange={(e) => {
+          const s = ativos.find((x) => x.id === e.target.value);
+          if (s) onEscolher(s);
+        }}
+        className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <option value="">Escolha para preencher categoria, descrição e valor…</option>
+        {ativos.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.nome} — {s.valor != null ? `${formatarMoeda(s.valor)} ${s.unidade}` : `a combinar (${s.unidade})`}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -354,6 +383,13 @@ function FormLancamento({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <EscolherDoCatalogo
+          onEscolher={(sv) => {
+            if ((CATEGORIAS_UPSELLING as string[]).includes(sv.categoria_upselling)) setCategoria(sv.categoria_upselling as CategoriaUpselling);
+            setDescricao(sv.nome);
+            setValor(sv.valor != null ? String(sv.valor).replace(".", ",") : "");
+          }}
+        />
         <CamposLancamento
           categoria={categoria}
           setCategoria={setCategoria}

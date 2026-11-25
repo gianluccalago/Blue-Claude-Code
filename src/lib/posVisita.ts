@@ -1,4 +1,6 @@
 import type {
+  GrauPreco,
+  TipoValorDiaria,
   CrmBiblioteca,
   CrmContato,
   CrmModeloMensagem,
@@ -37,8 +39,37 @@ export const MODALIDADES_SIMULACAO: {
   { value: "longa_permanencia", label: "Longa permanência", usaTabela: true, descontoPct: DESCONTO_SIMULACAO_PCT },
   { value: "reabilitacao", label: "Reabilitação", usaTabela: true, descontoPct: DESCONTO_SIMULACAO_PCT },
   { value: "curta_permanencia", label: "Curta permanência", usaTabela: false, descontoPct: 0 },
-  { value: "day_use", label: "Day Use", usaTabela: false, descontoPct: 0 },
+  { value: "day_use", label: "Seniors Day (Day Use)", usaTabela: false, descontoPct: 0 },
 ];
+
+/** Planos do Seniors Day (tabela de diárias nov/2026). */
+export const PLANOS_SENIORS_DAY: { value: TipoValorDiaria; label: string; unidade: string }[] = [
+  { value: "sd_2a_6a", label: "2ª a 6ª", unidade: "/dia" },
+  { value: "sd_2a_4a_6a", label: "2ª, 4ª e 6ª", unidade: "/dia" },
+  { value: "sd_3a_5a", label: "3ª e 5ª", unidade: "/dia" },
+  { value: "sd_sab_dom", label: "Sábado e domingo", unidade: "/dia" },
+  { value: "fds_pacote", label: "Fim de semana (sex 17h a seg 10h)", unidade: "pacote" },
+];
+
+/** Grau na tabela de preços: a reabilitação tem preço único (faixa REAB). */
+export function grauDaTabela(modalidade: ModalidadeSimulacao, grau: string): GrauPreco {
+  return modalidade === "reabilitacao" ? "REAB" : (grau as GrauPreco);
+}
+
+/**
+ * Combinação procurada na tabela de preços. Reabilitação: valor único,
+ * independente da acomodação (lançado na linha do Apartamento individual).
+ */
+export function chaveTabelaPreco(modalidade: ModalidadeSimulacao, tipoSuite: string, grau: string, ocupacao: string) {
+  return modalidade === "reabilitacao"
+    ? { tipoSuite: "Apartamento", grau: "REAB" as GrauPreco, ocupacao: "simples" }
+    : { tipoSuite, grau: grau as GrauPreco, ocupacao };
+}
+
+export function rotuloGrau(grau: string | null | undefined): string | null {
+  if (!grau) return null;
+  return grau === "MC" ? "Memory Care" : `grau ${grau}`;
+}
 
 export const UNIDADES_VALOR = ["/mês", "/dia", "pacote"] as const;
 
@@ -65,9 +96,10 @@ export function modalidadeInfo(m: ModalidadeSimulacao) {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
- * Fecha uma opção da simulação. Longa permanência e reabilitação usam o valor
- * da tabela com 15% de desconto; curta permanência e Day Use usam o valor
- * digitado, sem desconto.
+ * Fecha uma opção da simulação. Longa permanência e reabilitação: mensalidade
+ * da tabela com 15% de desconto. Curta permanência e Seniors Day: diária da
+ * tabela de diárias (em valor_tabela), sem desconto; um valor digitado vale
+ * no lugar da tabela.
  */
 export function calcularOpcao(
   o: Omit<OpcaoSimulacao, "valor_final" | "desconto_pct">,
@@ -83,7 +115,8 @@ export function calcularOpcao(
       valor_final: base == null ? null : r2(base * (1 - info.descontoPct / 100)),
     };
   }
-  return { ...o, valor_tabela: null, desconto_pct: 0, valor_final: valorDigitado && valorDigitado > 0 ? r2(valorDigitado) : null };
+  const final = valorDigitado && valorDigitado > 0 ? valorDigitado : o.valor_tabela;
+  return { ...o, desconto_pct: 0, valor_final: final && final > 0 ? r2(final) : null };
 }
 
 /** Validade da simulação: 30 dias depois da visita (AAAA-MM-DD). */
@@ -98,7 +131,8 @@ export function textoSimulacao(opcoes: OpcaoSimulacao[], validade: string | null
   const validas = opcoes.filter((o) => o.valor_final != null);
   if (validas.length === 0) return "";
   const linhas = validas.map((o, i) => {
-    const desc = [modalidadeInfo(o.modalidade).label, o.tipo_suite, o.ocupacao ? `ocupação ${o.ocupacao}` : null, o.grau ? `grau ${o.grau}` : null]
+    const plano = o.plano ? PLANOS_SENIORS_DAY.find((p) => p.value === o.plano)?.label : null;
+    const desc = [modalidadeInfo(o.modalidade).label, plano, o.tipo_suite, o.ocupacao ? `ocupação ${o.ocupacao}` : null, rotuloGrau(o.grau)]
       .filter(Boolean).join(" · ");
     const valor = o.desconto_pct > 0 && o.valor_tabela != null
       ? `de ${moeda(o.valor_tabela)} por ${moeda(o.valor_final!)}${o.unidade} (${o.desconto_pct}% de desconto)`

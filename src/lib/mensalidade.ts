@@ -1,9 +1,18 @@
 import { hojeISO as hojeISOsp } from "@/lib/utils";
-import type { GrauDependencia, Ocupacao, TipoSuite } from "@/types/database";
+import type { GrauDependencia, GrauPreco, Ocupacao, TipoSuite } from "@/types/database";
 
-export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Long Stay", "Apartamento"];
+export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Suíte Master", "Long Stay", "Long Stay Cuidados Intensivos", "Apartamento"];
 
 export const GRAUS: GrauDependencia[] = ["I", "II", "III"];
+
+/** Faixas da tabela de preços (nov/2026): graus I–III, Memory Care e Reabilitação. */
+export const GRAUS_PRECO: GrauPreco[] = ["I", "II", "III", "MC", "REAB"];
+export const GRAU_PRECO_LABEL: Record<GrauPreco, string> = {
+  I: "Grau I", II: "Grau II", III: "Grau III", MC: "Memory Care", REAB: "Reabilitação",
+};
+
+/** Desconto máximo da tabela (o "com desconto máximo" da planilha de preços). */
+export const DESCONTO_MAXIMO_PCT = 15;
 
 export const OCUPACOES: { value: Ocupacao; label: string }[] = [
   { value: "simples", label: "Simples" },
@@ -23,9 +32,9 @@ export const OCUPACAO_LABEL: Record<Ocupacao, string> = {
  * duplo). Total de combinações tipo×grau×ocupação = 27.
  */
 export function ocupacoesValidas(tipoSuite: TipoSuite | null): Ocupacao[] {
-  return tipoSuite === "Long Stay"
-    ? ["simples", "duplo", "triplo"]
-    : ["simples", "duplo"];
+  if (tipoSuite === "Long Stay") return ["simples", "duplo", "triplo"];
+  if (tipoSuite === "Long Stay Cuidados Intensivos") return ["simples"];
+  return ["simples", "duplo"];
 }
 
 /** Ocupação efetiva p/ buscar preço/sugestão (padrão "simples" quando vazia). */

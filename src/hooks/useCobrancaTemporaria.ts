@@ -7,6 +7,7 @@ import type {
   GrauDependencia,
   ModalidadeTemporaria,
   TabelaDiaria,
+  TipoValorDiaria,
 } from "@/types/database";
 
 // ===========================================================================
@@ -33,14 +34,20 @@ export function useTabelaDiaria() {
   });
 }
 
-/** Valor de referência (baliza) para modalidade × grau — só sugestão. */
+/**
+ * Valor de referência (baliza) para modalidade × grau — só sugestão.
+ * Sem tipo informado: diária avulsa na curta permanência; Seniors Day de 2ª a 6ª no day care.
+ */
 export function valorReferencia(
   tabela: TabelaDiaria[],
   modalidade: ModalidadeTemporaria,
   grau: GrauDependencia | null,
+  tipo?: TipoValorDiaria,
 ): number | null {
   if (!grau) return null;
-  const linha = tabela.find((t) => t.modalidade === modalidade && t.grau === grau);
+  const alvo = tipo ?? (modalidade === "curta_permanencia" ? "diaria" : "sd_2a_6a");
+  const linhas = tabela.filter((t) => t.modalidade === modalidade && t.grau === grau);
+  const linha = linhas.find((t) => t.tipo_valor === alvo) ?? (tipo ? undefined : linhas[0]);
   return linha?.valor_referencia ?? null;
 }
 

@@ -5,10 +5,11 @@ import { ArrowLeft, Save, Eye, Plus, Trash2, ShieldCheck, MessageCircle } from "
 import { useOportunidade } from "@/hooks/useCrm";
 import { useBiblioteca, useModelosMensagem, useSalvarPosVisita, useVisitaAgendamento } from "@/hooks/usePosVisita";
 import { useTabelaPreco } from "@/hooks/useMensalidades";
+import { useTabelaDiaria, valorReferencia } from "@/hooks/useCobrancaTemporaria";
 import { usuarioAtual } from "@/auth/usuarioAtual";
 import {
   MODALIDADES_SIMULACAO, PERFIS_VISITA, OPCOES_PROXIMO_PASSO, UNIDADES_VALOR, AVISO_SIMULACAO, DESCONTO_SIMULACAO_PCT,
-  calcularOpcao, validadeSimulacao, gerarSequencia, modalidadeInfo, camposPendentes, rotuloCampo, dataCurta,
+  PLANOS_SENIORS_DAY, calcularOpcao, chaveTabelaPreco, validadeSimulacao, gerarSequencia, modalidadeInfo, camposPendentes, rotuloCampo, dataCurta,
   type DadosMensagem,
 } from "@/lib/posVisita";
 import { RELACOES_VISITANTE } from "@/lib/crm";
@@ -17,7 +18,7 @@ import { cn, hojeISO } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState } from "@/components/states";
-import type { GrauDependencia, ModalidadeSimulacao, Ocupacao, OpcaoSimulacao, ProximoPasso, TipoSuite } from "@/types/database";
+import type { GrauDependencia, ModalidadeSimulacao, Ocupacao, OpcaoSimulacao, ProximoPasso, TipoSuite, TipoValorDiaria } from "@/types/database";
 
 // ===========================================================================
 // PÓS-VISITA (celular, ~2 minutos): quem visitou, dores e objeção marcadas na
@@ -28,15 +29,22 @@ import type { GrauDependencia, ModalidadeSimulacao, Ocupacao, OpcaoSimulacao, Pr
 
 const inputBase = "h-11 w-full rounded-md border border-input bg-card px-3 text-base sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+type GrauSimulacao = GrauDependencia | "MC";
 interface OpcaoForm {
   modalidade: ModalidadeSimulacao;
   tipo_suite: TipoSuite;
   ocupacao: Ocupacao;
-  grau: GrauDependencia;
+  grau: GrauSimulacao;
+  /** Seniors Day: plano de dias. */
+  plano: TipoValorDiaria;
   valorTxt: string;
   unidade: string;
 }
-const OPCAO_PADRAO: OpcaoForm = { modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", valorTxt: "", unidade: "/dia" };
+const OPCAO_PADRAO: OpcaoForm = { modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", plano: "sd_2a_6a", valorTxt: "", unidade: "/dia" };
+
+/** Graus oferecidos: Memory Care só na longa permanência (é faixa de preço própria). */
+const grausDaModalidade = (m: ModalidadeSimulacao): GrauSimulacao[] => (m === "longa_permanencia" ? [...GRAUS, "MC"] : [...GRAUS]);
+const rotuloGrauOpcao = (g: GrauSimulacao) => (g === "MC" ? "Memory Care" : `Grau ${g}`);
 
 const lerValor = (s: string) => {
   const t = s.replace(/[^\d,.-]/g, "");
@@ -55,6 +63,7 @@ export function CrmPosVisita() {
   const biblioteca = useBiblioteca();
   const modelos = useModelosMensagem();
   const precos = useTabelaPreco();
+  const diarias = useTabelaDiaria();
   const salvar = useSalvarPosVisita();
   const hoje = hojeISO();
 
@@ -99,8 +108,10 @@ export function CrmPosVisita() {
       if (o.simulacao?.opcoes?.length) {
         setOpcoes(o.simulacao.opcoes.map((x) => ({
           modalidade: x.modalidade, tipo_suite: (x.tipo_suite as TipoSuite) ?? "Suíte", ocupacao: (x.ocupacao as Ocupacao) ?? "simples",
-          grau: (x.grau as GrauDependencia) ?? c?.grau_estimado ?? "II",
-          valorTxt: modalidadeInfo(x.modalidade).usaTabela || x.valor_final == null ? "" : String(x.valor_final).replace(".", ","),
+          grau: (x.grau as GrauSimulacao) ?? c?.grau_estimado ?? "II",
+          plano: x.plano ?? "sd_2a_6a",
+          // Valor digitado só volta para o campo quando diferia da tabela.
+          valorTxt: modalidadeInfo(x.modalidade).usaTabela || x.valor_final == null || x.valor_final === x.valor_tabela ? "" : String(x.valor_final).replace(".", ","),
           unidade: x.unidade,
         })));
       } else if (c?.grau_estimado) {
@@ -119,18 +130,35 @@ export function CrmPosVisita() {
   }, [opId, visitaId, detalhe.data, visita.data, carregado, hoje]);
 
   const listaPrecos = useMemo(() => precos.data ?? [], [precos.data]);
+  const listaDiarias = useMemo(() => diarias.data ?? [], [diarias.data]);
   const opcoesCalculadas: OpcaoSimulacao[] = useMemo(() => opcoes.map((o) => {
     const info = modalidadeInfo(o.modalidade);
     const comQuarto = o.modalidade !== "day_use";
+    const grauDia = o.grau === "MC" ? null : o.grau;
+    let valorTabela: number | null;
+    let unidade: string;
+    if (info.usaTabela) {
+      const k = chaveTabelaPreco(o.modalidade, o.tipo_suite, o.grau, o.ocupacao);
+      valorTabela = precoVigenteEm(listaPrecos, k.tipoSuite, k.grau, k.ocupacao, hoje);
+      unidade = "/mês";
+    } else if (o.modalidade === "day_use") {
+      valorTabela = valorReferencia(listaDiarias, "day_care", grauDia, o.plano);
+      unidade = PLANOS_SENIORS_DAY.find((p) => p.value === o.plano)?.unidade ?? "/dia";
+    } else {
+      valorTabela = valorReferencia(listaDiarias, "curta_permanencia", grauDia, "diaria");
+      unidade = "/dia";
+    }
+    const digitado = lerValor(o.valorTxt);
     return calcularOpcao({
       modalidade: o.modalidade,
       tipo_suite: comQuarto ? o.tipo_suite : null,
       ocupacao: comQuarto ? o.ocupacao : null,
       grau: o.grau,
-      valor_tabela: info.usaTabela ? precoVigenteEm(listaPrecos, o.tipo_suite, o.grau, o.ocupacao, hoje) : null,
-      unidade: info.usaTabela ? "/mês" : o.unidade,
-    }, lerValor(o.valorTxt));
-  }), [opcoes, listaPrecos, hoje]);
+      plano: o.modalidade === "day_use" ? o.plano : null,
+      valor_tabela: valorTabela,
+      unidade: !info.usaTabela && digitado ? o.unidade : unidade,
+    }, digitado);
+  }), [opcoes, listaPrecos, listaDiarias, hoje]);
 
   const validade = validadeSimulacao(dataVisita);
   const doresBib = (biblioteca.data ?? []).filter((b) => b.tipo === "dor" && b.ativo);
@@ -161,6 +189,12 @@ export function CrmPosVisita() {
     setOpcoes((os) => os.map((o, j) => {
       if (j !== i) return o;
       const n = { ...o, ...patch };
+      if (patch.modalidade && patch.modalidade !== o.modalidade) {
+        if (n.grau === "MC" && patch.modalidade !== "longa_permanencia") n.grau = "III";
+        n.valorTxt = "";
+        n.unidade = patch.modalidade === "day_use" && n.plano === "fds_pacote" ? "pacote" : "/dia";
+      }
+      if (patch.plano) n.unidade = patch.plano === "fds_pacote" ? "pacote" : "/dia";
       if (!ocupacoesValidas(n.tipo_suite).includes(n.ocupacao)) n.ocupacao = "simples";
       return n;
     }));
@@ -176,7 +210,7 @@ export function CrmPosVisita() {
       visita_agendamento_id: visitaId ?? detalhe.data?.oportunidade.visita_agendamento_id ?? null,
       contato: {
         nome: nome.trim(), telefone: whatsapp.trim(), email: email.trim(), relacao,
-        nome_idoso: nomeIdoso.trim(), idade_idoso: idade.trim() ? Number(idade) : null, grau_estimado: opcoes[0]?.grau ?? null,
+        nome_idoso: nomeIdoso.trim(), idade_idoso: idade.trim() ? Number(idade) : null, grau_estimado: opcoes[0] && opcoes[0].grau !== "MC" ? opcoes[0].grau : null,
       },
       oportunidade: {
         dores, objecoes: objecao ? [objecao] : [], o_que_ouvimos: ouvimos, detalhe_pessoal: detalhe_,
@@ -249,7 +283,7 @@ export function CrmPosVisita() {
         </Campo>
       </Secao>
 
-      <Secao titulo="Simulação de valor" dica={`${AVISO_SIMULACAO} Válida até ${dataCurta(validade, true)}. Longa permanência e reabilitação: tabela com ${DESCONTO_SIMULACAO_PCT}% de desconto. Curta permanência e Day Use: sem desconto.`}>
+      <Secao titulo="Simulação de valor" dica={`${AVISO_SIMULACAO} Válida até ${dataCurta(validade, true)}. Longa permanência e reabilitação: tabela com ${DESCONTO_SIMULACAO_PCT}% de desconto. Curta permanência e Seniors Day: diária da tabela, sem desconto.`}>
         {opcoes.map((o, i) => {
           const calc = opcoesCalculadas[i];
           const info = modalidadeInfo(o.modalidade);
@@ -267,11 +301,14 @@ export function CrmPosVisita() {
                     <Campo rotulo="Ocupação"><select value={o.ocupacao} onChange={(e) => mudarOpcao(i, { ocupacao: e.target.value as Ocupacao })} className={inputBase}>{ocupacoesValidas(o.tipo_suite).map((x) => <option key={x} value={x}>{OCUPACAO_LABEL[x]}</option>)}</select></Campo>
                   </>
                 )}
-                <Campo rotulo="Grau estimado"><select value={o.grau} onChange={(e) => mudarOpcao(i, { grau: e.target.value as GrauDependencia })} className={inputBase}>{GRAUS.map((g) => <option key={g} value={g}>Grau {g}</option>)}</select></Campo>
+                {o.modalidade === "day_use" && (
+                  <Campo rotulo="Plano"><select value={o.plano} onChange={(e) => mudarOpcao(i, { plano: e.target.value as TipoValorDiaria })} className={inputBase}>{PLANOS_SENIORS_DAY.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></Campo>
+                )}
+                <Campo rotulo="Grau estimado"><select value={o.grau} onChange={(e) => mudarOpcao(i, { grau: e.target.value as GrauSimulacao })} className={inputBase}>{grausDaModalidade(o.modalidade).map((g) => <option key={g} value={g}>{rotuloGrauOpcao(g)}</option>)}</select></Campo>
               </div>
               {!info.usaTabela && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Campo rotulo="Valor (R$)"><input value={o.valorTxt} onChange={(e) => mudarOpcao(i, { valorTxt: e.target.value })} inputMode="decimal" className={inputBase} placeholder="350,00" /></Campo>
+                  <Campo rotulo="Outro valor (R$)"><input value={o.valorTxt} onChange={(e) => mudarOpcao(i, { valorTxt: e.target.value })} inputMode="decimal" className={inputBase} placeholder={calc.valor_tabela != null ? formatarMoeda(calc.valor_tabela).replace("R$", "").trim() : "350,00"} /></Campo>
                   <Campo rotulo="Por"><select value={o.unidade} onChange={(e) => mudarOpcao(i, { unidade: e.target.value })} className={inputBase}>{UNIDADES_VALOR.map((u) => <option key={u} value={u}>{u === "pacote" ? "pacote" : u.slice(1)}</option>)}</select></Campo>
                 </div>
               )}
@@ -279,11 +316,15 @@ export function CrmPosVisita() {
                 {info.usaTabela ? (
                   calc.valor_tabela == null ? <span className="text-warning">Sem preço na tabela para essa combinação.</span> : (
                     <span className="text-secondary">
-                      Tabela {formatarMoeda(calc.valor_tabela)} · <strong>com {calc.desconto_pct}%: {formatarMoeda(calc.valor_final)}/mês</strong>
+                      {o.modalidade === "reabilitacao" && "Reabilitação (valor único, qualquer acomodação) · "}Tabela {formatarMoeda(calc.valor_tabela)} · <strong>com {calc.desconto_pct}%: {formatarMoeda(calc.valor_final)}/mês</strong>
                     </span>
                   )
-                ) : calc.valor_final != null ? <strong className="text-secondary">{formatarMoeda(calc.valor_final)} {o.unidade === "pacote" ? "(pacote)" : o.unidade}</strong>
-                  : <span className="text-muted-foreground">Digite o valor (sem desconto).</span>}
+                ) : calc.valor_final != null ? (
+                  <span className="text-secondary">
+                    <strong>{formatarMoeda(calc.valor_final)}{calc.unidade === "pacote" ? " (pacote)" : calc.unidade}</strong>
+                    {calc.valor_tabela != null && calc.valor_final !== calc.valor_tabela ? ` · tabela ${formatarMoeda(calc.valor_tabela)}` : calc.valor_tabela != null ? " · tabela, sem desconto" : ""}
+                  </span>
+                ) : <span className="text-muted-foreground">{o.grau === "MC" ? "Sem diária de Memory Care na tabela: digite o valor." : "Sem valor na tabela: digite o valor (sem desconto)."}</span>}
               </div>
             </div>
           );
