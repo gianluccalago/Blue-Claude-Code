@@ -114,7 +114,7 @@ export type EnxovalCategoria =
 export type EnxovalMovimentoTipo = "entrada" | "baixa_perda" | "ajuste";
 /** Categoria de custo de material (despesas da Administração). */
 export type CategoriaMaterial = "limpeza" | "manutencao";
-export type TipoSuite = "Suíte" | "Suíte Premium" | "Long Stay" | "Apartamento" | "Suíte Master" | "Long Stay Cuidados Intensivos";
+export type TipoSuite = "Suíte Luxo" | "Suíte Premium" | "Long Stay" | "Apartamento";
 /** Faixa da tabela de preços: grau RDC I–III, Memory Care (MC) ou Reabilitação (REAB, preço único). */
 export type GrauPreco = GrauDependencia | "MC" | "REAB";
 /** Tipo de valor da tabela de diárias (referência). */

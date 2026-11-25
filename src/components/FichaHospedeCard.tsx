@@ -40,7 +40,7 @@ import {
   ouNaoInformado,
   formatarDataBR,
 } from "@/lib/utils";
-import { mesAtual, formatarMoeda, OCUPACAO_LABEL } from "@/lib/mensalidade";
+import { mesAtual, formatarMoeda, rotuloOcupacao } from "@/lib/mensalidade";
 import { statusEfetivoCobranca, STATUS_COBRANCA_LABEL, STATUS_COBRANCA_VARIANTE } from "@/lib/cobranca";
 import type { PerfilUsuario, Residente } from "@/types/database";
 
@@ -96,7 +96,7 @@ export function FichaHospedeCard({
               <SeloModalidade modalidade={r.modalidade} />
               {idade !== null && <Badge variant="secondary">{idade} anos</Badge>}
               {r.tipo_suite && <Badge variant="muted">{r.tipo_suite}</Badge>}
-              {r.ocupacao && <Badge variant="muted">{OCUPACAO_LABEL[r.ocupacao]}</Badge>}
+              {r.ocupacao && <Badge variant="muted">{rotuloOcupacao(r.tipo_suite, r.ocupacao)}</Badge>}
             </div>
             {/* Estadia temporária: previsão de término (curta permanência / day care). */}
             {r.data_fim_prevista && (

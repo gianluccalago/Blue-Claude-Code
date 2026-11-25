@@ -9,7 +9,7 @@ import {
 import type { OpcaoSimulacao } from "@/types/database";
 
 const opcao = (o: Partial<OpcaoSimulacao>): OpcaoSimulacao => ({
-  modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "III",
+  modalidade: "longa_permanencia", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "III",
   valor_tabela: 18117.65, desconto_pct: 15, valor_final: 15400, unidade: "/mês", ...o,
 });
 
@@ -37,11 +37,11 @@ describe("valor por extenso", () => {
 describe("campos da minuta", () => {
   const contato = { nome: "Ana Souza", nome_idoso: "Maria Souza", telefones: ["41 99999-0000"], emails: ["ana@x.com"], grau_estimado: "II" as const };
 
-  it("longa permanência: LP, mensalidade com desconto, acomodação e grau", () => {
+  it("longa permanência: LP, mensalidade pelo valor cheio + 15% de desconto vitalício, acomodação e grau", () => {
     const { campos, marcar } = camposDaMinuta(dadosDaMinuta({ simulacao: { opcoes: [opcao({})] } }, contato));
     expect(campos).toMatchObject({
       residente_nome: "Maria Souza", mantenedor_nome: "Ana Souza", mantenedor_telefone: "41 99999-0000", mantenedor_email: "ana@x.com",
-      mensalidade_valor: "15.400,00", mensalidade_extenso: "quinze mil e quatrocentos reais", desconto_pct: "15",
+      mensalidade_valor: "18.117,65", mensalidade_extenso: "dezoito mil cento e dezessete reais e sessenta e cinco centavos", desconto_pct: "15",
       acomodacao: "Suíte Luxo individual", grau: "III",
     });
     expect(marcar.sort()).toEqual(["chk_individual", "chk_lp", "chk_mensalidade"]);
@@ -65,7 +65,9 @@ describe("campos da minuta", () => {
 
   it("acomodação com o nome do contrato e nome de arquivo sem acento", () => {
     expect(acomodacaoContrato("Suíte Premium", "duplo")).toBe("Suíte Premium dupla");
-    expect(acomodacaoContrato("Suíte", "simples")).toBe("Suíte Luxo individual");
+    expect(acomodacaoContrato("Suíte Luxo", "simples")).toBe("Suíte Luxo individual");
+    expect(acomodacaoContrato("Suíte", "simples")).toBe("Suíte Luxo individual"); // simulação salva antes da 0156
+    expect(acomodacaoContrato("Long Stay", "triplo")).toBe("Long Stay Cuidados Intensivos");
     expect(nomeArquivoMinuta(dadosDaMinuta({ simulacao: null }, { ...contato, nome_idoso: "José da Conceição" }))).toBe("Minuta_Contrato_Blue_Jose_da_Conceicao.docx");
   });
 });

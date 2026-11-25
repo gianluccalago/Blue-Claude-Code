@@ -56,17 +56,17 @@ const equipe = [
 // ─── MORADORES (12) ────────────────────────────────────────────────────────
 // n=1 é a protagonista. grau_dependencia = ATUAL; grau_contratual = do contrato.
 const moradores = [
-  { n: 1, nome: "Maria Helena Andrade", nasc: "1947-03-18", grau: "II", contratual: "I", suite: "Suíte", quarto: "204", resp: "Fernanda Andrade Ribeiro", respTel: "(41) 99612-4477", freq: 3 },
-  { n: 2, nome: "Aparecida Nunes Vidal", nasc: "1944-07-02", grau: "I", contratual: "I", suite: "Suíte", quarto: "201", resp: "Cláudio Nunes Vidal", respTel: "(41) 99845-1120", freq: 1 },
+  { n: 1, nome: "Maria Helena Andrade", nasc: "1947-03-18", grau: "II", contratual: "I", suite: "Suíte Luxo", quarto: "204", resp: "Fernanda Andrade Ribeiro", respTel: "(41) 99612-4477", freq: 3 },
+  { n: 2, nome: "Aparecida Nunes Vidal", nasc: "1944-07-02", grau: "I", contratual: "I", suite: "Suíte Luxo", quarto: "201", resp: "Cláudio Nunes Vidal", respTel: "(41) 99845-1120", freq: 1 },
   { n: 3, nome: "Conceição Dias Ferraz", nasc: "1949-11-25", grau: "I", contratual: "I", suite: "Long Stay", quarto: "108", resp: "Beatriz Dias Ferraz", respTel: "(41) 99231-8890", freq: 1 },
   { n: 4, nome: "Waldir Campos Rocha", nasc: "1943-01-09", grau: "I", contratual: "I", suite: "Apartamento", quarto: "302", resp: "Sérgio Campos Rocha", respTel: "(41) 99770-3312", freq: 1 },
   { n: 5, nome: "Nelson Barreto Aguiar", nasc: "1946-05-14", grau: "I", contratual: "I", suite: "Apartamento", quarto: "305", resp: "Marina Barreto Aguiar", respTel: "(41) 99188-7745", freq: 1 },
-  { n: 6, nome: "Yolanda Prates Coelho", nasc: "1941-09-30", grau: "I", contratual: "I", suite: "Suíte", quarto: "206", resp: "Rogério Prates Coelho", respTel: "(41) 99554-2201", freq: 1 },
+  { n: 6, nome: "Yolanda Prates Coelho", nasc: "1941-09-30", grau: "I", contratual: "I", suite: "Suíte Luxo", quarto: "206", resp: "Rogério Prates Coelho", respTel: "(41) 99554-2201", freq: 1 },
   { n: 7, nome: "Ivone Salgado Reis", nasc: "1948-02-11", grau: "I", contratual: "I", suite: "Long Stay", quarto: "110", resp: "Tatiana Salgado Reis", respTel: "(41) 99903-6678", freq: 1 },
   { n: 8, nome: "Arnaldo Bicudo Franco", nasc: "1945-12-03", grau: "I", contratual: "I", suite: "Apartamento", quarto: "308", resp: "Luiza Bicudo Franco", respTel: "(41) 99417-9024", freq: 1 },
-  { n: 9, nome: "Lúcia Moraes Tavares", nasc: "1940-06-21", grau: "II", contratual: "II", suite: "Suíte", quarto: "209", resp: "Paulo Moraes Tavares", respTel: "(41) 99326-5580", freq: 3 },
+  { n: 9, nome: "Lúcia Moraes Tavares", nasc: "1940-06-21", grau: "II", contratual: "II", suite: "Suíte Luxo", quarto: "209", resp: "Paulo Moraes Tavares", respTel: "(41) 99326-5580", freq: 3 },
   { n: 10, nome: "Otávio Prado Sanches", nasc: "1939-08-17", grau: "II", contratual: "II", suite: "Suíte Premium", quarto: "212", resp: "Renata Prado Sanches", respTel: "(41) 99640-1193", freq: 3, alergias: "Dipirona" },
-  { n: 11, nome: "Célia Bastos Meireles", nasc: "1942-04-06", grau: "II", contratual: "II", suite: "Suíte", quarto: "215", resp: "André Bastos Meireles", respTel: "(41) 99872-4406", freq: 3 },
+  { n: 11, nome: "Célia Bastos Meireles", nasc: "1942-04-06", grau: "II", contratual: "II", suite: "Suíte Luxo", quarto: "215", resp: "André Bastos Meireles", respTel: "(41) 99872-4406", freq: 3 },
   { n: 12, nome: "Therezinha Alves Moreira", nasc: "1936-10-28", grau: "III", contratual: "II", suite: "Suíte Premium", quarto: "218", resp: "Vera Alves Moreira", respTel: "(41) 99205-7731", freq: 5 },
 ];
 
@@ -150,8 +150,8 @@ for (const c of contatos) {
 }
 
 const oportunidades = [
-  { n: 1, contato: 1, nome: "Família Andrade — Maria Helena", etapa: "Admissão", status: "ganha", valor: 9800, suite: "Suíte", criado: J.leadPrimeiroContato, fechado: J.leadContrato, residente: 1, qual: 5 },
-  { n: 2, contato: 2, nome: "Família Peixoto — Sônia", etapa: "Visita realizada", status: "em_andamento", valor: 12400, suite: "Suíte", criado: 29, fechado: null, residente: null, qual: 4 },
+  { n: 1, contato: 1, nome: "Família Andrade — Maria Helena", etapa: "Admissão", status: "ganha", valor: 9800, suite: "Suíte Luxo", criado: J.leadPrimeiroContato, fechado: J.leadContrato, residente: 1, qual: 5 },
+  { n: 2, contato: 2, nome: "Família Peixoto — Sônia", etapa: "Visita realizada", status: "em_andamento", valor: 12400, suite: "Suíte Luxo", criado: 29, fechado: null, residente: null, qual: 4 },
   { n: 3, contato: 3, nome: "Família Ferrari — João Batista", etapa: "Proposta enviada", status: "em_andamento", valor: 9800, suite: "Long Stay", criado: 34, fechado: null, residente: null, qual: 4 },
 ];
 for (const o of oportunidades) {

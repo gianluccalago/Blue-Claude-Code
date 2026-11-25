@@ -1,3 +1,4 @@
+import { ehCuidadosIntensivos, nomeAcomodacao } from "@/lib/mensalidade";
 import type { CrmContato, CrmOportunidade, OpcaoSimulacao } from "@/types/database";
 
 // ===========================================================================
@@ -76,10 +77,11 @@ export function valorPorExtenso(valor: number): string {
 
 // --- Campos a partir da oportunidade ------------------------------------------
 
-/** Nome da acomodação como está no contrato ("Suíte" do app = "Suíte Luxo"). */
+/** Nome da acomodação como está no contrato ("Suíte Luxo individual", "Long Stay Cuidados Intensivos"). */
 export function acomodacaoContrato(tipoSuite: string | null, ocupacao: string | null): string | null {
-  if (!tipoSuite) return null;
-  const nome = tipoSuite === "Suíte" ? "Suíte Luxo" : tipoSuite;
+  const nome = nomeAcomodacao(tipoSuite, ocupacao);
+  if (!nome) return null;
+  if (ehCuidadosIntensivos(tipoSuite, ocupacao)) return nome;
   const ocup = ocupacao === "simples" ? "individual" : ocupacao === "duplo" ? "dupla" : ocupacao === "triplo" ? "tripla" : null;
   return ocup ? `${nome} ${ocup}` : nome;
 }
@@ -109,9 +111,11 @@ export function dadosDaMinuta(op: Pick<CrmOportunidade, "simulacao">, contato: P
 }
 
 /**
- * O que preencher e o que marcar. Longa permanência: LP + Mensalidade (valor já
- * com o desconto) e o % de desconto sobre a tabela. Reabilitação: Mensalidade
- * com desconto, modalidade em aberto. Curta permanência: CP + diária, sem desconto.
+ * O que preencher e o que marcar. Longa permanência: LP + Mensalidade pelo
+ * valor CHEIO da tabela e o desconto (vitalício: se o grau mudar, vale sobre a
+ * tabela do novo grau — item 9.1.2). Reabilitação: igual, com a modalidade em
+ * aberto (o contrato só tem CP e LP, e reabilitação não é curta permanência).
+ * Curta permanência: CP + diária, sem desconto.
  */
 export function camposDaMinuta(d: DadosMinuta): { campos: Partial<Record<CampoMinuta, string>>; marcar: CaixaMinuta[] } {
   const campos: Partial<Record<CampoMinuta, string>> = {
@@ -138,9 +142,10 @@ export function camposDaMinuta(d: DadosMinuta): { campos: Partial<Record<CampoMi
   }
   if (o.modalidade === "longa_permanencia") marcar.push("chk_lp");
   marcar.push("chk_mensalidade");
-  if (o.valor_final != null) {
-    campos.mensalidade_valor = moedaSemSimbolo(o.valor_final);
-    campos.mensalidade_extenso = valorPorExtenso(o.valor_final);
+  const cheio = o.valor_tabela ?? o.valor_final;
+  if (cheio != null) {
+    campos.mensalidade_valor = moedaSemSimbolo(cheio);
+    campos.mensalidade_extenso = valorPorExtenso(cheio);
   }
   if (o.desconto_pct > 0) campos.desconto_pct = String(o.desconto_pct);
   return { campos, marcar };

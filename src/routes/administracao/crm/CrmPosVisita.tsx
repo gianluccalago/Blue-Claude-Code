@@ -13,7 +13,7 @@ import {
   type DadosMensagem,
 } from "@/lib/posVisita";
 import { RELACOES_VISITANTE } from "@/lib/crm";
-import { TIPOS_SUITE, GRAUS, ocupacoesValidas, precoVigenteEm, formatarMoeda, OCUPACAO_LABEL } from "@/lib/mensalidade";
+import { TIPOS_SUITE, GRAUS, ocupacoesValidas, precoVigenteEm, formatarMoeda, rotuloOcupacao } from "@/lib/mensalidade";
 import { cn, hojeISO } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ interface OpcaoForm {
   valorTxt: string;
   unidade: string;
 }
-const OPCAO_PADRAO: OpcaoForm = { modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", plano: "sd_2a_6a", valorTxt: "", unidade: "/dia" };
+const OPCAO_PADRAO: OpcaoForm = { modalidade: "longa_permanencia", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "II", plano: "sd_2a_6a", valorTxt: "", unidade: "/dia" };
 
 /** Graus oferecidos: Memory Care só na longa permanência (é faixa de preço própria). */
 const grausDaModalidade = (m: ModalidadeSimulacao): GrauSimulacao[] => (m === "longa_permanencia" ? [...GRAUS, "MC"] : [...GRAUS]);
@@ -107,7 +107,7 @@ export function CrmPosVisita() {
       setOuvimos(o.o_que_ouvimos ?? ""); setDetalhe(o.detalhe_pessoal ?? "");
       if (o.simulacao?.opcoes?.length) {
         setOpcoes(o.simulacao.opcoes.map((x) => ({
-          modalidade: x.modalidade, tipo_suite: (x.tipo_suite as TipoSuite) ?? "Suíte", ocupacao: (x.ocupacao as Ocupacao) ?? "simples",
+          modalidade: x.modalidade, tipo_suite: x.tipo_suite === "Suíte" ? "Suíte Luxo" : (x.tipo_suite as TipoSuite) ?? "Suíte Luxo", ocupacao: (x.ocupacao as Ocupacao) ?? "simples",
           grau: (x.grau as GrauSimulacao) ?? c?.grau_estimado ?? "II",
           plano: x.plano ?? "sd_2a_6a",
           // Valor digitado só volta para o campo quando diferia da tabela.
@@ -115,7 +115,7 @@ export function CrmPosVisita() {
           unidade: x.unidade,
         })));
       } else if (c?.grau_estimado) {
-        setOpcoes([{ ...OPCAO_PADRAO, grau: c.grau_estimado, tipo_suite: (o.tipo_suite_interesse as TipoSuite) ?? "Suíte" }]);
+        setOpcoes([{ ...OPCAO_PADRAO, grau: c.grau_estimado, tipo_suite: (o.tipo_suite_interesse as TipoSuite) ?? "Suíte Luxo" }]);
       }
       setPositiva(o.visita_positiva); setPassos(o.proximos_passos?.length ? o.proximos_passos : [{ passo: "", data: null }]);
       setPergunta(o.pergunta_confirmacao ?? ""); setConsentimento(o.consentimento_whatsapp);
@@ -298,7 +298,7 @@ export function CrmPosVisita() {
                 {o.modalidade !== "day_use" && (
                   <>
                     <Campo rotulo="Suíte"><select value={o.tipo_suite} onChange={(e) => mudarOpcao(i, { tipo_suite: e.target.value as TipoSuite })} className={inputBase}>{TIPOS_SUITE.map((t) => <option key={t}>{t}</option>)}</select></Campo>
-                    <Campo rotulo="Ocupação"><select value={o.ocupacao} onChange={(e) => mudarOpcao(i, { ocupacao: e.target.value as Ocupacao })} className={inputBase}>{ocupacoesValidas(o.tipo_suite).map((x) => <option key={x} value={x}>{OCUPACAO_LABEL[x]}</option>)}</select></Campo>
+                    <Campo rotulo="Ocupação"><select value={o.ocupacao} onChange={(e) => mudarOpcao(i, { ocupacao: e.target.value as Ocupacao })} className={inputBase}>{ocupacoesValidas(o.tipo_suite).map((x) => <option key={x} value={x}>{rotuloOcupacao(o.tipo_suite, x)}</option>)}</select></Campo>
                   </>
                 )}
                 {o.modalidade === "day_use" && (
@@ -330,7 +330,7 @@ export function CrmPosVisita() {
           );
         })}
         {opcoes.length < 2 && (
-          <Button size="sm" variant="outline" onClick={() => setOpcoes((os) => [...os, { ...os[0], modalidade: os[0].modalidade, tipo_suite: os[0].tipo_suite === "Suíte" ? "Suíte Premium" : "Suíte" }])}>
+          <Button size="sm" variant="outline" onClick={() => setOpcoes((os) => [...os, { ...os[0], modalidade: os[0].modalidade, tipo_suite: os[0].tipo_suite === "Suíte Luxo" ? "Suíte Premium" : "Suíte Luxo" }])}>
             <Plus className="size-4" /> Comparar com outra opção
           </Button>
         )}

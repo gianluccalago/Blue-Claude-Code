@@ -35,7 +35,7 @@ import {
   GRAU_PRECO_LABEL,
   DESCONTO_MAXIMO_PCT,
   TIPOS_SUITE,
-  OCUPACAO_LABEL,
+  rotuloOcupacao,
   ocupacoesValidas,
   chavePreco,
   precoVigenteEm,
@@ -96,8 +96,8 @@ export function TabelaPrecos() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Preço cheio, por residente (na dupla, cada um paga o valor). Na venda, até {DESCONTO_MAXIMO_PCT}% de desconto.
-            “Suíte” é a Suíte Luxo do contrato. Reabilitação: valor único, qualquer acomodação.
+            Preço cheio, por residente (na dupla e no triplo, cada um paga o valor). Na venda, até {DESCONTO_MAXIMO_PCT}% de desconto vitalício
+            (mantido sobre a tabela se o grau mudar). Reabilitação: valor único, qualquer acomodação. O triplo do Long Stay é o Cuidados Intensivos.
           </p>
 
           {TIPOS_SUITE.map((tipo) => (
@@ -106,7 +106,7 @@ export function TabelaPrecos() {
               {ocupacoesValidas(tipo).map((ocupacao) => (
                 <div key={ocupacao} className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {OCUPACAO_LABEL[ocupacao]}
+                    {rotuloOcupacao(tipo, ocupacao)}
                   </p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                     {/* Graus I–III sempre; Memory Care e Reabilitação só onde a tabela tem preço. */}

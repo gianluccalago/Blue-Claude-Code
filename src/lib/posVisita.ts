@@ -10,6 +10,7 @@ import type {
   OpcaoSimulacao,
   ProximoPasso,
 } from "@/types/database";
+import { nomeAcomodacao } from "@/lib/mensalidade";
 
 // ===========================================================================
 // CRM · CONDUÇÃO PÓS-VISITA — regras puras (sem banco). Função desenhada pelo
@@ -132,7 +133,7 @@ export function textoSimulacao(opcoes: OpcaoSimulacao[], validade: string | null
   if (validas.length === 0) return "";
   const linhas = validas.map((o, i) => {
     const plano = o.plano ? PLANOS_SENIORS_DAY.find((p) => p.value === o.plano)?.label : null;
-    const desc = [modalidadeInfo(o.modalidade).label, plano, o.tipo_suite, o.ocupacao ? `ocupação ${o.ocupacao}` : null, rotuloGrau(o.grau)]
+    const desc = [modalidadeInfo(o.modalidade).label, plano, nomeAcomodacao(o.tipo_suite, o.ocupacao), o.ocupacao ? `ocupação ${o.ocupacao}` : null, rotuloGrau(o.grau)]
       .filter(Boolean).join(" · ");
     const valor = o.desconto_pct > 0 && o.valor_tabela != null
       ? `de ${moeda(o.valor_tabela)} por ${moeda(o.valor_final!)}${o.unidade} (${o.desconto_pct}% de desconto)`

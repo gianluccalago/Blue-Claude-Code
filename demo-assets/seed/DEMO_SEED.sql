@@ -40,7 +40,7 @@ update public.residentes
 
 insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau_contratual, quarto, modulo, andar, tipo_suite, ocupacao,
   responsavel_legal, contato, contato_emergencia_nome, contato_emergencia_telefone, alergias, mensalidade_valor, data_admissao, historia_vida) values
-  ('de300010-0000-4000-8000-000000000001', 'Maria Helena Andrade', '1947-03-18', 'II', 'I', '204', 5, 2, 'Suíte', 'simples',
+  ('de300010-0000-4000-8000-000000000001', 'Maria Helena Andrade', '1947-03-18', 'II', 'I', '204', 5, 2, 'Suíte Luxo', 'simples',
    'Fernanda Andrade Ribeiro', '(41) 99612-4477', 'Fernanda Andrade Ribeiro', '(41) 99612-4477', null, 12400, (demo_ref() - 120),
    'Professora aposentada da rede estadual, lecionou português por 34 anos. Viúva desde 2019, mãe de duas filhas. Gosta de leitura, palavras cruzadas e do coral às quartas.')
   on conflict (id) do update set nome = excluded.nome, grau_dependencia = excluded.grau_dependencia,
@@ -50,7 +50,7 @@ insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau
     mensalidade_valor = excluded.mensalidade_valor, data_admissao = excluded.data_admissao, historia_vida = excluded.historia_vida;
 insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau_contratual, quarto, modulo, andar, tipo_suite, ocupacao,
   responsavel_legal, contato, contato_emergencia_nome, contato_emergencia_telefone, alergias, mensalidade_valor, data_admissao, historia_vida) values
-  ('de300010-0000-4000-8000-000000000002', 'Aparecida Nunes Vidal', '1944-07-02', 'I', 'I', '201', 5, 2, 'Suíte', 'simples',
+  ('de300010-0000-4000-8000-000000000002', 'Aparecida Nunes Vidal', '1944-07-02', 'I', 'I', '201', 5, 2, 'Suíte Luxo', 'simples',
    'Cláudio Nunes Vidal', '(41) 99845-1120', 'Cláudio Nunes Vidal', '(41) 99845-1120', null, 9800, (demo_ref() - 104),
    null)
   on conflict (id) do update set nome = excluded.nome, grau_dependencia = excluded.grau_dependencia,
@@ -90,7 +90,7 @@ insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau
     mensalidade_valor = excluded.mensalidade_valor, data_admissao = excluded.data_admissao, historia_vida = excluded.historia_vida;
 insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau_contratual, quarto, modulo, andar, tipo_suite, ocupacao,
   responsavel_legal, contato, contato_emergencia_nome, contato_emergencia_telefone, alergias, mensalidade_valor, data_admissao, historia_vida) values
-  ('de300010-0000-4000-8000-000000000006', 'Yolanda Prates Coelho', '1941-09-30', 'I', 'I', '206', 5, 2, 'Suíte', 'simples',
+  ('de300010-0000-4000-8000-000000000006', 'Yolanda Prates Coelho', '1941-09-30', 'I', 'I', '206', 5, 2, 'Suíte Luxo', 'simples',
    'Rogério Prates Coelho', '(41) 99554-2201', 'Rogério Prates Coelho', '(41) 99554-2201', null, 9800, (demo_ref() - 192),
    null)
   on conflict (id) do update set nome = excluded.nome, grau_dependencia = excluded.grau_dependencia,
@@ -120,7 +120,7 @@ insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau
     mensalidade_valor = excluded.mensalidade_valor, data_admissao = excluded.data_admissao, historia_vida = excluded.historia_vida;
 insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau_contratual, quarto, modulo, andar, tipo_suite, ocupacao,
   responsavel_legal, contato, contato_emergencia_nome, contato_emergencia_telefone, alergias, mensalidade_valor, data_admissao, historia_vida) values
-  ('de300010-0000-4000-8000-000000000009', 'Lúcia Moraes Tavares', '1940-06-21', 'II', 'II', '209', 5, 2, 'Suíte', 'simples',
+  ('de300010-0000-4000-8000-000000000009', 'Lúcia Moraes Tavares', '1940-06-21', 'II', 'II', '209', 5, 2, 'Suíte Luxo', 'simples',
    'Paulo Moraes Tavares', '(41) 99326-5580', 'Paulo Moraes Tavares', '(41) 99326-5580', null, 12400, (demo_ref() - 258),
    null)
   on conflict (id) do update set nome = excluded.nome, grau_dependencia = excluded.grau_dependencia,
@@ -140,7 +140,7 @@ insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau
     mensalidade_valor = excluded.mensalidade_valor, data_admissao = excluded.data_admissao, historia_vida = excluded.historia_vida;
 insert into public.residentes (id, nome, data_nascimento, grau_dependencia, grau_contratual, quarto, modulo, andar, tipo_suite, ocupacao,
   responsavel_legal, contato, contato_emergencia_nome, contato_emergencia_telefone, alergias, mensalidade_valor, data_admissao, historia_vida) values
-  ('de300010-0000-4000-8000-000000000011', 'Célia Bastos Meireles', '1942-04-06', 'II', 'II', '215', 5, 2, 'Suíte', 'simples',
+  ('de300010-0000-4000-8000-000000000011', 'Célia Bastos Meireles', '1942-04-06', 'II', 'II', '215', 5, 2, 'Suíte Luxo', 'simples',
    'André Bastos Meireles', '(41) 99872-4406', 'André Bastos Meireles', '(41) 99872-4406', null, 12400, (demo_ref() - 302),
    null)
   on conflict (id) do update set nome = excluded.nome, grau_dependencia = excluded.grau_dependencia,
@@ -254,14 +254,14 @@ insert into public.crm_contato (id, nome, telefones, emails, relacao, nome_idoso
     relacao = excluded.relacao, nome_idoso = excluded.nome_idoso, idade_idoso = excluded.idade_idoso;
 insert into public.crm_oportunidade (id, nome, contato_id, origem_id, qualificacao, valor_mensalidade_estimado, tipo_suite_interesse,
   previsao_fechamento, etapa, status, responsavel, residente_id, criado_em, fechado_em) values
-  ('de300031-0000-4000-8000-000000000001', 'Família Andrade — Maria Helena', 'de300030-0000-4000-8000-000000000001', (select id from public.crm_origem where nome = 'Indicação de família' limit 1), 5, 9800, 'Suíte',
+  ('de300031-0000-4000-8000-000000000001', 'Família Andrade — Maria Helena', 'de300030-0000-4000-8000-000000000001', (select id from public.crm_origem where nome = 'Indicação de família' limit 1), 5, 9800, 'Suíte Luxo',
    (demo_ref() - 122), 'Admissão', 'ganha', 'Débora Nunes Carvalho', 'de300010-0000-4000-8000-000000000001',
    ((demo_ref() - 150)::timestamp + time '10:25'), ((demo_ref() - 122)::timestamp + time '16:40'))
   on conflict (id) do update set etapa = excluded.etapa, status = excluded.status, qualificacao = excluded.qualificacao,
     valor_mensalidade_estimado = excluded.valor_mensalidade_estimado, criado_em = excluded.criado_em, fechado_em = excluded.fechado_em;
 insert into public.crm_oportunidade (id, nome, contato_id, origem_id, qualificacao, valor_mensalidade_estimado, tipo_suite_interesse,
   previsao_fechamento, etapa, status, responsavel, residente_id, criado_em, fechado_em) values
-  ('de300031-0000-4000-8000-000000000002', 'Família Peixoto — Sônia', 'de300030-0000-4000-8000-000000000002', (select id from public.crm_origem where nome = 'Site' limit 1), 4, 12400, 'Suíte',
+  ('de300031-0000-4000-8000-000000000002', 'Família Peixoto — Sônia', 'de300030-0000-4000-8000-000000000002', (select id from public.crm_origem where nome = 'Site' limit 1), 4, 12400, 'Suíte Luxo',
    (demo_ref() - -18), 'Visita realizada', 'em_andamento', 'Débora Nunes Carvalho', null,
    ((demo_ref() - 29)::timestamp + time '10:25'), null)
   on conflict (id) do update set etapa = excluded.etapa, status = excluded.status, qualificacao = excluded.qualificacao,

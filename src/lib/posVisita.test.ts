@@ -34,13 +34,13 @@ const base: DadosMensagem = {
   oQueOuvimos: "a Dona Maria caiu duas vezes este ano.", dores: ["D01", "D06", "D02"], objecoes: ["O04"],
   proximosPassos: [{ passo: "Almoço experiência", data: "2026-11-28" }, { passo: "", data: null }],
   perguntaConfirmacao: null,
-  simulacao: [calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", valor_tabela: 10000, unidade: "/mês" }, null)],
+  simulacao: [calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "II", valor_tabela: 10000, unidade: "/mês" }, null)],
   simulacaoValidade: "2026-12-24", visitaEm: "2026-11-24", hoje: "2026-11-24",
 };
 
 describe("simulação", () => {
   it("longa permanência e reabilitação: tabela com 15% de desconto", () => {
-    const o = calcularOpcao({ modalidade: "reabilitacao", tipo_suite: "Suíte", ocupacao: "simples", grau: "I", valor_tabela: 9000, unidade: "/mês" }, null);
+    const o = calcularOpcao({ modalidade: "reabilitacao", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "I", valor_tabela: 9000, unidade: "/mês" }, null);
     expect(o.desconto_pct).toBe(15);
     expect(o.valor_final).toBe(7650);
   });
@@ -48,18 +48,21 @@ describe("simulação", () => {
     const d = calcularOpcao({ modalidade: "day_use", tipo_suite: null, ocupacao: null, grau: "I", valor_tabela: 346.5, unidade: "/dia", plano: "sd_2a_6a" }, null);
     expect(d).toMatchObject({ desconto_pct: 0, valor_final: 346.5, unidade: "/dia" });
     expect(calcularOpcao({ modalidade: "day_use", tipo_suite: null, ocupacao: null, grau: "I", valor_tabela: 346.5, unidade: "/dia" }, 400).valor_final).toBe(400);
-    const c = calcularOpcao({ modalidade: "curta_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "II", valor_tabela: null, unidade: "/dia" }, 0);
+    const c = calcularOpcao({ modalidade: "curta_permanencia", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "II", valor_tabela: null, unidade: "/dia" }, 0);
     expect(c.valor_final).toBeNull();
     expect(textoSimulacao([d], null)).toContain("Seniors Day (Day Use) · 2ª a 6ª · grau I\nR$ 346,50/dia");
   });
   it("Memory Care aparece pelo nome; reabilitação usa a faixa de preço única", () => {
-    const mc = calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Suíte", ocupacao: "simples", grau: "MC", valor_tabela: 20117.65, unidade: "/mês" }, null);
+    const mc = calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Suíte Luxo", ocupacao: "simples", grau: "MC", valor_tabela: 20117.65, unidade: "/mês" }, null);
     expect(mc.valor_final).toBe(17100); // = "com desconto máximo" da planilha
     expect(textoSimulacao([mc], null)).toContain("Memory Care");
+    const ci = calcularOpcao({ modalidade: "longa_permanencia", tipo_suite: "Long Stay", ocupacao: "triplo", grau: "III", valor_tabela: 14823.53, unidade: "/mês" }, null);
+    expect(textoSimulacao([ci], null)).toContain("Long Stay Cuidados Intensivos · ocupação triplo · grau III");
+    expect(ci.valor_final).toBe(12600); // = "com desconto máximo" da planilha
     expect(grauDaTabela("reabilitacao", "II")).toBe("REAB");
     expect(grauDaTabela("longa_permanencia", "MC")).toBe("MC");
-    expect(chaveTabelaPreco("reabilitacao", "Suíte", "II", "duplo")).toEqual({ tipoSuite: "Apartamento", grau: "REAB", ocupacao: "simples" });
-    expect(chaveTabelaPreco("longa_permanencia", "Suíte", "II", "duplo")).toEqual({ tipoSuite: "Suíte", grau: "II", ocupacao: "duplo" });
+    expect(chaveTabelaPreco("reabilitacao", "Suíte Luxo", "II", "duplo")).toEqual({ tipoSuite: "Apartamento", grau: "REAB", ocupacao: "simples" });
+    expect(chaveTabelaPreco("longa_permanencia", "Suíte Luxo", "II", "duplo")).toEqual({ tipoSuite: "Suíte Luxo", grau: "II", ocupacao: "duplo" });
   });
   it("validade de 30 dias e aviso de avaliação médica", () => {
     expect(validadeSimulacao("2026-11-24")).toBe("2026-12-24");

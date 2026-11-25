@@ -1,7 +1,7 @@
 import { hojeISO as hojeISOsp } from "@/lib/utils";
 import type { GrauDependencia, GrauPreco, Ocupacao, TipoSuite } from "@/types/database";
 
-export const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Suíte Master", "Long Stay", "Long Stay Cuidados Intensivos", "Apartamento"];
+export const TIPOS_SUITE: TipoSuite[] = ["Suíte Luxo", "Suíte Premium", "Long Stay", "Apartamento"];
 
 export const GRAUS: GrauDependencia[] = ["I", "II", "III"];
 
@@ -27,14 +27,30 @@ export const OCUPACAO_LABEL: Record<Ocupacao, string> = {
 };
 
 /**
- * Ocupações VÁLIDAS por tipo de suíte. Long Stay permite triplo; os demais
- * (Suíte, Suíte Premium, Apartamento) vão até duplo. Tipo nulo → padrão (até
- * duplo). Total de combinações tipo×grau×ocupação = 27.
+ * Ocupações VÁLIDAS por tipo de suíte. Long Stay permite triplo (o "Long Stay
+ * Cuidados Intensivos" da tabela); os demais (Suíte Luxo, Suíte Premium,
+ * Apartamento) vão até duplo. Tipo nulo → padrão (até duplo).
  */
 export function ocupacoesValidas(tipoSuite: TipoSuite | null): Ocupacao[] {
   if (tipoSuite === "Long Stay") return ["simples", "duplo", "triplo"];
-  if (tipoSuite === "Long Stay Cuidados Intensivos") return ["simples"];
   return ["simples", "duplo"];
+}
+
+/** O triplo do Long Stay é o "Long Stay Cuidados Intensivos" da tabela e do contrato. */
+export function ehCuidadosIntensivos(tipoSuite: string | null | undefined, ocupacao: string | null | undefined): boolean {
+  return tipoSuite === "Long Stay" && ocupacao === "triplo";
+}
+
+/** Rótulo da ocupação no contexto do tipo ("Triplo · Cuidados Intensivos" no Long Stay). */
+export function rotuloOcupacao(tipoSuite: string | null | undefined, ocupacao: Ocupacao): string {
+  return ehCuidadosIntensivos(tipoSuite, ocupacao) ? "Triplo · Cuidados Intensivos" : OCUPACAO_LABEL[ocupacao];
+}
+
+/** Nome da acomodação como a família lê ("Long Stay Cuidados Intensivos" no triplo). */
+export function nomeAcomodacao(tipoSuite: string | null | undefined, ocupacao: string | null | undefined): string | null {
+  if (!tipoSuite) return null;
+  if (ehCuidadosIntensivos(tipoSuite, ocupacao)) return "Long Stay Cuidados Intensivos";
+  return tipoSuite === "Suíte" ? "Suíte Luxo" : tipoSuite; // "Suíte" = nome antigo (antes da 0156)
 }
 
 /** Ocupação efetiva p/ buscar preço/sugestão (padrão "simples" quando vazia). */

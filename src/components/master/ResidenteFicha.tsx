@@ -9,7 +9,7 @@ import type { ResidenteValor } from "@/hooks/useResidentesGestao";
 import { MODALIDADES } from "@/lib/modalidade";
 import { calcularIdade, grauNivel, tempoDePermanencia } from "@/lib/utils";
 import { montarQuarto, parseQuarto, type LetraQuarto } from "@/lib/quarto";
-import { ocupacoesValidas, OCUPACAO_LABEL } from "@/lib/mensalidade";
+import { ocupacoesValidas, rotuloOcupacao, TIPOS_SUITE } from "@/lib/mensalidade";
 import { lerReais } from "@/lib/fluxoCaixa";
 import {
   ResponsavelFinanceiroFields,
@@ -28,7 +28,6 @@ const CAMPO_RESP_FIN: Record<keyof RespFinValor, keyof ResidenteValor> = {
 };
 
 /** Tipos de suíte (alinhado à tabela de preços da Administração). */
-const TIPOS_SUITE: TipoSuite[] = ["Suíte", "Suíte Premium", "Suíte Master", "Long Stay", "Long Stay Cuidados Intensivos", "Apartamento"];
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -233,7 +232,7 @@ export function ResidenteFicha({
             <select value={v.ocupacao ?? ""} onChange={(e) => set("ocupacao", (e.target.value || null) as Ocupacao | null)} className={inputBase}>
               <option value="">Não informado</option>
               {ocupacoesValidas(v.tipo_suite ?? null).map((o) => (
-                <option key={o} value={o}>{OCUPACAO_LABEL[o]}</option>
+                <option key={o} value={o}>{rotuloOcupacao(v.tipo_suite, o)}</option>
               ))}
             </select>
           </Campo>
